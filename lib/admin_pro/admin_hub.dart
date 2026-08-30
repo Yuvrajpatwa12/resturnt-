@@ -341,7 +341,6 @@ class _AdminHubState extends State<AdminHub> {
                     _buildNestedExpandableItem(
                       title: "HRM",
                       children: [
-                        _buildSubDrawerItem(37, "Designation", isDoubleNested: true),
                         _buildSubDrawerItem(38, "Add Employee", isDoubleNested: true),
                         _buildSubDrawerItem(39, "Manage Employee", isDoubleNested: true),
                         _buildSubDrawerItem(40, "Manage Employee Salary", isDoubleNested: true),

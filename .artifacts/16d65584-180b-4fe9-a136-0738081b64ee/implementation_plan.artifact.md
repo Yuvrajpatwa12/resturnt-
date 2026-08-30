@@ -1,39 +1,40 @@
-# Implementation Plan - Advanced Payroll & Employee Profiles
+# Implementation Plan - Designation Management System
 
-This plan expands the HRM module to include professional salary tracking and employee profile pictures (Camera/Gallery support).
+This plan implements a full Designation Management system within the HRM module. It allows administrators to define job titles and roles dynamically, which can then be assigned to employees.
 
 ## User Review Required
 
 > [!IMPORTANT]
-> **New Dependency**: I will add the `image_picker` package to your `pubspec.yaml` to enable camera and gallery access.
-> **Backend Storage**: Profile pictures will be uploaded to a new `uploads/profiles/` folder on your Hostinger server. You may need to create this folder manually if the script doesn't have permissions.
+> **Database Requirement**: I will provide SQL code to create the `designations` table. You must run this in your phpMyAdmin on Hostinger.
+> **Real-Time Integration**: Once a designation is added, it will immediately appear as an option when adding or editing a new employee.
 
 ## Proposed Changes
 
-### [Dependencies]
-#### [MODIFY] [pubspec.yaml](file:///C:/Users/yuraj/AndroidStudioProjects/chiyabreak/pubspec.yaml)
-- Add `image_picker: ^1.1.2` to the dependencies list.
-
 ### [Admin Pro UI]
 #### [MODIFY] [hrm_management_screen.dart](file:///C:/Users/yuraj/AndroidStudioProjects/chiyabreak/lib/admin_pro/screens/hrm_management_screen.dart)
-- **Profile Picture Selector**: Add a clickable avatar in the "Add/Edit Employee" form to pick an image via camera or gallery.
-- **Salary Cycle Logic**:
-    - Calculate `daysPassed` and `daysRemaining` based on the account creation date.
-    - Implement a visual progress indicator in the salary list.
-- **UI Redesign**: Update `_buildPayrollView` and `_buildEmployeeRow` to display real profile pictures instead of just initials.
+- **New View**: Implement `_buildDesignationView()` which includes:
+    - An explanation header explaining the purpose of designations.
+    - A form to add new designations (Title and Department).
+    - A list of existing designations with delete capability.
+- **Dynamic Employee Form**:
+    - Change the "System Role" hardcoded dropdown to fetch job titles from the new designations system.
+- **State Management**: Add `_designationsList` and `_loadDesignations()` to handle the data.
 
 ### [Data Layer]
 #### [MODIFY] [services/api_service.dart](file:///C:/Users/yuraj/AndroidStudioProjects/chiyabreak/lib/services/api_service.dart)
-- **`uploadProfilePicture`**: New method to send image bytes to the server using `http.MultipartRequest`.
-- **`addStaff` / `updateStaff`**: Update to include the `profile_pic_url`.
+- Add `fetchDesignations(tenantId)`
+- Add `addDesignation(data)`
+- Add `deleteDesignation(id)`
 
-#### [NEW] [upload_profile.php](file:///C:/Users/yuraj/AndroidStudioProjects/chiyabreak/saas_api/upload_profile.php) (On Hostinger)
-- A new PHP script to receive the image file, save it to the server, and return the URL.
+### [Backend]
+#### [NEW] [add_designation.php](file:///C:/Users/yuraj/AndroidStudioProjects/chiyabreak/.artifacts/16d65584-180b-4fe9-a136-0738081b64ee/scratch/add_designation.php)
+#### [NEW] [get_designations.php](file:///C:/Users/yuraj/AndroidStudioProjects/chiyabreak/.artifacts/16d65584-180b-4fe9-a136-0738081b64ee/scratch/get_designations.php)
+#### [NEW] [delete_designation.php](file:///C:/Users/yuraj/AndroidStudioProjects/chiyabreak/.artifacts/16d65584-180b-4fe9-a136-0738081b64ee/scratch/delete_designation.php)
 
 ## Verification Plan
 
 ### Manual Verification
-1. **Pick Image**: Open "Add Employee", click the profile icon, and select a photo.
-2. **Submit**: Save the employee and verify the photo uploads successfully.
-3. **Check Payroll**: Go to "Manage Employee Salary" and confirm the photo appears next to the salary details and the cycle counter is running.
-4. **Camera Test**: (If on mobile) Verify the camera opens and captures images correctly.
+1. **Explain Header**: Navigate to "Designation" and verify the description text is visible at the top.
+2. **Add Designation**: Add "Executive Chef" under "Kitchen" department. Verify it appears in the list immediately.
+3. **Assign to Employee**: Go to "Add Employee" and check if "Executive Chef" is now available in the role/title dropdown.
+4. **Delete**: Delete a designation and verify it is removed from the system.
