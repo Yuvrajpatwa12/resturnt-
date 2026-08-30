@@ -1,0 +1,35 @@
+name: chiyabreak
+description: "A new Flutter project."
+publish_to: 'none'
+
+# इसे 1.0.0+1 से बदलकर 1.0.0+2 कर दें
+version: 1.0.0+2
+
+environment:
+  sdk: ^3.9.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  http: ^1.2.2
+  shared_preferences: ^2.3.2
+  cupertino_icons: ^1.0.8
+  webview_flutter: ^4.10.0
+  web: ^1.1.0
+  geolocator: ^14.0.2
+  flutter_local_notifications: ^20.1.0
+  permission_handler: ^13.0.1
+  qr_flutter: ^4.1.0
+  image_picker: ^1.1.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+
+  # Agar aapko future me local images/assets add karni ho toh yahan uncomment kar sakte hain:
+  # assets:
+  #   - assets/images/

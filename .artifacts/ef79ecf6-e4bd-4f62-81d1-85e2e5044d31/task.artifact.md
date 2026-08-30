@@ -1,0 +1,5 @@
+- `[x]` Update `lib/cart_manager.dart` with privacy state (`isLocationHidden`, `isWaveEnabled`, `showSocialStatus`)
+- `[x]` Implement Privacy Settings Bottom Sheet in `lib/nearby_page.dart`
+- `[x]` Add "Privacy Mode" visual indicator to the map header
+- `[x]` Add logic to respect privacy settings (block waves, hide location effects)
+- `[x]` Verify the settings work in real-time and run analysis

@@ -1,0 +1,4 @@
+- `[ ]` Step 1: Add JS Guard to `web/index.html`
+- `[ ]` Step 2: Implement SessionStorage recovery in `main.dart`
+- `[ ]` Step 3: Provide the finalized "No-Drop" `.htaccess` code
+- `[ ]` Step 4: Verify mobile parameter persistence

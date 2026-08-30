@@ -1,0 +1,13 @@
+- [x] Create `lib/waiter_pro/theme.dart` (Light Theme Definition)
+- [x] Create `lib/waiter_pro/screens/login_screen.dart` (Auth Screen)
+- [x] Create `lib/waiter_pro/waiter_hub.dart` (Main Navigation Hub)
+- [x] Create `lib/waiter_pro/screens/dashboard_screen.dart` (Stats & Table Grid)
+- [x] Create `lib/waiter_pro/screens/table_management_screen.dart` (Floor Filter & Actions)
+- [x] Create `lib/waiter_pro/screens/digital_menu_screen.dart` (Menu & Cart)
+- [x] Create `lib/waiter_pro/widgets/order_customization_dialog.dart` (Variants & Notes)
+- [x] Create `lib/waiter_pro/screens/live_orders_screen.dart` (KDS/Order Status)
+- [x] Create `lib/waiter_pro/screens/bill_settlement_screen.dart` (Tax & Payment)
+- [x] Create `lib/waiter_pro/screens/alerts_screen.dart` (Kitchen Notifications)
+- [x] Create `lib/waiter_pro/screens/profile_screen.dart` (Shift Summary)
+- [x] Update `lib/main.dart` to launch `LoginScreen`
+- [x] Fix Navigation Interactivity & State Persistence (IndexedStack & Global State)

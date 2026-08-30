@@ -1,0 +1,5 @@
+- [x] Add `image_picker` dependency to `pubspec.yaml`
+- [/] Create `upload_profile.php` for the backend
+- [ ] Update `ApiService` with image upload and profile data methods
+- [ ] Implement Payroll Cycle logic in `HRMManagementScreen`
+- [ ] Redesign Payroll UI and add Profile Picture support in `HRMManagementScreen`
