@@ -7,17 +7,27 @@ import 'services/tenant_service.dart';
 import 'services/suspension_screen.dart';
 import 'super_admin_module/master_hub.dart';
 
-import 'services/dev_launcher.dart';
-
 import 'services/staff_gateway.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
-import 'dart:html' as html; // Import for SessionStorage access
+import 'package:web/web.dart' as web; // Import for SessionStorage access
+import 'splash_screen.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 
-void main() {
+void main() async {
   // 1. Remove the '#' from URLs (e.g. startupsgo.tech/#/ -> startupsgo.tech/)
   usePathUrlStrategy();
   
   WidgetsFlutterBinding.ensureInitialized();
+
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } catch (e) {
+    debugPrint("FIREBASE INIT FAILED (Probably missing config): $e");
+  }
+
   runApp(const MyApp());
 }
 
@@ -41,8 +51,13 @@ class _MyAppState extends State<MyApp> {
     try {
       String domain = Uri.base.host;
       if (domain == "127.0.0.1") domain = "localhost";
+      
+      // Remove 'www.' for consistent matching
+      if (domain.startsWith('www.')) domain = domain.substring(4);
 
-      // 1. ROBUST TABLE DETECTION: Check Query Params AND Fragment
+      debugPrint("INIT: Detecting environment for domain: $domain");
+
+      // 1. FAST TABLE DETECTION
       String? tableParam = Uri.base.queryParameters['table'];
       
       // Fallback: Check if it's in the fragment (e.g. /#/path?table=1)
@@ -51,21 +66,22 @@ class _MyAppState extends State<MyApp> {
         tableParam = fragUri.queryParameters['table'];
       }
 
-      // 2. RESCUE: Check Session Storage (Set by index.html JS Guard)
-      if (tableParam == null) {
-        tableParam = html.window.sessionStorage['rescue_table_id'];
-      }
+      // 2. RESCUE: Check Session Storage
+      tableParam ??= web.window.sessionStorage.getItem('rescue_table_id');
 
       if (tableParam != null) {
         final int? tId = int.tryParse(tableParam);
         if (tId != null) {
           ShopManager.instance.selectedTableId.value = tId;
           ShopManager.instance.isQrLaunch.value = true;
-          debugPrint("QR SYSTEM: Table $tId recovered successfully.");
+          // LOCK IT IN SESSION STORAGE
+          web.window.sessionStorage.setItem('rescue_table_id', tId.toString());
+          debugPrint("QR SYSTEM: Table $tId locked in session storage.");
         }
       }
 
       await TenantService().initialize(domain);
+      await ShopManager.instance.fetchLoyaltySettings();
     } catch (e) {
       setState(() {
         _errorMessage = e.toString();
@@ -135,8 +151,7 @@ class _MyAppState extends State<MyApp> {
         ? _parseColor(tenant.color) 
         : const Color(0xFFFF5C00);
     
-    // SMART ROUTING: Use the locked flag instead of re-reading URL
-    bool isQRUser = ShopManager.instance.isQrLaunch.value;
+
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
@@ -146,8 +161,8 @@ class _MyAppState extends State<MyApp> {
         primaryColor: themeColor,
         colorScheme: ColorScheme.fromSeed(seedColor: themeColor),
       ),
-      // If QR detected, open Customer App. If not, show Portal (Developer Mode)
-      home: isQRUser ? const HomePage() : const DevLauncherScreen(),
+      // Set SplashScreen as the initial entry point
+      home: const SplashScreen(),
       routes: {
         '/customer': (context) => const HomePage(),
         '/super-admin': (context) => const SuperAdminMasterHub(),

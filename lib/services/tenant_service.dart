@@ -66,18 +66,21 @@ class TenantService extends ChangeNotifier {
     isLoading.value = true;
     
     // DEBUG BYPASS FOR LOCALHOST TESTING
-    // If testing on localhost, you can force a specific domain to load its data
     String domainToFetch = domain;
     if (domain == "localhost" || domain == "127.0.0.1") {
       domainToFetch = "startupsgo.tech"; // Use your live domain data for testing
     }
 
+    debugPrint("TENANT: Loading data for $domainToFetch...");
     final data = await ApiService.initTenant(domainToFetch);
     
     if (data != null) {
       currentTenant.value = Tenant.fromMap(data);
+      debugPrint("TENANT: Loaded ${currentTenant.value!.name} (ID: ${currentTenant.value!.id})");
       // Fetch Menu instantly for this tenant
       await fetchMenuData(currentTenant.value!.id);
+    } else {
+      debugPrint("TENANT: ERROR - Domain '$domainToFetch' not found in database.");
     }
     isLoading.value = false;
     notifyListeners();

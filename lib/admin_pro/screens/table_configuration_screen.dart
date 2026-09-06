@@ -86,7 +86,7 @@ class _TableConfigurationScreenState extends State<TableConfigurationScreen> {
                     final num = int.tryParse(controller.text);
                     if (num != null) {
                       final success = await ApiService.addTable(tenant.id, num);
-                      if (mounted) Navigator.pop(ctx, success);
+                      if (ctx.mounted) Navigator.pop(ctx, success);
                     } else {
                       setModalState(() => isSaving = false);
                     }
@@ -291,7 +291,7 @@ class _TableConfigurationScreenState extends State<TableConfigurationScreen> {
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(24),
-                      border: Border.all(color: AdminTheme.royalBlue.withOpacity(0.05)),
+                      border: Border.all(color: AdminTheme.royalBlue.withValues(alpha: 0.05)),
                       boxShadow: AdminTheme.softShadow,
                     ),
                     child: Column(
@@ -299,7 +299,7 @@ class _TableConfigurationScreenState extends State<TableConfigurationScreen> {
                       children: [
                         Container(
                           padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(color: AdminTheme.royalBlue.withOpacity(0.08), shape: BoxShape.circle),
+                          decoration: BoxDecoration(color: AdminTheme.royalBlue.withValues(alpha: 0.08), shape: BoxShape.circle),
                           child: const Icon(Icons.qr_code_2_rounded, color: AdminTheme.royalBlue, size: 24),
                         ),
                         const SizedBox(height: 12),

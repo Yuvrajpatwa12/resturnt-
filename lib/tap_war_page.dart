@@ -179,7 +179,7 @@ class _TapWarPageState extends State<TapWarPage> with SingleTickerProviderStateM
                               shape: BoxShape.circle,
                               boxShadow: [
                                 BoxShadow(
-                                  color: (isGameOver ? Colors.grey : const Color(0xFFFF5C00)).withOpacity(0.4),
+                                  color: (isGameOver ? Colors.grey : const Color(0xFFFF5C00)).withValues(alpha: 0.4),
                                   blurRadius: 30,
                                   spreadRadius: 10,
                                 ),
@@ -261,7 +261,7 @@ class _TapWarPageState extends State<TapWarPage> with SingleTickerProviderStateM
                                 borderRadius: BorderRadius.circular(20),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.amber.withOpacity(0.3),
+                                    color: Colors.amber.withValues(alpha: 0.3),
                                     blurRadius: 15,
                                     offset: const Offset(0, 8),
                                   )

@@ -72,6 +72,7 @@ class AppData {
       'rating': '4.9 (320)',
       'image': 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500&auto=format&fit=crop&q=60',
       'cardHeight': 300.0,
+      'model_url': 'https://modelviewer.dev/shared-assets/models/Astronaut.glb',
     },
     {
       'title': 'Classic Roast Beef Sandwich Combo',
@@ -126,6 +127,7 @@ class AppData {
       'rating': '5.0 (64)',
       'image': 'https://images.unsplash.com/photo-1606313564200-e75d5e30476c?w=500&auto=format&fit=crop&q=60',
       'cardHeight': 265.0,
+      'model_url': 'https://modelviewer.dev/shared-assets/models/Astronaut.glb',
     },
     {
       'title': 'Spicy Buffalo Chicken Wings (8pcs)',
@@ -171,6 +173,7 @@ class AppData {
       'rating': '4.9 (410)',
       'image': 'https://images.unsplash.com/photo-1586190848861-99aa4a171e90?w=500&auto=format&fit=crop&q=60',
       'cardHeight': 310.0,
+      'model_url': 'https://modelviewer.dev/shared-assets/models/Astronaut.glb',
     },
     {
       'title': 'Crispy Onion Rings Basket',

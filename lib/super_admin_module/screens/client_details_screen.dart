@@ -84,7 +84,7 @@ class _ClientDetailsScreenState extends State<ClientDetailsScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
         boxShadow: SAMStyles.softShadow,
-        border: Border.all(color: SAMStyles.royalBlue.withOpacity(0.1)),
+        border: Border.all(color: SAMStyles.royalBlue.withValues(alpha: 0.1)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -172,8 +172,10 @@ class _ClientDetailsScreenState extends State<ClientDetailsScreen> {
                 setState(() => _isUpdating = false);
                 if (result['success'] == true) {
                   setState(() => _currentEmail = emailController.text.trim());
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result['message']), backgroundColor: Colors.green));
-                } else {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result['message']), backgroundColor: Colors.green));
+                  }
+                } else if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("FAILED: ${result['message']}"), backgroundColor: Colors.red));
                 }
               },
@@ -198,7 +200,7 @@ class _ClientDetailsScreenState extends State<ClientDetailsScreen> {
         const SizedBox(width: 16),
         CircleAvatar(
           radius: 35,
-          backgroundColor: SAMStyles.royalBlue.withOpacity(0.1),
+          backgroundColor: SAMStyles.royalBlue.withValues(alpha: 0.1),
           child: Text(firstLetter, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: SAMStyles.royalBlue)),
         ),
         const SizedBox(width: 24),
@@ -215,7 +217,7 @@ class _ClientDetailsScreenState extends State<ClientDetailsScreen> {
                   const SizedBox(width: 16),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(color: SAMStyles.emeraldGreen.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                    decoration: BoxDecoration(color: SAMStyles.emeraldGreen.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
                     child: Text(widget.tenant['plan'].toString().toUpperCase(), style: const TextStyle(color: SAMStyles.emeraldGreen, fontSize: 10, fontWeight: FontWeight.bold)),
                   ),
                 ],
@@ -253,12 +255,14 @@ class _ClientDetailsScreenState extends State<ClientDetailsScreen> {
     if (confirm == true) {
       setState(() => _isUpdating = true);
       final success = await ApiService.deleteTenant(widget.tenant['tenant_id']);
-      if (success && mounted) {
+      if (success && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Restaurant deleted successfully.")));
         widget.onBack();
       } else {
         setState(() => _isUpdating = false);
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Failed to delete restaurant.")));
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Failed to delete restaurant.")));
+        }
       }
     }
   }
@@ -268,7 +272,7 @@ class _ClientDetailsScreenState extends State<ClientDetailsScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: isActive ? SAMStyles.emeraldGreen.withOpacity(0.1) : Colors.red.withOpacity(0.1),
+        color: isActive ? SAMStyles.emeraldGreen.withValues(alpha: 0.1) : Colors.red.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(30),
         border: Border.all(color: isActive ? SAMStyles.emeraldGreen : Colors.red, width: 1.5),
       ),
@@ -308,7 +312,7 @@ class _ClientDetailsScreenState extends State<ClientDetailsScreen> {
           children: [
             Container(
               padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
+              decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle),
               child: Icon(icon, color: color, size: 22),
             ),
             const SizedBox(width: 16),
@@ -401,7 +405,7 @@ class _ClientDetailsScreenState extends State<ClientDetailsScreen> {
             child: Row(
               children: [
                 CircleAvatar(
-                  backgroundColor: accentColor.withOpacity(0.1),
+                  backgroundColor: accentColor.withValues(alpha: 0.1),
                   radius: 18,
                   child: Text(
                     (s['name'] != null && s['name'].toString().isNotEmpty) ? s['name'].toString()[0].toUpperCase() : 'S',
@@ -431,7 +435,7 @@ class _ClientDetailsScreenState extends State<ClientDetailsScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
-        color: (isOnline ? Colors.green : Colors.grey).withOpacity(0.1),
+        color: (isOnline ? Colors.green : Colors.grey).withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(4),
       ),
       child: Text(

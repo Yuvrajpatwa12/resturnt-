@@ -167,7 +167,7 @@ class _RunningOrderSummaryScreenState extends State<RunningOrderSummaryScreen> {
   Widget _buildSessionHeader(int totalItems) {
     return Container(
       padding: const EdgeInsets.all(16),
-      color: WaiterProTheme.royalBlue.withOpacity(0.05),
+      color: WaiterProTheme.royalBlue.withValues(alpha: 0.05),
       child: Row(
         children: [
           const Icon(Icons.timer_outlined, size: 16, color: WaiterProTheme.royalBlue),
@@ -197,7 +197,7 @@ class _RunningOrderSummaryScreenState extends State<RunningOrderSummaryScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: WaiterProTheme.softShadow,
-        border: Border.all(color: isConfirmed ? WaiterProTheme.royalBlue.withOpacity(0.1) : Colors.orange.withOpacity(0.1)),
+        border: Border.all(color: isConfirmed ? WaiterProTheme.royalBlue.withValues(alpha: 0.1) : Colors.orange.withValues(alpha: 0.1)),
       ),
       child: Row(
         children: [
@@ -223,7 +223,7 @@ class _RunningOrderSummaryScreenState extends State<RunningOrderSummaryScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: (isConfirmed ? WaiterProTheme.royalBlue : Colors.orange).withOpacity(0.1),
+                  color: (isConfirmed ? WaiterProTheme.royalBlue : Colors.orange).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
@@ -250,7 +250,7 @@ class _RunningOrderSummaryScreenState extends State<RunningOrderSummaryScreen> {
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: Colors.white,
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 20, offset: const Offset(0, -4))],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 20, offset: const Offset(0, -4))],
         borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
       ),
       child: Column(
@@ -301,7 +301,7 @@ class _RunningOrderSummaryScreenState extends State<RunningOrderSummaryScreen> {
               IconButton(
                 onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => DigitalMenuScreen(tableId: widget.tableId))),
                 style: IconButton.styleFrom(
-                  backgroundColor: WaiterProTheme.royalBlue.withOpacity(0.1),
+                  backgroundColor: WaiterProTheme.royalBlue.withValues(alpha: 0.1),
                   padding: const EdgeInsets.all(16),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 ),

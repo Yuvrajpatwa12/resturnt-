@@ -117,7 +117,7 @@ class CheckoutModal extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(vertical: 20),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                       elevation: 5,
-                      shadowColor: const Color(0xFFFF5C00).withOpacity(0.3),
+                      shadowColor: const Color(0xFFFF5C00).withValues(alpha: 0.3),
                     ),
                     child: const Text("CONFIRM & START PREP", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 1)),
                   ),

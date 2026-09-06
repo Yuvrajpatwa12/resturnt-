@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/tenant_service.dart';
 import '../services/api_service.dart';
-import 'admin_login_screen.dart';
 import 'admin_theme.dart';
 import 'screens/dashboard_screen.dart';
 
@@ -23,6 +22,7 @@ import 'screens/report_management_screen.dart';
 import 'screens/table_configuration_screen.dart';
 import 'screens/system_configuration_screen.dart';
 import 'screens/expense_management_screen.dart';
+import 'screens/reward_management_screen.dart';
 import 'screens/hr_policy_screen.dart';
 import 'screens/department_management_screen.dart';
 import 'screens/support_ticket_screen.dart';
@@ -181,6 +181,11 @@ class _AdminHubState extends State<AdminHub> {
     const AdminPlaceholderScreen(title: "Themes"), // 111
     const SupportTicketScreen(), // 112
     const SubscriptionStatusScreen(), // 113
+    const RewardManagementScreen(mode: "Rewards Config"), // 114
+    const RewardManagementScreen(mode: "Redeem Items"), // 115
+    const RewardManagementScreen(mode: "Mystery Box"), // 116
+    const RewardManagementScreen(mode: "Claim History"), // 117
+    const RewardManagementScreen(mode: "Marketing Banners"), // 118
   ];
 
   @override
@@ -357,10 +362,19 @@ class _AdminHubState extends State<AdminHub> {
                       title: "Expense",
                       children: [
                         _buildSubDrawerItem(43, "Add Expense Item", isDoubleNested: true),
-                        _buildSubDrawerItem(44, "Manage Expense Item", isDoubleNested: true),
                         _buildSubDrawerItem(45, "Add Expense", isDoubleNested: true),
                         _buildSubDrawerItem(46, "Manage Expense", isDoubleNested: true),
                         _buildSubDrawerItem(47, "Expense Statement", isDoubleNested: true),
+                      ],
+                    ),
+                    _buildNestedExpandableItem(
+                      title: "Loyalty & Rewards",
+                      children: [
+                        _buildSubDrawerItem(114, "Rewards Config", isDoubleNested: true),
+                        _buildSubDrawerItem(115, "Redeem Items", isDoubleNested: true),
+                        _buildSubDrawerItem(116, "Mystery Box", isDoubleNested: true),
+                        _buildSubDrawerItem(117, "Claim History", isDoubleNested: true),
+                        _buildSubDrawerItem(118, "Marketing Banners", isDoubleNested: true),
                       ],
                     ),
                     _buildNestedExpandableItem(

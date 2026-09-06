@@ -63,7 +63,7 @@ class StaffManagementScreen extends StatelessWidget {
             contentPadding: const EdgeInsets.all(20),
             leading: CircleAvatar(
               radius: 25,
-              backgroundColor: AdminTheme.royalBlue.withOpacity(0.1),
+              backgroundColor: AdminTheme.royalBlue.withValues(alpha: 0.1),
               child: Text(person['name'][0], style: const TextStyle(fontWeight: FontWeight.bold, color: AdminTheme.royalBlue)),
             ),
             title: Text(person['name'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),

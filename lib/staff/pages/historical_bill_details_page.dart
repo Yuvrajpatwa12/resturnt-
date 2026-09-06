@@ -44,7 +44,7 @@ class HistoricalBillDetailsPage extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   decoration: BoxDecoration(
-                    color: isActive ? const Color(0xFFFF5C00).withOpacity(0.1) : Colors.green.withOpacity(0.1),
+                    color: isActive ? const Color(0xFFFF5C00).withValues(alpha: 0.1) : Colors.green.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
@@ -171,7 +171,7 @@ class HistoricalBillDetailsPage extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(vertical: 20),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                         elevation: 10,
-                        shadowColor: const Color(0xFFFF5C00).withOpacity(0.3),
+                        shadowColor: const Color(0xFFFF5C00).withValues(alpha: 0.3),
                       ),
                       child: const Text("CREATE FINAL BILL", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 1)),
                     ),

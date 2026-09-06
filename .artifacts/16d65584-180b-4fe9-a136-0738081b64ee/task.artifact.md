@@ -1,5 +1,11 @@
-- [x] Add `image_picker` dependency to `pubspec.yaml`
-- [/] Create `upload_profile.php` for the backend
-- [ ] Update `ApiService` with image upload and profile data methods
-- [ ] Implement Payroll Cycle logic in `HRMManagementScreen`
-- [ ] Redesign Payroll UI and add Profile Picture support in `HRMManagementScreen`
+- [x] Create SQL for advanced expense tables (vendors, recurring, approvals)
+- [x] Update `ApiService` with full financial ecosystem methods
+- [x] Redesign `ExpenseManagementScreen` Entry Form
+- [x] Implement P&L tracking in Dashboard
+- [x] Implement Vendor Management
+- [x] Provide MySQLi backend scripts
+- [x] Premium Redesign of Recurring Expenses (Subscriptions)
+    - [x] Add top-level stat summary cards
+    - [x] Implement grid-based premium subscription cards
+    - [x] Create sleek empty state placeholder
+    - [x] Connect actions (toggle, delete, history)

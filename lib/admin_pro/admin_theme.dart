@@ -35,7 +35,7 @@ class AdminTheme {
       cardTheme: CardThemeData(
         color: pureWhite,
         elevation: 4,
-        shadowColor: Colors.black.withOpacity(0.05),
+        shadowColor: Colors.black.withValues(alpha: 0.05),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       ),
       tabBarTheme: const TabBarThemeData(
@@ -57,7 +57,7 @@ class AdminTheme {
 
   static List<BoxShadow> get softShadow => [
     BoxShadow(
-      color: Colors.black.withOpacity(0.05),
+      color: Colors.black.withValues(alpha: 0.05),
       blurRadius: 15,
       offset: const Offset(0, 5),
     ),

@@ -162,7 +162,7 @@ class _SubscriptionBillingScreenState extends State<SubscriptionBillingScreen> {
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: SAMStyles.softShadow,
-                  border: Border.all(color: (plan['color'] as Color).withOpacity(0.2), width: 2),
+                  border: Border.all(color: (plan['color'] as Color).withValues(alpha: 0.2), width: 2),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -253,7 +253,7 @@ class _SubscriptionBillingScreenState extends State<SubscriptionBillingScreen> {
               return ListTile(
                 contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 leading: CircleAvatar(
-                  backgroundColor: isExpired ? Colors.red.withOpacity(0.1) : (isTrial ? Colors.teal.withOpacity(0.1) : SAMStyles.royalBlue.withOpacity(0.1)),
+                  backgroundColor: isExpired ? Colors.red.withValues(alpha: 0.1) : (isTrial ? Colors.teal.withValues(alpha: 0.1) : SAMStyles.royalBlue.withValues(alpha: 0.1)),
                   child: Icon(Icons.store, color: isExpired ? Colors.red : (isTrial ? Colors.teal : SAMStyles.royalBlue)),
                 ),
                 title: Row(
@@ -263,7 +263,7 @@ class _SubscriptionBillingScreenState extends State<SubscriptionBillingScreen> {
                       const SizedBox(width: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(color: Colors.teal.withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
+                        decoration: BoxDecoration(color: Colors.teal.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
                         child: const Text("TRIAL", style: TextStyle(color: Colors.teal, fontSize: 9, fontWeight: FontWeight.bold)),
                       ),
                     ],
@@ -285,7 +285,7 @@ class _SubscriptionBillingScreenState extends State<SubscriptionBillingScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: (isExpired ? Colors.red : SAMStyles.emeraldGreen).withOpacity(0.1),
+                        color: (isExpired ? Colors.red : SAMStyles.emeraldGreen).withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(store['status']!, style: TextStyle(color: isExpired ? Colors.red : SAMStyles.emeraldGreen, fontSize: 10, fontWeight: FontWeight.bold)),
@@ -329,7 +329,7 @@ class _SubscriptionBillingScreenState extends State<SubscriptionBillingScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: (p['status'] == 'Paid' ? SAMStyles.emeraldGreen : Colors.orange).withOpacity(0.1),
+                      color: (p['status'] == 'Paid' ? SAMStyles.emeraldGreen : Colors.orange).withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(p['status']!, style: TextStyle(color: p['status'] == 'Paid' ? SAMStyles.emeraldGreen : Colors.orange, fontSize: 9, fontWeight: FontWeight.bold)),

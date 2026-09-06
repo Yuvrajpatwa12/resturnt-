@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'cart_manager.dart';
+import 'services/api_service.dart';
+import 'services/tenant_service.dart';
 
 class MysteryBoxPage extends StatefulWidget {
   const MysteryBoxPage({super.key});
@@ -9,6 +11,10 @@ class MysteryBoxPage extends StatefulWidget {
 }
 
 class _MysteryBoxPageState extends State<MysteryBoxPage> {
+  bool _isProcessing = false;
+  Map<String, dynamic>? _wonPrize;
+  String? _claimCode;
+
   @override
   Widget build(BuildContext context) {
     bool isWiFi = ShopManager.instance.isConnectedToRestaurantWiFi;
@@ -103,9 +109,9 @@ class _MysteryBoxPageState extends State<MysteryBoxPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withOpacity(0.2)),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -131,13 +137,13 @@ class _MysteryBoxPageState extends State<MysteryBoxPage> {
               borderRadius: BorderRadius.circular(30),
               boxShadow: [
                 BoxShadow(
-                  color: isUnlocked ? Colors.amber.withOpacity(0.3) : Colors.black.withOpacity(0.05),
+                  color: isUnlocked ? Colors.amber.withValues(alpha: 0.3) : Colors.black.withValues(alpha: 0.05),
                   blurRadius: 30,
                   spreadRadius: 5,
                 )
               ],
               border: Border.all(
-                color: isUnlocked ? Colors.amber.withOpacity(0.5) : Colors.grey[200]!,
+                color: isUnlocked ? Colors.amber.withValues(alpha: 0.5) : Colors.grey[200]!,
                 width: 2,
               ),
             ),
@@ -183,8 +189,8 @@ class _MysteryBoxPageState extends State<MysteryBoxPage> {
           decoration: BoxDecoration(
             color: isClaimed ? Colors.grey[50] : Colors.white,
             borderRadius: BorderRadius.circular(30),
-            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20)],
-            border: Border.all(color: isClaimed ? Colors.grey[200]! : const Color(0xFFFF5C00).withOpacity(0.2), width: 2),
+            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 20)],
+            border: Border.all(color: isClaimed ? Colors.grey[200]! : const Color(0xFFFF5C00).withValues(alpha: 0.2), width: 2),
           ),
           child: Column(
             children: [
@@ -195,7 +201,7 @@ class _MysteryBoxPageState extends State<MysteryBoxPage> {
               ),
               const SizedBox(height: 24),
               Text(
-                isClaimed ? "REWARD CLAIMED" : "FREE JAMOCHA SHAKE",
+                isClaimed ? "REWARD CLAIMED" : (_wonPrize?['reward_name'] ?? "SURPRISE REWARD"),
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 22,
@@ -206,7 +212,7 @@ class _MysteryBoxPageState extends State<MysteryBoxPage> {
               ),
               const SizedBox(height: 12),
               Text(
-                isClaimed ? "Redeemed at 12:45 PM" : "Visit the counter to claim your item.",
+                isClaimed ? "Redeemed successfully" : "Visit the counter with code: ${_claimCode ?? ''}",
                 style: const TextStyle(color: Colors.black54, fontSize: 14),
               ),
               const SizedBox(height: 30),
@@ -227,7 +233,7 @@ class _MysteryBoxPageState extends State<MysteryBoxPage> {
                 )
               else
                 const Text(
-                  "Expires in 24 hours after claim",
+                  "Enjoy your surprise gift!",
                   style: TextStyle(color: Colors.grey, fontSize: 11, fontStyle: FontStyle.italic),
                 ),
             ],
@@ -237,31 +243,46 @@ class _MysteryBoxPageState extends State<MysteryBoxPage> {
     );
   }
 
-  void _handleOpenBox() {
+  Future<void> _handleOpenBox() async {
+    final tenant = TenantService().currentTenant.value;
+    final staff = TenantService().currentStaff.value;
+    final uid = staff != null ? staff.id.toString() : ShopManager.instance.guestId.value;
+    if (tenant == null || uid.isEmpty) return;
+
+    setState(() => _isProcessing = true);
+    
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) {
-        Future.delayed(const Duration(seconds: 2), () {
-          if (!mounted) return;
-          Navigator.pop(context);
-          setState(() {
-            ShopManager.instance.isMysteryBoxOpened.value = true;
-          });
-          _showWinCelebration();
-        });
-        return Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.card_giftcard_rounded, size: 100, color: Colors.amber),
-              const SizedBox(height: 20),
-              const Text("Unboxing Your Gift...", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold, decoration: TextDecoration.none)),
-            ],
-          ),
-        );
-      },
+      builder: (ctx) => Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.card_giftcard_rounded, size: 100, color: Colors.amber),
+            const SizedBox(height: 20),
+            const Text("Unboxing Your Gift...", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold, decoration: TextDecoration.none)),
+          ],
+        ),
+      ),
     );
+
+    final res = await ApiService.openMysteryBox(tenant.id, uid);
+    
+    if (!mounted) return;
+    Navigator.pop(context); // Close unboxing dialog
+
+    if (res != null && res['status'] == 'success') {
+      setState(() {
+        _wonPrize = res['data'];
+        _claimCode = res['claim_code'];
+        ShopManager.instance.isMysteryBoxOpened.value = true;
+      });
+      _showWinCelebration();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(res?['message'] ?? "Failed to open box.")));
+    }
+    
+    setState(() => _isProcessing = false);
   }
 
   void _showWinCelebration() {
@@ -278,10 +299,14 @@ class _MysteryBoxPageState extends State<MysteryBoxPage> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(color: Colors.grey[50], borderRadius: BorderRadius.circular(20)),
-                child: Image.network('https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=300', height: 120),
+                child: Image.network(
+                  _wonPrize?['image_url'] ?? 'https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=300', 
+                  height: 120,
+                  errorBuilder: (_,__,___) => const Icon(Icons.stars_rounded, size: 80, color: Colors.amber),
+                ),
               ),
               const SizedBox(height: 15),
-              const Text("Free Jamocha Shake", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+              Text(_wonPrize?['reward_name'] ?? "Surprise Item", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
               const SizedBox(height: 8),
               const Text("Your reward is ready for pickup!", textAlign: TextAlign.center, style: TextStyle(fontSize: 13, color: Colors.grey)),
               const SizedBox(height: 24),
@@ -317,7 +342,9 @@ class _MysteryBoxPageState extends State<MysteryBoxPage> {
               children: [
                 const Text("CHIYABREAK SURPRISE SLIP", style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.5, color: Colors.grey, fontSize: 12)),
                 const Divider(height: 30),
-                const Text("FREE JAMOCHA SHAKE", style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFFFF5C00))),
+                Text(_wonPrize?['reward_name'] ?? "SURPRISE REWARD", style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFFFF5C00)), textAlign: TextAlign.center),
+                const SizedBox(height: 20),
+                Text("CODE: ${_claimCode ?? ''}", style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: 2)),
                 const SizedBox(height: 20),
                 Container(
                   width: 150,
@@ -330,7 +357,7 @@ class _MysteryBoxPageState extends State<MysteryBoxPage> {
                   child: const Icon(Icons.qr_code_2_rounded, size: 120),
                 ),
                 const SizedBox(height: 20),
-                const Text("Valid today at ChiyaBreak Downtown Hub", style: TextStyle(fontSize: 11, color: Colors.black54)),
+                const Text("Valid today at ChiyaBreak Hub", style: TextStyle(fontSize: 11, color: Colors.black54)),
                 const SizedBox(height: 30),
                 SizedBox(
                   width: double.infinity,
@@ -347,7 +374,7 @@ class _MysteryBoxPageState extends State<MysteryBoxPage> {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       padding: const EdgeInsets.symmetric(vertical: 14),
                     ),
-                    child: const Text("CLAIM AT COUNTER", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    child: const Text("DONE", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                   ),
                 ),
               ],

@@ -175,7 +175,7 @@ class _VoiceOrderPageState extends State<VoiceOrderPage> {
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(opacity),
+        color: Colors.white.withValues(alpha: opacity),
         shape: BoxShape.circle,
       ),
     );

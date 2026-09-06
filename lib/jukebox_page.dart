@@ -1,4 +1,4 @@
-import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'cart_manager.dart';
 import 'music_poll_widget.dart';
@@ -102,7 +102,7 @@ class _JukeboxPageState extends State<JukeboxPage> with TickerProviderStateMixin
                 valueListenable: ShopManager.instance.vibeScore,
                 builder: (context, score, child) => Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(color: const Color(0xFFFF5C00).withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
+                  decoration: BoxDecoration(color: const Color(0xFFFF5C00).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
                   child: Text("VIBE SCORE: $score%", style: const TextStyle(color: Color(0xFFFF5C00), fontSize: 9, fontWeight: FontWeight.bold)),
                 ),
               ),
@@ -131,7 +131,7 @@ class _JukeboxPageState extends State<JukeboxPage> with TickerProviderStateMixin
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(40),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 40, offset: const Offset(0, 20))],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 40, offset: const Offset(0, 20))],
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(40),
@@ -148,7 +148,7 @@ class _JukeboxPageState extends State<JukeboxPage> with TickerProviderStateMixin
     if (song['dedication'] == null) return const SizedBox.shrink();
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.grey.withOpacity(0.1))),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.grey.withValues(alpha: 0.1))),
       child: Row(mainAxisSize: MainAxisSize.min, children: [const Icon(Icons.favorite, color: Color(0xFFFF5C00), size: 14), const SizedBox(width: 8), Text(song['dedication'], style: const TextStyle(color: Colors.black87, fontSize: 12, fontWeight: FontWeight.bold))]),
     );
   }
@@ -192,7 +192,7 @@ class _JukeboxPageState extends State<JukeboxPage> with TickerProviderStateMixin
   Widget _buildQueue() {
     return Container(
       width: double.infinity,
-      decoration: BoxDecoration(color: Colors.white, borderRadius: const BorderRadius.vertical(top: Radius.circular(40)), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 20, offset: const Offset(0, -10))]),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: const BorderRadius.vertical(top: Radius.circular(40)), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 20, offset: const Offset(0, -10))]),
       padding: const EdgeInsets.all(30),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
@@ -210,7 +210,7 @@ class _JukeboxPageState extends State<JukeboxPage> with TickerProviderStateMixin
               return Padding(
                 padding: const EdgeInsets.only(bottom: 24),
                 child: Row(children: [
-                  Container(width: 55, height: 55, decoration: BoxDecoration(borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))]), child: ClipRRect(borderRadius: BorderRadius.circular(16), child: Image.network(item['image'], fit: BoxFit.cover, errorBuilder: (c, e, s) => Container(color: const Color(0xFFF1F5F9), child: const Icon(Icons.music_note, color: Colors.grey))))),
+                  Container(width: 55, height: 55, decoration: BoxDecoration(borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))]), child: ClipRRect(borderRadius: BorderRadius.circular(16), child: Image.network(item['image'], fit: BoxFit.cover, errorBuilder: (c, e, s) => Container(color: const Color(0xFFF1F5F9), child: const Icon(Icons.music_note, color: Colors.grey))))),
                   const SizedBox(width: 15),
                   Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(item['title'] ?? "Untitled", style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16)), Text(item['artist'] ?? "Unknown Artist", style: const TextStyle(color: Color(0xFF64748B), fontSize: 13))])),
                   GestureDetector(

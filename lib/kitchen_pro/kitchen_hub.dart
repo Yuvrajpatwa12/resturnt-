@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import '../services/tenant_service.dart';
 import '../services/api_service.dart';
 import '../admin_pro/admin_login_screen.dart';
@@ -20,19 +21,23 @@ class _KitchenHubState extends State<KitchenHub> with SingleTickerProviderStateM
   List<Map<String, dynamic>> _liveOrders = [];
   List<Map<String, dynamic>> _stockReports = [];
   bool _isLoading = true;
+  Timer? _refreshTimer;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 5, vsync: this);
-    _refreshKitchen();
+    _refreshKitchen(isInitial: true);
+    
+    // Start automatic polling every 10 seconds
+    _refreshTimer = Timer.periodic(const Duration(seconds: 10), (_) => _refreshKitchen());
   }
 
-  Future<void> _refreshKitchen() async {
+  Future<void> _refreshKitchen({bool isInitial = false}) async {
     final tenant = TenantService().currentTenant.value;
     if (tenant == null) return;
 
-    setState(() => _isLoading = true);
+    if (isInitial) setState(() => _isLoading = true);
     final orderData = await ApiService.fetchActiveOrders(tenant.id);
     final stockData = await ApiService.fetchStockReports(tenant.id);
     
@@ -59,6 +64,7 @@ class _KitchenHubState extends State<KitchenHub> with SingleTickerProviderStateM
 
   @override
   void dispose() {
+    _refreshTimer?.cancel();
     _tabController.dispose();
     super.dispose();
   }
@@ -87,9 +93,9 @@ class _KitchenHubState extends State<KitchenHub> with SingleTickerProviderStateM
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: KitchenTheme.emeraldGreen.withOpacity(0.1),
+                        color: KitchenTheme.emeraldGreen.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: KitchenTheme.emeraldGreen.withOpacity(0.3)),
+                        border: Border.all(color: KitchenTheme.emeraldGreen.withValues(alpha: 0.3)),
                       ),
                       child: const Row(
                         mainAxisSize: MainAxisSize.min,
@@ -200,7 +206,7 @@ class _KitchenHubState extends State<KitchenHub> with SingleTickerProviderStateM
   Widget _buildSummaryChip(String label, String count, Color color) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(color: color.withOpacity(0.05), borderRadius: BorderRadius.circular(10), border: Border.all(color: color.withOpacity(0.1))),
+      decoration: BoxDecoration(color: color.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(10), border: Border.all(color: color.withValues(alpha: 0.1))),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -224,7 +230,7 @@ class _KitchenHubState extends State<KitchenHub> with SingleTickerProviderStateM
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.check_circle_outline, size: 64, color: Colors.grey.withOpacity(0.2)),
+            Icon(Icons.check_circle_outline, size: 64, color: Colors.grey.withValues(alpha: 0.2)),
             const SizedBox(height: 16),
             Text("No orders currently in $filterStatus", style: const TextStyle(color: Colors.grey)),
           ],
@@ -285,7 +291,7 @@ class _KitchenHubState extends State<KitchenHub> with SingleTickerProviderStateM
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.inventory_2_outlined, size: 64, color: Colors.grey.withOpacity(0.1)),
+            Icon(Icons.inventory_2_outlined, size: 64, color: Colors.grey.withValues(alpha: 0.1)),
             const SizedBox(height: 16),
             const Text("No stock reports found.", style: TextStyle(color: Colors.grey)),
           ],
@@ -397,8 +403,8 @@ class _KitchenHubState extends State<KitchenHub> with SingleTickerProviderStateM
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(Icons.check_circle_rounded, color: Color(0xFF16A34A), size: 18),
-                        const SizedBox(width: 8),
-                        const Text("CONFIRM SAMAN RECEIVED", style: TextStyle(color: Color(0xFF16A34A), fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 0.5)),
+                        SizedBox(width: 8),
+                        Text("CONFIRM SAMAN RECEIVED", style: TextStyle(color: Color(0xFF16A34A), fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 0.5)),
                       ],
                     ),
                   ),
@@ -469,15 +475,15 @@ class _KitchenHubState extends State<KitchenHub> with SingleTickerProviderStateM
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
+      decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
       child: Text(urgency.toUpperCase(), style: TextStyle(color: color, fontSize: 8, fontWeight: FontWeight.w900)),
     );
   }
 
   void _showStockOutDialog() {
-    final _itemController = TextEditingController();
-    final _notesController = TextEditingController();
-    String _urgency = "Medium";
+    final itemController = TextEditingController();
+    final notesController = TextEditingController();
+    String urgency = "Medium";
 
     showDialog(
       context: context,
@@ -492,7 +498,7 @@ class _KitchenHubState extends State<KitchenHub> with SingleTickerProviderStateM
                 const Text("ITEM NAME", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey)),
                 const SizedBox(height: 8),
                 TextField(
-                  controller: _itemController,
+                  controller: itemController,
                   decoration: InputDecoration(
                     hintText: "e.g. Fresh Milk, Sugar",
                     filled: true, fillColor: Colors.grey[100],
@@ -507,10 +513,10 @@ class _KitchenHubState extends State<KitchenHub> with SingleTickerProviderStateM
                   decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(12)),
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<String>(
-                      value: _urgency,
+                      value: urgency,
                       isExpanded: true,
                       items: ["Low", "Medium", "Critical"].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
-                      onChanged: (v) => setModalState(() => _urgency = v!),
+                      onChanged: (v) => setModalState(() => urgency = v!),
                     ),
                   ),
                 ),
@@ -518,7 +524,7 @@ class _KitchenHubState extends State<KitchenHub> with SingleTickerProviderStateM
                 const Text("ADDITIONAL NOTES", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey)),
                 const SizedBox(height: 8),
                 TextField(
-                  controller: _notesController,
+                  controller: notesController,
                   maxLines: 3,
                   decoration: InputDecoration(
                     hintText: "e.g. Need 10L for evening rush...",
@@ -533,21 +539,21 @@ class _KitchenHubState extends State<KitchenHub> with SingleTickerProviderStateM
             TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("CANCEL")),
             ElevatedButton(
               onPressed: () async {
-                if (_itemController.text.trim().isEmpty) return;
+                if (itemController.text.trim().isEmpty) return;
                 final tenant = TenantService().currentTenant.value;
                 final staff = TenantService().currentStaff.value;
                 if (tenant == null) return;
 
                 final res = await ApiService.reportStockOut({
                   'tenant_id': tenant.id,
-                  'item_name': _itemController.text.trim(),
-                  'notes': _notesController.text.trim(),
-                  'urgency': _urgency,
+                  'item_name': itemController.text.trim(),
+                  'notes': notesController.text.trim(),
+                  'urgency': urgency,
                   'reported_by': staff?.name ?? 'Kitchen',
                 });
 
                 if (res['success'] == true) {
-                  if (mounted) {
+                  if (context.mounted) {
                     Navigator.pop(ctx);
                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Alert sent to Admin!"), backgroundColor: KitchenTheme.emeraldGreen));
                   }

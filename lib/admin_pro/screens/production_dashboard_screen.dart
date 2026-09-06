@@ -78,7 +78,7 @@ class ProductionDashboardScreen extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
         boxShadow: AdminTheme.softShadow,
-        border: isUrgent ? Border.all(color: Colors.red.withOpacity(0.3), width: 1.5) : null,
+        border: isUrgent ? Border.all(color: Colors.red.withValues(alpha: 0.3), width: 1.5) : null,
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -90,7 +90,7 @@ class ProductionDashboardScreen extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: isUrgent ? Colors.red.withOpacity(0.1) : Colors.green.withOpacity(0.1),
+              color: isUrgent ? Colors.red.withValues(alpha: 0.1) : Colors.green.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Text(

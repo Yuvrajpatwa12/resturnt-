@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../services/tenant_service.dart';
-import '../admin_pro/admin_login_screen.dart';
+
+
 import '../cart_manager.dart';
 import 'theme.dart';
 import 'screens/dashboard_screen.dart';
@@ -53,7 +53,7 @@ class _WaiterHubState extends State<WaiterHub> {
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
-                          color: WaiterProTheme.emeraldGreen.withOpacity(0.3),
+                          color: WaiterProTheme.emeraldGreen.withValues(alpha: 0.3),
                           blurRadius: 15,
                           offset: const Offset(0, 8),
                         ),
@@ -82,7 +82,7 @@ class _WaiterHubState extends State<WaiterHub> {
                         TextButton(
                           onPressed: () => ShopManager.instance.clearWaiterNotification(firstTableId),
                           style: TextButton.styleFrom(
-                            backgroundColor: Colors.white.withOpacity(0.2),
+                            backgroundColor: Colors.white.withValues(alpha: 0.2),
                             foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                           ),
@@ -122,7 +122,7 @@ class _WaiterHubState extends State<WaiterHub> {
                   color: Colors.white,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
+                      color: Colors.black.withValues(alpha: 0.05),
                       blurRadius: 10,
                       offset: const Offset(0, -4),
                     ),
@@ -134,7 +134,7 @@ class _WaiterHubState extends State<WaiterHub> {
                     Future.microtask(() => ShopManager.instance.waiterTabIndex.value = index);
                   },
                   backgroundColor: Colors.white,
-                  indicatorColor: WaiterProTheme.royalBlue.withOpacity(0.1),
+                  indicatorColor: WaiterProTheme.royalBlue.withValues(alpha: 0.1),
                   destinations: const [
                     NavigationDestination(
                       icon: Icon(Icons.dashboard_outlined),

@@ -60,7 +60,7 @@ class _CommRadioPageState extends State<CommRadioPage> with SingleTickerProvider
                     margin: const EdgeInsets.only(right: 12),
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     decoration: BoxDecoration(
-                      color: isSel ? const Color(0xFFFF5C00).withOpacity(0.1) : Colors.transparent,
+                      color: isSel ? const Color(0xFFFF5C00).withValues(alpha: 0.1) : Colors.transparent,
                       borderRadius: BorderRadius.circular(25),
                       border: Border.all(color: isSel ? const Color(0xFFFF5C00) : Colors.grey[200]!),
                     ),
@@ -150,7 +150,7 @@ class _CommRadioPageState extends State<CommRadioPage> with SingleTickerProvider
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFFFF5C00).withOpacity(_isHolding ? 0.4 : 0.1),
+                            color: const Color(0xFFFF5C00).withValues(alpha: _isHolding ? 0.4 : 0.1),
                             blurRadius: 30,
                             spreadRadius: _isHolding ? 10 : 2,
                           )
@@ -186,7 +186,7 @@ class _CommRadioPageState extends State<CommRadioPage> with SingleTickerProvider
             decoration: BoxDecoration(
               color: Colors.grey[50],
               borderRadius: const BorderRadius.vertical(top: Radius.circular(40)),
-              border: Border.all(color: Colors.black.withOpacity(0.03)),
+              border: Border.all(color: Colors.black.withValues(alpha: 0.03)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

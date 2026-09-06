@@ -15,7 +15,7 @@ class AccountSuspendedScreen extends StatelessWidget {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(32),
-            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 30)],
+            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 30)],
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,

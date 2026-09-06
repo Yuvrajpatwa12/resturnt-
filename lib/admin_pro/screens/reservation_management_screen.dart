@@ -31,7 +31,7 @@ class ReservationManagementScreen extends StatelessWidget {
             const Text("Booking Log", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(color: AdminTheme.royalBlue.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+              decoration: BoxDecoration(color: AdminTheme.royalBlue.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
               child: const Text("TODAY", style: TextStyle(color: AdminTheme.royalBlue, fontSize: 10, fontWeight: FontWeight.bold)),
             ),
           ],
@@ -55,7 +55,7 @@ class ReservationManagementScreen extends StatelessWidget {
       child: Row(
         children: [
           CircleAvatar(
-            backgroundColor: AdminTheme.royalBlue.withOpacity(0.1),
+            backgroundColor: AdminTheme.royalBlue.withValues(alpha: 0.1),
             child: const Icon(Icons.person_outline, color: AdminTheme.royalBlue, size: 20),
           ),
           const SizedBox(width: 16),
@@ -74,7 +74,7 @@ class ReservationManagementScreen extends StatelessWidget {
               const Text("07:30 PM", style: TextStyle(fontWeight: FontWeight.w900, color: AdminTheme.darkNavy)),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(color: AdminTheme.emeraldGreen.withOpacity(0.1), borderRadius: BorderRadius.circular(4)),
+                decoration: BoxDecoration(color: AdminTheme.emeraldGreen.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)),
                 child: const Text("CONFIRMED", style: TextStyle(color: AdminTheme.emeraldGreen, fontSize: 8, fontWeight: FontWeight.bold)),
               ),
             ],

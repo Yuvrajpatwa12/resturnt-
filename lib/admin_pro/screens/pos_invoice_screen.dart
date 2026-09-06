@@ -55,7 +55,7 @@ class _POSInvoiceScreenState extends State<POSInvoiceScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             decoration: BoxDecoration(
-              color: AdminTheme.royalBlue.withOpacity(0.05),
+              color: AdminTheme.royalBlue.withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(12),
             ),
             child: DropdownButton<int>(
@@ -129,7 +129,7 @@ class _POSInvoiceScreenState extends State<POSInvoiceScreen> {
                   decoration: BoxDecoration(
                     color: isSelected ? AdminTheme.royalBlue : Colors.white,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: isSelected ? AdminTheme.royalBlue : Colors.grey.withOpacity(0.2)),
+                    border: Border.all(color: isSelected ? AdminTheme.royalBlue : Colors.grey.withValues(alpha: 0.2)),
                   ),
                   child: Center(
                     child: Text(

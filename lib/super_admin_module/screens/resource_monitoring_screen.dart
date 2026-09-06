@@ -73,7 +73,7 @@ class _ResourceMonitoringScreenState extends State<ResourceMonitoringScreen> {
         decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: SAMStyles.softShadow),
         child: Row(
           children: [
-            Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle), child: Icon(icon, color: color, size: 18)),
+            Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle), child: Icon(icon, color: color, size: 18)),
             const SizedBox(width: 16),
             Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(val, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
@@ -131,7 +131,7 @@ class _ResourceMonitoringScreenState extends State<ResourceMonitoringScreen> {
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Text(s['name'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                     const SizedBox(height: 4),
-                    Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: Colors.green.withOpacity(0.1), borderRadius: BorderRadius.circular(4)), child: Text(s['health'], style: const TextStyle(color: Colors.green, fontSize: 8, fontWeight: FontWeight.w900))),
+                    Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: Colors.green.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)), child: Text(s['health'], style: const TextStyle(color: Colors.green, fontSize: 8, fontWeight: FontWeight.w900))),
                   ]),
                 ),
                 Expanded(

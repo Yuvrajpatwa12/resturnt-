@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:fl_chart/fl_chart.dart';
 import 'dart:typed_data';
+import 'dart:async';
 import '../../services/api_service.dart';
 import '../../services/tenant_service.dart';
 import '../admin_theme.dart';
@@ -44,11 +46,37 @@ class _HRMManagementScreenState extends State<HRMManagementScreen> {
   String? _currentProfileUrl;
 
   final List<String> _months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  
+  // Attendance State
+  final Map<int, String> _attendanceMap = {};
+  List<Map<String, dynamic>> _reportData = [];
+  Map<String, dynamic>? _analyticsData;
+  String _selectedRange = "Month";
+  
+  // New Interactive Attendance State
+  final Set<int> _completedToday = {};
+  final Map<int, Timer> _undoTimers = {};
+  final Map<int, String> _pendingSaves = {}; // userId -> status
+  final Set<int> _successSaves = {}; // Users who just finished saving
+
+  // Individual Stats
+  Map<String, dynamic>? _individualStats;
+  bool _isLoadingIndividual = false;
 
   @override
   void initState() {
     super.initState();
     _loadStaff(); // Always load on init to ensure data is ready
+  }
+
+  @override
+  void dispose() {
+    // CRITICAL: Cancel all active timers to prevent crashes
+    for (var timer in _undoTimers.values) {
+      timer.cancel();
+    }
+    _undoTimers.clear();
+    super.dispose();
   }
 
   @override
@@ -66,8 +94,11 @@ class _HRMManagementScreenState extends State<HRMManagementScreen> {
     
     setState(() => _isLoading = true);
     
-    // Clear old data first to avoid confusion
-    setState(() => _staffList = []);
+    // Clear local cache to ensure fresh state
+    _staffList = [];
+    _completedToday.clear();
+    _pendingSaves.clear();
+    _successSaves.clear();
     
     final data = await ApiService.fetchStaff(tenant.id);
     
@@ -75,12 +106,134 @@ class _HRMManagementScreenState extends State<HRMManagementScreen> {
       if (data != null) {
         setState(() {
           _staffList = data;
-          _isLoading = false;
         });
-      } else {
-        setState(() => _isLoading = false);
+        
+        if (widget.mode.contains("Attendance")) {
+          final today = DateTime.now().toIso8601String().split('T')[0];
+          debugPrint("DEBUG UI: Syncing attendance state for date: $today");
+          
+          final attData = await ApiService.fetchAttendance(tenant.id, today);
+          if (attData != null && mounted) {
+            setState(() {
+              _completedToday.clear(); // Re-clear before populate
+              for (var row in attData) {
+                final int uid = int.parse(row['user_id'].toString());
+                _attendanceMap[uid] = row['status'];
+                _completedToday.add(uid);
+                debugPrint("DEBUG UI: User $uid already marked today.");
+              }
+            });
+          }
+          
+          if (widget.mode == "Attendance Report") {
+            await _loadReport();
+          }
+        }
       }
+      setState(() => _isLoading = false);
     }
+  }
+
+  Future<void> _loadReport() async {
+    final tenant = TenantService().currentTenant.value;
+    if (tenant == null) return;
+    
+    setState(() => _isLoading = true);
+    
+    // Fetch basic report list
+    final now = DateTime.now();
+    final firstDay = DateTime(now.year, now.month, 1).toString().split(' ')[0];
+    final lastDay = DateTime(now.year, now.month + 1, 0).toString().split(' ')[0];
+    
+    final report = await ApiService.fetchAttendanceReport(tenant.id, firstDay, lastDay);
+    
+    // Fetch dashboard analytics
+    final analytics = await ApiService.fetchAttendanceAnalytics(tenant.id, _selectedRange);
+    
+    if (mounted) {
+      setState(() {
+        _reportData = report ?? [];
+        _analyticsData = analytics;
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _loadIndividualStats(int userId) async {
+    setState(() {
+      _isLoadingIndividual = true;
+      _individualStats = null;
+    });
+    
+    final month = "${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, '0')}";
+    final data = await ApiService.fetchEmployeeStats(userId, month);
+    
+    if (mounted) {
+      setState(() {
+        _individualStats = data;
+        _isLoadingIndividual = false;
+      });
+    }
+  }
+
+
+
+  Future<void> _handleAttendanceClick(int userId, String status, String name) async {
+    final tenant = TenantService().currentTenant.value;
+    if (tenant == null) return;
+
+    setState(() {
+      _pendingSaves[userId] = status;
+    });
+
+    // Start 4-second "Undo/Cancel" window
+    _undoTimers[userId] = Timer(const Duration(seconds: 4), () async {
+      if (!mounted) return;
+
+      final today = DateTime.now().toIso8601String().split('T')[0];
+      final record = {
+        'tenant_id': tenant.id,
+        'user_id': userId,
+        'date': today,
+        'status': status,
+      };
+
+      debugPrint("DEBUG UI: Timer expired. Finalizing save: $record");
+      final success = await ApiService.markSingleAttendance(record);
+      
+      if (success && mounted) {
+        setState(() {
+          _pendingSaves.remove(userId);
+          _successSaves.add(userId);
+          _attendanceMap[userId] = status;
+          _completedToday.add(userId);
+        });
+
+        // Show Success state for 1.5 seconds then remove card
+        await Future.delayed(const Duration(milliseconds: 1500));
+        if (mounted) {
+          setState(() {
+            _successSaves.remove(userId);
+          });
+        }
+      } else if (mounted) {
+        // Handle failure
+        setState(() {
+          _pendingSaves.remove(userId);
+        });
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Failed to save. Try again."), backgroundColor: Colors.red));
+      }
+      
+      _undoTimers.remove(userId);
+    });
+  }
+
+  void _cancelAttendance(int userId) {
+    _undoTimers[userId]?.cancel();
+    setState(() {
+      _undoTimers.remove(userId);
+      _pendingSaves.remove(userId);
+    });
   }
 
   Future<void> _submitStaff() async {
@@ -219,6 +372,7 @@ class _HRMManagementScreenState extends State<HRMManagementScreen> {
           if (widget.mode == "Add Employee") _buildAddEmployeeForm()
           else if (widget.mode == "Manage Employee") _buildManageEmployeeView()
           else if (widget.mode == "Attendance Form") _buildAttendanceForm()
+          else if (widget.mode == "Attendance Report") _buildAttendanceReport()
           else if (widget.mode.contains("Salary")) _buildPayrollView()
           else _buildGenericEmployeeView(),
         ],
@@ -431,7 +585,7 @@ class _HRMManagementScreenState extends State<HRMManagementScreen> {
                     const Text("System Role", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey)),
                     const SizedBox(height: 8),
                     DropdownButtonFormField<String>(
-                      value: _selectedRole,
+                      initialValue: _selectedRole,
                       decoration: InputDecoration(
                         filled: true, fillColor: const Color(0xFFF8FAFC),
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
@@ -631,7 +785,570 @@ class _HRMManagementScreenState extends State<HRMManagementScreen> {
   }
 
   Widget _buildAttendanceForm() {
-    return const Center(child: Text("Attendance system ready."));
+    final now = DateTime.now();
+    // Only show staff who haven't been completed TODAY
+    final remainingStaff = _staffList.where((s) => !_completedToday.contains(int.parse(s['id'].toString())) || _pendingSaves.containsKey(int.parse(s['id'].toString())) || _successSaves.contains(int.parse(s['id'].toString()))).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text("Daily Attendance", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                Text("Today: ${now.day} ${_months[now.month-1]} ${now.year} • ${_staffList.length - _completedToday.length} Pending", 
+                  style: const TextStyle(fontSize: 11, color: AdminTheme.royalBlue, fontWeight: FontWeight.bold)),
+              ],
+            ),
+            IconButton(onPressed: _loadStaff, icon: const Icon(Icons.refresh, color: AdminTheme.royalBlue)),
+          ],
+        ),
+        const SizedBox(height: 32),
+        if (_isLoading) const Center(child: CircularProgressIndicator())
+        else if (_staffList.isEmpty) const Center(child: Text("No employees found."))
+        else if (_staffList.length == _completedToday.length && _successSaves.isEmpty && _pendingSaves.isEmpty) 
+          Center(
+            child: Column(
+              children: [
+                const Icon(Icons.check_circle_outline, color: Colors.green, size: 64),
+                const SizedBox(height: 16),
+                const Text("Excellent! All attendance marked for today.", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+                const SizedBox(height: 16),
+                OutlinedButton(onPressed: _loadStaff, child: const Text("FORCE REFRESH"))
+              ],
+            ),
+          )
+        else ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: remainingStaff.length,
+          itemBuilder: (context, index) {
+            final s = remainingStaff[index];
+            final int userId = int.parse(s['id'].toString());
+            
+            if (_successSaves.contains(userId)) {
+              return _buildSuccessCard(s['name']);
+            }
+            
+            if (_pendingSaves.containsKey(userId)) {
+              return _buildSavingCard(userId, s['name'], _pendingSaves[userId]!);
+            }
+
+            return _buildNormalAttendanceCard(s, userId);
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildNormalAttendanceCard(Map<String, dynamic> s, int userId) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24), boxShadow: AdminTheme.softShadow),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 20,
+                backgroundColor: AdminTheme.royalBlue.withValues(alpha: 0.1),
+                backgroundImage: (s['profile_pic_url'] != null && s['profile_pic_url'].isNotEmpty) 
+                  ? NetworkImage(s['profile_pic_url']) : null,
+                child: (s['profile_pic_url'] == null || s['profile_pic_url'].isEmpty) 
+                  ? Text(s['name'][0].toUpperCase(), style: const TextStyle(fontWeight: FontWeight.bold, color: AdminTheme.royalBlue, fontSize: 12)) : null,
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(s['name'] ?? 'Staff', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                    Text(s['role'] ?? 'Role', style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildStatusBtn(userId, "P", "Present", s['name']),
+              _buildStatusBtn(userId, "A", "Absent", s['name']),
+              _buildStatusBtn(userId, "HL", "Half", s['name']),
+              _buildStatusBtn(userId, "NIA", "Un-Inf", s['name']),
+              _buildStatusBtn(userId, "UA", "Use-Ab", s['name']),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSavingCard(int userId, String name, String status) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: AdminTheme.royalBlue.withValues(alpha: 0.05), 
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AdminTheme.royalBlue.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        children: [
+          const SizedBox(
+            width: 20, height: 20,
+            child: CircularProgressIndicator(strokeWidth: 2, color: AdminTheme.royalBlue),
+          ),
+          const SizedBox(width: 20),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text("Saving $name as $status...", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AdminTheme.royalBlue)),
+                const Text("Writing to database in 4 seconds", style: TextStyle(fontSize: 10, color: Colors.grey)),
+              ],
+            ),
+          ),
+          TextButton(
+            onPressed: () => _cancelAttendance(userId),
+            child: const Text("CANCEL", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 12)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSuccessCard(String name) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.green.withValues(alpha: 0.1), 
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.green.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.check_circle, color: Colors.green, size: 24),
+          const SizedBox(width: 20),
+          Expanded(
+            child: Text("Attendance Marked for $name Successfully!", style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green, fontSize: 14)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusBtn(int userId, String code, String label, String name) {
+    bool isSelected = _attendanceMap[userId] == code;
+    Color color = _getStatusColor(code);
+    bool isProcessing = _pendingSaves.containsKey(userId);
+    
+    return InkWell(
+      onTap: isProcessing ? null : () => _handleAttendanceClick(userId, code, name),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        width: 55,
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected ? color : Colors.grey[50],
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: isSelected ? color : Colors.grey[200]!),
+        ),
+        child: Column(
+          children: [
+            Text(code, style: TextStyle(color: isSelected ? Colors.white : color, fontWeight: FontWeight.w900, fontSize: 14)),
+            const SizedBox(height: 2),
+            Text(label, style: TextStyle(color: isSelected ? Colors.white70 : Colors.grey, fontSize: 8, fontWeight: FontWeight.bold)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Color _getStatusColor(String code) {
+    switch (code) {
+      case "P": return Colors.green;
+      case "A": return Colors.red;
+      case "HL": return Colors.orange;
+      case "NIA": return Colors.deepPurple;
+      case "UA": return Colors.blueGrey;
+      default: return Colors.grey;
+    }
+  }
+
+  Widget _buildAttendanceReport() {
+    if (_isLoading) return const Center(child: CircularProgressIndicator());
+    if (_individualStats != null || _isLoadingIndividual) return _buildIndividualDashboard();
+
+    final stats = _analyticsData?['stats'];
+    final filteredReport = _reportData.where((r) {
+      if (_searchQuery.isEmpty) return true;
+      final q = _searchQuery.toLowerCase();
+      return (r['name']?.toString().toLowerCase().contains(q) ?? false) ||
+             (r['date']?.toString().toLowerCase().contains(q) ?? false);
+    }).toList();
+    
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildDashboardHeader(),
+          const SizedBox(height: 24),
+          
+          // --- SEARCH BAR ---
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white, borderRadius: BorderRadius.circular(16),
+              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))],
+            ),
+            child: TextField(
+              onChanged: (v) => setState(() => _searchQuery = v),
+              decoration: InputDecoration(
+                hintText: "Search staff or date...",
+                hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
+                prefixIcon: const Icon(Icons.search_rounded, color: AdminTheme.royalBlue),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                contentPadding: const EdgeInsets.symmetric(vertical: 16),
+              ),
+            ),
+          ),
+          const SizedBox(height: 32),
+
+          // 1. TOP STATS CARDS
+          Row(
+            children: [
+              Expanded(child: _buildStatCard("Total Staff", "${stats?['total_staff'] ?? '0'}", Icons.people_outline, Colors.blue)),
+              const SizedBox(width: 12),
+              Expanded(child: _buildStatCard("Present Today", "${stats?['present_today'] ?? '0'}", Icons.check_circle_outline, Colors.green)),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(child: _buildStatCard("Absent Today", "${stats?['absent_today'] ?? '0'}", Icons.cancel_outlined, Colors.red)),
+              const SizedBox(width: 12),
+              Expanded(child: _buildStatCard("Peak Visitors", "0", Icons.analytics_outlined, Colors.purple)),
+            ],
+          ),
+          
+          const SizedBox(height: 32),
+          
+          // 2. ANALYTICS CHARTS
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24), boxShadow: AdminTheme.softShadow),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text("Staff Attendance Trends", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                const SizedBox(height: 24),
+                SizedBox(
+                  height: 200,
+                  child: BarChart(
+                    BarChartData(
+                      barGroups: _getBarGroups(),
+                      borderData: FlBorderData(show: false),
+                      titlesData: const FlTitlesData(show: false),
+                      gridData: const FlGridData(show: false),
+                      alignment: BarChartAlignment.spaceAround,
+                      maxY: (_staffList.isEmpty ? 10 : _staffList.length * 1.2).toDouble(),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _buildLegendItem("Presents", AdminTheme.royalBlue),
+                    const SizedBox(width: 20),
+                    _buildLegendItem("Absents", Colors.redAccent),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          
+          const SizedBox(height: 32),
+          
+          // 3. RECENT ACTIVITY LIST
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text("Attendance Logs", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+              Text("${filteredReport.length} Records", style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)),
+            ],
+          ),
+          const SizedBox(height: 16),
+          if (filteredReport.isEmpty) const Center(child: Padding(padding: EdgeInsets.all(40), child: Text("No data found.")))
+          else ListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: filteredReport.length,
+            itemBuilder: (context, index) {
+              final r = filteredReport[index];
+              return _buildAttendanceListItem(r);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLegendItem(String label, Color color) {
+    return Row(
+      children: [
+        Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+        const SizedBox(width: 8),
+        Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)),
+      ],
+    );
+  }
+
+  List<BarChartGroupData> _getBarGroups() {
+    if (_analyticsData == null || _analyticsData!['chart_data'] == null || (_analyticsData!['chart_data'] as List).isEmpty) {
+      // Fallback for empty data
+      return List.generate(7, (i) => BarChartGroupData(
+        x: i,
+        barRods: [BarChartRodData(toY: 0, color: AdminTheme.royalBlue, width: 8)],
+      ));
+    }
+    
+    final List data = _analyticsData!['chart_data'];
+    // Group by date
+    Map<String, List<int>> daily = {};
+    for (var row in data) {
+      if (row == null || row['date'] == null) continue;
+      String date = row['date'];
+      if (!daily.containsKey(date)) daily[date] = [0, 0]; // [Present, Absent]
+      
+      int count = int.tryParse(row['count']?.toString() ?? '0') ?? 0;
+      if (['P', 'HL'].contains(row['status'])) {
+        daily[date]![0] += count;
+      } else {
+        daily[date]![1] += count;
+      }
+    }
+
+    int i = 0;
+    return daily.entries.take(7).map((e) {
+      return BarChartGroupData(
+        x: i++,
+        barRods: [
+          BarChartRodData(toY: e.value[0].toDouble(), color: AdminTheme.royalBlue, width: 8, borderRadius: BorderRadius.circular(2)),
+          BarChartRodData(toY: e.value[1].toDouble(), color: Colors.redAccent, width: 8, borderRadius: BorderRadius.circular(2)),
+        ],
+      );
+    }).toList();
+  }
+
+  Widget _buildDashboardHeader() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        const Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text("Analytics Dashboard", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+            Text("Data-driven staff discipline tracking", style: TextStyle(color: Colors.grey, fontSize: 11)),
+          ],
+        ),
+        Row(
+          children: [
+            IconButton(onPressed: _loadReport, icon: const Icon(Icons.refresh, color: AdminTheme.royalBlue, size: 20)),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey[200]!)),
+              child: DropdownButton<String>(
+                value: _selectedRange,
+                underline: const SizedBox(),
+                items: ['Day', 'Week', 'Month', 'Year'].map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 12)))).toList(),
+                onChanged: (v) {
+                  setState(() => _selectedRange = v!);
+                  _loadReport();
+                },
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatCard(String label, String val, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: AdminTheme.softShadow),
+      child: Row(
+        children: [
+          CircleAvatar(backgroundColor: color.withValues(alpha: 0.1), child: Icon(icon, color: color, size: 20)),
+          const SizedBox(width: 16),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(val, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              Text(label, style: const TextStyle(fontSize: 9, color: Colors.grey, fontWeight: FontWeight.bold)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAttendanceListItem(Map<String, dynamic> r) {
+    final status = r['status'] ?? '?';
+    final color = _getStatusColor(status);
+    return InkWell(
+      onTap: () => _loadIndividualStats(int.parse(r['user_id'].toString())),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: AdminTheme.softShadow),
+        child: Row(
+          children: [
+            CircleAvatar(radius: 18, backgroundColor: AdminTheme.royalBlue.withValues(alpha: 0.1), child: Text(r['name'][0])),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(r['name'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                  Text(r['date'], style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+              child: Text(status, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 10)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildIndividualDashboard() {
+    if (_isLoadingIndividual) return const Center(child: CircularProgressIndicator());
+    final d = _individualStats;
+    if (d == null || d['user'] == null || d['stats'] == null) return const Center(child: Text("Employee data is incomplete."));
+    
+    final user = d['user'];
+    final stats = d['stats'];
+    
+    final double baseSalary = double.tryParse(user['salary_amount']?.toString() ?? '0') ?? 0;
+    final int cycleDays = int.tryParse(user['payment_cycle_days']?.toString() ?? '30') ?? 30;
+    final double dailyRate = cycleDays > 0 ? baseSalary / cycleDays : 0;
+    
+    double presentCount = 0;
+    try {
+      presentCount = double.tryParse(stats['present']?.toString() ?? '0') ?? 0;
+    } catch (_) {}
+    
+    final double earnedSalary = presentCount * dailyRate;
+
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          IconButton(onPressed: () => setState(() => _individualStats = null), icon: const Icon(Icons.arrow_back)),
+          const SizedBox(height: 16),
+          
+          // PROFILE HEADER
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(32),
+            decoration: BoxDecoration(color: AdminTheme.royalBlue, borderRadius: BorderRadius.circular(32)),
+            child: Column(
+              children: [
+                Text(user['name'] ?? 'Unknown', style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+                Text(user['role']?.toString().toUpperCase() ?? 'STAFF', style: const TextStyle(color: Colors.white70, fontSize: 10, letterSpacing: 1)),
+                const SizedBox(height: 32),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _buildIndiStat("PRESENT", "${stats['present'] ?? 0}"),
+                    _buildIndiStat("ABSENT", "${stats['absent'] ?? 0}"),
+                    _buildIndiStat("HALF LEAVE", "${stats['hl_raw'] ?? 0}"),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          
+          const SizedBox(height: 32),
+          
+          // SALARY CALCULATION CARD
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24), boxShadow: AdminTheme.softShadow),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text("Monthly Settlement (Earned)", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                const SizedBox(height: 16),
+                _buildSalaryRow("Base Monthly Salary", "NPR ${baseSalary.toStringAsFixed(0)}"),
+                _buildSalaryRow("Cycle Days", "$cycleDays Days"),
+                _buildSalaryRow("Days Attended (incl. half)", "$presentCount"),
+                const Divider(height: 32),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text("TOTAL EARNED", style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, fontSize: 10)),
+                    Text("NPR ${earnedSalary.toStringAsFixed(2)}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: Colors.green)),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          
+          const SizedBox(height: 32),
+          const Text("Attendance History", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+          const SizedBox(height: 16),
+          if (d['history'] == null || (d['history'] as List).isEmpty) const Center(child: Text("No history available."))
+          else ListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: (d['history'] as List).length,
+            itemBuilder: (context, index) {
+              final h = d['history'][index];
+              return ListTile(
+                leading: Icon(Icons.circle, color: _getStatusColor(h['status'] ?? '?'), size: 12),
+                title: Text(h['date'] ?? 'Unknown Date', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                trailing: Text(h['status'] ?? '?', style: TextStyle(color: _getStatusColor(h['status'] ?? '?'), fontWeight: FontWeight.bold)),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildIndiStat(String label, String val) {
+    return Column(
+      children: [
+        Text(val, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+        Text(label, style: const TextStyle(color: Colors.white54, fontSize: 8, fontWeight: FontWeight.bold)),
+      ],
+    );
+  }
+
+  Widget _buildSalaryRow(String label, String val) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+          Text(val, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+        ],
+      ),
+    );
   }
 
   Widget _buildPayrollView() {

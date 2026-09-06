@@ -60,7 +60,7 @@ class _BillSettlementScreenState extends State<BillSettlementScreen> {
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: WaiterProTheme.royalBlue.withOpacity(0.05),
+                        color: WaiterProTheme.royalBlue.withValues(alpha: 0.05),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: _buildSummaryRow("GRAND TOTAL", "NPR ${total.toStringAsFixed(2)}", isTotal: true),

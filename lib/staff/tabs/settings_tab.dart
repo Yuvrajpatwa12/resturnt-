@@ -51,7 +51,7 @@ class SettingsTab extends StatelessWidget {
         children: [
           Container(
             padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: const Color(0xFFFF5C00).withOpacity(0.1), shape: BoxShape.circle),
+            decoration: BoxDecoration(color: const Color(0xFFFF5C00).withValues(alpha: 0.1), shape: BoxShape.circle),
             child: Icon(icon, color: const Color(0xFFFF5C00), size: 20),
           ),
           const SizedBox(width: 15),
@@ -83,7 +83,7 @@ class SettingsTab extends StatelessWidget {
           children: [
             Container(
               padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(color: Colors.blue.withOpacity(0.1), shape: BoxShape.circle),
+              decoration: BoxDecoration(color: Colors.blue.withValues(alpha: 0.1), shape: BoxShape.circle),
               child: Icon(icon, color: Colors.blue, size: 20),
             ),
             const SizedBox(width: 15),

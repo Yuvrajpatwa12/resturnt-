@@ -106,7 +106,7 @@ class _OverviewScreenState extends State<OverviewScreen> {
         children: [
           Container(
             padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
+            decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle),
             child: Icon(icon, color: color, size: 24),
           ),
           Column(
@@ -139,7 +139,7 @@ class _OverviewScreenState extends State<OverviewScreen> {
               const Text("Infrastructure Node Status", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(color: Colors.green.withOpacity(0.2), borderRadius: BorderRadius.circular(20)),
+                decoration: BoxDecoration(color: Colors.green.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(20)),
                 child: const Row(children: [CircleAvatar(radius: 3, backgroundColor: Colors.green), SizedBox(width: 8), Text("STABLE", style: TextStyle(color: Colors.green, fontSize: 10, fontWeight: FontWeight.bold))]),
               ),
             ],
@@ -178,7 +178,7 @@ class _OverviewScreenState extends State<OverviewScreen> {
             borderRadius: BorderRadius.circular(10),
             child: LinearProgressIndicator(
               value: val,
-              backgroundColor: Colors.white.withOpacity(0.05),
+              backgroundColor: Colors.white.withValues(alpha: 0.05),
               valueColor: AlwaysStoppedAnimation<Color>(color),
               minHeight: 6,
             ),
@@ -217,7 +217,7 @@ class _OverviewScreenState extends State<OverviewScreen> {
                       height: h,
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          colors: [SAMStyles.royalBlue, SAMStyles.royalBlue.withOpacity(0.7)],
+                          colors: [SAMStyles.royalBlue, SAMStyles.royalBlue.withValues(alpha: 0.7)],
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
                         ),
@@ -272,7 +272,7 @@ class _OverviewScreenState extends State<OverviewScreen> {
         children: [
           Container(
             padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+            decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
             child: Icon(icon, color: color, size: 18),
           ),
           const SizedBox(width: 16),

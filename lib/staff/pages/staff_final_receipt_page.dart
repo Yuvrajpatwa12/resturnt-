@@ -78,7 +78,7 @@ class _StaffFinalReceiptPageState extends State<StaffFinalReceiptPage> {
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(2),
-                        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20)],
+                        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 20)],
                       ),
                       child: Column(
                         children: [
@@ -162,7 +162,7 @@ class _StaffFinalReceiptPageState extends State<StaffFinalReceiptPage> {
                 padding: const EdgeInsets.symmetric(vertical: 20),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                 elevation: 10,
-                shadowColor: const Color(0xFFFF5C00).withOpacity(0.4),
+                shadowColor: const Color(0xFFFF5C00).withValues(alpha: 0.4),
               ),
             ),
           ),

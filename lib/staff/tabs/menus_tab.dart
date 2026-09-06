@@ -16,7 +16,7 @@ class MenusTab extends StatefulWidget {
 }
 
 class _MenusTabState extends State<MenusTab> with SingleTickerProviderStateMixin {
-  String _searchQuery = "";
+  final String _searchQuery = "";
   String _selectedCategory = "Cold";
 
   void _confirmOrderWithTimer(int minutes) {
@@ -75,7 +75,7 @@ class _MenusTabState extends State<MenusTab> with SingleTickerProviderStateMixin
           children: [
             Container(
               padding: const EdgeInsets.all(30),
-              decoration: BoxDecoration(color: const Color(0xFFFF5C00).withOpacity(0.05), shape: BoxShape.circle),
+              decoration: BoxDecoration(color: const Color(0xFFFF5C00).withValues(alpha: 0.05), shape: BoxShape.circle),
               child: const Icon(Icons.table_restaurant_rounded, size: 80, color: Color(0xFFFF5C00)),
             ),
             const SizedBox(height: 30),
@@ -174,8 +174,8 @@ class _MenusTabState extends State<MenusTab> with SingleTickerProviderStateMixin
                                 boxShadow: [
                                   BoxShadow(
                                     color: isTicked 
-                                        ? const Color(0xFFFF5C00).withOpacity(0.1) 
-                                        : Colors.black.withOpacity(0.02), 
+                                        ? const Color(0xFFFF5C00).withValues(alpha: 0.1) 
+                                        : Colors.black.withValues(alpha: 0.02), 
                                     blurRadius: 10
                                   )
                                 ],
@@ -210,7 +210,7 @@ class _MenusTabState extends State<MenusTab> with SingleTickerProviderStateMixin
                               child: Container(
                                 padding: const EdgeInsets.all(6),
                                 decoration: BoxDecoration(
-                                  color: isTicked ? const Color(0xFFFF5C00) : Colors.white.withOpacity(0.8),
+                                  color: isTicked ? const Color(0xFFFF5C00) : Colors.white.withValues(alpha: 0.8),
                                   shape: BoxShape.circle,
                                   boxShadow: [if (isTicked) BoxShadow(color: Colors.black12, blurRadius: 4)],
                                 ),
@@ -280,10 +280,10 @@ class _MenusTabState extends State<MenusTab> with SingleTickerProviderStateMixin
                     child: Container(
                       padding: const EdgeInsets.all(15),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.8),
+                        color: Colors.white.withValues(alpha: 0.8),
                         borderRadius: BorderRadius.circular(25),
-                        border: Border.all(color: const Color(0xFFFF5C00).withOpacity(0.2)),
-                        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20)],
+                        border: Border.all(color: const Color(0xFFFF5C00).withValues(alpha: 0.2)),
+                        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 20)],
                       ),
                       child: Row(
                         children: [

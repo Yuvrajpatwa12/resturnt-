@@ -73,7 +73,7 @@ class _GlobalCatalogScreenState extends State<GlobalCatalogScreen> {
             children: [
               Container(
                 padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(color: SAMStyles.royalBlue.withOpacity(0.08), borderRadius: BorderRadius.circular(16)),
+                decoration: BoxDecoration(color: SAMStyles.royalBlue.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(16)),
                 child: const Icon(Icons.restaurant_menu, color: SAMStyles.royalBlue),
               ),
               const SizedBox(width: 16),
@@ -152,7 +152,7 @@ class _GlobalCatalogScreenState extends State<GlobalCatalogScreen> {
                   title: const Text("Overwrite Prices", style: TextStyle(fontSize: 12)),
                   value: true, 
                   onChanged: (v) {},
-                  activeColor: SAMStyles.emeraldGreen,
+                  activeThumbColor: SAMStyles.emeraldGreen,
                 ),
               ],
             ),

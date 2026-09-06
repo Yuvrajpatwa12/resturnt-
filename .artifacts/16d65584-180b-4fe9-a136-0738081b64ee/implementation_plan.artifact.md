@@ -1,40 +1,34 @@
-# Implementation Plan - Designation Management System
+# Implementation Plan - MySQLi Backend Synchronization
 
-This plan implements a full Designation Management system within the HRM module. It allows administrators to define job titles and roles dynamically, which can then be assigned to employees.
+This plan migrates all Attendance and Expense backend scripts from PDO back to **MySQLi**. Since your server uses the `mysqli` driver, this is required to fix the "Status 500" errors and ensure all data saves correctly.
 
 ## User Review Required
 
 > [!IMPORTANT]
-> **Database Requirement**: I will provide SQL code to create the `designations` table. You must run this in your phpMyAdmin on Hostinger.
-> **Real-Time Integration**: Once a designation is added, it will immediately appear as an option when adding or editing a new employee.
+> **Action Required**: You must replace the existing code on your Hostinger server with the MySQLi versions provided below. I will provide them in logical groups.
 
 ## Proposed Changes
 
-### [Admin Pro UI]
-#### [MODIFY] [hrm_management_screen.dart](file:///C:/Users/yuraj/AndroidStudioProjects/chiyabreak/lib/admin_pro/screens/hrm_management_screen.dart)
-- **New View**: Implement `_buildDesignationView()` which includes:
-    - An explanation header explaining the purpose of designations.
-    - A form to add new designations (Title and Department).
-    - A list of existing designations with delete capability.
-- **Dynamic Employee Form**:
-    - Change the "System Role" hardcoded dropdown to fetch job titles from the new designations system.
-- **State Management**: Add `_designationsList` and `_loadDesignations()` to handle the data.
+### [Backend - Attendance Module]
+#### [MODIFY] [mark_attendance.php](file:///C:/Users/yuraj/AndroidStudioProjects/chiyabreak/saas_api/mark_attendance.php)
+#### [MODIFY] [get_attendance.php](file:///C:/Users/yuraj/AndroidStudioProjects/chiyabreak/saas_api/get_attendance.php)
+#### [MODIFY] [get_attendance_report.php](file:///C:/Users/yuraj/AndroidStudioProjects/chiyabreak/saas_api/get_attendance_report.php)
+#### [MODIFY] [get_attendance_analytics.php](file:///C:/Users/yuraj/AndroidStudioProjects/chiyabreak/saas_api/get_attendance_analytics.php)
+#### [MODIFY] [get_employee_stats.php](file:///C:/Users/yuraj/AndroidStudioProjects/chiyabreak/saas_api/get_employee_stats.php)
 
-### [Data Layer]
-#### [MODIFY] [services/api_service.dart](file:///C:/Users/yuraj/AndroidStudioProjects/chiyabreak/lib/services/api_service.dart)
-- Add `fetchDesignations(tenantId)`
-- Add `addDesignation(data)`
-- Add `deleteDesignation(id)`
-
-### [Backend]
-#### [NEW] [add_designation.php](file:///C:/Users/yuraj/AndroidStudioProjects/chiyabreak/.artifacts/16d65584-180b-4fe9-a136-0738081b64ee/scratch/add_designation.php)
-#### [NEW] [get_designations.php](file:///C:/Users/yuraj/AndroidStudioProjects/chiyabreak/.artifacts/16d65584-180b-4fe9-a136-0738081b64ee/scratch/get_designations.php)
-#### [NEW] [delete_designation.php](file:///C:/Users/yuraj/AndroidStudioProjects/chiyabreak/.artifacts/16d65584-180b-4fe9-a136-0738081b64ee/scratch/delete_designation.php)
+### [Backend - Expense Module]
+#### [MODIFY] [add_expense_v3.php](file:///C:/Users/yuraj/AndroidStudioProjects/chiyabreak/saas_api/add_expense_v3.php)
+#### [MODIFY] [get_expenses.php](file:///C:/Users/yuraj/AndroidStudioProjects/chiyabreak/saas_api/get_expenses.php)
+#### [MODIFY] [get_expense_dashboard.php](file:///C:/Users/yuraj/AndroidStudioProjects/chiyabreak/saas_api/get_expense_dashboard.php)
+#### [MODIFY] [add_vendor.php](file:///C:/Users/yuraj/AndroidStudioProjects/chiyabreak/saas_api/add_vendor.php)
+#### [MODIFY] [get_vendors.php](file:///C:/Users/yuraj/AndroidStudioProjects/chiyabreak/saas_api/get_vendors.php)
+#### [MODIFY] [add_recurring.php](file:///C:/Users/yuraj/AndroidStudioProjects/chiyabreak/saas_api/add_recurring.php)
+#### [MODIFY] [get_recurring.php](file:///C:/Users/yuraj/AndroidStudioProjects/chiyabreak/saas_api/get_recurring.php)
 
 ## Verification Plan
 
 ### Manual Verification
-1. **Explain Header**: Navigate to "Designation" and verify the description text is visible at the top.
-2. **Add Designation**: Add "Executive Chef" under "Kitchen" department. Verify it appears in the list immediately.
-3. **Assign to Employee**: Go to "Add Employee" and check if "Executive Chef" is now available in the role/title dropdown.
-4. **Delete**: Delete a designation and verify it is removed from the system.
+1. **Upload critically used files**: Start with `add_recurring.php` and `add_vendor.php`.
+2. **Mark Attendance**: Verify the "Saving..." flow now completes with a "Success" message and the record appears in the database.
+3. **Register Vendor**: Verify you can add a new supplier without getting a server error.
+4. **Dashboard Check**: Open the Expense Statement and verify charts load without a red screen.

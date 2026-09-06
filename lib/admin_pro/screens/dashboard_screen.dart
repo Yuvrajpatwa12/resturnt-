@@ -80,9 +80,9 @@ class DashboardScreen extends StatelessWidget {
         return Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: isWarning ? Colors.red[50] : AdminTheme.emeraldGreen.withOpacity(0.1),
+            color: isWarning ? Colors.red[50] : AdminTheme.emeraldGreen.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: (isWarning ? Colors.red : AdminTheme.emeraldGreen).withOpacity(0.2)),
+            border: Border.all(color: (isWarning ? Colors.red : AdminTheme.emeraldGreen).withValues(alpha: 0.2)),
           ),
           child: Row(
             children: [
@@ -165,9 +165,9 @@ class DashboardScreen extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
+          color: color.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: color.withOpacity(0.1)),
+          border: Border.all(color: color.withValues(alpha: 0.1)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -184,7 +184,7 @@ class DashboardScreen extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               subtitle,
-              style: TextStyle(color: color.withOpacity(0.7), fontSize: 10, fontWeight: FontWeight.w500),
+              style: TextStyle(color: color.withValues(alpha: 0.7), fontSize: 10, fontWeight: FontWeight.w500),
               maxLines: 2,
             ),
           ],
@@ -215,7 +215,7 @@ class DashboardScreen extends StatelessWidget {
                 children: [
                   Container(
                     padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(color: AdminTheme.royalBlue.withOpacity(0.1), shape: BoxShape.circle),
+                    decoration: BoxDecoration(color: AdminTheme.royalBlue.withValues(alpha: 0.1), shape: BoxShape.circle),
                     child: const Icon(Icons.account_balance_wallet, color: AdminTheme.royalBlue, size: 20),
                   ),
                   const SizedBox(width: 16),
@@ -295,7 +295,7 @@ class DashboardScreen extends StatelessWidget {
                     children: [
                       CircleAvatar(
                         radius: 12,
-                        backgroundColor: (a['urgency'] == 'Critical' ? Colors.red : Colors.orange).withOpacity(0.1),
+                        backgroundColor: (a['urgency'] == 'Critical' ? Colors.red : Colors.orange).withValues(alpha: 0.1),
                         child: Icon(Icons.warning_amber_rounded, size: 14, color: a['urgency'] == 'Critical' ? Colors.red : Colors.orange),
                       ),
                       const SizedBox(width: 12),
@@ -382,7 +382,7 @@ class DashboardScreen extends StatelessWidget {
           width: 8,
           height: h,
           decoration: BoxDecoration(
-            color: index == 5 ? AdminTheme.royalBlue : AdminTheme.royalBlue.withOpacity(0.1),
+            color: index == 5 ? AdminTheme.royalBlue : AdminTheme.royalBlue.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(4),
           ),
         );

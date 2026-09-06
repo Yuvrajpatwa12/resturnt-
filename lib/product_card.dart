@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'models.dart';
 import 'cart_manager.dart';
 import 'product_details_page.dart';
+import 'ar_view_page.dart';
 
 class ProductCard extends StatelessWidget {
   final Map<String, dynamic> item;
@@ -24,6 +25,7 @@ class ProductCard extends StatelessWidget {
       tag: item['tag'] ?? 'Popular',
       rating: item['rating'] ?? '4.9',
       discount: item['discount'] ?? '',
+      modelUrl: item['model_url'],
     );
 
     return Material(
@@ -47,7 +49,7 @@ class ProductCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.04),
+                color: Colors.black.withValues(alpha: 0.04),
                 blurRadius: 8,
                 offset: const Offset(0, 3),
               )
@@ -84,6 +86,26 @@ class ProductCard extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                           decoration: BoxDecoration(color: const Color(0xFFFF5C00), borderRadius: BorderRadius.circular(4)),
                           child: Text(item['tag'], style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+                    
+                    // 3D / AR Trigger Icon
+                    if (product.modelUrl != null && product.modelUrl!.isNotEmpty)
+                      Positioned(
+                        top: 8, right: 8,
+                        child: GestureDetector(
+                          onTap: () {
+                            Navigator.push(context, MaterialPageRoute(builder: (context) => ARViewPage(product: product)));
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.9),
+                              shape: BoxShape.circle,
+                              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 4)],
+                            ),
+                            child: const Icon(Icons.view_in_ar_rounded, color: Color(0xFFFF5C00), size: 16),
+                          ),
                         ),
                       ),
                   ],
@@ -162,7 +184,7 @@ class ProductCard extends StatelessWidget {
   Widget _buildQuantityCounter(BuildContext context, Product product, int qty) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFFF5C00).withOpacity(0.1),
+        color: const Color(0xFFFF5C00).withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../cart_manager.dart';
+import 'dart:async';
+
 import '../../services/tenant_service.dart';
 import '../../services/api_service.dart';
 import '../theme.dart';
@@ -16,19 +17,23 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> with SingleTickerPr
   List<Map<String, dynamic>> _pendingOrders = [];
   List<Map<String, dynamic>> _activeOrders = [];
   bool _isLoading = true;
+  Timer? _refreshTimer;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
-    _refreshAll();
+    _refreshAll(isInitial: true);
+    
+    // Start automatic polling every 10 seconds
+    _refreshTimer = Timer.periodic(const Duration(seconds: 10), (_) => _refreshAll());
   }
 
-  Future<void> _refreshAll() async {
+  Future<void> _refreshAll({bool isInitial = false}) async {
     final tenant = TenantService().currentTenant.value;
     if (tenant == null) return;
 
-    setState(() => _isLoading = true);
+    if (isInitial) setState(() => _isLoading = true);
     
     // 1. Fetch Pending Requests (For Approval)
     final pData = await ApiService.fetchPendingOrders(tenant.id);
@@ -70,6 +75,7 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> with SingleTickerPr
 
   @override
   void dispose() {
+    _refreshTimer?.cancel();
     _tabController.dispose();
     super.dispose();
   }
@@ -133,7 +139,7 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> with SingleTickerPr
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
         boxShadow: WaiterProTheme.softShadow,
-        border: Border.all(color: Colors.orange.withOpacity(0.1)),
+        border: Border.all(color: Colors.orange.withValues(alpha: 0.1)),
       ),
       child: Column(
         children: [
@@ -148,7 +154,7 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> with SingleTickerPr
                     Text("TABLE T-${o['table_number']}", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(color: Colors.orange.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                      decoration: BoxDecoration(color: Colors.orange.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
                       child: const Text("PENDING APPROVAL", style: TextStyle(color: Colors.orange, fontSize: 8, fontWeight: FontWeight.bold)),
                     ),
                   ],
@@ -260,7 +266,7 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> with SingleTickerPr
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, size: 48, color: Colors.grey.withOpacity(0.2)),
+          Icon(icon, size: 48, color: Colors.grey.withValues(alpha: 0.2)),
           const SizedBox(height: 16),
           Text(text, style: const TextStyle(color: Colors.grey)),
         ],

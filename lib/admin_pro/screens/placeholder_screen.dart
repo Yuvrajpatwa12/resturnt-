@@ -16,7 +16,7 @@ class AdminPlaceholderScreen extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: AdminTheme.royalBlue.withOpacity(0.05),
+              color: AdminTheme.royalBlue.withValues(alpha: 0.05),
               shape: BoxShape.circle,
             ),
             child: const Icon(Icons.construction_rounded, color: AdminTheme.royalBlue, size: 48),

@@ -347,6 +347,8 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
 
     setState(() => _isSubmitting = false);
 
+    if (!mounted) return;
+
     if (success) {
       _titleController.clear();
       _priceController.clear();

@@ -87,7 +87,7 @@ class _AdminTabState extends State<AdminTab> {
                     height: heights[i],
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
-                        colors: [const Color(0xFFFF5C00), const Color(0xFFFF5C00).withOpacity(0.3)],
+                        colors: [const Color(0xFFFF5C00), const Color(0xFFFF5C00).withValues(alpha: 0.3)],
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                       ),
@@ -254,7 +254,7 @@ class _AdminTabState extends State<AdminTab> {
                       Container(
                         margin: const EdgeInsets.only(top: 2),
                         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                        decoration: BoxDecoration(color: const Color(0xFFFF5C00).withOpacity(0.1), borderRadius: BorderRadius.circular(4)),
+                        decoration: BoxDecoration(color: const Color(0xFFFF5C00).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)),
                         child: Text("NPR ${800 + index}", style: const TextStyle(fontSize: 6, fontWeight: FontWeight.bold, color: Color(0xFFFF5C00))),
                       ),
                   ],

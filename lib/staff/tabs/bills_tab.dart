@@ -155,7 +155,7 @@ class _BillsTabState extends State<BillsTab> {
         decoration: BoxDecoration(
           color: Colors.white, 
           borderRadius: BorderRadius.circular(20),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.01), blurRadius: 10)],
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.01), blurRadius: 10)],
         ),
         child: Row(
           children: [
@@ -213,7 +213,7 @@ class _BillsTabState extends State<BillsTab> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: bill['status'] == 'Active' ? const Color(0xFFFF5C00).withOpacity(0.1) : Colors.green.withOpacity(0.1),
+                    color: bill['status'] == 'Active' ? const Color(0xFFFF5C00).withValues(alpha: 0.1) : Colors.green.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(

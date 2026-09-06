@@ -1,7 +1,42 @@
 import 'package:flutter/material.dart';
 
-class RewardsPage extends StatelessWidget {
+
+import 'cart_manager.dart';
+import 'services/api_service.dart';
+import 'services/tenant_service.dart';
+
+class RewardsPage extends StatefulWidget {
   const RewardsPage({super.key});
+
+  @override
+  State<RewardsPage> createState() => _RewardsPageState();
+}
+
+class _RewardsPageState extends State<RewardsPage> {
+  bool _isLoading = true;
+  List<Map<String, dynamic>> _rewards = [];
+  Map<String, dynamic>? _settings;
+  int _userPoints = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    final tenant = TenantService().currentTenant.value;
+    if (tenant == null) return;
+
+    setState(() => _isLoading = true);
+    
+    await ShopManager.instance.refreshUserPoints();
+    _settings = ShopManager.instance.loyaltySettings.value;
+    _userPoints = ShopManager.instance.userPoints.value;
+    _rewards = await ApiService.fetchRewards(tenant.id) ?? [];
+    
+    if (mounted) setState(() => _isLoading = false);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -17,7 +52,9 @@ class RewardsPage extends StatelessWidget {
         title: const Text("Rewards & Loyalty", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         centerTitle: true,
       ),
-      body: SingleChildScrollView(
+      body: _isLoading 
+        ? const Center(child: CircularProgressIndicator(color: Color(0xFFFF5C00)))
+        : SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
         child: Column(
           children: [
@@ -31,7 +68,7 @@ class RewardsPage extends StatelessWidget {
               ),
               child: Column(
                 children: [
-                  const Text("1,250", style: TextStyle(color: Colors.white, fontSize: 42, fontWeight: FontWeight.w900)),
+                  Text("$_userPoints", style: const TextStyle(color: Colors.white, fontSize: 42, fontWeight: FontWeight.w900)),
                   const Text("TOTAL POINTS AVAILABLE", style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1)),
                   const SizedBox(height: 30),
                   // Progress Bar
@@ -77,16 +114,23 @@ class RewardsPage extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             SizedBox(
-              height: 180,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                children: [
-                  _buildCouponCard("Free Curly Fries", "300 pts", "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=500&auto=format&fit=crop&q=60"),
-                  _buildCouponCard("Free Jamocha Shake", "450 pts", "https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=500&auto=format&fit=crop&q=60"),
-                  _buildCouponCard("50% Off Combo", "1000 pts", "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500&auto=format&fit=crop&q=60"),
-                ],
-              ),
+              height: 200,
+              child: _rewards.isEmpty 
+                ? const Center(child: Text("No rewards available at this time.", style: TextStyle(color: Colors.grey)))
+                : ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: _rewards.length,
+                    itemBuilder: (context, index) {
+                      final r = _rewards[index];
+                      return _buildCouponCard(
+                        r['title'] ?? 'Reward', 
+                        "${r['points_required']} pts", 
+                        r['image_url'] ?? "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=500",
+                        r['id'],
+                      );
+                    },
+                  ),
             ),
 
             const SizedBox(height: 30),
@@ -118,38 +162,73 @@ class RewardsPage extends StatelessWidget {
     );
   }
 
-  Widget _buildCouponCard(String title, String pts, String imgUrl) {
-    return Container(
-      width: 150,
-      margin: const EdgeInsets.only(right: 14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 4))],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-            child: Image.network(imgUrl, height: 90, width: double.infinity, fit: BoxFit.cover),
+  Widget _buildCouponCard(String title, String pts, String imgUrl, dynamic id) {
+    return GestureDetector(
+      onTap: () async {
+        final confirm = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text("Redeem Reward?"),
+            content: Text("Are you sure you want to spend $pts for $title?"),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("CANCEL")),
+              ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text("REDEEM")),
+            ],
           ),
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis),
-                const SizedBox(height: 4),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(color: const Color(0xFFFF5C00).withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
-                  child: Text(pts, style: const TextStyle(color: Color(0xFFFF5C00), fontSize: 10, fontWeight: FontWeight.bold)),
-                ),
-              ],
+        );
+        
+        if (confirm == true) {
+          final tenant = TenantService().currentTenant.value;
+          final staff = TenantService().currentStaff.value;
+          final uid = staff != null ? staff.id.toString() : ShopManager.instance.guestId.value;
+          if (tenant == null || uid.isEmpty) return;
+          
+          final pointsNeeded = int.parse(pts.replaceAll(RegExp(r'[^0-9]'), ''));
+          
+          final res = await ApiService.claimReward(tenant.id, uid, int.parse(id.toString()));
+          if (!mounted) return;
+          
+          if (res['status'] == 'success') {
+             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Reward Redeemed!"), backgroundColor: Colors.green));
+             ShopManager.instance.userPoints.value -= pointsNeeded;
+             _loadData(); // Refresh UI
+          } else {
+             ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(res['message'] ?? "Redemption failed."), backgroundColor: Colors.red));
+          }
+        }
+      },
+      child: Container(
+        width: 150,
+        margin: const EdgeInsets.only(right: 14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 4))],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+              child: Image.network(imgUrl, height: 90, width: double.infinity, fit: BoxFit.cover, errorBuilder: (c,e,s) => Container(height: 90, color: Colors.grey[200], child: const Icon(Icons.fastfood, color: Colors.grey))),
             ),
-          ),
-        ],
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  const SizedBox(height: 4),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(color: const Color(0xFFFF5C00).withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                    child: Text(pts, style: const TextStyle(color: Color(0xFFFF5C00), fontSize: 10, fontWeight: FontWeight.bold)),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

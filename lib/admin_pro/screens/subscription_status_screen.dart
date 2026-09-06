@@ -199,7 +199,7 @@ class SubscriptionStatusScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, size: 18, color: AdminTheme.royalBlue.withOpacity(0.5)),
+          Icon(icon, size: 18, color: AdminTheme.royalBlue.withValues(alpha: 0.5)),
           const SizedBox(height: 8),
           Text(title, style: const TextStyle(color: Colors.grey, fontSize: 9, fontWeight: FontWeight.bold)),
           const SizedBox(height: 2),

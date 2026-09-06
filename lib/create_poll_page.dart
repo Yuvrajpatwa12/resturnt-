@@ -62,7 +62,7 @@ class _CreatePollPageState extends State<CreatePollPage> {
                 return Container(
                   margin: const EdgeInsets.only(bottom: 12),
                   decoration: BoxDecoration(
-                    color: isSelected ? const Color(0xFF9C1C24).withOpacity(0.05) : Colors.white,
+                    color: isSelected ? const Color(0xFF9C1C24).withValues(alpha: 0.05) : Colors.white,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(color: isSelected ? const Color(0xFF9C1C24) : Colors.grey[200]!),
                   ),

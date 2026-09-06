@@ -89,7 +89,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
                             const SizedBox(width: 20),
                             Container(
                               padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(color: AdminTheme.royalBlue.withOpacity(0.1), shape: BoxShape.circle),
+                              decoration: BoxDecoration(color: AdminTheme.royalBlue.withValues(alpha: 0.1), shape: BoxShape.circle),
                               child: const Icon(Icons.category_outlined, color: AdminTheme.royalBlue, size: 20),
                             ),
                             IconButton(

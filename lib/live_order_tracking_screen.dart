@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'cart_manager.dart';
 import 'services/api_service.dart';
 import 'dart:async';
+import 'homepage.dart';
 
 class LiveOrderTrackingScreen extends StatefulWidget {
   final int orderId;
@@ -34,15 +35,22 @@ class _LiveOrderTrackingScreenState extends State<LiveOrderTrackingScreen> {
   }
 
   Future<void> _fetchStatus() async {
-    final status = await ApiService.fetchOrderStatus(widget.orderId);
-    if (status != null && mounted) {
-      setState(() {
-        _currentStatus = status;
-        _isLoading = false;
-      });
-      if (status == 'Completed' || status == 'Cancelled') {
-        _statusTimer?.cancel();
+    try {
+      final status = await ApiService.fetchOrderStatus(widget.orderId);
+      if (status != null && mounted) {
+        setState(() {
+          _currentStatus = status;
+          _isLoading = false;
+        });
+        if (status == 'Completed' || status == 'Cancelled') {
+          _statusTimer?.cancel();
+        }
+      } else if (mounted) {
+        // If status is null (order not found yet), stop loading but keep current status
+        setState(() => _isLoading = false);
       }
+    } catch (e) {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -54,6 +62,17 @@ class _LiveOrderTrackingScreenState extends State<LiveOrderTrackingScreen> {
         title: const Text("Order Tracking", style: TextStyle(fontWeight: FontWeight.bold)),
         elevation: 0,
         backgroundColor: Colors.white,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () {
+            ShopManager.instance.currentTabIndex.value = 4; // Set Profile Tab
+            // Push HomePage and clear routes to avoid Splash Screen
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(builder: (context) => HomePage()),
+              (route) => false,
+            );
+          },
+        ),
       ),
       body: _isLoading 
         ? const Center(child: CircularProgressIndicator())
@@ -78,9 +97,9 @@ class _LiveOrderTrackingScreenState extends State<LiveOrderTrackingScreen> {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: _getStatusColor().withOpacity(0.1),
+        color: _getStatusColor().withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: _getStatusColor().withOpacity(0.2)),
+        border: Border.all(color: _getStatusColor().withValues(alpha: 0.2)),
       ),
       child: Column(
         children: [
@@ -197,14 +216,18 @@ class _LiveOrderTrackingScreenState extends State<LiveOrderTrackingScreen> {
 
   Widget _buildOrderSummary() {
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10)]),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10)]),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text("Order Summary", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          const Text("Order Tracking Info", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
           const SizedBox(height: 16),
-          const Center(child: Text("Item list is being loaded from database...", style: TextStyle(color: Colors.grey, fontSize: 12))),
+          Text(
+            "Tracking is live for Order #${widget.orderId}. Your order is currently being processed by our staff.",
+            style: const TextStyle(color: Colors.grey, fontSize: 13, height: 1.5),
+          ),
         ],
       ),
     );

@@ -23,7 +23,7 @@ class ProfileScreen extends StatelessWidget {
                   end: Alignment.bottomRight,
                 ),
                 borderRadius: BorderRadius.circular(24),
-                boxShadow: [BoxShadow(color: WaiterProTheme.royalBlue.withOpacity(0.3), blurRadius: 20, offset: const Offset(0, 10))],
+                boxShadow: [BoxShadow(color: WaiterProTheme.royalBlue.withValues(alpha: 0.3), blurRadius: 20, offset: const Offset(0, 10))],
               ),
               child: Row(
                 children: [

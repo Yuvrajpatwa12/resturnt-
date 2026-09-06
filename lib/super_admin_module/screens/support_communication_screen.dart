@@ -64,7 +64,7 @@ class _SupportCommunicationScreenState extends State<SupportCommunicationScreen>
     
     if (success) {
       _loadChatHistory(ticketId);
-    } else {
+    } else if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Failed to send reply.")));
     }
   }
@@ -151,7 +151,7 @@ class _SupportCommunicationScreenState extends State<SupportCommunicationScreen>
                   subtitle: Text(t['subject'] ?? 'No Subject', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
                   trailing: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), 
-                    decoration: BoxDecoration(color: _getStatusColor(t['status']).withOpacity(0.1), borderRadius: BorderRadius.circular(8)), 
+                    decoration: BoxDecoration(color: _getStatusColor(t['status']).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)), 
                     child: Text(t['status'] ?? 'Open', style: TextStyle(color: _getStatusColor(t['status']), fontSize: 8, fontWeight: FontWeight.bold))
                   ),
                 );
@@ -193,7 +193,7 @@ class _SupportCommunicationScreenState extends State<SupportCommunicationScreen>
         children: [
           CircleAvatar(
             radius: 20, 
-            backgroundColor: SAMStyles.royalBlue.withOpacity(0.1), 
+            backgroundColor: SAMStyles.royalBlue.withValues(alpha: 0.1), 
             child: Text(_selectedTicket!['restaurant_name']?[0] ?? 'R', style: const TextStyle(color: SAMStyles.royalBlue, fontWeight: FontWeight.bold))
           ),
           const SizedBox(width: 16),
@@ -208,7 +208,7 @@ class _SupportCommunicationScreenState extends State<SupportCommunicationScreen>
           ),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            decoration: BoxDecoration(color: Colors.green.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
+            decoration: BoxDecoration(color: Colors.green.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
             child: const Text("LIVE SESSION", style: TextStyle(color: Colors.green, fontSize: 9, fontWeight: FontWeight.bold)),
           ),
         ],
@@ -296,7 +296,7 @@ class _SupportCommunicationScreenState extends State<SupportCommunicationScreen>
             ),
           ),
           if (isMe) const SizedBox(width: 12),
-          if (isMe) CircleAvatar(radius: 14, backgroundColor: SAMStyles.royalBlue.withOpacity(0.1), child: const Icon(Icons.admin_panel_settings, size: 14, color: SAMStyles.royalBlue)),
+          if (isMe) CircleAvatar(radius: 14, backgroundColor: SAMStyles.royalBlue.withValues(alpha: 0.1), child: const Icon(Icons.admin_panel_settings, size: 14, color: SAMStyles.royalBlue)),
         ],
       ),
     );

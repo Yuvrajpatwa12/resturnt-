@@ -11,7 +11,7 @@ class SAMStyles {
 
   static List<BoxShadow> get softShadow => [
     BoxShadow(
-      color: Colors.black.withOpacity(0.05),
+      color: Colors.black.withValues(alpha: 0.05),
       blurRadius: 15,
       offset: const Offset(0, 5),
     ),
@@ -44,7 +44,7 @@ class SAMStyles {
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: Colors.grey.withOpacity(0.1)),
+          side: BorderSide(color: Colors.grey.withValues(alpha: 0.1)),
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(

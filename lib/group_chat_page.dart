@@ -139,7 +139,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: isMe ? const Color(0xFFFF5C00).withOpacity(0.1) : Colors.black.withOpacity(0.03), 
+                              color: isMe ? const Color(0xFFFF5C00).withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.03), 
                               blurRadius: 10, 
                               offset: const Offset(0, 4)
                             )
@@ -180,7 +180,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
             padding: const EdgeInsets.fromLTRB(20, 10, 20, 30),
             decoration: BoxDecoration(
               color: Colors.white,
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -5))],
+              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, -5))],
             ),
             child: Row(
               children: [
@@ -363,8 +363,9 @@ class _GroupChatPageState extends State<GroupChatPage> {
                               ShopManager.instance.addMembersToGroup([user]);
                             });
                             Navigator.pop(context);
+                            final bonus = int.tryParse(ShopManager.instance.loyaltySettings.value?['group_join_bonus']?.toString() ?? '200') ?? 200;
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text("${user['name']} added! +200 Reward Points earned.")),
+                              SnackBar(content: Text("${user['name']} added! +$bonus Reward Points earned.")),
                             );
                           },
                         );
@@ -387,7 +388,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
           height: (index % 3 + 1) * 4.0,
           margin: const EdgeInsets.symmetric(horizontal: 1),
           decoration: BoxDecoration(
-            color: isMe ? Colors.white.withOpacity(0.5) : const Color(0xFFFF5C00).withOpacity(0.5),
+            color: isMe ? Colors.white.withValues(alpha: 0.5) : const Color(0xFFFF5C00).withValues(alpha: 0.5),
             borderRadius: BorderRadius.circular(1),
           ),
         );

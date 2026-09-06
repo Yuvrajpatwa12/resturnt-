@@ -206,8 +206,8 @@ class _IngredientStockScreenState extends State<IngredientStockScreen> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(Icons.check_circle_rounded, color: AdminTheme.royalBlue, size: 18),
-                          const SizedBox(width: 10),
-                          const Text("APPROVE ORDER", style: TextStyle(color: AdminTheme.royalBlue, fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 1)),
+                          SizedBox(width: 10),
+                          Text("APPROVE ORDER", style: TextStyle(color: AdminTheme.royalBlue, fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 1)),
                         ],
                       ),
                     ),

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'cart_manager.dart';
 import 'app_data.dart';
 import 'product_card.dart';
 import 'search_delegate.dart';
@@ -161,7 +160,7 @@ class _MenuPageState extends State<MenuPage> {
       decoration: BoxDecoration(
         gradient: const LinearGradient(colors: [Color(0xFFFF5C00), Color(0xFFFF8C00)]),
         borderRadius: BorderRadius.circular(24),
-        boxShadow: [BoxShadow(color: const Color(0xFFFF5C00).withOpacity(0.2), blurRadius: 15, offset: const Offset(0, 8))],
+        boxShadow: [BoxShadow(color: const Color(0xFFFF5C00).withValues(alpha: 0.2), blurRadius: 15, offset: const Offset(0, 8))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

@@ -25,7 +25,7 @@ class _GameHubPageState extends State<GameHubPage> {
           color: Colors.white,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 10,
               offset: const Offset(0, -5),
             ),
@@ -113,7 +113,7 @@ class _GameHubPageState extends State<GameHubPage> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(20),
-                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)],
                 ),
                 child: Row(
                   children: const [
@@ -271,7 +271,7 @@ class _GameHubPageState extends State<GameHubPage> {
             decoration: BoxDecoration(
               color: const Color(0xFF4A68FF),
               borderRadius: BorderRadius.circular(30),
-              boxShadow: [BoxShadow(color: const Color(0xFF4A68FF).withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 4))],
+              boxShadow: [BoxShadow(color: const Color(0xFF4A68FF).withValues(alpha: 0.3), blurRadius: 10, offset: const Offset(0, 4))],
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -346,13 +346,13 @@ class _GameHubPageState extends State<GameHubPage> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(28),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 15, offset: const Offset(0, 5))],
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 15, offset: const Offset(0, 5))],
         ),
         child: Column(
           children: [
             Container(
               padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(16)),
+              decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(16)),
               child: Icon(icon, color: color, size: 24),
             ),
             const SizedBox(height: 12),
@@ -372,7 +372,7 @@ class _GameHubPageState extends State<GameHubPage> {
       decoration: BoxDecoration(
         color: isSelected ? Colors.white : Colors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [if (isSelected) BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8)],
+        boxShadow: [if (isSelected) BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8)],
       ),
       child: Row(
         children: [
@@ -390,13 +390,13 @@ class _GameHubPageState extends State<GameHubPage> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 4))],
       ),
       child: Row(
         children: [
           Container(
             width: 60, height: 60,
-            decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(16)),
+            decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(16)),
             child: Icon(icon, color: color, size: 32),
           ),
           const SizedBox(width: 16),
@@ -441,14 +441,14 @@ class _GameHubPageState extends State<GameHubPage> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4))],
       ),
       child: Column(
         children: [
           Expanded(
             child: Container(
               width: double.infinity,
-              decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
+              decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
               child: Icon(icon, color: color, size: 40),
             ),
           ),
@@ -493,7 +493,7 @@ class _GameHubPageState extends State<GameHubPage> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))],
       ),
       child: Row(
         children: [
@@ -524,7 +524,7 @@ class _GameHubPageState extends State<GameHubPage> {
         ),
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
-          BoxShadow(color: const Color(0xFFFF5C00).withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 8))
+          BoxShadow(color: const Color(0xFFFF5C00).withValues(alpha: 0.3), blurRadius: 15, offset: const Offset(0, 8))
         ],
       ),
       child: Column(
@@ -534,7 +534,7 @@ class _GameHubPageState extends State<GameHubPage> {
             children: [
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(8)),
+                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(8)),
                 child: const Text("LIVE BATTLE", style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
               ),
               const Spacer(),

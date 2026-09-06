@@ -78,7 +78,7 @@ class _TableManagementScreenState extends State<TableManagementScreen> with Sing
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: Colors.white,
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -4))],
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, -4))],
         ),
         child: Row(
           children: [
@@ -150,7 +150,7 @@ class _TableManagementScreenState extends State<TableManagementScreen> with Sing
               },
               child: Container(
                 decoration: BoxDecoration(
-                  color: isOccupied ? WaiterProTheme.royalBlue.withOpacity(0.05) : Colors.white,
+                  color: isOccupied ? WaiterProTheme.royalBlue.withValues(alpha: 0.05) : Colors.white,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: isOccupied ? WaiterProTheme.royalBlue : const Color(0xFFE2E8F0),

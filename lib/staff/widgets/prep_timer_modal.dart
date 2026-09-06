@@ -70,9 +70,9 @@ class PrepTimerModal extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         decoration: BoxDecoration(
-          color: const Color(0xFFFF5C00).withOpacity(0.1),
+          color: const Color(0xFFFF5C00).withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(15),
-          border: Border.all(color: const Color(0xFFFF5C00).withOpacity(0.3)),
+          border: Border.all(color: const Color(0xFFFF5C00).withValues(alpha: 0.3)),
         ),
         child: Text("${mins}M", style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFFFF5C00))),
       ),

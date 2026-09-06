@@ -29,7 +29,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
         leading: Padding(
           padding: const EdgeInsets.only(left: 16.0),
           child: CircleAvatar(
-            backgroundColor: Colors.grey.withOpacity(0.1),
+            backgroundColor: Colors.grey.withValues(alpha: 0.1),
             child: IconButton(
               icon: const Icon(Icons.arrow_back, color: Colors.black),
               onPressed: () => Navigator.pop(context),
@@ -51,7 +51,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                 });
               },
               child: CircleAvatar(
-                backgroundColor: Colors.grey.withOpacity(0.1),
+                backgroundColor: Colors.grey.withValues(alpha: 0.1),
                 child: Icon(
                   isFavorite ? Icons.favorite : Icons.favorite_border,
                   color: isFavorite ? Colors.red : Colors.black,
@@ -76,7 +76,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                 borderRadius: BorderRadius.circular(32),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.03),
+                    color: Colors.black.withValues(alpha: 0.03),
                     blurRadius: 20,
                     offset: const Offset(0, 10),
                   )
@@ -226,7 +226,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
           color: Colors.white,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.06),
+              color: Colors.black.withValues(alpha: 0.06),
               blurRadius: 20,
               offset: const Offset(0, -10),
             ),
@@ -283,7 +283,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
         decoration: BoxDecoration(
           color: isAdd ? const Color(0xFFFF5C00) : Colors.white,
           borderRadius: BorderRadius.circular(8),
-          boxShadow: [if(!isAdd) BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4)],
+          boxShadow: [if(!isAdd) BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4)],
         ),
         child: Icon(icon, size: 18, color: isAdd ? Colors.white : Colors.black),
       ),
@@ -297,7 +297,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFFF5C00).withOpacity(0.1) : Colors.white,
+          color: isSelected ? const Color(0xFFFF5C00).withValues(alpha: 0.1) : Colors.white,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: isSelected ? const Color(0xFFFF5C00) : Colors.grey[200]!),
         ),

@@ -45,7 +45,7 @@ class StaffDetailSubview extends StatelessWidget {
         const SizedBox(width: 16),
         CircleAvatar(
           radius: 30,
-          backgroundColor: SAMStyles.royalBlue.withOpacity(0.1),
+          backgroundColor: SAMStyles.royalBlue.withValues(alpha: 0.1),
           child: Text(firstLetter, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 22, color: SAMStyles.royalBlue)),
         ),
         const SizedBox(width: 24),
@@ -68,7 +68,7 @@ class StaffDetailSubview extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: isOnline ? Colors.green.withOpacity(0.1) : Colors.grey.withOpacity(0.1),
+        color: isOnline ? Colors.green.withValues(alpha: 0.1) : Colors.grey.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(30),
       ),
       child: Row(
@@ -154,7 +154,7 @@ class StaffDetailSubview extends StatelessWidget {
                     const SizedBox(height: 12),
                     LinearProgressIndicator(
                       value: item['percent'] as double,
-                      backgroundColor: (isKitchen ? Colors.orange : SAMStyles.royalBlue).withOpacity(0.1),
+                      backgroundColor: (isKitchen ? Colors.orange : SAMStyles.royalBlue).withValues(alpha: 0.1),
                       color: isKitchen ? Colors.orange : SAMStyles.royalBlue,
                       minHeight: 8,
                       borderRadius: BorderRadius.circular(10),
@@ -246,7 +246,7 @@ class StaffDetailSubview extends StatelessWidget {
         children: [
           Container(
             padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(color: Colors.grey.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+            decoration: BoxDecoration(color: Colors.grey.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
             child: Text("x$qty", style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
           ),
           const SizedBox(width: 12),
@@ -281,7 +281,7 @@ class StaffDetailSubview extends StatelessWidget {
         children: [
           Container(
             padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
+            decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle),
             child: Icon(icon, color: color, size: 16),
           ),
           const SizedBox(width: 16),

@@ -162,7 +162,7 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
                 DataCell(Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: royalBlue.withOpacity(0.1),
+                    color: royalBlue.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(tenant.plan, style: TextStyle(color: royalBlue, fontSize: 12)),
@@ -201,7 +201,7 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
             mainAxisSize: MainAxisSize.min,
             children: [
               DropdownButtonFormField<String>(
-                value: selectedPlan,
+                initialValue: selectedPlan,
                 decoration: const InputDecoration(labelText: 'Plan'),
                 items: ['Basic', 'Pro', 'Enterprise'].map((p) => DropdownMenuItem(value: p, child: Text(p))).toList(),
                 onChanged: (val) => setModalState(() => selectedPlan = val!),

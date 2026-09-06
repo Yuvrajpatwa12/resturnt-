@@ -60,7 +60,7 @@ class OrderDetailsPage extends StatelessWidget {
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: Colors.white,
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))],
       ),
       child: Column(
         children: [
@@ -129,7 +129,7 @@ class OrderDetailsPage extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10)],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10)],
       ),
       child: Row(
         children: [
@@ -205,7 +205,7 @@ class OrderDetailsPage extends StatelessWidget {
                   icon: const Icon(Icons.add_circle_outline, size: 18),
                   label: const Text("ADD MORE ITEMS"),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFFF5C00).withOpacity(0.1),
+                    backgroundColor: const Color(0xFFFF5C00).withValues(alpha: 0.1),
                     foregroundColor: const Color(0xFFFF5C00),
                     padding: const EdgeInsets.symmetric(vertical: 18),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
@@ -244,7 +244,7 @@ class OrderDetailsPage extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(vertical: 18),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                     elevation: 5,
-                    shadowColor: const Color(0xFFFF5C00).withOpacity(0.3),
+                    shadowColor: const Color(0xFFFF5C00).withValues(alpha: 0.3),
                   ),
                   child: const Text("CREATE FINAL BILL", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                 ),

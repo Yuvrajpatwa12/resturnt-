@@ -43,13 +43,15 @@ class _ClientManagementScreenState extends State<ClientManagementScreen> {
           if (success) {
             _loadTenants();
             setState(() => _isOnboarding = false);
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text("Restaurant registered successfully!"),
-                backgroundColor: SAMStyles.emeraldGreen,
-              ),
-            );
-          } else {
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text("Restaurant registered successfully!"),
+                  backgroundColor: SAMStyles.emeraldGreen,
+                ),
+              );
+            }
+          } else if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text("Failed to register restaurant. Check Tenant ID or Domain."),
@@ -168,7 +170,7 @@ class _ClientManagementScreenState extends State<ClientManagementScreen> {
           color: Colors.white,
           borderRadius: BorderRadius.circular(24),
           boxShadow: SAMStyles.softShadow,
-          border: Border.all(color: isActive ? Colors.transparent : Colors.red.withOpacity(0.1)),
+          border: Border.all(color: isActive ? Colors.transparent : Colors.red.withValues(alpha: 0.1)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -177,7 +179,7 @@ class _ClientManagementScreenState extends State<ClientManagementScreen> {
             Row(
               children: [
                 CircleAvatar(
-                  backgroundColor: SAMStyles.royalBlue.withOpacity(0.1),
+                  backgroundColor: SAMStyles.royalBlue.withValues(alpha: 0.1),
                   child: Text(
                     (t['restaurant_name'] ?? t['name'] ?? 'R').toString().isNotEmpty 
                         ? (t['restaurant_name'] ?? t['name'] ?? 'R').toString()[0].toUpperCase()
@@ -199,7 +201,7 @@ class _ClientManagementScreenState extends State<ClientManagementScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: (isActive ? SAMStyles.emeraldGreen : Colors.red).withOpacity(0.1),
+                    color: (isActive ? SAMStyles.emeraldGreen : Colors.red).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'cart_manager.dart';
-import 'my_orders_page.dart';
+
+import 'live_order_tracking_screen.dart';
 
 class OrderSuccessPage extends StatefulWidget {
   const OrderSuccessPage({super.key});
@@ -12,6 +13,9 @@ class OrderSuccessPage extends StatefulWidget {
 class _OrderSuccessPageState extends State<OrderSuccessPage> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
+
+  String _message = "We've started preparing your meal.\nSit back and relax!";
+  bool _isError = false;
 
   @override
   void initState() {
@@ -28,13 +32,23 @@ class _OrderSuccessPageState extends State<OrderSuccessPage> with SingleTickerPr
 
     // After animation, place order and navigate automatically
     Future.delayed(const Duration(milliseconds: 1500), () async {
+      if (!mounted) return;
+
+      await ShopManager.instance.placeOrder(); 
+      final int? orderId = ShopManager.instance.activeOrderId.value;
+      
       if (mounted) {
-        await ShopManager.instance.placeOrder(); 
-        if (mounted) {
+        if (orderId != null) {
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => const MyOrdersPage()),
+            MaterialPageRoute(builder: (context) => LiveOrderTrackingScreen(orderId: orderId)),
           );
+        } else {
+          // If ID is null, order failed to save in DB
+          setState(() {
+            _isError = true;
+            _message = "Database Error: Could not save order.\nPlease contact staff or try again.";
+          });
         }
       }
     });
@@ -62,36 +76,52 @@ class _OrderSuccessPageState extends State<OrderSuccessPage> with SingleTickerPr
               child: Container(
                 width: 100,
                 height: 100,
-                decoration: const BoxDecoration(
-                  color: Color(0xFF00B365),
+                decoration: BoxDecoration(
+                  color: _isError ? Colors.red : const Color(0xFF00B365),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
-                  Icons.check,
+                child: Icon(
+                  _isError ? Icons.error_outline : Icons.check,
                   color: Colors.white,
                   size: 60,
                 ),
               ),
             ),
             const SizedBox(height: 32),
-            const Text(
-              "Order Confirmed!",
-              style: TextStyle(
+            Text(
+              _isError ? "Order Failed" : "Order Confirmed!",
+              style: const TextStyle(
                 fontSize: 26,
                 fontWeight: FontWeight.w900,
                 color: Colors.black87,
               ),
             ),
             const SizedBox(height: 12),
-            const Text(
-              "We've started preparing your meal.\nSit back and relax!",
+            Text(
+              _message,
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey, fontSize: 14, height: 1.5),
+              style: const TextStyle(color: Colors.grey, fontSize: 14, height: 1.5),
             ),
             const Spacer(flex: 2),
-            const CircularProgressIndicator(color: Color(0xFFFF5C00), strokeWidth: 2),
-            const SizedBox(height: 12),
-            const Text("Redirecting to your orders...", style: TextStyle(color: Colors.grey, fontSize: 12)),
+            if (!_isError) ...[
+              const CircularProgressIndicator(color: Color(0xFFFF5C00), strokeWidth: 2),
+              const SizedBox(height: 12),
+              const Text("Redirecting to your orders...", style: TextStyle(color: Colors.grey, fontSize: 12)),
+            ] else ...[
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.black,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                  child: const Text("Go Back to Cart", style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
+              ),
+            ],
             const Spacer(flex: 1),
           ],
         ),

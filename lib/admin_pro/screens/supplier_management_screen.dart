@@ -121,12 +121,17 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen> {
     if (total == 0) return {"Dairy": 0.25, "Vegetables": 0.25, "Meat": 0.25, "General": 0.25};
 
     for (var p in _purchases) {
-      String name = (p['ingredient_name'] ?? "").toString().toLowerCase();
+      String name = (p['ingredientnameCtrl'] ?? "").toString().toLowerCase();
       double price = double.tryParse(p['total_price'].toString()) ?? 0;
-      if (name.contains("milk") || name.contains("cheese")) dist["Dairy"] = dist["Dairy"]! + price;
-      else if (name.contains("meat") || name.contains("chicken")) dist["Meat"] = dist["Meat"]! + price;
-      else if (name.contains("veg") || name.contains("onion")) dist["Vegetables"] = dist["Vegetables"]! + price;
-      else dist["General"] = dist["General"]! + price;
+      if (name.contains("milk") || name.contains("cheese")) {
+        dist["Dairy"] = dist["Dairy"]! + price;
+      } else if (name.contains("meat") || name.contains("chicken")) {
+        dist["Meat"] = dist["Meat"]! + price;
+      } else if (name.contains("veg") || name.contains("onion")) {
+        dist["Vegetables"] = dist["Vegetables"]! + price;
+      } else {
+        dist["General"] = dist["General"]! + price;
+      }
     }
 
     dist.forEach((key, value) { dist[key] = value / total; });
@@ -286,7 +291,7 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen> {
     final filtered = _purchases.where((p) {
       if (_historySearchQuery.isEmpty) return true;
       final q = _historySearchQuery.toLowerCase();
-      return (p['supplier_name']?.toString().toLowerCase().contains(q) ?? false) || (p['ingredient_name']?.toString().toLowerCase().contains(q) ?? false);
+      return (p['supplier_name']?.toString().toLowerCase().contains(q) ?? false) || (p['ingredientnameCtrl']?.toString().toLowerCase().contains(q) ?? false);
     }).toList();
 
     return Container(
@@ -316,7 +321,7 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen> {
       child: Row(
         children: [
           Expanded(flex: 2, child: Text(p['supplier_name'] ?? 'Vendor', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
-          Expanded(flex: 2, child: Text(p['ingredient_name'] ?? 'Item', style: const TextStyle(fontSize: 12, color: Colors.grey))),
+          Expanded(flex: 2, child: Text(p['ingredientnameCtrl'] ?? 'Item', style: const TextStyle(fontSize: 12, color: Colors.grey))),
           Text("NPR ${p['total_price']}", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: AdminTheme.darkNavy)),
         ],
       ),
@@ -418,7 +423,7 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                            Text(p['ingredient_name'] ?? 'Item', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                            Text(p['ingredientnameCtrl'] ?? 'Item', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                             Text(p['purchase_date']?.toString().split(' ')[0] ?? 'Date', style: const TextStyle(fontSize: 10, color: Colors.grey)),
                           ]),
                           Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
@@ -439,7 +444,7 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen> {
                         onPressed: () {
                           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Preparing PDF Report... Please wait."), backgroundColor: AdminTheme.royalBlue));
                           Future.delayed(const Duration(seconds: 2), () {
-                            if (mounted) ScaffoldMessenger.of(this.context).showSnackBar(const SnackBar(content: Text("Ledger Report Downloaded Successfully!"), backgroundColor: Colors.green));
+                            if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Ledger Report Downloaded Successfully!"), backgroundColor: Colors.green));
                           });
                         },
                         icon: const Icon(Icons.picture_as_pdf_rounded, size: 18),
@@ -463,9 +468,9 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen> {
     final String vendorName = s['name'] ?? 'Vendor';
     final double limit = double.tryParse(s['budget_limit']?.toString() ?? '10000') ?? 10000;
     
-    final _itemTitle = TextEditingController();
-    final _itemQty = TextEditingController();
-    final _itemPrice = TextEditingController();
+    final itemTitle = TextEditingController();
+    final itemQty = TextEditingController();
+    final itemPrice = TextEditingController();
     bool isAdding = false;
 
     showModalBottomSheet(
@@ -515,17 +520,17 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen> {
                             padding: const EdgeInsets.all(24),
                             decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(24), border: Border.all(color: AdminTheme.royalBlue.withValues(alpha: 0.1))),
                             child: Column(children: [
-                              _buildTextFieldInside("Item Name", _itemTitle, hint: "e.g. Fresh Milk 5L"),
+                              _buildTextFieldInside("Item Name", itemTitle, hint: "e.g. Fresh Milk 5L"),
                               const SizedBox(height: 12),
                               Row(children: [
-                                Expanded(child: _buildTextFieldInside("Quantity", _itemQty, hint: "5")),
+                                Expanded(child: _buildTextFieldInside("Quantity", itemQty, hint: "5")),
                                 const SizedBox(width: 12),
-                                Expanded(child: _buildTextFieldInside("Price (NPR)", _itemPrice, hint: "1200")),
+                                Expanded(child: _buildTextFieldInside("Price (NPR)", itemPrice, hint: "1200")),
                               ]),
                               const SizedBox(height: 20),
                               ElevatedButton(
                                 onPressed: isAdding ? () async {
-                                  if (_itemTitle.text.trim().isEmpty) {
+                                  if (itemTitle.text.trim().isEmpty) {
                                     ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text("Enter product name")));
                                     return;
                                   }
@@ -538,15 +543,15 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen> {
                                   final res = await ApiService.addPurchase({
                                     'tenant_id': tenant.id,
                                     'supplier_name': vendorName,
-                                    'ingredient_name': _itemTitle.text.trim(),
-                                    'quantity': _itemQty.text.trim(),
-                                    'total_price': _itemPrice.text.trim(),
+                                    'ingredientnameCtrl': itemTitle.text.trim(),
+                                    'quantity': itemQty.text.trim(),
+                                    'total_price': itemPrice.text.trim(),
                                     'unit': 'units',
-                                    'paid_amount': _itemPrice.text.trim(),
+                                    'paid_amount': itemPrice.text.trim(),
                                   });
 
                                   if (res['success'] == true) {
-                                    _itemTitle.clear(); _itemQty.clear(); _itemPrice.clear();
+                                    itemTitle.clear(); itemQty.clear(); itemPrice.clear();
                                     await _loadData();
                                     setModalState(() {}); // Refresh list
                                     if (mounted) ScaffoldMessenger.of(this.context).showSnackBar(const SnackBar(content: Text("Added Successfully!"), backgroundColor: Colors.green));
@@ -597,7 +602,7 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen> {
         const Icon(Icons.shopping_bag_outlined, color: AdminTheme.royalBlue, size: 20),
         const SizedBox(width: 16),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(item['ingredient_name'] ?? 'Item', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+          Text(item['ingredientnameCtrl'] ?? 'Item', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
           Text("${item['quantity']} units • ${item['purchase_date']?.toString().split(' ')[0]}", style: const TextStyle(fontSize: 11, color: Colors.grey)),
         ])),
         Text("NPR ${item['total_price']}", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: AdminTheme.royalBlue)),
@@ -613,8 +618,8 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen> {
   }
 
   void _showAddSupplierModal() {
-    final _name = TextEditingController();
-    final _limit = TextEditingController(text: "10000");
+    final nameCtrl = TextEditingController();
+    final limitCtrl = TextEditingController(text: "10000");
 
     showModalBottomSheet(
       context: context,
@@ -634,15 +639,15 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen> {
                 children: [
                   const Text("New Supplier Container", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
                   const SizedBox(height: 24),
-                  _buildTextFieldInside("Supplier Name", _name, hint: "e.g. Dairy Fresh"),
+                  _buildTextFieldInside("Supplier Name", nameCtrl, hint: "e.g. Dairy Fresh"),
                   const SizedBox(height: 16),
-                  _buildTextFieldInside("Credit Limit (NPR)", _limit),
+                  _buildTextFieldInside("Credit Limit (NPR)", limitCtrl),
                   const SizedBox(height: 32),
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
                       onPressed: isSaving ? null : () async {
-                        if (_name.text.trim().isEmpty) {
+                        if (nameCtrl.text.trim().isEmpty) {
                           ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text("Please enter supplier name")));
                           return;
                         }
@@ -657,20 +662,20 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen> {
                         
                         final res = await ApiService.addSupplier({
                           'tenant_id': tenant.id,
-                          'name': _name.text.trim(),
-                          'budget_limit': _limit.text.trim(),
+                          'name': nameCtrl.text.trim(),
+                          'budget_limit': limitCtrl.text.trim(),
                           'category': 'General'
                         });
 
                         if (res['success'] == true) {
-                          if (mounted) {
+                          if (context.mounted) {
                             Navigator.pop(ctx);
                             _loadData();
-                            ScaffoldMessenger.of(this.context).showSnackBar(const SnackBar(content: Text("Supplier Created!"), backgroundColor: Colors.green));
+                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Supplier Created!"), backgroundColor: Colors.green));
                           }
                         } else {
                           setModalState(() => isSaving = false);
-                          if (mounted) {
+                          if (ctx.mounted) {
                             ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text("FAILED: ${res['message']}"), backgroundColor: Colors.red));
                           }
                         }

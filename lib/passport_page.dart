@@ -1,8 +1,19 @@
 import 'package:flutter/material.dart';
 import 'cart_manager.dart';
 
-class PassportPage extends StatelessWidget {
+class PassportPage extends StatefulWidget {
   const PassportPage({super.key});
+
+  @override
+  State<PassportPage> createState() => _PassportPageState();
+}
+
+class _PassportPageState extends State<PassportPage> {
+  @override
+  void initState() {
+    super.initState();
+    ShopManager.instance.refreshUserPoints();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -40,7 +51,7 @@ class PassportPage extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFF5C00).withOpacity(0.1),
+                          color: const Color(0xFFFF5C00).withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
@@ -107,7 +118,7 @@ class PassportPage extends StatelessWidget {
   Widget _buildSmallStamp(int number, bool isStamped) {
     return Container(
       decoration: BoxDecoration(
-        color: isStamped ? const Color(0xFFFF5C00).withOpacity(0.05) : Colors.white,
+        color: isStamped ? const Color(0xFFFF5C00).withValues(alpha: 0.05) : Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isStamped ? const Color(0xFFFF5C00) : Colors.grey[200]!,
@@ -151,7 +162,7 @@ class PassportPage extends StatelessWidget {
           boxShadow: [
             if (isUnlocked)
               BoxShadow(
-                color: const Color(0xFFD4AF37).withOpacity(0.2),
+                color: const Color(0xFFD4AF37).withValues(alpha: 0.2),
                 blurRadius: 20,
                 spreadRadius: 2,
               )

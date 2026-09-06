@@ -67,7 +67,7 @@ class _SuperAdminMasterHubState extends State<SuperAdminMasterHub> {
       width: _isSidebarCollapsed ? 80 : 280,
       decoration: BoxDecoration(
         color: const Color(0xFF002D62), // High-end SaaS Navy
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 30)],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 30)],
       ),
       child: Column(
         children: [
@@ -123,7 +123,7 @@ class _SuperAdminMasterHubState extends State<SuperAdminMasterHub> {
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         padding: const EdgeInsets.symmetric(vertical: 14),
         decoration: BoxDecoration(
-          color: isSelected ? Colors.white.withOpacity(0.1) : Colors.transparent,
+          color: isSelected ? Colors.white.withValues(alpha: 0.1) : Colors.transparent,
           borderRadius: BorderRadius.circular(16),
         ),
         child: Row(
@@ -168,7 +168,7 @@ class _SuperAdminMasterHubState extends State<SuperAdminMasterHub> {
       padding: const EdgeInsets.symmetric(horizontal: 32),
       decoration: BoxDecoration(
         color: Colors.white,
-        border: Border(bottom: BorderSide(color: Colors.grey.withOpacity(0.08))),
+        border: Border(bottom: BorderSide(color: Colors.grey.withValues(alpha: 0.08))),
       ),
       child: Row(
         children: [
@@ -181,7 +181,7 @@ class _SuperAdminMasterHubState extends State<SuperAdminMasterHub> {
           const Spacer(),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(color: Colors.blue.withOpacity(0.05), borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.blue.withOpacity(0.1))),
+            decoration: BoxDecoration(color: Colors.blue.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.blue.withValues(alpha: 0.1))),
             child: const Row(
               children: [
                 CircleAvatar(radius: 3, backgroundColor: Colors.blue),

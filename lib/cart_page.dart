@@ -54,7 +54,7 @@ class CartPage extends StatelessWidget {
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.04),
+                            color: Colors.black.withValues(alpha: 0.04),
                             blurRadius: 8,
                             offset: const Offset(0, 4),
                           ),
@@ -138,6 +138,16 @@ class CartPage extends StatelessWidget {
                       width: double.infinity,
                       child: ElevatedButton(
                         onPressed: () {
+                          if (ShopManager.instance.selectedTableId.value == null) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text("Please select your table number first!"),
+                                backgroundColor: Color(0xFFFF5C00),
+                              ),
+                            );
+                            ShopManager.instance.currentTabIndex.value = 0; // Go Home to select table
+                            return;
+                          }
                           Navigator.push(
                             context,
                             MaterialPageRoute(builder: (context) => const CheckoutProcessPage()),

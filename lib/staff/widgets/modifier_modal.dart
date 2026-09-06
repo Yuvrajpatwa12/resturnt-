@@ -192,7 +192,7 @@ class _ModifierModalState extends State<ModifierModal> {
         width: 100,
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFFF5C00).withOpacity(0.05) : Colors.white,
+          color: isSelected ? const Color(0xFFFF5C00).withValues(alpha: 0.05) : Colors.white,
           borderRadius: BorderRadius.circular(15),
           border: Border.all(color: isSelected ? const Color(0xFFFF5C00) : Colors.grey[200]!),
         ),

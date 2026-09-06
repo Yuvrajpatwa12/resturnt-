@@ -83,7 +83,7 @@ class AddonsManagementScreen extends StatelessWidget {
         Center(
           child: Container(
             padding: const EdgeInsets.all(30),
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.grey.withOpacity(0.1))),
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.grey.withValues(alpha: 0.1))),
             child: const Column(
               children: [
                 Icon(Icons.link_outlined, size: 40, color: AdminTheme.royalBlue),

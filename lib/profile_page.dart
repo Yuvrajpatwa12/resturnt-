@@ -1,12 +1,16 @@
 import 'package:chiyabreak/staff/staff_hub.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'cart_manager.dart';
-import 'billing_page.dart';
+
 import 'passport_page.dart';
 import 'mystery_box_page.dart';
 import 'rewards_page.dart';
 import 'live_order_tracking_screen.dart';
 import 'my_orders_page.dart';
+import 'user_profile_view_page.dart';
+import 'services/tenant_service.dart';
+
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -18,152 +22,394 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: const Color(0xFFF8FAFC),
-      child: CustomScrollView(
-        physics: const BouncingScrollPhysics(),
-        slivers: [
-          // 1. PREMIUM HEADER
-          SliverToBoxAdapter(child: _buildPremiumHeader()),
-
-          // 2. STATS SECTION
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-              child: _buildStatGrid(),
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () => ShopManager.instance.currentTabIndex.value = 0,
+        ),
+        title: Container(
+          height: 40,
+          decoration: BoxDecoration(
+            color: Colors.grey[100],
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: const TextField(
+            decoration: InputDecoration(
+              hintText: "Search profile",
+              prefixIcon: Icon(Icons.search, size: 20),
+              border: InputBorder.none,
+              contentPadding: EdgeInsets.symmetric(vertical: 10),
             ),
           ),
-
-          // 3. LIVE ORDERS TRACKING
-          SliverToBoxAdapter(child: _buildLiveOrdersRow()),
-
-          // 4. DASHBOARD ITEMS
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            sliver: SliverList(
-              delegate: SliverChildListDelegate([
-                const SizedBox(height: 24),
-                _buildSectionHeader("Activity & Rewards"),
-                _buildMenuItem(Icons.history, "My Orders", "Track live orders & history", Colors.blue, () {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => const MyOrdersPage()));
-                }),
-                _buildMenuItem(Icons.auto_stories, "Meat Master Passport", "Collect stamps & earn rewards", const Color(0xFFFF5C00), () {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => const PassportPage()));
-                }),
-                _buildMenuItem(Icons.auto_awesome, "Surprise Mystery Box", "Win free items while in-house", Colors.purple, () {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => const MysteryBoxPage()));
-                }),
-                _buildMenuItem(Icons.card_giftcard, "Redeem Rewards", "Spend your loyalty points", Colors.green, () {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => const RewardsPage()));
-                }),
-
-                const SizedBox(height: 24),
-                _buildSectionHeader("Account Settings"),
-                _buildMenuItem(Icons.payment_rounded, "Payment Methods", "Visa •••• 4242", Colors.teal, () {}),
-                _buildMenuItem(Icons.notifications_none_rounded, "Notifications", "Sounds & Alerts", Colors.amber, () {}),
-                _buildMenuItem(Icons.language_rounded, "App Language", "English (US)", Colors.indigo, () {}),
-
-                const SizedBox(height: 24),
-                _buildSectionHeader("Internal Tools"),
-                _buildMenuItem(Icons.admin_panel_settings_rounded, "Staff Dashboard", "Access management suite", Colors.redAccent, () {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => const StaffHub()));
-                }),
-                _buildMenuItem(Icons.hub_rounded, "Master Hub (SaaS)", "Super Admin root access", Colors.black87, () {
-                  Navigator.pushNamed(context, '/super-admin');
-                }),
-
-                const SizedBox(height: 40),
-                _buildLogoutButton(),
-                const SizedBox(height: 60),
-              ]),
-            ),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_outlined, color: Colors.black),
+            onPressed: () {},
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildPremiumHeader() {
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        // Background Decorative Shape
-        Container(
-          height: 200,
-          width: double.infinity,
-          margin: const EdgeInsets.only(bottom: 60),
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF0047AB), Color(0xFF002D62)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.vertical(bottom: Radius.circular(50)),
-          ),
-        ),
-        // Profile Info
-        Positioned(
-          bottom: 0,
-          child: Column(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(5),
-                decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                child: const CircleAvatar(
-                  radius: 55,
-                  backgroundImage: NetworkImage('https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=400'),
+      body: DefaultTabController(
+        length: 3,
+        child: NestedScrollView(
+          headerSliverBuilder: (context, innerBoxIsScrolled) => [
+            SliverToBoxAdapter(child: _buildSocialHeader()),
+            SliverPersistentHeader(
+              pinned: true,
+              delegate: _SliverAppBarDelegate(
+                TabBar(
+                  labelColor: Colors.black,
+                  unselectedLabelColor: Colors.grey,
+                  indicatorColor: const Color(0xFFFF5C00),
+                  tabs: [
+                    Tab(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          Icon(Icons.grid_view, size: 18),
+                          SizedBox(width: 8),
+                          Text("Activity", style: TextStyle(fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                    ),
+                    Tab(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          Icon(Icons.person_outline, size: 18),
+                          SizedBox(width: 8),
+                          Text("About", style: TextStyle(fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                    ),
+                    Tab(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          Icon(Icons.people_outline, size: 18),
+                          SizedBox(width: 8),
+                          Text("Social", style: TextStyle(fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 12),
-              const Text(
-                "Yuraj Singh",
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black87),
-              ),
-              const Text(
-                "GOLD MEMBER • SINCE 2024",
-                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Color(0xFFFF5C00), letterSpacing: 1.5),
-              ),
+            ),
+          ],
+          body: TabBarView(
+            children: [
+              _buildActivityTab(),
+              _buildAboutTab(),
+              _buildSocialTab(),
             ],
           ),
         ),
-      ],
+      ),
     );
   }
 
-  Widget _buildStatGrid() {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 15, offset: const Offset(0, 5))],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
+  Widget _buildSocialHeader() {
+    final tenant = TenantService().currentTenant.value;
+    if (tenant == null) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildStatItem("50", "Coins", Icons.monetization_on_rounded, Colors.amber),
-          _buildDivider(),
-          _buildStatItem("42", "Visits", Icons.restaurant_rounded, const Color(0xFFFF5C00)),
-          _buildDivider(),
-          _buildStatItem("1.2K", "G-Points", Icons.stars_rounded, Colors.blueAccent),
+          Row(
+            children: [
+              ValueListenableBuilder<String>(
+                valueListenable: ShopManager.instance.userGender,
+                builder: (context, gender, _) {
+                  return CircleAvatar(
+                    radius: 45,
+                    backgroundImage: NetworkImage(
+                      gender == 'Female'
+                          ? 'https://img.freepik.com/free-vector/beauty-woman-face-concept_23-2148679462.jpg'
+                          : 'https://img.freepik.com/free-vector/businessman-character-avatar-isolated_24877-60111.jpg',
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(width: 24),
+              Expanded(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    ValueListenableBuilder<int>(
+                      valueListenable: ShopManager.instance.totalOrdersCount,
+                      builder: (context, val, child) => _buildSocialStat("$val", "Orders"),
+                    ),
+                    ValueListenableBuilder<int>(
+                      valueListenable: ShopManager.instance.followersCount,
+                      builder: (context, val, child) => _buildSocialStat("$val", "Followers"),
+                    ),
+                    ValueListenableBuilder<int>(
+                      valueListenable: ShopManager.instance.followingCount,
+                      builder: (context, val, child) => _buildSocialStat("$val", "Following"),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          ValueListenableBuilder<String>(
+            valueListenable: ShopManager.instance.customerName,
+            builder: (context, name, _) => Text(
+              name.isNotEmpty ? name : "Diner Profile", 
+              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            ),
+          ),
+          Row(
+            children: [
+              Text(
+                tenant.name.toUpperCase(),
+                style: const TextStyle(color: Color(0xFFFF5C00), fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1),
+              ),
+              const Text("  |  ", style: TextStyle(color: Colors.grey)),
+              ValueListenableBuilder<String>(
+                valueListenable: ShopManager.instance.customerEmail,
+                builder: (context, email, _) => Text(
+                  email.isNotEmpty ? email : "Istanbul, Turkey  |  UX Designer • Apple",
+                  style: const TextStyle(color: Colors.grey, fontSize: 11),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ValueListenableBuilder<bool>(
+            valueListenable: ShopManager.instance.isEmailSynced,
+            builder: (context, synced, _) {
+              if (synced) return const SizedBox.shrink();
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: TextButton.icon(
+                  onPressed: () => _showManualSyncDialog(context),
+                  icon: const Icon(Icons.sync, size: 16),
+                  label: const Text("Sync Google Profile", style: TextStyle(fontWeight: FontWeight.bold)),
+                  style: TextButton.styleFrom(foregroundColor: const Color(0xFFFF5C00), backgroundColor: const Color(0xFFFF5C00).withValues(alpha: 0.05)),
+                ),
+              );
+            },
+          ),
+          Wrap(
+            spacing: 8,
+            children: [
+              _buildTag("#design"),
+              _buildTag("#graphics"),
+              _buildTag("#virtual"),
+              _buildTag("#reality"),
+            ],
+          ),
+          const SizedBox(height: 24),
+          Row(
+            children: [
+              Expanded(
+                flex: 2,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    ShopManager.instance.currentTabIndex.value = 2; // Navigate to Nearby
+                  },
+                  icon: const Icon(Icons.bolt, color: Colors.white),
+                  label: const Text("Connect", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF0077B5), // LinkedIn Blue
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () {},
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                  ),
+                  child: const Text("Follow", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () {},
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                  ),
+                  child: const Text("Message", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildStatItem(String value, String label, IconData icon, Color color) {
+  Widget _buildSocialStat(String value, String label) {
     return Column(
       children: [
-        Icon(icon, color: color, size: 26),
-        const SizedBox(height: 8),
-        Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
-        Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.bold)),
+        Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
       ],
     );
   }
 
-  Widget _buildDivider() {
-    return Container(height: 30, width: 1, color: Colors.grey[200]);
+  Widget _buildTag(String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.grey[100],
+        borderRadius: BorderRadius.circular(15),
+      ),
+      child: Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+    );
+  }
+
+  Widget _buildActivityTab() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildLiveOrdersRow(),
+          const SizedBox(height: 24),
+          _buildSectionHeader("Recent Activity"),
+          _buildMenuItem(Icons.history, "My Orders", "Track live orders & history", Colors.blue, () {
+            Navigator.push(context, MaterialPageRoute(builder: (context) => const MyOrdersPage()));
+          }),
+          _buildMenuItem(Icons.auto_stories, "Meat Master Passport", "Collect stamps & earn rewards", const Color(0xFFFF5C00), () {
+            Navigator.push(context, MaterialPageRoute(builder: (context) => const PassportPage()));
+          }),
+          _buildMenuItem(Icons.auto_awesome, "Surprise Mystery Box", "Win free items while in-house", Colors.purple, () {
+            Navigator.push(context, MaterialPageRoute(builder: (context) => const MysteryBoxPage()));
+          }),
+          _buildMenuItem(Icons.card_giftcard, "Redeem Rewards", "Spend your loyalty points", Colors.green, () {
+            Navigator.push(context, MaterialPageRoute(builder: (context) => const RewardsPage()));
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAboutTab() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionHeader("Account Settings"),
+          _buildMenuItem(Icons.payment_rounded, "Payment Methods", "Visa •••• 4242", Colors.teal, () {}),
+          _buildMenuItem(Icons.notifications_none_rounded, "Notifications", "Sounds & Alerts", Colors.amber, () {}),
+          _buildMenuItem(Icons.language_rounded, "App Language", "English (US)", Colors.indigo, () {}),
+          const SizedBox(height: 24),
+          _buildSectionHeader("Internal Tools"),
+          _buildMenuItem(Icons.admin_panel_settings_rounded, "Staff Dashboard", "Access management suite", Colors.redAccent, () {
+            Navigator.push(context, MaterialPageRoute(builder: (context) => const StaffHub()));
+          }),
+          _buildMenuItem(Icons.hub_rounded, "Master Hub (SaaS)", "Super Admin root access", Colors.black87, () {
+            Navigator.pushNamed(context, '/super-admin');
+          }),
+          const SizedBox(height: 40),
+          _buildLogoutButton(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSocialTab() {
+    return ListView(
+      padding: const EdgeInsets.all(20),
+      children: [
+        _buildSectionHeader("My Social Circle"),
+        _buildSocialListTile(Icons.people_rounded, "Mutual Friends", "Connect & Message", Colors.green, () {
+          _showSocialListModal("Friends", ShopManager.instance.friendsList);
+        }),
+        _buildSocialListTile(Icons.person_add_alt_1_rounded, "Requests", "Follow them back", Colors.orange, () {
+          _showSocialListModal("Requests", ShopManager.instance.requestsList, isRequest: true);
+        }),
+        _buildSocialListTile(Icons.assignment_ind_rounded, "Following", "People you follow", Colors.blue, () {
+          _showSocialListModal("Following", ShopManager.instance.followingList);
+        }),
+      ],
+    );
+  }
+
+  Widget _buildSocialListTile(IconData icon, String title, String sub, Color color, VoidCallback onTap) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.grey.withValues(alpha: 0.05))),
+      child: ListTile(
+        onTap: onTap,
+        leading: CircleAvatar(backgroundColor: color.withValues(alpha: 0.1), child: Icon(icon, color: color, size: 20)),
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+        subtitle: Text(sub, style: const TextStyle(color: Colors.grey, fontSize: 11)),
+        trailing: const Icon(Icons.chevron_right_rounded, color: Colors.grey),
+      ),
+    );
+  }
+
+  void _showSocialListModal(String title, ValueListenable<List<Map<String, dynamic>>> list, {bool isRequest = false}) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(30))),
+      builder: (context) => ValueListenableBuilder<List<Map<String, dynamic>>>(
+        valueListenable: list,
+        builder: (context, users, _) {
+          return Container(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 20),
+                if (users.isEmpty)
+                  const Padding(padding: EdgeInsets.symmetric(vertical: 40), child: Text("No users found", style: TextStyle(color: Colors.grey))),
+                ...users.map((u) {
+                  String avatarUrl = u['gender'] == 'Female'
+                      ? 'https://img.freepik.com/free-vector/beauty-woman-face-concept_23-2148679462.jpg'
+                      : 'https://img.freepik.com/free-vector/businessman-character-avatar-isolated_24877-60111.jpg';
+                  
+                  return ListTile(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => UserProfileViewPage(userId: u['email'], name: u['name'])),
+                      );
+                    },
+                    leading: CircleAvatar(backgroundImage: NetworkImage(avatarUrl)),
+                    title: Text(u['name'] ?? 'Guest'),
+                    subtitle: Text(u['email'] ?? ''),
+                    trailing: isRequest 
+                      ? ElevatedButton(
+                          onPressed: () async {
+                            final success = await ShopManager.instance.toggleFollow(u['email']);
+                            if (success) {
+                              ShopManager.instance.fetchSocialLists();
+                            }
+                          }, 
+                          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFF5C00), foregroundColor: Colors.white),
+                          child: const Text("Follow Back"),
+                        )
+                      : (title == "Friends" ? const Icon(Icons.chat_bubble_outline, color: Color(0xFFFF5C00)) : null),
+                  );
+                }),
+              ],
+            ),
+          );
+        }
+      ),
+    );
   }
 
   Widget _buildLiveOrdersRow() {
@@ -172,34 +418,31 @@ class _ProfilePageState extends State<ProfilePage> {
       builder: (context, orderId, child) {
         if (orderId == null) return const SizedBox.shrink();
 
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-          child: InkWell(
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => LiveOrderTrackingScreen(orderId: orderId))),
-            borderRadius: BorderRadius.circular(20),
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(colors: [Color(0xFFFF5C00), Color(0xFFFF8C00)]),
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [BoxShadow(color: const Color(0xFFFF5C00).withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 4))],
-              ),
-              child: Row(
-                children: [
-                  const CircleAvatar(backgroundColor: Colors.white, child: Icon(Icons.delivery_dining, color: Color(0xFFFF5C00))),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text("ACTIVE ORDER IN PROGRESS", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 0.5)),
-                        Text("Order #$orderId • Tap to track live status", style: const TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold)),
-                      ],
-                    ),
+        return InkWell(
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => LiveOrderTrackingScreen(orderId: orderId))),
+          borderRadius: BorderRadius.circular(20),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(colors: [Color(0xFFFF5C00), Color(0xFFFF8C00)]),
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [BoxShadow(color: const Color(0xFFFF5C00).withValues(alpha: 0.3), blurRadius: 10, offset: const Offset(0, 4))],
+            ),
+            child: Row(
+              children: [
+                const CircleAvatar(backgroundColor: Colors.white, child: Icon(Icons.delivery_dining, color: Color(0xFFFF5C00))),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text("ACTIVE ORDER IN PROGRESS", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 0.5)),
+                      Text("Order #$orderId • Tap to track live status", style: const TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold)),
+                    ],
                   ),
-                  const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white, size: 14),
-                ],
-              ),
+                ),
+                const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white, size: 14),
+              ],
             ),
           ),
         );
@@ -223,14 +466,14 @@ class _ProfilePageState extends State<ProfilePage> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.withOpacity(0.05)),
+        border: Border.all(color: Colors.grey.withValues(alpha: 0.05)),
       ),
       child: ListTile(
         onTap: onTap,
         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
         leading: Container(
           padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
+          decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle),
           child: Icon(icon, color: color, size: 20),
         ),
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
@@ -253,5 +496,62 @@ class _ProfilePageState extends State<ProfilePage> {
         ),
       ),
     );
+  }
+
+  void _showManualSyncDialog(BuildContext context) {
+    final TextEditingController emailCtrl = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Sync Profile"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text("Enter your Google Email to sync your coins and orders across devices."),
+            const SizedBox(height: 16),
+            TextField(
+              controller: emailCtrl,
+              decoration: const InputDecoration(labelText: "Google Email", border: OutlineInputBorder()),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
+          ElevatedButton(
+            onPressed: () {
+              if (emailCtrl.text.contains('@')) {
+                ShopManager.instance.syncCustomerIdentity(emailCtrl.text, name: emailCtrl.text.split('@').first);
+                Navigator.pop(context);
+              }
+            },
+            child: const Text("Sync Now"),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
+  _SliverAppBarDelegate(this._tabBar);
+
+  final TabBar _tabBar;
+
+  @override
+  double get minExtent => _tabBar.preferredSize.height;
+  @override
+  double get maxExtent => _tabBar.preferredSize.height;
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return Container(
+      color: Colors.white,
+      child: _tabBar,
+    );
+  }
+
+  @override
+  bool shouldRebuild(_SliverAppBarDelegate oldDelegate) {
+    return false;
   }
 }

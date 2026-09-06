@@ -41,7 +41,7 @@ class KotTicketCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: headerColor.withOpacity(0.1),
+            color: headerColor.withValues(alpha: 0.1),
             blurRadius: 15,
             offset: const Offset(0, 8),
           ),
@@ -78,7 +78,7 @@ class KotTicketCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.15),
+                    color: Colors.black.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
@@ -101,7 +101,7 @@ class KotTicketCard extends StatelessWidget {
             child: ListView.separated(
               padding: const EdgeInsets.all(16),
               itemCount: items.length,
-              separatorBuilder: (context, index) => Divider(color: Colors.grey.withOpacity(0.1), height: 20),
+              separatorBuilder: (context, index) => Divider(color: Colors.grey.withValues(alpha: 0.1), height: 20),
               itemBuilder: (context, index) {
                 final item = items[index];
                 return Row(
@@ -114,7 +114,7 @@ class KotTicketCard extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: KitchenTheme.pearlWhite,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.grey.withOpacity(0.1)),
+                        border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
                       ),
                       child: Text(
                         "${item.quantity}",
@@ -135,7 +135,7 @@ class KotTicketCard extends StatelessWidget {
                               margin: const EdgeInsets.only(top: 4),
                               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
-                                color: Colors.red.withOpacity(0.05),
+                                color: Colors.red.withValues(alpha: 0.05),
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
@@ -181,7 +181,7 @@ class KotTicketCard extends StatelessWidget {
                   const SizedBox(width: 8),
                   Container(
                     decoration: BoxDecoration(
-                      color: Colors.grey.withOpacity(0.1),
+                      color: Colors.grey.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: IconButton(

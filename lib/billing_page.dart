@@ -45,7 +45,7 @@ class _BillingPageState extends State<BillingPage> {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(24),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 15, offset: const Offset(0, 8))],
+                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 15, offset: const Offset(0, 8))],
               ),
               child: Column(
                 children: [
@@ -104,8 +104,8 @@ class _BillingPageState extends State<BillingPage> {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(30),
-                border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.3), width: 2), // Champagne Gold touch
-                boxShadow: [BoxShadow(color: const Color(0xFFD4AF37).withOpacity(0.05), blurRadius: 20)],
+                border: Border.all(color: const Color(0xFFD4AF37).withValues(alpha: 0.3), width: 2), // Champagne Gold touch
+                boxShadow: [BoxShadow(color: const Color(0xFFD4AF37).withValues(alpha: 0.05), blurRadius: 20)],
               ),
               child: Column(
                 children: [

@@ -53,7 +53,7 @@ class _MusicPollWidgetState extends State<MusicPollWidget> {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 20,
             offset: const Offset(0, 10),
           )
@@ -105,10 +105,10 @@ class _MusicPollWidgetState extends State<MusicPollWidget> {
                 child: Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: isVoted ? const Color(0xFFFF5C00).withOpacity(0.03) : Colors.grey[50],
+                    color: isVoted ? const Color(0xFFFF5C00).withValues(alpha: 0.03) : Colors.grey[50],
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: isVoted ? const Color(0xFFFF5C00).withOpacity(0.3) : Colors.grey[200]!,
+                      color: isVoted ? const Color(0xFFFF5C00).withValues(alpha: 0.3) : Colors.grey[200]!,
                       width: 1.5,
                     ),
                   ),
@@ -168,7 +168,7 @@ class _MusicPollWidgetState extends State<MusicPollWidget> {
                               boxShadow: [
                                 if (isVoted)
                                   BoxShadow(
-                                    color: const Color(0xFFFF5C00).withOpacity(0.3),
+                                    color: const Color(0xFFFF5C00).withValues(alpha: 0.3),
                                     blurRadius: 4,
                                     offset: const Offset(0, 2),
                                   )
@@ -208,7 +208,7 @@ class _MusicPollWidgetState extends State<MusicPollWidget> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFFFF5C00).withOpacity(0.2),
+            color: const Color(0xFFFF5C00).withValues(alpha: 0.2),
             blurRadius: 10,
             offset: const Offset(0, 4),
           )

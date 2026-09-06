@@ -108,7 +108,7 @@ class _ChatPageState extends State<ChatPage> {
                             bottomRight: Radius.circular(isMe ? 0 : 20),
                           ),
                           boxShadow: [
-                            BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 4, offset: const Offset(0, 2))
+                            BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 4, offset: const Offset(0, 2))
                           ],
                         ),
                         child: isVoice 
@@ -158,7 +158,7 @@ class _ChatPageState extends State<ChatPage> {
             padding: const EdgeInsets.fromLTRB(20, 10, 20, 30),
             decoration: BoxDecoration(
               color: Colors.white,
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -5))],
+              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, -5))],
             ),
             child: Row(
               children: [
@@ -301,8 +301,8 @@ class _ChatPageState extends State<ChatPage> {
           margin: const EdgeInsets.symmetric(horizontal: 1),
           decoration: BoxDecoration(
             color: isMe 
-              ? (isActive ? Colors.white : Colors.white.withOpacity(0.5)) 
-              : (isActive ? const Color(0xFFFF5C00) : const Color(0xFFFF5C00).withOpacity(0.5)),
+              ? (isActive ? Colors.white : Colors.white.withValues(alpha: 0.5)) 
+              : (isActive ? const Color(0xFFFF5C00) : const Color(0xFFFF5C00).withValues(alpha: 0.5)),
             borderRadius: BorderRadius.circular(1),
           ),
         );

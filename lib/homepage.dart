@@ -9,10 +9,13 @@ import 'menu.dart';
 import 'search_delegate.dart';
 import 'nearby_page.dart';
 import 'profile_page.dart';
-import 'rewards_page.dart';
-import 'order_status_page.dart';
 import 'music_voting_sheet.dart';
 import 'services/tenant_service.dart';
+import 'services/api_service.dart';
+import 'notifications_page.dart';
+import 'widgets/smart_auth_overlay.dart';
+import 'widgets/onboarding_modal.dart';
+import 'widgets/notification_prompt.dart';
 
 // Enables Mouse Drag Scrolling on Web/Desktop
 class MyCustomScrollBehavior extends MaterialScrollBehavior {
@@ -39,19 +42,48 @@ class _HomePageState extends State<HomePage> {
       child: ValueListenableBuilder<int>(
         valueListenable: ShopManager.instance.currentTabIndex,
         builder: (context, currentIndex, child) {
-          return Scaffold(
-            backgroundColor: const Color(0xFFF7F8FA),
-            body: IndexedStack(
-              index: currentIndex,
-              children: [
-                _buildHomeContent(),
-                const MenuPage(),
-                const NearbyPage(),
-                const CartPage(),
-                const ProfilePage(),
-              ],
-            ),
-            bottomNavigationBar: _buildBottomNav(currentIndex),
+          return Stack(
+            children: [
+              Scaffold(
+                backgroundColor: const Color(0xFFF7F8FA),
+                body: IndexedStack(
+                  index: currentIndex,
+                  children: [
+                    _buildHomeContent(),
+                    const MenuPage(),
+                    const NearbyPage(),
+                    const CartPage(),
+                    const ProfilePage(),
+                  ],
+                ),
+                bottomNavigationBar: _buildBottomNav(currentIndex),
+              ),
+              ValueListenableBuilder<bool>(
+                valueListenable: ShopManager.instance.isOnboardingComplete,
+                builder: (context, complete, _) {
+                  if (!complete) return const OnboardingModal();
+                  
+                  return ValueListenableBuilder<bool>(
+                    valueListenable: ShopManager.instance.needsPin,
+                    builder: (context, needs, _) => needs ? const SmartAuthOverlay() : const SizedBox.shrink(),
+                  );
+                },
+              ),
+              ValueListenableBuilder<bool>(
+                valueListenable: ShopManager.instance.showNotificationPrompt,
+                builder: (context, show, _) {
+                  if (!show) return const SizedBox.shrink();
+                  return Material(
+                    color: Colors.black.withValues(alpha: 0.5),
+                    child: InkWell(
+                      onTap: () => ShopManager.instance.showNotificationPrompt.value = false,
+                      overlayColor: WidgetStateProperty.all(Colors.transparent),
+                      child: const NotificationPrompt(),
+                    ),
+                  );
+                },
+              ),
+            ],
           );
         },
       ),
@@ -66,7 +98,7 @@ class _HomePageState extends State<HomePage> {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 15,
             offset: const Offset(0, -4),
           )
@@ -117,7 +149,13 @@ class _HomePageState extends State<HomePage> {
           slivers: [
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 40, 20, 10),
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
+                child: _buildSmartGreetingCard(),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
                 child: _buildHeader(),
               ),
             ),
@@ -197,11 +235,123 @@ class _HomePageState extends State<HomePage> {
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-                child: _buildSummerOffer(),
+                child: FutureBuilder<List<Map<String, dynamic>>?>(
+                  future: ApiService.fetchOffers(TenantService().currentTenant.value?.id ?? ''),
+                  builder: (context, snapshot) {
+                    if (snapshot.hasData && snapshot.data!.isNotEmpty) {
+                      final b = snapshot.data!.first; // Show the latest offer
+                      return Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFF5C00),
+                          borderRadius: BorderRadius.circular(24),
+                          image: b['image_url'] != null && b['image_url'].toString().isNotEmpty
+                              ? DecorationImage(image: NetworkImage(b['image_url']), fit: BoxFit.cover, colorFilter: ColorFilter.mode(Colors.black.withValues(alpha: 0.3), BlendMode.darken))
+                              : null,
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(b['title'] ?? "SUMMER SPECIAL!", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16)),
+                                  Text(b['subtitle'] ?? "Get flat 50% OFF.", style: const TextStyle(color: Colors.white70, fontSize: 10)),
+                                  if (b['discount_tag'] != null) ...[
+                                    const SizedBox(height: 12),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10)),
+                                      child: Text(b['discount_tag'], style: const TextStyle(color: Color(0xFFFF5C00), fontWeight: FontWeight.bold, fontSize: 12)),
+                                    ),
+                                  ]
+                                ],
+                              ),
+                            )
+                          ],
+                        ),
+                      );
+                    }
+                    return _buildSummerOffer(); // Fallback to demo
+                  },
+                ),
               ),
             ),
             const SliverToBoxAdapter(child: SizedBox(height: 120)),
           ],
+        );
+      },
+    );
+  }
+
+  Widget _buildSmartGreetingCard() {
+    final tenant = TenantService().currentTenant.value;
+    if (tenant == null) return const SizedBox.shrink();
+
+    return ValueListenableBuilder<bool>(
+      valueListenable: ShopManager.instance.isEmailSynced,
+      builder: (context, synced, _) {
+        if (!synced) {
+           return Container(
+             padding: const EdgeInsets.all(20),
+             decoration: BoxDecoration(
+               color: Colors.white,
+               borderRadius: BorderRadius.circular(24),
+               boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10)],
+             ),
+             child: Row(
+               children: [
+                 const CircleAvatar(backgroundColor: Color(0xFFF7F8FA), child: Icon(Icons.account_circle_outlined, color: Colors.grey)),
+                 const SizedBox(width: 16),
+                 Expanded(
+                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: const [
+                     Text("Welcome Guest!", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                     Text("Sync your profile to track coins globally.", style: TextStyle(color: Colors.grey, fontSize: 11)),
+                   ]),
+                 ),
+                 TextButton(onPressed: () => ShopManager.instance.currentTabIndex.value = 4, child: const Text("SYNC")),
+               ],
+             ),
+           );
+        }
+
+        return ValueListenableBuilder<bool>(
+          valueListenable: ShopManager.instance.isNewToShop,
+          builder: (context, isNew, _) {
+            final String title = isNew ? "Welcome to ${tenant.name}!" : "Welcome Back, ${ShopManager.instance.customerName.value}!";
+            final String sub = isNew ? "Join our loyalty program to earn rewards." : "You have ${ShopManager.instance.userPoints.value} coins waiting for you.";
+            
+            return Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: isNew ? [const Color(0xFF0047AB), const Color(0xFF002D62)] : [const Color(0xFFFF5C00), const Color(0xFFFF8C00)],
+                ),
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [BoxShadow(color: (isNew ? Colors.blue : Colors.orange).withValues(alpha: 0.3), blurRadius: 10, offset: const Offset(0, 4))],
+              ),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    backgroundColor: Colors.white.withValues(alpha: 0.2),
+                    child: Icon(isNew ? Icons.celebration_rounded : Icons.auto_awesome, color: Colors.white),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                        Text(sub, style: const TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  ),
+                  if (!isNew)
+                    const Icon(Icons.verified_rounded, color: Colors.white, size: 20),
+                ],
+              ),
+            );
+          },
         );
       },
     );
@@ -230,9 +380,27 @@ class _HomePageState extends State<HomePage> {
               Navigator.push(context, MaterialPageRoute(builder: (context) => const VoiceOrderPage()));
             }),
             const SizedBox(width: 10),
-            _buildHeaderAction(Icons.notifications_none_outlined, () {
-              Navigator.push(context, MaterialPageRoute(builder: (context) => const OrderStatusPage()));
-            }),
+            ValueListenableBuilder<int>(
+              valueListenable: ShopManager.instance.unseenNotificationsCount,
+              builder: (context, count, _) => Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  _buildHeaderAction(Icons.notifications_none_outlined, () {
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => const NotificationsPage()));
+                  }),
+                  if (count > 0)
+                    Positioned(
+                      top: -2, right: -2,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                        constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                        child: Text("$count", style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+                      ),
+                    ),
+                ],
+              ),
+            ),
             const SizedBox(width: 10),
             _buildHeaderAction(Icons.person_outline, () {
               ShopManager.instance.currentTabIndex.value = 4;
@@ -253,7 +421,7 @@ class _HomePageState extends State<HomePage> {
           color: Colors.white,
           shape: BoxShape.circle,
           border: Border.all(color: const Color(0xFFE2E8F0)),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 4)],
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 4)],
         ),
         child: Icon(icon, color: Colors.black87, size: 20),
       ),
@@ -272,7 +440,7 @@ class _HomePageState extends State<HomePage> {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 4))],
+                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 4))],
               ),
               child: Row(
                 children: [
@@ -283,11 +451,11 @@ class _HomePageState extends State<HomePage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text("Table Number", style: TextStyle(fontSize: 9, color: Colors.grey, fontWeight: FontWeight.w600)),
-                        ValueListenableBuilder<int>(
+                        ValueListenableBuilder<int?>(
                           valueListenable: ShopManager.instance.selectedTableId,
                           builder: (context, tableId, child) => Text(
-                            "TABLE ${tableId.toString().padLeft(2, '0')}", 
-                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87),
+                            tableId != null ? "TABLE ${tableId.toString().padLeft(2, '0')}" : "SELECT TABLE", 
+                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: tableId != null ? Colors.black87 : const Color(0xFFFF5C00)),
                           ),
                         ),
                       ],
@@ -313,7 +481,7 @@ class _HomePageState extends State<HomePage> {
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFFFF5C00).withOpacity(0.3),
+                  color: const Color(0xFFFF5C00).withValues(alpha: 0.3),
                   blurRadius: 8,
                   offset: const Offset(0, 4),
                 ),
@@ -344,7 +512,7 @@ class _HomePageState extends State<HomePage> {
                 ShopManager.instance.switchTable(id);
                 Navigator.pop(context);
               },
-              child: ValueListenableBuilder<int>(
+              child: ValueListenableBuilder<int?>(
                 valueListenable: ShopManager.instance.selectedTableId,
                 builder: (context, currentId, child) => Container(
                   decoration: BoxDecoration(color: currentId == id ? const Color(0xFFFF5C00) : Colors.grey[100], borderRadius: BorderRadius.circular(12)),
@@ -406,7 +574,7 @@ class _HomePageState extends State<HomePage> {
                     children: [
                       Container(
                         width: 55, height: 55,
-                        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 6)]),
+                        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 6)]),
                         child: Icon(cat['icon'] != null ? cat['icon'] as IconData : Icons.restaurant_menu_rounded, color: const Color(0xFFFF5C00), size: 24),
                       ),
                       const SizedBox(height: 6),
@@ -462,7 +630,7 @@ class _HomePageState extends State<HomePage> {
   Widget _buildRewardsCard() {
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10)]),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10)]),
       child: const Row(
         children: [
           Icon(Icons.local_activity_outlined, color: Color(0xFFFF5C00), size: 20),
@@ -481,9 +649,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildIconButton(IconData icon, VoidCallback onPressed) {
-    return InkWell(onTap: onPressed, child: Container(width: 38, height: 38, decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, border: Border.all(color: const Color(0xFFE2E8F0))), child: Icon(icon, color: Colors.black87, size: 18)));
-  }
+
 
   Widget _buildNowPlayingCard() {
     return Padding(
@@ -492,7 +658,7 @@ class _HomePageState extends State<HomePage> {
         onTap: () => showModalBottomSheet(context: context, backgroundColor: Colors.transparent, isScrollControlled: true, builder: (context) => const MusicVotingSheet()),
         child: Container(
           padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10)]),
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10)]),
           child: Row(children: [const Icon(Icons.equalizer_rounded, color: Color(0xFFFF5C00), size: 18), const SizedBox(width: 12), const Text("Now Playing...", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))]),
         ),
       ),

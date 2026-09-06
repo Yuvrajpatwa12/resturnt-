@@ -119,13 +119,13 @@ class _TablesTabState extends State<TablesTab> {
               color: Colors.white,
               borderRadius: BorderRadius.circular(15),
               border: Border.all(
-                color: isReady || isBilled ? Colors.green : (isOccupied ? const Color(0xFFFF5C00).withOpacity(0.3) : Colors.grey[100]!),
+                color: isReady || isBilled ? Colors.green : (isOccupied ? const Color(0xFFFF5C00).withValues(alpha: 0.3) : Colors.grey[100]!),
                 width: 2,
               ),
               boxShadow: [
                 if (isOccupied || isBilled)
                   BoxShadow(
-                    color: (isReady || isBilled ? Colors.green : Colors.orange).withOpacity(0.1),
+                    color: (isReady || isBilled ? Colors.green : Colors.orange).withValues(alpha: 0.1),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   )
@@ -139,7 +139,7 @@ class _TablesTabState extends State<TablesTab> {
                     child: CircularProgressIndicator(
                       value: progress,
                       strokeWidth: 2,
-                      color: const Color(0xFFFF5C00).withOpacity(0.1),
+                      color: const Color(0xFFFF5C00).withValues(alpha: 0.1),
                       backgroundColor: Colors.transparent,
                     ),
                   ),

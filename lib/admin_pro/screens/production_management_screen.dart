@@ -52,7 +52,7 @@ class ProductionManagementScreen extends StatelessWidget {
         children: [
           Container(
             padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: AdminTheme.royalBlue.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+            decoration: BoxDecoration(color: AdminTheme.royalBlue.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
             child: const Icon(Icons.precision_manufacturing_outlined, color: AdminTheme.royalBlue, size: 24),
           ),
           const SizedBox(width: 16),
@@ -138,7 +138,7 @@ class ProductionManagementScreen extends StatelessWidget {
         subtitle: Text(focus, style: const TextStyle(fontSize: 12)),
         trailing: Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(color: AdminTheme.emeraldGreen.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+          decoration: BoxDecoration(color: AdminTheme.emeraldGreen.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
           child: Text(status, style: const TextStyle(color: AdminTheme.emeraldGreen, fontSize: 9, fontWeight: FontWeight.w900)),
         ),
       ),
