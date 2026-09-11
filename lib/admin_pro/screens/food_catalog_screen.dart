@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
 import '../../services/tenant_service.dart';
 import '../admin_theme.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:typed_data';
 
 class FoodCatalogScreen extends StatefulWidget {
   final String mode;
@@ -15,10 +17,16 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
   final _titleController = TextEditingController();
   final _priceController = TextEditingController();
   final _imageController = TextEditingController();
-  final _descriptionController = TextEditingController();
+  final _descriptionController = TextEditingController(); // Restored
+  final _sloganController = TextEditingController(); // Added
   
   String? _selectedCategoryId;
+  String _selectedSection = 'none'; // Added for Just For You, Trending, etc.
+  Map<String, dynamic>? _editingProduct; // State for Edit mode
+  
   bool _isSubmitting = false;
+  Uint8List? _selectedImageBytes;
+  String? _selectedImageName;
 
   @override
   void dispose() {
@@ -26,6 +34,7 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
     _priceController.dispose();
     _imageController.dispose();
     _descriptionController.dispose();
+    _sloganController.dispose();
     super.dispose();
   }
 
@@ -36,7 +45,10 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (widget.mode == "Add Food") _buildAddFoodForm()
+          if (_editingProduct != null) 
+            _buildEditFoodForm()
+          else if (widget.mode == "Add Food") 
+            _buildAddFoodForm()
           else if (widget.mode == "Food Variant") _buildFoodVariantView()
           else if (widget.mode == "Food Availability") _buildAvailabilityView()
           else _buildFoodListView(),
@@ -226,7 +238,10 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
           ListTile(
             leading: const Icon(Icons.edit_outlined, color: Colors.blue),
             title: const Text("Edit Details"),
-            onTap: () => Navigator.pop(ctx),
+            onTap: () {
+              Navigator.pop(ctx);
+              _startEditing(p);
+            },
           ),
           ListTile(
             leading: const Icon(Icons.delete_outline, color: Colors.red),
@@ -274,8 +289,10 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text("Product Details", style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
-            const SizedBox(height: 24),
+            if (_editingProduct == null) ...[
+              const Text("Product Details", style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+              const SizedBox(height: 24),
+            ],
             _buildTextField("Product Name", _titleController, hint: "e.g. Steam Chicken Momo"),
             const SizedBox(height: 16),
             
@@ -304,25 +321,97 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
               children: [
                 Expanded(child: _buildTextField("Base Price", _priceController, hint: "450")),
                 const SizedBox(width: 16),
-                Expanded(child: _buildTextField("Image URL", _imageController, hint: "https://...")),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text("Product Image", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey)),
+                      const SizedBox(height: 8),
+                      InkWell(
+                        onTap: _pickImage,
+                        child: Container(
+                          height: 54,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.grey[200]!),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(_selectedImageBytes != null ? Icons.check_circle : Icons.upload_file, 
+                                   color: _selectedImageBytes != null ? Colors.green : AdminTheme.royalBlue, size: 20),
+                              const SizedBox(width: 8),
+                              Text(
+                                _selectedImageBytes != null ? "Image Selected" : "Upload Photo",
+                                style: TextStyle(
+                                  fontSize: 12, 
+                                  fontWeight: FontWeight.bold, 
+                                  color: _selectedImageBytes != null ? Colors.green : Colors.black87
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
+            if (_selectedImageBytes != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 16),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: Image.memory(_selectedImageBytes!, height: 100, width: double.infinity, fit: BoxFit.cover),
+                ),
+              ),
+            const SizedBox(height: 16),
+            _buildTextField("Product Slogan", _sloganController, hint: "e.g. The best momo in town!"),
             const SizedBox(height: 16),
             _buildTextField("Description", _descriptionController, hint: "Enter short product details..."),
+            const SizedBox(height: 16),
+            
+            // Home Section Picker
+            const Text("Home Page Section", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey)),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 12,
+              children: [
+                _buildSectionChip("none", "None"),
+                _buildSectionChip("just_for_you", "Just For You"),
+                _buildSectionChip("trending", "Trending"),
+                _buildSectionChip("popular", "Popular"),
+              ],
+            ),
             const SizedBox(height: 32),
             
             if (_isSubmitting)
               const Center(child: CircularProgressIndicator())
             else
               ElevatedButton(
-                onPressed: _submitProduct,
+                onPressed: _editingProduct != null ? _submitEdit : _submitProduct,
                 style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 54)),
-                child: const Text("ADD PRODUCT TO DATABASE"),
+                child: Text(_editingProduct != null ? "UPDATE PRODUCT DETAILS" : "ADD PRODUCT TO DATABASE"),
               ),
           ],
         );
       },
     );
+  }
+
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    
+    if (pickedFile != null) {
+      final bytes = await pickedFile.readAsBytes();
+      setState(() {
+        _selectedImageBytes = bytes;
+        _selectedImageName = pickedFile.name;
+      });
+    }
   }
 
   Future<void> _submitProduct() async {
@@ -336,29 +425,54 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
     final tenant = TenantService().currentTenant.value;
     if (tenant == null) return;
 
-    final success = await ApiService.addProduct({
+    String finalImageUrl = "";
+
+    // 1. Upload image if selected
+    if (_selectedImageBytes != null && _selectedImageName != null) {
+      final uploadedUrl = await ApiService.uploadProductImage(_selectedImageBytes!, _selectedImageName!);
+      if (uploadedUrl != null) {
+        finalImageUrl = uploadedUrl;
+      } else {
+        setState(() => _isSubmitting = false);
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Image upload failed!"), backgroundColor: Colors.red));
+        return;
+      }
+    }
+
+    // 2. Add product to DB
+    final res = await ApiService.addProduct({
       'tenant_id': tenant.id,
       'category_id': _selectedCategoryId,
-      'title': _titleController.text,
-      'price': _priceController.text,
-      'image_url': _imageController.text,
-      'description': _descriptionController.text,
+      'title': _titleController.text.trim(), // Added title here
+      'price': _priceController.text.trim(),
+      'image_url': finalImageUrl,
+      'description': _descriptionController.text.trim(),
+      'slogan': _sloganController.text.trim(),
+      'featured_section': _selectedSection,
     });
 
     setState(() => _isSubmitting = false);
 
     if (!mounted) return;
 
-    if (success) {
+    if (res['success'] == true) {
       _titleController.clear();
       _priceController.clear();
       _imageController.clear();
       _descriptionController.clear();
+      _sloganController.clear();
+      setState(() {
+        _selectedImageBytes = null;
+        _selectedImageName = null;
+        _selectedSection = 'none'; // Reset section
+      });
       // Re-fetch menu to show new item
       TenantService().fetchMenuData(tenant.id);
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Product added successfully!"), backgroundColor: Colors.green));
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Failed to add product."), backgroundColor: Colors.red));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error: ${res['message']}"), backgroundColor: Colors.red)
+      );
     }
   }
 
@@ -367,7 +481,90 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
   }
 
   Widget _buildAvailabilityView() {
-    return const Center(child: Text("Quick stock toggle coming soon."));
+    return const Center(child: Text("Quick stock toggle coming soon.")    );
+  }
+
+  Widget _buildSectionChip(String value, String label) {
+    bool isSelected = _selectedSection == value;
+    return GestureDetector(
+      onTap: () => setState(() => _selectedSection = value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected ? AdminTheme.royalBlue : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: isSelected ? AdminTheme.royalBlue : Colors.grey[200]!),
+          boxShadow: isSelected ? [BoxShadow(color: AdminTheme.royalBlue.withValues(alpha: 0.2), blurRadius: 8)] : [],
+        ),
+        child: Text(
+          label,
+          style: TextStyle(color: isSelected ? Colors.white : Colors.black87, fontSize: 11, fontWeight: FontWeight.bold),
+        ),
+      ),
+    );
+  }
+
+  void _startEditing(Map<String, dynamic> p) {
+    setState(() {
+      _editingProduct = p;
+      _titleController.text = p['title'] ?? '';
+      _priceController.text = p['price']?.toString() ?? '';
+      _descriptionController.text = p['description'] ?? '';
+      _sloganController.text = p['slogan'] ?? '';
+      _selectedCategoryId = p['category_id']?.toString();
+      _selectedSection = p['featured_section'] ?? 'none';
+      _selectedImageBytes = null; // Don't show preview for existing image unless picked new
+    });
+  }
+
+  Widget _buildEditFoodForm() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            IconButton(onPressed: () => setState(() => _editingProduct = null), icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 16)),
+            const Text("Edit Product", style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+          ],
+        ),
+        const SizedBox(height: 24),
+        _buildAddFoodForm(), // Reuse the form UI
+      ],
+    );
+  }
+
+  Future<void> _submitEdit() async {
+    if (_titleController.text.isEmpty || _priceController.text.isEmpty || _selectedCategoryId == null) return;
+    setState(() => _isSubmitting = true);
+    final tenant = TenantService().currentTenant.value;
+    if (tenant == null || _editingProduct == null) return;
+
+    String finalImageUrl = _editingProduct!['image_url'] ?? _editingProduct!['image'] ?? "";
+
+    if (_selectedImageBytes != null && _selectedImageName != null) {
+      final uploadedUrl = await ApiService.uploadProductImage(_selectedImageBytes!, _selectedImageName!);
+      if (uploadedUrl != null) finalImageUrl = uploadedUrl;
+    }
+
+    final res = await ApiService.updateProduct({
+      'id': _editingProduct!['id'],
+      'tenant_id': tenant.id,
+      'category_id': _selectedCategoryId,
+      'title': _titleController.text,
+      'price': _priceController.text,
+      'image_url': finalImageUrl,
+      'description': _descriptionController.text,
+      'slogan': _sloganController.text.trim(),
+      'featured_section': _selectedSection,
+    });
+
+    setState(() => _isSubmitting = false);
+    if (res['success'] == true) {
+      setState(() => _editingProduct = null);
+      TenantService().fetchMenuData(tenant.id);
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Product updated!"), backgroundColor: Colors.green));
+    }
   }
 
   Widget _buildTextField(String label, TextEditingController controller, {String? hint}) {

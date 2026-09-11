@@ -9,6 +9,8 @@ import 'rewards_page.dart';
 import 'live_order_tracking_screen.dart';
 import 'my_orders_page.dart';
 import 'user_profile_view_page.dart';
+import 'messages_list_page.dart';
+import 'settings_page.dart';
 import 'services/tenant_service.dart';
 
 
@@ -31,25 +33,12 @@ class _ProfilePageState extends State<ProfilePage> {
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => ShopManager.instance.currentTabIndex.value = 0,
         ),
-        title: Container(
-          height: 40,
-          decoration: BoxDecoration(
-            color: Colors.grey[100],
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: const TextField(
-            decoration: InputDecoration(
-              hintText: "Search profile",
-              prefixIcon: Icon(Icons.search, size: 20),
-              border: InputBorder.none,
-              contentPadding: EdgeInsets.symmetric(vertical: 10),
-            ),
-          ),
-        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.settings_outlined, color: Colors.black),
-            onPressed: () {},
+            onPressed: () {
+              Navigator.push(context, MaterialPageRoute(builder: (context) => const SettingsPage()));
+            },
           ),
         ],
       ),
@@ -177,7 +166,7 @@ class _ProfilePageState extends State<ProfilePage> {
               ValueListenableBuilder<String>(
                 valueListenable: ShopManager.instance.customerEmail,
                 builder: (context, email, _) => Text(
-                  email.isNotEmpty ? email : "Istanbul, Turkey  |  UX Designer • Apple",
+                  email,
                   style: const TextStyle(color: Colors.grey, fontSize: 11),
                 ),
               ),
@@ -199,20 +188,10 @@ class _ProfilePageState extends State<ProfilePage> {
               );
             },
           ),
-          Wrap(
-            spacing: 8,
-            children: [
-              _buildTag("#design"),
-              _buildTag("#graphics"),
-              _buildTag("#virtual"),
-              _buildTag("#reality"),
-            ],
-          ),
           const SizedBox(height: 24),
           Row(
             children: [
               Expanded(
-                flex: 2,
                 child: ElevatedButton.icon(
                   onPressed: () {
                     ShopManager.instance.currentTabIndex.value = 2; // Navigate to Nearby
@@ -220,7 +199,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   icon: const Icon(Icons.bolt, color: Colors.white),
                   label: const Text("Connect", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF0077B5), // LinkedIn Blue
+                    backgroundColor: const Color(0xFFFF5C00),
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
@@ -229,24 +208,16 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: OutlinedButton(
-                  onPressed: () {},
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => const MessagesListPage()));
+                  },
+                  icon: const Icon(Icons.chat_bubble_outline, color: Colors.black, size: 20),
+                  label: const Text("Messages", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                   ),
-                  child: const Text("Follow", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () {},
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                  ),
-                  child: const Text("Message", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
                 ),
               ),
             ],
@@ -262,17 +233,6 @@ class _ProfilePageState extends State<ProfilePage> {
         Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
       ],
-    );
-  }
-
-  Widget _buildTag(String label) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.grey[100],
-        borderRadius: BorderRadius.circular(15),
-      ),
-      child: Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
     );
   }
 
@@ -437,7 +397,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text("ACTIVE ORDER IN PROGRESS", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 0.5)),
-                      Text("Order #$orderId • Tap to track live status", style: const TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold)),
+                      Text("Order $orderId • Tap to track live status", style: const TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold)),
                     ],
                   ),
                 ),

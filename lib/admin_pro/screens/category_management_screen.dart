@@ -86,11 +86,14 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const SizedBox(width: 20),
+                            IconButton(
+                              onPressed: () => _showEditCategoryModal(cat),
+                              icon: const Icon(Icons.edit_outlined, color: AdminTheme.royalBlue, size: 18),
+                            ),
                             Container(
                               padding: const EdgeInsets.all(10),
                               decoration: BoxDecoration(color: AdminTheme.royalBlue.withValues(alpha: 0.1), shape: BoxShape.circle),
-                              child: const Icon(Icons.category_outlined, color: AdminTheme.royalBlue, size: 20),
+                              child: Icon(_getIconData(cat['icon']), color: AdminTheme.royalBlue, size: 20),
                             ),
                             IconButton(
                               onPressed: () => _deleteCategory(cat['id'].toString()),
@@ -109,6 +112,105 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
           ],
         );
       },
+    );
+  }
+
+  IconData _getIconData(dynamic iconName) {
+    switch (iconName?.toString()) {
+      case 'lunch_dining': return Icons.lunch_dining;
+      case 'local_cafe': return Icons.local_cafe;
+      case 'local_drink': return Icons.local_drink;
+      case 'icecream': return Icons.icecream;
+      case 'local_pizza': return Icons.local_pizza;
+      case 'fastfood': return Icons.fastfood;
+      case 'kebab_dining': return Icons.kebab_dining;
+      case 'cake': return Icons.cake;
+      case 'restaurant_menu': return Icons.restaurant_menu;
+      case 'breakfast_dining': return Icons.breakfast_dining;
+      default: return Icons.category_rounded;
+    }
+  }
+
+  final List<Map<String, dynamic>> _iconList = [
+    {'name': 'restaurant_menu', 'icon': Icons.restaurant_menu},
+    {'name': 'lunch_dining', 'icon': Icons.lunch_dining},
+    {'name': 'local_cafe', 'icon': Icons.local_cafe},
+    {'name': 'local_drink', 'icon': Icons.local_drink},
+    {'name': 'icecream', 'icon': Icons.icecream},
+    {'name': 'local_pizza', 'icon': Icons.local_pizza},
+    {'name': 'fastfood', 'icon': Icons.fastfood},
+    {'name': 'kebab_dining', 'icon': Icons.kebab_dining},
+    {'name': 'cake', 'icon': Icons.cake},
+    {'name': 'breakfast_dining', 'icon': Icons.breakfast_dining},
+  ];
+
+  String _selectedIcon = 'restaurant_menu';
+
+  void _showEditCategoryModal(Map<String, dynamic> category) {
+    final editNameCtrl = TextEditingController(text: category['title']);
+    final editRankCtrl = TextEditingController(text: category['rank'].toString());
+    String editIcon = category['icon'] ?? 'restaurant_menu';
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => AlertDialog(
+          title: const Text("Edit Category"),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildTextField("Category Name", editNameCtrl),
+                const SizedBox(height: 16),
+                _buildTextField("Display Rank", editRankCtrl),
+                const SizedBox(height: 16),
+                const Text("Choose Icon", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: _iconList.map((i) => GestureDetector(
+                    onTap: () => setModalState(() => editIcon = i['name']),
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: editIcon == i['name'] ? AdminTheme.royalBlue : Colors.grey[100],
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(i['icon'], color: editIcon == i['name'] ? Colors.white : Colors.grey[600], size: 20),
+                    ),
+                  )).toList(),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text("CANCEL")),
+            ElevatedButton(
+              onPressed: () async {
+                final tenant = TenantService().currentTenant.value;
+                if (tenant == null) return;
+                Navigator.pop(context);
+                setState(() => _isSubmitting = true);
+                
+                final res = await ApiService.updateCategory(
+                  tenantId: tenant.id, 
+                  categoryId: category['id'].toString(), 
+                  title: editNameCtrl.text, 
+                  rank: int.tryParse(editRankCtrl.text) ?? 1, 
+                  icon: editIcon
+                );
+                
+                setState(() => _isSubmitting = false);
+                if (res['success']) {
+                   TenantService().fetchMenuData(tenant.id);
+                }
+              }, 
+              child: const Text("SAVE CHANGES")
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -146,6 +248,25 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
         _buildTextField("Category Name", _nameController, hint: "e.g. Beverages"),
         const SizedBox(height: 16),
         _buildTextField("Display Rank", _rankController, hint: "1"),
+        const SizedBox(height: 16),
+        const Text("Choose Icon", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: _iconList.map((i) => GestureDetector(
+            onTap: () => setState(() => _selectedIcon = i['name']),
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: _selectedIcon == i['name'] ? AdminTheme.royalBlue : Colors.white,
+                shape: BoxShape.circle,
+                boxShadow: AdminTheme.softShadow,
+              ),
+              child: Icon(i['icon'], color: _selectedIcon == i['name'] ? Colors.white : Colors.grey[600], size: 20),
+            ),
+          )).toList(),
+        ),
         const SizedBox(height: 32),
         if (_isSubmitting)
           const Center(child: CircularProgressIndicator())
@@ -169,7 +290,8 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
     final success = await ApiService.addCategory(
       tenant.id, 
       _nameController.text, 
-      int.tryParse(_rankController.text) ?? 1
+      int.tryParse(_rankController.text) ?? 1,
+      icon: _selectedIcon,
     );
 
     setState(() => _isSubmitting = false);

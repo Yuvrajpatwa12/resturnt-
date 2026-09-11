@@ -18,6 +18,7 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> with SingleTickerPr
   List<Map<String, dynamic>> _activeOrders = [];
   bool _isLoading = true;
   Timer? _refreshTimer;
+  int _lastMod = 0; // Track last sync time
 
   @override
   void initState() {
@@ -25,8 +26,20 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> with SingleTickerPr
     _tabController = TabController(length: 4, vsync: this);
     _refreshAll(isInitial: true);
     
-    // Start automatic polling every 10 seconds
-    _refreshTimer = Timer.periodic(const Duration(seconds: 10), (_) => _refreshAll());
+    // Efficient Light Polling
+    _refreshTimer = Timer.periodic(const Duration(seconds: 7), (_) => _checkSync());
+  }
+
+  Future<void> _checkSync() async {
+    final tenant = TenantService().currentTenant.value;
+    if (tenant == null) return;
+    
+    final serverMod = await ApiService.checkOrderChange(tenant.id);
+    if (serverMod > _lastMod) {
+      debugPrint("WAITER: New order activity detected ($serverMod > $_lastMod). Syncing...");
+      _refreshAll();
+      _lastMod = serverMod;
+    }
   }
 
   Future<void> _refreshAll({bool isInitial = false}) async {
@@ -58,17 +71,18 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> with SingleTickerPr
       return;
     }
 
-    final success = await ApiService.waiterApproveOrder(int.parse(orderId.toString()), staff.id); 
-    if (success) {
+    final result = await ApiService.waiterApproveOrder(int.parse(orderId.toString()), staff.id); 
+    if (result['success'] == true) {
       _refreshAll();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Order sent to Kitchen!"), backgroundColor: WaiterProTheme.emeraldGreen),
         );
       }
-    } else if (mounted) {
+    } else {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Approval failed. Please check connection."), backgroundColor: Colors.red),
+        SnackBar(content: Text("Approval failed: ${result['message']}"), backgroundColor: Colors.red),
       );
     }
   }
@@ -220,8 +234,15 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> with SingleTickerPr
               if (status == 'Ready')
                 InkWell(
                   onTap: () async {
-                    await ApiService.updateOrderStatus(int.parse(o['id'].toString()), 'OnWay');
-                    _refreshAll();
+                    final res = await ApiService.updateOrderStatus(int.parse(o['id'].toString()), 'OnWay');
+                    if (res['success'] == true) {
+                      _refreshAll();
+                    } else {
+                      if (!mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text("Delivery Failed: ${res['message']}"), backgroundColor: Colors.red),
+                      );
+                    }
                   },
                   child: Container(
                     width: double.infinity,

@@ -12,6 +12,8 @@ class Tenant {
   final String? expiry;
   final String? startDate;
   final String? storage;
+  final double? latitude;  // Added
+  final double? longitude; // Added
 
   Tenant({
     required this.id,
@@ -24,6 +26,8 @@ class Tenant {
     this.expiry,
     this.startDate,
     this.storage,
+    this.latitude,
+    this.longitude,
   });
 
   factory Tenant.fromMap(Map<String, dynamic> map) {
@@ -38,6 +42,8 @@ class Tenant {
       expiry: map['expiry_date'] ?? map['expiry'],
       startDate: map['start_date'] ?? map['created_at'],
       storage: map['storage_used'] ?? map['storage'] ?? '0.0 GB',
+      latitude: double.tryParse(map['latitude']?.toString() ?? ''),
+      longitude: double.tryParse(map['longitude']?.toString() ?? ''),
     );
   }
 }

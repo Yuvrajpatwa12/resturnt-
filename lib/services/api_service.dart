@@ -60,6 +60,25 @@ class ApiService {
     } catch (e) { return {"success": false, "message": "Connection failed"}; }
   }
 
+  static Future<Map<String, dynamic>> updateTenantLocation({
+    required String tenantId, 
+    required double latitude, 
+    required double longitude
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse("$baseUrl/update_tenant_location.php"), 
+        headers: {"Content-Type": "application/json"}, 
+        body: json.encode({
+          "tenant_id": tenantId, 
+          "latitude": latitude, 
+          "longitude": longitude
+        })
+      );
+      return json.decode(response.body);
+    } catch (e) { return {"success": false, "message": "Connection failed"}; }
+  }
+
   static Future<bool> deleteTenant(String tenantId) async {
     try {
       final response = await http.post(Uri.parse("$baseUrl/delete_tenant.php"), headers: {"Content-Type": "application/json"}, body: json.encode({"tenant_id": tenantId}));
@@ -67,11 +86,40 @@ class ApiService {
     } catch (e) { return false; }
   }
 
-  static Future<bool> addProduct(Map<String, dynamic> productData) async {
+  static Future<Map<String, dynamic>> addProduct(Map<String, dynamic> productData) async {
     try {
-      final response = await http.post(Uri.parse("$baseUrl/add_product.php"), headers: {"Content-Type": "application/json"}, body: json.encode(productData));
-      return json.decode(response.body)['status'] == 'success';
-    } catch (e) { return false; }
+      final response = await http.post(
+        Uri.parse("$baseUrl/add_product.php"), 
+        headers: {"Content-Type": "application/json"}, 
+        body: json.encode(productData)
+      );
+      final result = json.decode(response.body);
+      if (result['status'] == 'success') {
+        return {"success": true};
+      } else {
+        return {"success": false, "message": result['message'] ?? "Unknown Error"};
+      }
+    } catch (e) { 
+      return {"success": false, "message": "Connection error: $e"}; 
+    }
+  }
+
+  static Future<Map<String, dynamic>> updateProduct(Map<String, dynamic> productData) async {
+    try {
+      final response = await http.post(
+        Uri.parse("$baseUrl/update_product.php"), 
+        headers: {"Content-Type": "application/json"}, 
+        body: json.encode(productData)
+      );
+      final result = json.decode(response.body);
+      if (result['status'] == 'success') {
+        return {"success": true};
+      } else {
+        return {"success": false, "message": result['message'] ?? "Unknown Error"};
+      }
+    } catch (e) { 
+      return {"success": false, "message": "Connection error: $e"}; 
+    }
   }
 
   static Future<bool> deleteProduct(String tenantId, String productId) async {
@@ -81,11 +129,44 @@ class ApiService {
     } catch (e) { return false; }
   }
 
-  static Future<bool> addCategory(String tenantId, String title, int rank) async {
+  static Future<bool> addCategory(String tenantId, String title, int rank, {String icon = 'restaurant_menu'}) async {
     try {
-      final response = await http.post(Uri.parse("$baseUrl/add_category.php"), headers: {"Content-Type": "application/json"}, body: json.encode({"tenant_id": tenantId, "title": title, "rank": rank}));
+      final response = await http.post(
+        Uri.parse("$baseUrl/add_category.php"), 
+        headers: {"Content-Type": "application/json"}, 
+        body: json.encode({
+          "tenant_id": tenantId, 
+          "title": title, 
+          "rank": rank,
+          "icon": icon,
+        })
+      );
       return json.decode(response.body)['status'] == 'success';
     } catch (e) { return false; }
+  }
+
+  static Future<Map<String, dynamic>> updateCategory({
+    required String tenantId, 
+    required String categoryId, 
+    required String title, 
+    required int rank,
+    required String icon,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse("$baseUrl/update_category.php"), 
+        headers: {"Content-Type": "application/json"}, 
+        body: json.encode({
+          "tenant_id": tenantId, 
+          "category_id": categoryId,
+          "title": title, 
+          "rank": rank,
+          "icon": icon,
+        })
+      );
+      final data = json.decode(response.body);
+      return {"success": data['status'] == 'success', "message": data['message']};
+    } catch (e) { return {"success": false, "message": "Connection error"}; }
   }
 
   static Future<Map<String, dynamic>> deleteCategory(String tenantId, String categoryId) async {
@@ -379,11 +460,23 @@ class ApiService {
     } catch (e) { return {"status": "error", "message": "Connection error"}; }
   }
 
-  static Future<bool> updateOrderStatus(int orderId, String status) async {
+  static Future<Map<String, dynamic>> updateOrderStatus(int orderId, String status) async {
     try {
-      final response = await http.post(Uri.parse("$baseUrl/update_order_status.php"), headers: {"Content-Type": "application/json"}, body: json.encode({"order_id": orderId, "new_status": status}));
-      return json.decode(response.body)['status'] == 'success';
-    } catch (e) { return false; }
+      final response = await http.post(
+        Uri.parse("$baseUrl/update_order_status.php"), 
+        headers: {"Content-Type": "application/json"}, 
+        body: json.encode({"order_id": orderId, "new_status": status})
+      );
+      
+      final result = json.decode(response.body);
+      if (result['status'] == 'success') {
+        return {"success": true};
+      } else {
+        return {"success": false, "message": result['message'] ?? "Server error"};
+      }
+    } catch (e) { 
+      return {"success": false, "message": "Connection error: $e"}; 
+    }
   }
 
   static Future<String?> fetchOrderStatus(int orderId) async {
@@ -394,18 +487,42 @@ class ApiService {
     } catch (e) { return null; }
   }
 
-  static Future<bool> waiterApproveOrder(int orderId, int waiterId) async {
+  static Future<Map<String, dynamic>> waiterApproveOrder(int orderId, int waiterId) async {
     try {
-      final response = await http.post(Uri.parse("$baseUrl/waiter_approve_order.php"), headers: {"Content-Type": "application/json"}, body: json.encode({"order_id": orderId, "waiter_id": waiterId}));
-      return json.decode(response.body)['status'] == 'success';
-    } catch (e) { return false; }
+      final response = await http.post(
+        Uri.parse("$baseUrl/waiter_approve_order.php"), 
+        headers: {"Content-Type": "application/json"}, 
+        body: json.encode({"order_id": orderId, "waiter_id": waiterId})
+      );
+      
+      final result = json.decode(response.body);
+      if (result['status'] == 'success') {
+        return {"success": true};
+      } else {
+        return {"success": false, "message": result['message'] ?? "Server error"};
+      }
+    } catch (e) { 
+      return {"success": false, "message": "Connection error: $e"}; 
+    }
   }
 
-  static Future<bool> waiterAcceptDelivery(int orderId, int waiterId) async {
+  static Future<Map<String, dynamic>> waiterAcceptDelivery(int orderId, int waiterId) async {
     try {
-      final response = await http.post(Uri.parse("$baseUrl/waiter_accept_delivery.php"), headers: {"Content-Type": "application/json"}, body: json.encode({"order_id": orderId, "waiter_id": waiterId}));
-      return json.decode(response.body)['status'] == 'success';
-    } catch (e) { return false; }
+      final response = await http.post(
+        Uri.parse("$baseUrl/waiter_accept_delivery.php"), 
+        headers: {"Content-Type": "application/json"}, 
+        body: json.encode({"order_id": orderId, "waiter_id": waiterId})
+      );
+      
+      final result = json.decode(response.body);
+      if (result['status'] == 'success') {
+        return {"success": true};
+      } else {
+        return {"success": false, "message": result['message'] ?? "Server error"};
+      }
+    } catch (e) { 
+      return {"success": false, "message": "Connection error: $e"}; 
+    }
   }
 
   static Future<List<Map<String, dynamic>>?> fetchActiveOrders(String tenantId) async {
@@ -422,6 +539,25 @@ class ApiService {
       if (response.statusCode == 200) return List<Map<String, dynamic>>.from(json.decode(response.body)['data']);
       return null;
     } catch (e) { return null; }
+  }
+
+  static Future<List<Map<String, dynamic>>?> fetchOrderHistory(String tenantId) async {
+    try {
+      final response = await http.get(Uri.parse("$baseUrl/get_order_history.php?tenant_id=$tenantId"));
+      if (response.statusCode == 200) return List<Map<String, dynamic>>.from(json.decode(response.body)['data']);
+      return null;
+    } catch (e) { return null; }
+  }
+
+  static Future<int> checkOrderChange(String tenantId) async {
+    try {
+      final response = await http.get(Uri.parse("$baseUrl/check_order_sync.php?tenant_id=$tenantId"));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['status'] == 'success') return (data['last_mod'] as int);
+      }
+      return 0;
+    } catch (e) { return 0; }
   }
 
   static Future<bool> addTable(String tenantId, int tableNumber) async {
@@ -560,6 +696,20 @@ class ApiService {
     } catch (e) { return null; }
   }
 
+  static Future<String?> uploadProductImage(Uint8List bytes, String fileName) async {
+    try {
+      final request = http.MultipartRequest('POST', Uri.parse("$baseUrl/upload_product_image.php"));
+      request.files.add(http.MultipartFile.fromBytes('product_image', bytes, filename: fileName));
+      final response = await request.send();
+      if (response.statusCode == 200) {
+        final resStr = await response.stream.bytesToString();
+        final data = json.decode(resStr);
+        if (data['status'] == 'success') return data['url'];
+      }
+      return null;
+    } catch (e) { return null; }
+  }
+
   // --- LOYALTY & REWARDS SYSTEM ---
 
   static Future<Map<String, dynamic>?> fetchLoyaltySettings(String tenantId) async {
@@ -629,13 +779,7 @@ class ApiService {
     } catch (e) { return false; }
   }
 
-  static Future<List<Map<String, dynamic>>?> fetchClaimHistory(String tenantId) async {
-    try {
-      final response = await http.get(Uri.parse("$baseUrl/loyalty_api.php?action=get_all_claims&tenant_id=$tenantId"));
-      if (response.statusCode == 200) return List<Map<String, dynamic>>.from(json.decode(response.body)['data']);
-      return null;
-    } catch (e) { return null; }
-  }
+
 
   static Future<bool> addMysteryPrize(Map<String, dynamic> data) async {
     try {
@@ -708,6 +852,31 @@ class ApiService {
       if (response.statusCode == 200) return json.decode(response.body);
       return null;
     } catch (e) { return null; }
+  }
+
+  static Future<List<Map<String, dynamic>>?> fetchClaimHistory(String tenantId, [String? userId]) async {
+    try {
+      final url = userId != null 
+          ? "$baseUrl/loyalty_api.php?action=get_all_claims&tenant_id=$tenantId&user_id=$userId"
+          : "$baseUrl/loyalty_api.php?action=get_all_claims&tenant_id=$tenantId";
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['status'] == 'success') return List<Map<String, dynamic>>.from(data['data']);
+      }
+      return null;
+    } catch (e) { return null; }
+  }
+
+  static Future<Map<String, dynamic>> redeemClaimCode(String tenantId, String code) async {
+    try {
+      final response = await http.post(
+        Uri.parse("$baseUrl/loyalty_api.php?action=redeem_claim&tenant_id=$tenantId"),
+        headers: {"Content-Type": "application/json"},
+        body: json.encode({"claim_code": code}),
+      );
+      return json.decode(response.body);
+    } catch (e) { return {"status": "error", "message": "Connection error"}; }
   }
 
   // --- MARKETING OFFERS ---
@@ -955,5 +1124,105 @@ class ApiService {
       }
       return null;
     } catch (e) { return null; }
+  }
+
+  // --- MUSIC & JUKEBOX SYSTEM ---
+
+  static Future<Map<String, dynamic>?> fetchMusicStatus(String tenantId, {String? userId}) async {
+    try {
+      final url = Uri.parse("$baseUrl/music_api.php?action=get_status&tenant_id=$tenantId&user_id=${userId ?? ''}");
+      final response = await http.get(url);
+      if (response.statusCode == 200) return json.decode(response.body);
+      return null;
+    } catch (e) { return null; }
+  }
+
+  static Future<Map<String, dynamic>> voteSong({required String tenantId, required String userId, required int songId}) async {
+    try {
+      final response = await http.post(
+        Uri.parse("$baseUrl/music_api.php?action=vote&tenant_id=$tenantId"),
+        headers: {"Content-Type": "application/json"},
+        body: json.encode({"song_id": songId, "user_id": userId}),
+      );
+      return json.decode(response.body);
+    } catch (e) { return {"status": "error", "message": "Connection error"}; }
+  }
+
+  static Future<Map<String, dynamic>> requestMusic(Map<String, dynamic> data) async {
+    try {
+      final url = Uri.parse("$baseUrl/music_api.php?action=request&tenant_id=${data['tenant_id']}");
+      final body = {...data, "action": "request"};
+
+      final response = await http.post(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: json.encode(body),
+      ).timeout(const Duration(seconds: 15));
+
+      final result = json.decode(response.body);
+      if (result['status'] == 'success') {
+        return {"success": true};
+      } else {
+        return {"success": false, "message": result['message'] ?? "Unknown Error"};
+      }
+    } catch (e) { 
+      return {"success": false, "message": "Connection Error: $e"}; 
+    }
+  }
+
+  // Admin Music Controls
+  static Future<bool> adminSetNowPlaying(Map<String, dynamic> data) async {
+    try {
+      final response = await http.post(
+        Uri.parse("$baseUrl/music_api.php?action=set_playing&tenant_id=${data['tenant_id']}"),
+        headers: {"Content-Type": "application/json"},
+        body: json.encode(data),
+      );
+      return json.decode(response.body)['status'] == 'success';
+    } catch (e) { return false; }
+  }
+
+  static Future<bool> adminDeleteQueue(String tenantId, int songId) async {
+    try {
+      final response = await http.post(
+        Uri.parse("$baseUrl/music_api.php?action=delete_queue&tenant_id=$tenantId"),
+        headers: {"Content-Type": "application/json"},
+        body: json.encode({"song_id": songId}),
+      );
+      return json.decode(response.body)['status'] == 'success';
+    } catch (e) { return false; }
+  }
+
+  static Future<bool> adminCreateMusicPoll(Map<String, dynamic> data) async {
+    try {
+      final response = await http.post(
+        Uri.parse("$baseUrl/music_api.php?action=create_poll&tenant_id=${data['tenant_id']}"),
+        headers: {"Content-Type": "application/json"},
+        body: json.encode(data),
+      );
+      return json.decode(response.body)['status'] == 'success';
+    } catch (e) { return false; }
+  }
+
+  // --- PRIVACY SETTINGS ---
+
+  static Future<bool> updatePrivacySettings({
+    required String tenantId,
+    required String userId,
+    required bool isPublic,
+    required bool allowWaves,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse("$baseUrl/auth_customer_api.php?action=update_privacy&tenant_id=$tenantId"),
+        headers: {"Content-Type": "application/json"},
+        body: json.encode({
+          "user_id": userId,
+          "is_public": isPublic ? 1 : 0,
+          "allow_waves": allowWaves ? 1 : 0,
+        }),
+      );
+      return json.decode(response.body)['status'] == 'success';
+    } catch (e) { return false; }
   }
 }

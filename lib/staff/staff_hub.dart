@@ -6,6 +6,8 @@ import 'tabs/bills_tab.dart';
 import 'tabs/admin_tab.dart';
 import 'tabs/settings_tab.dart';
 import 'widgets/staff_bottom_bar.dart';
+import '../services/tenant_service.dart';
+import '../services/api_service.dart';
 
 class StaffHub extends StatefulWidget {
   const StaffHub({super.key});
@@ -58,10 +60,79 @@ class _StaffHubState extends State<StaffHub> {
               
               // --- GLOBAL ALERT OVERLAY ---
               _buildGlobalAlertOverlay(),
+              
+              // --- QR SCAN BUTTON (NEW) ---
+              Positioned(
+                bottom: 100,
+                right: 20,
+                child: FloatingActionButton.extended(
+                  onPressed: _showRedemptionModal,
+                  backgroundColor: Colors.black87,
+                  icon: const Icon(Icons.qr_code_scanner_rounded, color: Colors.white),
+                  label: const Text("SCAN REWARD", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                ),
+              ),
             ],
           ),
         );
       },
+    );
+  }
+
+  void _showRedemptionModal() {
+    final codeCtrl = TextEditingController();
+    bool isProcessing = false;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          title: const Text("Redeem Reward", style: TextStyle(fontWeight: FontWeight.bold)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text("Scan user's QR code or enter the 8-digit claim code manually.", style: TextStyle(fontSize: 12, color: Colors.grey)),
+              const SizedBox(height: 24),
+              TextField(
+                controller: codeCtrl,
+                autofocus: true,
+                style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 2, fontSize: 18),
+                decoration: InputDecoration(
+                  labelText: "CLAIM CODE",
+                  hintText: "E.G. B16335FC",
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text("CANCEL")),
+            ElevatedButton(
+              onPressed: isProcessing ? null : () async {
+                if (codeCtrl.text.isEmpty) return;
+                setModalState(() => isProcessing = true);
+                
+                final tenant = TenantService().currentTenant.value;
+                if (tenant == null) return;
+                
+                final res = await ApiService.redeemClaimCode(tenant.id, codeCtrl.text.trim());
+                
+                if (!context.mounted) return;
+                
+                if (res['status'] == 'success') {
+                   Navigator.pop(context);
+                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("REWARD SERVED SUCCESSFULLY!"), backgroundColor: Colors.green));
+                } else {
+                   setModalState(() => isProcessing = false);
+                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(res['message'] ?? "Error"), backgroundColor: Colors.red));
+                }
+              },
+              child: isProcessing ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Text("REDEEM"),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

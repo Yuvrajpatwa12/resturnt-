@@ -63,6 +63,8 @@ class _ClientDetailsScreenState extends State<ClientDetailsScreen> {
                   children: [
                     _buildCredentialCard(),
                     const SizedBox(height: 24),
+                    _buildLocationCard(),
+                    const SizedBox(height: 24),
                     _buildPaymentHistory(),
                   ],
                 ),
@@ -122,6 +124,125 @@ class _ClientDetailsScreenState extends State<ClientDetailsScreen> {
                 style: ElevatedButton.styleFrom(backgroundColor: SAMStyles.royalBlue, minimumSize: const Size(140, 44)),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLocationCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(32),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: SAMStyles.softShadow,
+        border: Border.all(color: Colors.orange.withValues(alpha: 0.1)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.location_on_outlined, color: Colors.orange, size: 20),
+              SizedBox(width: 12),
+              Text("Geofencing Setup", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            ],
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            "Configure the GPS coordinates for proximity-based notifications.",
+            style: TextStyle(color: SAMStyles.textGrey, fontSize: 12),
+          ),
+          const SizedBox(height: 24),
+          const Divider(),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text("CURRENT COORDINATES", style: TextStyle(color: Colors.grey, fontSize: 9, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 4),
+                  Text(
+                    (widget.tenant['latitude'] != null && widget.tenant['longitude'] != null)
+                      ? "Lat: ${widget.tenant['latitude']} | Lng: ${widget.tenant['longitude']}"
+                      : "Not Set", 
+                    style: const TextStyle(fontWeight: FontWeight.bold, color: SAMStyles.darkNavy)
+                  ),
+                ],
+              ),
+              ElevatedButton.icon(
+                onPressed: _showUpdateLocationModal,
+                icon: const Icon(Icons.map_outlined, size: 14),
+                label: const Text("EDIT LOCATION"),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, minimumSize: const Size(140, 44)),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showUpdateLocationModal() {
+    final latController = TextEditingController(text: widget.tenant['latitude']?.toString());
+    final lngController = TextEditingController(text: widget.tenant['longitude']?.toString());
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Update Restaurant Location"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text("Enter decimal coordinates for the 600m notification system.", style: TextStyle(fontSize: 12, color: Colors.grey)),
+            const SizedBox(height: 24),
+            TextField(
+              controller: latController,
+              decoration: const InputDecoration(labelText: "Latitude", hintText: "e.g. 27.7172"),
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: lngController,
+              decoration: const InputDecoration(labelText: "Longitude", hintText: "e.g. 85.3240"),
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
+          ElevatedButton(
+            onPressed: () async {
+              final lat = double.tryParse(latController.text);
+              final lng = double.tryParse(lngController.text);
+              if (lat == null || lng == null) return;
+              
+              Navigator.pop(context);
+              setState(() => _isUpdating = true);
+              
+              final result = await ApiService.updateTenantLocation(
+                tenantId: widget.tenant['tenant_id'],
+                latitude: lat,
+                longitude: lng,
+              );
+              
+              setState(() => _isUpdating = false);
+              if (result['success'] == true) {
+                // Update local model
+                widget.tenant['latitude'] = lat;
+                widget.tenant['longitude'] = lng;
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Location updated successfully."), backgroundColor: Colors.green));
+                }
+              } else if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("FAILED: ${result['message']}"), backgroundColor: Colors.red));
+              }
+            },
+            child: const Text("Save Location"),
           ),
         ],
       ),

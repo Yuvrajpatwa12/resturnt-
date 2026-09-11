@@ -21,6 +21,8 @@ class _RestaurantOnboardingFormState extends State<RestaurantOnboardingForm> {
   final _subdomainController = TextEditingController();
   final _emailController = TextEditingController(); // Added Email Controller
   final _pinController = TextEditingController(text: "1234");
+  final _latController = TextEditingController(); // Added Latitude
+  final _lngController = TextEditingController(); // Added Longitude
   
   String _selectedPlan = "Basic";
   DateTime _expiryDate = DateTime.now().add(const Duration(days: 365));
@@ -33,6 +35,8 @@ class _RestaurantOnboardingFormState extends State<RestaurantOnboardingForm> {
     _subdomainController.dispose();
     _emailController.dispose();
     _pinController.dispose();
+    _latController.dispose();
+    _lngController.dispose();
     super.dispose();
   }
 
@@ -63,6 +67,11 @@ class _RestaurantOnboardingFormState extends State<RestaurantOnboardingForm> {
                       const SizedBox(height: 24),
                       _buildSectionCard("2. System Identity", [
                         _buildTextField("Unique Tenant ID", _tenantIdController, hint: "e.g. everest_01"),
+                      ]),
+                      const SizedBox(height: 24),
+                      _buildSectionCard("5. Geofencing (GPS)", [
+                        _buildTextField("Latitude", _latController, hint: "e.g. 27.7172"),
+                        _buildTextField("Longitude", _lngController, hint: "e.g. 85.3240"),
                       ]),
                     ],
                   ),
@@ -234,6 +243,8 @@ class _RestaurantOnboardingFormState extends State<RestaurantOnboardingForm> {
                 'plan': _selectedPlan,
                 'expiry': "${_expiryDate.year}-${_expiryDate.month.toString().padLeft(2, '0')}-${_expiryDate.day.toString().padLeft(2, '0')}",
                 'admin_pin': _pinController.text,
+                'latitude': double.tryParse(_latController.text.trim()) ?? 0.0,
+                'longitude': double.tryParse(_lngController.text.trim()) ?? 0.0,
               };
               
               widget.onRegister(newTenantData);

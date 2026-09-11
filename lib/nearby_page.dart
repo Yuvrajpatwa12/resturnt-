@@ -59,116 +59,147 @@ class _NearbyPageState extends State<NearbyPage> {
   Widget build(BuildContext context) {
     final users = _activeGuests;
 
-    return Container(
-      color: const Color(0xFFF1F5F9),
-      child: Column(
-        children: [
-          // --- 1. PREMIUM MAP SECTION ---
-          Expanded(
-            flex: 4,
-            child: Container(
-              margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(32),
-                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 20, offset: const Offset(0, 10))],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(32),
-                child: Stack(
-                  children: [
-                    Positioned.fill(
-                      child: Opacity(
-                        opacity: 0.05,
-                        child: Image.network(
-                          'https://www.transparenttextures.com/patterns/cubes.png',
-                          repeat: ImageRepeat.repeat,
+    return RefreshIndicator(
+      onRefresh: () => _fetchGuests(),
+      color: const Color(0xFFFF5C00),
+      backgroundColor: Colors.white,
+      child: Container(
+        color: const Color(0xFFF1F5F9),
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            // --- 1. PREMIUM MAP SECTION ---
+            SliverToBoxAdapter(
+              child: Container(
+                height: 320, // Fixed height for map on scroll
+                margin: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(32),
+                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 20, offset: const Offset(0, 10))],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(32),
+                  child: Stack(
+                    children: [
+                      Positioned.fill(
+                        child: Opacity(
+                          opacity: 0.05,
+                          child: Image.network(
+                            'https://www.transparenttextures.com/patterns/cubes.png',
+                            repeat: ImageRepeat.repeat,
+                          ),
                         ),
                       ),
-                    ),
-                    Positioned(top: 40, left: 30, child: _buildFloorArea("Lounge Zone", 140, 110, Icons.weekend_rounded)),
-                    Positioned(top: 40, right: 30, child: _buildFloorArea("Coffee Bar", 100, 160, Icons.local_cafe_rounded)),
-                    Positioned(bottom: 50, left: 40, child: _buildFloorArea("Table Cluster", 80, 80, Icons.grid_view_rounded)),
-                    Positioned(bottom: 50, right: 60, child: _buildFloorArea("Outdoor Patio", 90, 90, Icons.wb_sunny_rounded)),
-
-                    if (users.isNotEmpty) Positioned(top: 70, left: 80, child: _buildMapPin(users[0])),
-                    if (users.length > 1) Positioned(top: 130, right: 50, child: _buildMapPin(users[1])),
-                    if (users.length > 2) Positioned(bottom: 65, left: 65, child: _buildMapPin(users[2])),
-                    if (users.length > 3) Positioned(bottom: 65, right: 85, child: _buildMapPin(users[3])),
-
-                    Positioned(
-                      top: 16, left: 16, right: 16,
+                      Positioned(top: 40, left: 30, child: _buildFloorArea("Lounge Zone", 140, 110, Icons.weekend_rounded)),
+                      Positioned(top: 40, right: 30, child: _buildFloorArea("Coffee Bar", 100, 160, Icons.local_cafe_rounded)),
+                      Positioned(bottom: 50, left: 40, child: _buildFloorArea("Table Cluster", 80, 80, Icons.grid_view_rounded)),
+                      Positioned(bottom: 50, right: 60, child: _buildFloorArea("Outdoor Patio", 90, 90, Icons.wb_sunny_rounded)),
+  
+                      if (users.isNotEmpty) Positioned(top: 70, left: 80, child: _buildMapPin(users[0])),
+                      if (users.length > 1) Positioned(top: 130, right: 50, child: _buildMapPin(users[1])),
+                      if (users.length > 2) Positioned(bottom: 65, left: 65, child: _buildMapPin(users[2])),
+                      if (users.length > 3) Positioned(bottom: 65, right: 85, child: _buildMapPin(users[3])),
+  
+                      Positioned(
+                        top: 16, left: 16, right: 16,
+                        child: Row(
+                          children: [
+                            _buildMapActionBtn(Icons.settings_outlined, () => _showPrivacySettings(context)),
+                            const Spacer(),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)]),
+                              child: Row(children: [
+                                Text(TenantService().currentTenant.value?.name ?? "Downtown Hub", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)), 
+                                const Icon(Icons.keyboard_arrow_down, size: 16)
+                              ]),
+                            ),
+                            const Spacer(),
+                            _buildMapActionBtn(Icons.refresh, () => _fetchGuests(isInitial: true)),
+                            const SizedBox(width: 8),
+                            _buildMapActionBtn(Icons.chat_bubble_outline, () => Navigator.push(context, MaterialPageRoute(builder: (context) => const MessagesListPage()))),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+  
+            // --- 2. PEOPLE LIST SECTION ---
+            SliverToBoxAdapter(
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 24),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(40)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
                       child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          _buildMapActionBtn(Icons.settings_outlined, () => _showPrivacySettings(context)),
-                          const Spacer(),
+                          const Text("Active Now", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black)),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)]),
-                            child: Row(children: [
-                              Text(TenantService().currentTenant.value?.name ?? "Downtown Hub", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)), 
-                              const Icon(Icons.keyboard_arrow_down, size: 16)
-                            ]),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(color: Colors.green.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
+                            child: Row(children: [const CircleAvatar(radius: 3, backgroundColor: Colors.green), const SizedBox(width: 6), Text("${users.length} Live", style: const TextStyle(color: Colors.green, fontSize: 11, fontWeight: FontWeight.bold))]),
                           ),
-                          const Spacer(),
-                          _buildMapActionBtn(Icons.refresh, () => _fetchGuests(isInitial: true)),
-                          const SizedBox(width: 8),
-                          _buildMapActionBtn(Icons.chat_bubble_outline, () => Navigator.push(context, MaterialPageRoute(builder: (context) => const MessagesListPage()))),
                         ],
                       ),
                     ),
+                    
+                    // Visibility Warning Message
+                    ValueListenableBuilder<bool>(
+                      valueListenable: ShopManager.instance.isProfileVisible,
+                      builder: (context, isVisible, _) {
+                        if (isVisible) return const SizedBox.shrink();
+                        return Container(
+                          width: double.infinity,
+                          margin: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.red[50],
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.red[100]!),
+                          ),
+                          child: Text(
+                            "तपाईंको प्रोफाइल सार्वजनिक रूपमा कसैलाई पनि देखिरहेको छैन। अरूलाई देखाउनको लागि सेटिङमा गई 'Public Profile' अन गर्नुहोस्।",
+                            style: TextStyle(color: Colors.red[700], fontSize: 11, fontWeight: FontWeight.bold),
+                            textAlign: TextAlign.center,
+                          ),
+                        );
+                      },
+                    ),
+  
+                    const SizedBox(height: 20),
                   ],
                 ),
               ),
             ),
-          ),
-
-          // --- 2. PEOPLE LIST SECTION ---
-          Expanded(
-            flex: 5,
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 24),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(40)),
+  
+            // List of Users
+            if (_isLoading)
+              const SliverFillRemaining(child: Center(child: CircularProgressIndicator(color: Color(0xFFFF5C00))))
+            else if (users.isEmpty)
+              const SliverFillRemaining(child: Center(child: Text("No guests nearby yet", style: TextStyle(color: Colors.grey))))
+            else
+              SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) => Container(color: Colors.white, child: _buildUserListTile(users[index])),
+                  childCount: users.length,
+                ),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text("Active Now", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black)),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(color: Colors.green.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
-                          child: Row(children: [const CircleAvatar(radius: 3, backgroundColor: Colors.green), const SizedBox(width: 6), Text("${users.length} Live", style: const TextStyle(color: Colors.green, fontSize: 11, fontWeight: FontWeight.bold))]),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  Expanded(
-                    child: _isLoading 
-                      ? const Center(child: CircularProgressIndicator(color: Color(0xFFFF5C00)))
-                      : users.isEmpty
-                        ? const Center(child: Text("No guests nearby yet", style: TextStyle(color: Colors.grey)))
-                        : ListView.builder(
-                            itemCount: users.length,
-                            physics: const BouncingScrollPhysics(),
-                            itemBuilder: (context, index) {
-                              return _buildUserListTile(users[index]);
-                            },
-                          ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
+              
+            const SliverToBoxAdapter(child: SizedBox(height: 100)),
+          ],
+        ),
       ),
     );
   }
@@ -287,22 +318,35 @@ class _NearbyPageState extends State<NearbyPage> {
                     }
                   ),
                   const SizedBox(width: 10),
-                  _buildSocialIcon(Icons.back_hand_rounded, Colors.amber, () async {
-                     final tenant = TenantService().currentTenant.value;
-                     if (tenant != null && myId.isNotEmpty) {
-                       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Waving at $displayName..."), duration: const Duration(milliseconds: 500)));
-                       final success = await ApiService.sendWave(tenantId: tenant.id, myId: myId, targetId: targetId);
-                       if (success && mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Waved at $displayName!"), duration: const Duration(seconds: 1)));
+                  
+                  // Wave Icon (Visible only if target user allows it)
+                  if (user['allow_waves'] == 1 || user['allow_waves'] == true)
+                    _buildSocialIcon(Icons.back_hand_rounded, Colors.amber, () async {
+                       final tenant = TenantService().currentTenant.value;
+                       if (tenant != null && myId.isNotEmpty) {
+                         if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Waving at $displayName..."), duration: const Duration(milliseconds: 500)));
+                         final success = await ApiService.sendWave(tenantId: tenant.id, myId: myId, targetId: targetId);
+                         if (success && mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Waved at $displayName!"), duration: const Duration(seconds: 1)));
+                         }
                        }
-                     }
-                  }),
+                    }),
+
                   const SizedBox(width: 10),
                   Material(
                     color: Colors.transparent,
                     child: InkWell(
                       onTap: () async {
                         if (_loadingFollowIds.contains(targetId)) return;
+                        
+                        // Check if user is public before following
+                        if (user['is_public'] == 0 || user['is_public'] == false) {
+                           ScaffoldMessenger.of(context).showSnackBar(
+                             const SnackBar(content: Text("तपाईं यो निजी प्रोफाइल (Private Profile) लाई पछ्याउन सक्नुहुन्न।"), backgroundColor: Colors.red),
+                           );
+                           return;
+                        }
+
                         setState(() {
                           _optimisticFollows[targetId] = !isFollowing;
                           _loadingFollowIds.add(targetId);
@@ -360,39 +404,84 @@ class _NearbyPageState extends State<NearbyPage> {
       context: context,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(32))),
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text("Nearby Settings", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 24),
-            _buildSettingRow(Icons.visibility_off_outlined, "Incognito Mode", "Hide your location from others"),
-            const SizedBox(height: 20),
-            _buildSettingRow(Icons.back_hand_outlined, "Allow Waves", "Let people greet you digitally"),
-            const SizedBox(height: 32),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.black, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 18), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
-                child: const Text("Save Changes"),
+      builder: (context) => SingleChildScrollView(
+        child: Container(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text("Nearby Settings", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 24),
+              
+              // Public Profile Switch
+              ValueListenableBuilder<bool>(
+                valueListenable: ShopManager.instance.isProfileVisible,
+                builder: (context, isVisible, _) => Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildSettingRow(
+                      Icons.visibility_outlined, 
+                      "Public Profile", 
+                      "Show your location to other guests",
+                      isVisible,
+                      (v) {
+                        ShopManager.instance.isProfileVisible.value = v;
+                        ShopManager.instance.updatePrivacyOnServer();
+                      }
+                    ),
+                    if (!isVisible)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8, left: 40),
+                        child: Text(
+                          "तपाईंको प्रोफाइल लुकेको छ। सार्वजनिक रूपमा देखाउनको लागि यसलाई अन गर्नुहोस्।",
+                          style: TextStyle(color: Colors.red[700], fontSize: 11, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                  ],
+                ),
               ),
-            ),
-          ],
+              
+              const SizedBox(height: 20),
+              
+              // Allow Waves Switch
+              ValueListenableBuilder<bool>(
+                valueListenable: ShopManager.instance.isWaveEnabled,
+                builder: (context, canWave, _) => _buildSettingRow(
+                  Icons.back_hand_outlined, 
+                  "Allow Waves", 
+                  "Let people greet you digitally",
+                  canWave,
+                  (v) {
+                    ShopManager.instance.isWaveEnabled.value = v;
+                    ShopManager.instance.updatePrivacyOnServer();
+                  }
+                ),
+              ),
+  
+              const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.black, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 18), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
+                  child: const Text("Done"),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildSettingRow(IconData icon, String title, String sub) {
+  Widget _buildSettingRow(IconData icon, String title, String sub, bool value, Function(bool) onChanged) {
     return Row(
       children: [
-        Icon(icon, color: Colors.grey),
+        Icon(icon, color: value ? const Color(0xFFFF5C00) : Colors.grey),
         const SizedBox(width: 16),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(fontWeight: FontWeight.bold)), Text(sub, style: const TextStyle(color: Colors.grey, fontSize: 12))])),
-        Switch(value: true, onChanged: (v) {}, activeThumbColor: const Color(0xFFFF5C00)),
+        Switch(value: value, onChanged: onChanged, activeThumbColor: const Color(0xFFFF5C00)),
       ],
     );
   }

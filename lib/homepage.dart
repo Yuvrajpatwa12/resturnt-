@@ -11,11 +11,11 @@ import 'nearby_page.dart';
 import 'profile_page.dart';
 import 'music_voting_sheet.dart';
 import 'services/tenant_service.dart';
-import 'services/api_service.dart';
 import 'notifications_page.dart';
 import 'widgets/smart_auth_overlay.dart';
 import 'widgets/onboarding_modal.dart';
 import 'widgets/notification_prompt.dart';
+import 'widgets/proximity_offer_dialog.dart'; // Added
 
 // Enables Mouse Drag Scrolling on Web/Desktop
 class MyCustomScrollBehavior extends MaterialScrollBehavior {
@@ -83,6 +83,19 @@ class _HomePageState extends State<HomePage> {
                   );
                 },
               ),
+              ValueListenableBuilder<bool>(
+                valueListenable: ShopManager.instance.isNearbyOfferVisible,
+                builder: (context, visible, _) {
+                  if (!visible) return const SizedBox.shrink();
+                  return Container(
+                    color: Colors.black.withValues(alpha: 0.6),
+                    child: ProximityOfferDialog(
+                      restaurantName: TenantService().currentTenant.value?.name ?? "Us",
+                      onDismiss: () => ShopManager.instance.isNearbyOfferVisible.value = false,
+                    ),
+                  );
+                },
+              ),
             ],
           );
         },
@@ -133,20 +146,32 @@ class _HomePageState extends State<HomePage> {
     return ValueListenableBuilder<List<Map<String, dynamic>>>(
       valueListenable: TenantService().products,
       builder: (context, dbProducts, child) {
-        // Fallback to AppData if database is empty for testing
-        final List<Map<String, dynamic>> allProducts = dbProducts.isEmpty ? AppData.darazStyleProducts : dbProducts;
+        // Filter products based on featured_section
+        final List<Map<String, dynamic>> gridTopItems = dbProducts.where((p) => p['featured_section'] == 'just_for_you').toList();
+        final List<Map<String, dynamic>> rowScrollItems = dbProducts.where((p) => p['featured_section'] == 'trending').toList();
+        final List<Map<String, dynamic>> popularItems = dbProducts.where((p) => p['featured_section'] == 'popular').toList();
+        
+        // Products with NO section selected (or 'none')
+        final List<Map<String, dynamic>> otherProducts = dbProducts.where((p) => 
+          p['featured_section'] == 'none' || p['featured_section'] == null || p['featured_section'] == ''
+        ).toList();
 
-        final List<Map<String, dynamic>> gridTopItems = allProducts.take(8).toList();
-        final List<Map<String, dynamic>> rowScrollItems = allProducts.length > 8 
-            ? allProducts.skip(8).take(6).toList() 
-            : allProducts;
-        final List<Map<String, dynamic>> staggeredBottomItems = allProducts.length > 14 
-            ? allProducts.skip(14).toList() 
-            : [];
-
-        return CustomScrollView(
-          physics: const ClampingScrollPhysics(), // Smoother for Web mouse drag
-          slivers: [
+        return RefreshIndicator(
+          onRefresh: () async {
+            final tenant = TenantService().currentTenant.value;
+            if (tenant != null) {
+              await Future.wait([
+                TenantService().initialize(tenant.domain),
+                ShopManager.instance.refreshUserPoints(),
+                ShopManager.instance.refreshNotifications(),
+              ]);
+            }
+          },
+          color: const Color(0xFFFF5C00),
+          backgroundColor: Colors.white,
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(), // Required for RefreshIndicator
+            slivers: [
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
@@ -178,44 +203,24 @@ class _HomePageState extends State<HomePage> {
                 child: _buildCategories(),
               ),
             ),
-            SliverToBoxAdapter(child: _buildSectionTitle('Popular Picks', 'View All →', onTap: () => ShopManager.instance.navigateToCategory(null))),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                child: _buildHorizontalList(allProducts.take(5).map((e) => Map<String, String>.from(e.map((k, v) => MapEntry(k, v.toString())))).toList(), 'popular'),
-              ),
-            ),
-            SliverToBoxAdapter(child: _buildSectionTitle('Just For You', 'Explore →', onTap: () => ShopManager.instance.navigateToCategory(null))),
-            SliverPadding(
-              padding: const EdgeInsets.all(16),
-              sliver: SliverGrid(
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 14,
-                  crossAxisSpacing: 14,
-                  childAspectRatio: 0.8,
-                ),
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) => ProductCard(item: gridTopItems[index], heroPrefix: 'grid_top'),
-                  childCount: gridTopItems.length,
+
+            // 1. Popular Picks
+            if (popularItems.isNotEmpty) ...[
+              SliverToBoxAdapter(child: _buildSectionTitle('Popular Picks', 'View All →', onTap: () => ShopManager.instance.navigateToCategory(null))),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: _buildHorizontalList(
+                    popularItems.map((e) => Map<String, String>.from(e.map((k, v) => MapEntry(k, v.toString())))).toList(), 
+                    'popular'
+                  ),
                 ),
               ),
-            ),
-            SliverToBoxAdapter(child: _buildSectionTitle('Trending Scroll', 'More →', onTap: () => ShopManager.instance.navigateToCategory(null))),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                child: _buildHorizontalLargeList(rowScrollItems, 'trending'),
-              ),
-            ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: _buildRewardsCard(),
-              ),
-            ),
-            if (staggeredBottomItems.isNotEmpty) ...[
-              SliverToBoxAdapter(child: _buildSectionTitle('Discover More', 'Filter →', onTap: () => ShopManager.instance.navigateToCategory(null))),
+            ],
+
+            // 2. Just For You
+            if (gridTopItems.isNotEmpty) ...[
+              SliverToBoxAdapter(child: _buildSectionTitle('Just For You', 'Explore →', onTap: () => ShopManager.instance.navigateToCategory(null))),
               SliverPadding(
                 padding: const EdgeInsets.all(16),
                 sliver: SliverGrid(
@@ -226,63 +231,62 @@ class _HomePageState extends State<HomePage> {
                     childAspectRatio: 0.8,
                   ),
                   delegate: SliverChildBuilderDelegate(
-                    (context, index) => ProductCard(item: staggeredBottomItems[index], heroPrefix: 'grid_bottom'),
-                    childCount: staggeredBottomItems.length,
+                    (context, index) => ProductCard(item: gridTopItems[index], heroPrefix: 'grid_top'),
+                    childCount: gridTopItems.length,
                   ),
                 ),
               ),
             ],
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-                child: FutureBuilder<List<Map<String, dynamic>>?>(
-                  future: ApiService.fetchOffers(TenantService().currentTenant.value?.id ?? ''),
-                  builder: (context, snapshot) {
-                    if (snapshot.hasData && snapshot.data!.isNotEmpty) {
-                      final b = snapshot.data!.first; // Show the latest offer
-                      return Container(
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFF5C00),
-                          borderRadius: BorderRadius.circular(24),
-                          image: b['image_url'] != null && b['image_url'].toString().isNotEmpty
-                              ? DecorationImage(image: NetworkImage(b['image_url']), fit: BoxFit.cover, colorFilter: ColorFilter.mode(Colors.black.withValues(alpha: 0.3), BlendMode.darken))
-                              : null,
-                        ),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(b['title'] ?? "SUMMER SPECIAL!", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16)),
-                                  Text(b['subtitle'] ?? "Get flat 50% OFF.", style: const TextStyle(color: Colors.white70, fontSize: 10)),
-                                  if (b['discount_tag'] != null) ...[
-                                    const SizedBox(height: 12),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10)),
-                                      child: Text(b['discount_tag'], style: const TextStyle(color: Color(0xFFFF5C00), fontWeight: FontWeight.bold, fontSize: 12)),
-                                    ),
-                                  ]
-                                ],
-                              ),
-                            )
-                          ],
-                        ),
-                      );
-                    }
-                    return _buildSummerOffer(); // Fallback to demo
-                  },
+
+            // 3. Trending Scroll
+            if (rowScrollItems.isNotEmpty) ...[
+              SliverToBoxAdapter(child: _buildSectionTitle('Trending Scroll', 'More →', onTap: () => ShopManager.instance.navigateToCategory(null))),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: _buildHorizontalLargeList(rowScrollItems, 'trending'),
                 ),
               ),
+            ],
+
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: _buildRewardsCard(),
+              ),
             ),
+
+            // 4. "All Products" (None Section) - Now positioned at the very bottom
+            if (otherProducts.isNotEmpty) ...[
+              SliverToBoxAdapter(
+                child: _buildSectionTitle('All Products', 'Explore More →', onTap: () {
+                  ShopManager.instance.currentTabIndex.value = 1; // Go to Menu Tab
+                }),
+              ),
+              SliverPadding(
+                padding: const EdgeInsets.all(16),
+                sliver: SliverGrid(
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 14,
+                    crossAxisSpacing: 14,
+                    childAspectRatio: 0.8,
+                  ),
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) => ProductCard(item: otherProducts[index], heroPrefix: 'all_home'),
+                    childCount: otherProducts.length,
+                  ),
+                ),
+              ),
+            ],
+
             const SliverToBoxAdapter(child: SizedBox(height: 120)),
           ],
-        );
-      },
-    );
-  }
+        ),
+      );
+    },
+  );
+}
 
   Widget _buildSmartGreetingCard() {
     final tenant = TenantService().currentTenant.value;
@@ -557,15 +561,16 @@ class _HomePageState extends State<HomePage> {
     return ValueListenableBuilder<List<Map<String, dynamic>>>(
       valueListenable: TenantService().categories,
       builder: (context, dbCats, child) {
-        final List<Map<String, dynamic>> displayCats = dbCats.isEmpty ? AppData.categories : dbCats;
+        if (dbCats.isEmpty) return const SizedBox.shrink();
+
         return SizedBox(
           height: 85,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: displayCats.length,
+            itemCount: dbCats.length,
             itemBuilder: (context, index) {
-              final cat = displayCats[index];
+              final cat = dbCats[index];
               return Padding(
                 padding: const EdgeInsets.only(right: 12),
                 child: InkWell(
@@ -575,7 +580,7 @@ class _HomePageState extends State<HomePage> {
                       Container(
                         width: 55, height: 55,
                         decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 6)]),
-                        child: Icon(cat['icon'] != null ? cat['icon'] as IconData : Icons.restaurant_menu_rounded, color: const Color(0xFFFF5C00), size: 24),
+                        child: Icon(_getIconData(cat['icon']), color: const Color(0xFFFF5C00), size: 24),
                       ),
                       const SizedBox(height: 6),
                       Text(cat['title'] as String, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600)),
@@ -588,6 +593,22 @@ class _HomePageState extends State<HomePage> {
         );
       },
     );
+  }
+
+  IconData _getIconData(dynamic iconName) {
+    switch (iconName?.toString()) {
+      case 'lunch_dining': return Icons.lunch_dining;
+      case 'local_cafe': return Icons.local_cafe;
+      case 'local_drink': return Icons.local_drink;
+      case 'icecream': return Icons.icecream;
+      case 'local_pizza': return Icons.local_pizza;
+      case 'fastfood': return Icons.fastfood;
+      case 'kebab_dining': return Icons.kebab_dining;
+      case 'cake': return Icons.cake;
+      case 'restaurant_menu': return Icons.restaurant_menu;
+      case 'breakfast_dining': return Icons.breakfast_dining;
+      default: return Icons.restaurant_menu_rounded;
+    }
   }
 
   Widget _buildSectionTitle(String title, String action, {VoidCallback? onTap}) {
@@ -641,13 +662,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildSummerOffer() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(color: const Color(0xFFFF5C00), borderRadius: BorderRadius.circular(24)),
-      child: const Row(children: [Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text("SUMMER SPECIAL!", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16)), Text("Get flat 50% OFF.", style: TextStyle(color: Colors.white70, fontSize: 10))]))]),
-    );
-  }
+
 
 
 

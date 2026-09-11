@@ -206,16 +206,49 @@ class _JukeboxPageState extends State<JukeboxPage> with TickerProviderStateMixin
             shrinkWrap: true, padding: EdgeInsets.zero, physics: const NeverScrollableScrollPhysics(), itemCount: queue.length,
             itemBuilder: (context, index) {
               final item = queue[index];
-              bool hasVoted = item['hasVoted'];
+              int songId = int.tryParse(item['id']?.toString() ?? '') ?? 0;
+              if (songId == 0) return const SizedBox.shrink();
+              bool userLiked = item['user_liked'] == true;
+
               return Padding(
                 padding: const EdgeInsets.only(bottom: 24),
                 child: Row(children: [
-                  Container(width: 55, height: 55, decoration: BoxDecoration(borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))]), child: ClipRRect(borderRadius: BorderRadius.circular(16), child: Image.network(item['image'], fit: BoxFit.cover, errorBuilder: (c, e, s) => Container(color: const Color(0xFFF1F5F9), child: const Icon(Icons.music_note, color: Colors.grey))))),
+                  Container(width: 55, height: 55, decoration: BoxDecoration(borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))]), child: ClipRRect(borderRadius: BorderRadius.circular(16), child: Image.network(item['image'] ?? '', fit: BoxFit.cover, errorBuilder: (c, e, s) => Container(color: const Color(0xFFF1F5F9), child: const Icon(Icons.music_note, color: Colors.grey))))),
                   const SizedBox(width: 15),
                   Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(item['title'] ?? "Untitled", style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16)), Text(item['artist'] ?? "Unknown Artist", style: const TextStyle(color: Color(0xFF64748B), fontSize: 13))])),
                   GestureDetector(
-                    onTap: () => ShopManager.instance.toggleMusicVote(index),
-                    child: AnimatedContainer(duration: const Duration(milliseconds: 300), padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8), decoration: BoxDecoration(color: hasVoted ? const Color(0xFFFF5C00) : const Color(0xFFF1F5F9), borderRadius: BorderRadius.circular(14)), child: Row(children: [Icon(hasVoted ? Icons.favorite_rounded : Icons.favorite_border_rounded, color: hasVoted ? Colors.white : const Color(0xFF64748B), size: 16), const SizedBox(width: 8), Text((item['votes'] ?? 0).toString(), style: TextStyle(color: hasVoted ? Colors.white : const Color(0xFF64748B), fontWeight: FontWeight.bold, fontSize: 13))])),
+                    onTap: () async {
+                      final res = await ShopManager.instance.toggleMusicVote(songId);
+                      if (res['success'] == false && context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(res['message']), backgroundColor: Colors.red),
+                        );
+                      }
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 300), 
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8), 
+                      decoration: BoxDecoration(
+                        color: userLiked ? Colors.red.withValues(alpha: 0.1) : const Color(0xFFF1F5F9), 
+                        borderRadius: BorderRadius.circular(14)
+                      ), 
+                      child: Row(children: [
+                        Icon(
+                          userLiked ? Icons.favorite_rounded : Icons.favorite_border_rounded, 
+                          color: userLiked ? Colors.red : const Color(0xFF64748B), 
+                          size: 16
+                        ), 
+                        const SizedBox(width: 8), 
+                        Text(
+                          (item['votes'] ?? 0).toString(), 
+                          style: TextStyle(
+                            color: userLiked ? Colors.red : const Color(0xFF64748B), 
+                            fontWeight: FontWeight.bold, 
+                            fontSize: 13
+                          )
+                        )
+                      ]),
+                    ),
                   ),
                 ]),
               );
@@ -227,94 +260,139 @@ class _JukeboxPageState extends State<JukeboxPage> with TickerProviderStateMixin
   }
 
   void _showRequestModal() {
+    // Reset controllers before showing
+    _searchController.clear();
+    _dedicationController.clear();
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(30))),
-      builder: (context) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(30, 20, 30, 30),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40, height: 4,
-                  margin: const EdgeInsets.only(bottom: 20),
-                  decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2)),
-                ),
-              ),
-              const Text("Make a Request", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.black87)),
-              const SizedBox(height: 8),
-              const Text("What should we play next?", style: TextStyle(color: Colors.grey, fontSize: 13)),
-              const SizedBox(height: 24),
-              TextField(
-                controller: _searchController,
-                style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
-                decoration: InputDecoration(
-                  hintText: "Song title or artist...",
-                  prefixIcon: const Icon(Icons.music_note, color: Color(0xFFFF5C00)),
-                  filled: true,
-                  fillColor: const Color(0xFFF8FAFC),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: Colors.grey[200]!)),
-                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFFF5C00))),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _dedicationController,
-                style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
-                decoration: InputDecoration(
-                  hintText: "Dedicate to... (e.g. Table 12)",
-                  prefixIcon: const Icon(Icons.favorite_border, color: Color(0xFFFF5C00)),
-                  filled: true,
-                  fillColor: const Color(0xFFF8FAFC),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: Colors.grey[200]!)),
-                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFFF5C00))),
-                ),
-              ),
-              const SizedBox(height: 32),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    if (_searchController.text.isNotEmpty) {
-                      ShopManager.instance.requestSong(
-                        _searchController.text, 
-                        "Requested",
-                        _dedicationController.text.isEmpty ? null : _dedicationController.text
-                      );
-                      _searchController.clear();
-                      _dedicationController.clear();
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text("Request sent! Earned +5 Vibe Score."),
-                          behavior: SnackBarBehavior.floating,
-                          backgroundColor: Color(0xFFFF5C00),
+      builder: (modalContext) {
+        bool loading = false; // Move declaration here
+        
+        return StatefulBuilder(
+          builder: (ctx, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(bottom: MediaQuery.of(modalContext).viewInsets.bottom),
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(30, 20, 30, 30),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40, height: 4,
+                        margin: const EdgeInsets.only(bottom: 20),
+                        decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2)),
+                      ),
+                    ),
+                    const Text("Make a Request", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.black87)),
+                    const SizedBox(height: 8),
+                    const Text("What should we play next?", style: TextStyle(color: Colors.grey, fontSize: 13)),
+                    const SizedBox(height: 24),
+                    TextField(
+                      controller: _searchController,
+                      autofocus: true,
+                      style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+                      decoration: InputDecoration(
+                        hintText: "Song title or artist...",
+                        prefixIcon: const Icon(Icons.music_note, color: Color(0xFFFF5C00)),
+                        filled: true,
+                        fillColor: const Color(0xFFF8FAFC),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: Color(0xFFF1F5F9))),
+                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFFF5C00))),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _dedicationController,
+                      style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+                      decoration: InputDecoration(
+                        hintText: "Dedicate to... (e.g. Table 12)",
+                        prefixIcon: const Icon(Icons.favorite_border, color: Color(0xFFFF5C00)),
+                        filled: true,
+                        fillColor: const Color(0xFFF8FAFC),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: Color(0xFFF1F5F9))),
+                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFFF5C00))),
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: loading ? null : () async {
+                          final songTitle = _searchController.text.trim();
+                          if (songTitle.isEmpty) {
+                            ScaffoldMessenger.of(ctx).showSnackBar(
+                              const SnackBar(content: Text("Please enter a song title.")),
+                            );
+                            return;
+                          }
+
+                          setModalState(() => loading = true);
+
+                          try {
+                            final result = await ShopManager.instance.requestSong(
+                              songTitle, 
+                              "Requested",
+                              _dedicationController.text.trim().isEmpty ? null : _dedicationController.text.trim()
+                            );
+                            
+                            if (result['success'] == true) {
+                              _searchController.clear();
+                              _dedicationController.clear();
+                              if (ctx.mounted) Navigator.pop(ctx);
+                              
+                              if (!mounted) return;
+                              showDialog(
+                                context: context,
+                                builder: (c) => AlertDialog(
+                                  title: const Text("Request Sent! 🎵"),
+                                  content: const Text("Your song has been added to the queue. You earned +5 Vibe Score!"),
+                                  actions: [TextButton(onPressed: () => Navigator.pop(c), child: const Text("OK"))],
+                                ),
+                              );
+                            } else {
+                              if (ctx.mounted) {
+                                setModalState(() => loading = false);
+                                ScaffoldMessenger.of(ctx).showSnackBar(
+                                  SnackBar(content: Text("Error: ${result['message']}"), backgroundColor: Colors.red),
+                                );
+                              }
+                            }
+                          } catch (e) {
+                            if (ctx.mounted) {
+                              setModalState(() => loading = false);
+                              ScaffoldMessenger.of(ctx).showSnackBar(
+                                const SnackBar(content: Text("Connection error. Try again.")),
+                              );
+                            }
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFFF5C00),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 20),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                          elevation: 0,
                         ),
-                      );
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFFF5C00),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 20),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-                    elevation: 0,
-                  ),
-                  child: const Text("SUBMIT REQUEST", style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1)),
+                        child: loading 
+                          ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                          : const Text("SUBMIT REQUEST", style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1)),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ],
-          ),
-        ),
-      ),
+            );
+          }
+        );
+      },
     );
   }
 }

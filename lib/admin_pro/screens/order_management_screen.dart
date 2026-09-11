@@ -179,10 +179,12 @@ class _OrderManagementScreenState extends State<OrderManagementScreen> {
   }
 
   Future<void> _updateStatus(dynamic orderId, String newStatus) async {
-    final success = await ApiService.updateOrderStatus(int.parse(orderId.toString()), newStatus);
-    if (success) {
+    final result = await ApiService.updateOrderStatus(int.parse(orderId.toString()), newStatus);
+    if (result['success'] == true) {
       _loadOrders();
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Status updated.")));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Status updated."), backgroundColor: Colors.green));
+    } else {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Failed: ${result['message']}"), backgroundColor: Colors.red));
     }
   }
 

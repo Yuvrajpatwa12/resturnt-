@@ -3,6 +3,7 @@ import 'models.dart';
 import 'cart_manager.dart';
 import 'product_details_page.dart';
 import 'ar_view_page.dart';
+import 'product_voice_assistant_page.dart';
 
 class ProductCard extends StatelessWidget {
   final Map<String, dynamic> item;
@@ -18,14 +19,23 @@ class ProductCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final String displayImage = item['image_url'] ?? item['image'] ?? '';
+    
+    String displayPrice = item['price']?.toString() ?? 'N/A';
+    if (!displayPrice.contains('NPR') && displayPrice != 'N/A') {
+      displayPrice = "NPR $displayPrice";
+    }
+
     final product = Product(
       title: item['title'] ?? 'Product',
-      price: item['price'] ?? 'N/A',
-      image: item['image'] ?? '',
+      price: displayPrice,
+      image: displayImage,
       tag: item['tag'] ?? 'Popular',
       rating: item['rating'] ?? '4.9',
       discount: item['discount'] ?? '',
+      slogan: item['slogan'], // Added
       modelUrl: item['model_url'],
+      iosModelUrl: item['ios_model_url'],
     );
 
     return Material(
@@ -68,7 +78,7 @@ class ProductCard extends StatelessWidget {
                       child: Hero(
                         tag: "${heroPrefix}_${item['title']}",
                         child: Image.network(
-                          item['image'] ?? '', 
+                          displayImage, 
                           width: double.infinity,
                           height: double.infinity,
                           fit: BoxFit.cover,
@@ -79,9 +89,10 @@ class ProductCard extends StatelessWidget {
                         ),
                       ),
                     ),
+                    // Tag Section
                     if (item['tag'] != null)
                       Positioned(
-                        top: 8, left: 8,
+                        bottom: 8, left: 8,
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                           decoration: BoxDecoration(color: const Color(0xFFFF5C00), borderRadius: BorderRadius.circular(4)),
@@ -89,10 +100,10 @@ class ProductCard extends StatelessWidget {
                         ),
                       ),
                     
-                    // 3D / AR Trigger Icon
+                    // 3D / AR Trigger Icon (Moved to Left)
                     if (product.modelUrl != null && product.modelUrl!.isNotEmpty)
                       Positioned(
-                        top: 8, right: 8,
+                        top: 8, left: 8,
                         child: GestureDetector(
                           onTap: () {
                             Navigator.push(context, MaterialPageRoute(builder: (context) => ARViewPage(product: product)));
@@ -108,6 +119,28 @@ class ProductCard extends StatelessWidget {
                           ),
                         ),
                       ),
+
+                    // Voice Assistant Trigger Icon (New - Top Right)
+                    Positioned(
+                      top: 8, right: 8,
+                      child: GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => ProductVoiceAssistantPage(product: product)),
+                          );
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.9),
+                            shape: BoxShape.circle,
+                            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 4)],
+                          ),
+                          child: const Icon(Icons.spatial_audio_off_rounded, color: Color(0xFFFF5C00), size: 16),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -131,9 +164,19 @@ class ProductCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        item['price'] ?? 'N/A', 
+                        displayPrice, 
                         style: TextStyle(fontSize: isLarge ? 12 : 11, fontWeight: FontWeight.w900, color: const Color(0xFFFF5C00)),
                       ),
+                      if (product.slogan != null && product.slogan!.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 2),
+                          child: Text(
+                            product.slogan!,
+                            style: TextStyle(fontSize: isLarge ? 10 : 9, color: Colors.grey[600], fontWeight: FontWeight.bold, fontStyle: FontStyle.italic),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
                       const Spacer(),
                       ValueListenableBuilder<List<CartItem>>(
                         valueListenable: ShopManager.instance.items,

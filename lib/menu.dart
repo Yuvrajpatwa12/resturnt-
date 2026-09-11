@@ -38,8 +38,23 @@ class _MenuPageState extends State<MenuPage> {
     List<Map<String, dynamic>> items = dbProducts.isEmpty ? List.from(AppData.darazStyleProducts) : List.from(dbProducts);
     
     if (_selectedCategory != 'All') {
-      items = items.where((i) => (i['title'] ?? '').toString().toLowerCase().contains(_selectedCategory.toLowerCase())).toList();
+      // Find the ID of the selected category name
+      final allCats = TenantService().categories.value;
+      final selectedCatObj = allCats.firstWhere(
+        (c) => c['title'] == _selectedCategory, 
+        orElse: () => {'id': null}
+      );
+      
+      final selectedId = selectedCatObj['id']?.toString();
+      
+      if (selectedId != null) {
+        items = items.where((i) => i['category_id']?.toString() == selectedId).toList();
+      } else {
+        // Fallback for hardcoded categories if any
+        items = items.where((i) => (i['title'] ?? '').toString().toLowerCase().contains(_selectedCategory.toLowerCase())).toList();
+      }
     }
+    
     if (_selectedQuickToggle == '🔥 Popular') {
       items.sort((a, b) => (b['rating'] ?? '0').toString().compareTo((a['rating'] ?? '0').toString()));
     }
@@ -61,16 +76,22 @@ class _MenuPageState extends State<MenuPage> {
             final List<String> menuCategories = ['All'];
             if (dbCategories.isNotEmpty) {
               menuCategories.addAll(dbCategories.map((c) => c['title'].toString()));
-            } else {
-              // Fallback to static categories for testing
-              menuCategories.addAll(['Sandwiches', 'Roast Beef', 'Sides', 'Drinks', 'Desserts', 'Pizza', 'Salads', 'Combos']);
             }
 
-            return Container(
-              color: const Color(0xFFF8FAFC),
-              child: CustomScrollView(
-                physics: const ClampingScrollPhysics(),
-                slivers: [
+            return RefreshIndicator(
+              onRefresh: () async {
+                final tenant = TenantService().currentTenant.value;
+                if (tenant != null) {
+                  await TenantService().fetchMenuData(tenant.id);
+                }
+              },
+              color: const Color(0xFFFF5C00),
+              backgroundColor: Colors.white,
+              child: Container(
+                color: const Color(0xFFF8FAFC),
+                child: CustomScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  slivers: [
                   // 1. Header
                   SliverToBoxAdapter(
                     child: Padding(
@@ -136,12 +157,13 @@ class _MenuPageState extends State<MenuPage> {
                   const SliverToBoxAdapter(child: SizedBox(height: 100)),
                 ],
               ),
-            );
-          },
-        );
-      },
-    );
-  }
+            ),
+          );
+        },
+      );
+    },
+  );
+}
 
   Widget _buildSearchBtn() {
     return IconButton(

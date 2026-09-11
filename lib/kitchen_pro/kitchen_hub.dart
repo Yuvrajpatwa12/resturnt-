@@ -19,9 +19,11 @@ class _KitchenHubState extends State<KitchenHub> with SingleTickerProviderStateM
   late TabController _tabController;
   final List<String> _stages = ["Incoming", "Preparing", "Ready", "History", "Stock Out"];
   List<Map<String, dynamic>> _liveOrders = [];
+  List<Map<String, dynamic>> _historyOrders = []; // Added
   List<Map<String, dynamic>> _stockReports = [];
   bool _isLoading = true;
   Timer? _refreshTimer;
+  int _lastMod = 0; // Track last database change
 
   @override
   void initState() {
@@ -29,8 +31,20 @@ class _KitchenHubState extends State<KitchenHub> with SingleTickerProviderStateM
     _tabController = TabController(length: 5, vsync: this);
     _refreshKitchen(isInitial: true);
     
-    // Start automatic polling every 10 seconds
-    _refreshTimer = Timer.periodic(const Duration(seconds: 10), (_) => _refreshKitchen());
+    // Start automatic light polling every 8 seconds
+    _refreshTimer = Timer.periodic(const Duration(seconds: 8), (_) => _syncKDS());
+  }
+
+  Future<void> _syncKDS() async {
+    final tenant = TenantService().currentTenant.value;
+    if (tenant == null) return;
+    
+    final serverMod = await ApiService.checkOrderChange(tenant.id);
+    if (serverMod > _lastMod) {
+      debugPrint("KDS: Change detected ($serverMod > $_lastMod). Refreshing...");
+      _refreshKitchen();
+      _lastMod = serverMod;
+    }
   }
 
   Future<void> _refreshKitchen({bool isInitial = false}) async {
@@ -38,27 +52,37 @@ class _KitchenHubState extends State<KitchenHub> with SingleTickerProviderStateM
     if (tenant == null) return;
 
     if (isInitial) setState(() => _isLoading = true);
-    final orderData = await ApiService.fetchActiveOrders(tenant.id);
-    final stockData = await ApiService.fetchStockReports(tenant.id);
     
+    final results = await Future.wait([
+      ApiService.fetchActiveOrders(tenant.id),
+      ApiService.fetchOrderHistory(tenant.id),
+      ApiService.fetchStockReports(tenant.id),
+    ]);
+
     if (mounted) {
       setState(() {
-        if (orderData != null) _liveOrders = orderData;
-        if (stockData != null) _stockReports = stockData;
+        if (results[0] != null) _liveOrders = results[0] as List<Map<String, dynamic>>;
+        if (results[1] != null) _historyOrders = results[1] as List<Map<String, dynamic>>;
+        if (results[2] != null) _stockReports = results[2] as List<Map<String, dynamic>>;
         _isLoading = false;
       });
     }
   }
 
   Future<void> _changeStatus(int orderId, String newStatus) async {
-    final success = await ApiService.updateOrderStatus(orderId, newStatus);
-    if (success) {
+    final res = await ApiService.updateOrderStatus(orderId, newStatus);
+    if (res['success'] == true) {
       _refreshKitchen();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Order marked as $newStatus"), backgroundColor: KitchenTheme.emeraldGreen),
         );
       }
+    } else {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error: ${res['message']}"), backgroundColor: Colors.red),
+      );
     }
   }
 
@@ -282,7 +306,72 @@ class _KitchenHubState extends State<KitchenHub> with SingleTickerProviderStateM
   }
 
   Widget _buildHistoryView() {
-    return const Center(child: Text("Order history ready."));
+    if (_historyOrders.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.history_rounded, size: 64, color: Colors.grey.withValues(alpha: 0.1)),
+            const SizedBox(height: 16),
+            const Text("No order history found.", style: TextStyle(color: Colors.grey)),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: _historyOrders.length,
+      itemBuilder: (context, index) {
+        final order = _historyOrders[index];
+        final List<dynamic> rawItems = order['items'] ?? [];
+        final status = order['status'] ?? 'Completed';
+        
+        return Card(
+          margin: const EdgeInsets.only(bottom: 12),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: ExpansionTile(
+            shape: const RoundedRectangleBorder(side: BorderSide.none),
+            leading: CircleAvatar(
+              backgroundColor: status == 'Completed' ? Colors.green.withValues(alpha: 0.1) : Colors.red.withValues(alpha: 0.1),
+              child: Icon(
+                status == 'Completed' ? Icons.check_circle_outline : Icons.cancel_outlined,
+                color: status == 'Completed' ? Colors.green : Colors.red,
+                size: 20,
+              ),
+            ),
+            title: Text(
+              "Table T-${order['table_number']} • #ORD-${order['id']}", 
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)
+            ),
+            subtitle: Text(
+              "Closed at: ${order['updated_at']}", 
+              style: const TextStyle(fontSize: 10, color: Colors.grey)
+            ),
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                child: Column(
+                  children: [
+                    const Divider(),
+                    ...rawItems.map((i) => Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: Row(
+                        children: [
+                          Text("${i['quantity']}x", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: KitchenTheme.royalBlue)),
+                          const SizedBox(width: 12),
+                          Expanded(child: Text(i['product_name'] ?? 'Item', style: const TextStyle(fontSize: 12))),
+                        ],
+                      ),
+                    )),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   Widget _buildStockLogView() {

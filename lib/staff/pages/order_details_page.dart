@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../cart_manager.dart';
+import '../../services/api_service.dart';
+import '../../services/tenant_service.dart';
 import 'staff_final_receipt_page.dart';
 
 class OrderDetailsPage extends StatelessWidget {
@@ -193,6 +195,44 @@ class OrderDetailsPage extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 24),
+          Row(
+            children: [
+              Expanded(
+                child: FutureBuilder<List<Map<String, dynamic>>?>(
+                  future: ApiService.fetchActiveOrders(TenantService().currentTenant.value?.id ?? ''),
+                  builder: (context, snapshot) {
+                    final order = (snapshot.data ?? []).firstWhere(
+                      (o) => int.parse(o['table_number'].toString()) == tableId && o['status'] == 'Pending',
+                      orElse: () => {},
+                    );
+                    
+                    if (order.isEmpty) return const SizedBox.shrink();
+
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: ElevatedButton.icon(
+                        onPressed: () async {
+                          final result = await ApiService.updateOrderStatus(int.parse(order['id'].toString()), 'Approved');
+                          if (result['success'] == true) {
+                            ShopManager.instance.refreshLiveOrders();
+                            if (context.mounted) Navigator.pop(context);
+                          }
+                        },
+                        icon: const Icon(Icons.check_circle_outline),
+                        label: const Text("APPROVE & START PREPARING"),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 20),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                        ),
+                      ),
+                    );
+                  }
+                ),
+              ),
+            ],
+          ),
           Row(
             children: [
               Expanded(

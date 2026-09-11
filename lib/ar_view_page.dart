@@ -29,7 +29,17 @@ class _ARViewPageState extends State<ARViewPage> {
       _viewId,
       (int viewId) {
         final element = web.document.createElement('model-viewer') as web.HTMLElement;
-        element.setAttribute('src', widget.product.modelUrl!);
+        
+        // Android / Web GLB
+        if (widget.product.modelUrl != null) {
+          element.setAttribute('src', widget.product.modelUrl!);
+        }
+        
+        // iOS USDZ (Critical for AR Quick Look on Apple devices)
+        if (widget.product.iosModelUrl != null) {
+          element.setAttribute('ios-src', widget.product.iosModelUrl!);
+        }
+
         element.setAttribute('ar', '');
         element.setAttribute('ar-modes', 'webxr scene-viewer quick-look');
         element.setAttribute('camera-controls', '');
@@ -54,18 +64,60 @@ class _ARViewPageState extends State<ARViewPage> {
   }
 
   Future<void> _launchNativeAR() async {
-    // Scene Viewer Intent for Android (Highly reliable)
-    final String modelUrl = widget.product.modelUrl!;
-    final String title = Uri.encodeComponent(widget.product.title);
-    final String intentUrl = "https://arvr.google.com/scene-viewer/1.0?file=$modelUrl&mode=ar_only&title=$title";
+    // Detect platform
+    final bool isIOS = Theme.of(context).platform == TargetPlatform.iOS;
     
-    if (await canLaunchUrl(Uri.parse(intentUrl))) {
-      await launchUrl(Uri.parse(intentUrl), mode: LaunchMode.externalApplication);
+    if (isIOS) {
+      // Launch AR Quick Look for iOS
+      final String? iosUrl = widget.product.iosModelUrl;
+      if (iosUrl == null || iosUrl.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("USDZ model missing for iPhone AR."))
+          );
+        }
+        return;
+      }
+      
+      final Uri uri = Uri.parse(iosUrl);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Could not launch AR Quick Look."))
+          );
+        }
+      }
     } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Could not launch native AR. Please ensure Google Play Services for AR is installed."))
-        );
+      // Scene Viewer Intent for Android (Highly reliable)
+      // IMPORTANT: The 'file' parameter MUST be URL-encoded.
+      final String? glbUrl = widget.product.modelUrl;
+      if (glbUrl == null || glbUrl.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("GLB model missing for Android AR."))
+          );
+        }
+        return;
+      }
+
+      final String encodedUrl = Uri.encodeComponent(glbUrl);
+      final String title = Uri.encodeComponent(widget.product.title);
+      
+      // Constructing the standardized Scene Viewer URL
+      final String intentUrl = "https://arvr.google.com/scene-viewer/1.0?file=$encodedUrl&mode=ar_only&title=$title";
+      
+      debugPrint("AR Launch (Android): $intentUrl");
+      
+      if (await canLaunchUrl(Uri.parse(intentUrl))) {
+        await launchUrl(Uri.parse(intentUrl), mode: LaunchMode.externalApplication);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Could not launch native AR. Please ensure Google Play Services for AR is installed."))
+          );
+        }
       }
     }
   }

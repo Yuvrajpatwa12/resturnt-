@@ -84,7 +84,10 @@ class MusicVotingSheet extends StatelessWidget {
                   itemCount: queue.length,
                   itemBuilder: (context, index) {
                     final item = queue[index];
-                    bool hasVoted = item['hasVoted'];
+                    int songId = int.tryParse(item['id']?.toString() ?? '') ?? 0;
+                    if (songId == 0) return const SizedBox.shrink(); // Hide invalid items
+                    bool userLiked = item['user_liked'] == true;
+
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 16),
                       child: Row(
@@ -98,7 +101,7 @@ class MusicVotingSheet extends StatelessWidget {
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(12),
                               child: Image.network(
-                                item['image'], 
+                                item['image'] ?? '', 
                                 width: 50, height: 50, 
                                 fit: BoxFit.cover,
                                 errorBuilder: (context, error, stackTrace) => const Icon(Icons.music_note, color: Colors.grey, size: 20),
@@ -110,33 +113,40 @@ class MusicVotingSheet extends StatelessWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(item['title'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15), maxLines: 1, overflow: TextOverflow.ellipsis),
-                                Text(item['artist'], style: TextStyle(color: Colors.grey[600], fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                Text(item['title'] ?? 'Untitled', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                Text(item['artist'] ?? 'Unknown', style: TextStyle(color: Colors.grey[600], fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
                               ],
                             ),
                           ),
                           const SizedBox(width: 10),
                           GestureDetector(
-                            onTap: () => ShopManager.instance.toggleMusicVote(index),
+                            onTap: () async {
+                              final res = await ShopManager.instance.toggleMusicVote(songId);
+                              if (res['success'] == false && context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text(res['message']), backgroundColor: Colors.red),
+                                );
+                              }
+                            },
                             child: AnimatedContainer(
                               duration: const Duration(milliseconds: 300),
                               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                               decoration: BoxDecoration(
-                                color: hasVoted ? const Color(0xFFFF5C00) : const Color(0xFFF8FAFC),
+                                color: userLiked ? Colors.red.withValues(alpha: 0.1) : const Color(0xFFF8FAFC),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Row(
                                 children: [
                                   Icon(
-                                    hasVoted ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                                    color: hasVoted ? Colors.white : Colors.grey[400],
+                                    userLiked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                                    color: userLiked ? Colors.red : Colors.grey[400],
                                     size: 14,
                                   ),
                                   const SizedBox(width: 6),
                                   Text(
                                     item['votes'].toString(),
                                     style: TextStyle(
-                                      color: hasVoted ? Colors.white : Colors.black87,
+                                      color: userLiked ? Colors.red : Colors.black87,
                                       fontWeight: FontWeight.bold,
                                       fontSize: 12,
                                     ),

@@ -89,9 +89,11 @@ class _TablesTabState extends State<TablesTab> {
   }
 
   Widget _buildFloorTableCard(BuildContext context, int id, String status) {
-    bool isOccupied = status == "Dining";
+    bool isOccupied = status == "Dining" || status == "NEW ORDER" || status == "READY";
     bool isBilled = status == "Billed";
     bool needsHelp = status == "Help Needed";
+    bool isNewOrder = status == "NEW ORDER";
+    bool isReady = status == "READY";
     
     // Display ID as 01, 02...
     String displayId = (id % 100).toString().padLeft(2, '0');
@@ -109,17 +111,12 @@ class _TablesTabState extends State<TablesTab> {
       child: ValueListenableBuilder<Map<int, int>>(
         valueListenable: ShopManager.instance.tableCountdownTimers,
         builder: (context, timers, child) {
-          final int secondsLeft = timers[id] ?? 0;
-          final bool isReady = isOccupied && secondsLeft <= 0;
-          final int totalSeconds = ShopManager.instance.tableOriginalDurations.value[id] ?? 1;
-          final double progress = secondsLeft / totalSeconds;
-
           return Container(
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: isNewOrder ? const Color(0xFFFFF7ED) : Colors.white,
               borderRadius: BorderRadius.circular(15),
               border: Border.all(
-                color: isReady || isBilled ? Colors.green : (isOccupied ? const Color(0xFFFF5C00).withValues(alpha: 0.3) : Colors.grey[100]!),
+                color: isReady || isBilled ? Colors.green : (isOccupied ? (isNewOrder ? Colors.orange : const Color(0xFFFF5C00)) : Colors.grey[100]!),
                 width: 2,
               ),
               boxShadow: [
@@ -131,49 +128,35 @@ class _TablesTabState extends State<TablesTab> {
                   )
               ],
             ),
-            child: Stack(
-              alignment: Alignment.center,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                if (isOccupied && !isReady)
-                  Positioned.fill(
-                    child: CircularProgressIndicator(
-                      value: progress,
-                      strokeWidth: 2,
-                      color: const Color(0xFFFF5C00).withValues(alpha: 0.1),
-                      backgroundColor: Colors.transparent,
-                    ),
-                  ),
-                Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      "$floorName - $displayId", 
-                      style: TextStyle(
-                        fontWeight: FontWeight.w900, 
-                        fontSize: 10, 
-                        color: (isOccupied || isBilled) ? Colors.black87 : Colors.grey[300]
-                      )
-                    ),
-                    if (isOccupied) ...[
-                      const SizedBox(height: 4),
-                      if (isReady)
-                        _buildStatusBadge("READY", Colors.green)
-                      else
-                        Text(
-                          "${(secondsLeft / 60).floor()}:${(secondsLeft % 60).toString().padLeft(2, '0')}",
-                          style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Color(0xFFFF5C00)),
-                        ),
-                      const SizedBox(height: 2),
-                      const Text(
-                        "VIEW ALL",
-                        style: TextStyle(fontSize: 6, fontWeight: FontWeight.w900, color: Colors.blue, letterSpacing: 0.5),
-                      ),
-                    ] else if (isBilled)
-                      _buildStatusBadge("BILLED", Colors.green)
-                    else
-                      const Icon(Icons.crop_square, color: Colors.grey, size: 18),
-                  ],
+                Text(
+                  "$floorName - $displayId", 
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900, 
+                    fontSize: 10, 
+                    color: (isOccupied || isBilled) ? Colors.black87 : Colors.grey[300]
+                  )
                 ),
+                if (isOccupied) ...[
+                  const SizedBox(height: 4),
+                  if (isNewOrder)
+                    _buildStatusBadge("NEW ORDER", Colors.orange)
+                  else if (isReady)
+                    _buildStatusBadge("READY", Colors.green)
+                  else
+                    const Icon(Icons.restaurant, color: Color(0xFFFF5C00), size: 16),
+                  
+                  const SizedBox(height: 4),
+                  const Text(
+                    "VIEW",
+                    style: TextStyle(fontSize: 6, fontWeight: FontWeight.w900, color: Colors.blue, letterSpacing: 0.5),
+                  ),
+                ] else if (isBilled)
+                  _buildStatusBadge("BILLED", Colors.green)
+                else
+                  const Icon(Icons.crop_square, color: Colors.grey, size: 18),
               ],
             ),
           );

@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/services.dart';
+import 'package:geolocator/geolocator.dart'; // Added
 
 import 'package:chiyabreak/models.dart';
 import 'package:chiyabreak/services/tenant_service.dart';
@@ -39,7 +40,187 @@ class ShopManager {
     _startPresenceCheckIn();
     _startWavePoller();
     _startNotificationsPoller();
+    _startMusicPoller();
     _initPushListeners();
+    _startNearbyMonitor();
+    _startOrderSyncPoller(); // Start light polling for orders
+    
+    // Add Listeners for Persistence
+    currentTabIndex.addListener(_persistTab);
+    selectedTableId.addListener(_persistTable);
+    isProfileVisible.addListener(updatePrivacyOnServer);
+    isWaveEnabled.addListener(updatePrivacyOnServer);
+    showTableNumber.addListener(_persistGenericSettings);
+    onlyMutualChat.addListener(_persistGenericSettings);
+    autoWaveBack.addListener(_persistGenericSettings);
+    socialVibration.addListener(_persistGenericSettings);
+  }
+
+  void _persistGenericSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('show_table_number', showTableNumber.value);
+    await prefs.setBool('only_mutual_chat', onlyMutualChat.value);
+    await prefs.setBool('auto_wave_back', autoWaveBack.value);
+    await prefs.setBool('social_vibration', socialVibration.value);
+    await prefs.setBool('is_profile_visible', isProfileVisible.value);
+    await prefs.setBool('is_wave_enabled', isWaveEnabled.value);
+  }
+
+  int _lastOrderSyncTimestamp = 0;
+  Timer? _orderSyncTimer;
+
+  void _startOrderSyncPoller() {
+    _orderSyncTimer?.cancel();
+    // Check for database changes every 7 seconds
+    _orderSyncTimer = Timer.periodic(const Duration(seconds: 7), (timer) async {
+      final tenant = TenantService().currentTenant.value;
+      if (tenant == null) return;
+
+      final serverTimestamp = await ApiService.checkOrderChange(tenant.id);
+      
+      if (serverTimestamp > _lastOrderSyncTimestamp) {
+        debugPrint("ORDER SYNC: Change detected ($serverTimestamp > $_lastOrderSyncTimestamp). Syncing...");
+        await refreshLiveOrders();
+        _lastOrderSyncTimestamp = serverTimestamp;
+      }
+    });
+  }
+
+  Future<void> refreshLiveOrders() async {
+    final tenant = TenantService().currentTenant.value;
+    if (tenant == null) return;
+
+    final List<Map<String, dynamic>>? orders = await ApiService.fetchActiveOrders(tenant.id);
+    if (orders == null) return;
+
+    // --- SYNC WITH TABLES ---
+    Map<int, String> newStatuses = Map.from(tableStatuses.value);
+    Map<int, List<CartItem>> newOrders = {};
+
+    for (var order in orders) {
+      int tNum = int.tryParse(order['table_number']?.toString() ?? '') ?? 0;
+      if (tNum == 0) continue;
+
+      String status = order['status'] ?? 'Pending';
+      
+      // Update Table Status
+      if (status == 'Pending') {
+        newStatuses[tNum] = 'NEW ORDER';
+      } else if (status == 'Ready') {
+        newStatuses[tNum] = 'READY';
+      } else {
+        newStatuses[tNum] = 'Dining';
+      }
+
+      // Convert order items to CartItems
+      final List<dynamic> rawItems = order['items'] ?? [];
+      final List<CartItem> itemsList = rawItems.map((i) => CartItem(
+        product: Product(
+          title: i['product_name'] ?? 'Item',
+          price: i['price_at_order']?.toString() ?? '0',
+          image: '',
+          tag: 'Real',
+          rating: '5.0',
+        ),
+        quantity: int.tryParse(i['quantity']?.toString() ?? '1') ?? 1,
+      )).toList();
+
+      newOrders[tNum] = itemsList;
+    }
+
+    tableStatuses.value = newStatuses;
+    tableOrders.value = newOrders;
+  }
+
+  void _persistTab() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('last_tab_index', currentTabIndex.value);
+  }
+
+  void _persistTable() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (selectedTableId.value != null) {
+      await prefs.setInt('selected_table_id', selectedTableId.value!);
+    } else {
+      await prefs.remove('selected_table_id');
+    }
+  }
+
+  void _startMusicPoller() {
+    Timer.periodic(const Duration(seconds: 10), (timer) => refreshMusicStatus());
+  }
+
+  Future<void> refreshMusicStatus() async {
+    final tenant = TenantService().currentTenant.value;
+    if (tenant == null) return;
+
+    final data = await ApiService.fetchMusicStatus(tenant.id, userId: currentUserId);
+    if (data != null && data['status'] == 'success') {
+      // 1. Update Now Playing
+      if (data['now_playing'] != null) {
+        currentSong.value = Map<String, dynamic>.from(data['now_playing']);
+      }
+
+      // 2. Update Queue
+      if (data['queue'] != null) {
+        musicQueue.value = List<Map<String, dynamic>>.from(data['queue']);
+      }
+
+      // 3. Update Active Poll
+      if (data['active_poll'] != null) {
+        activePoll.value = Map<String, dynamic>.from(data['active_poll']);
+      } else {
+        activePoll.value = null;
+      }
+    }
+  }
+
+  void _startNearbyMonitor() {
+    // Check every 5 minutes if app is active
+    Timer.periodic(const Duration(minutes: 5), (timer) => checkProximity());
+    // Also check once immediately on start
+    Future.delayed(const Duration(seconds: 5), () => checkProximity());
+  }
+
+  final ValueNotifier<bool> isNearbyOfferVisible = ValueNotifier<bool>(false);
+  DateTime? _lastOfferTime;
+
+  Future<void> checkProximity() async {
+    final tenant = TenantService().currentTenant.value;
+    if (tenant == null || tenant.latitude == null || tenant.longitude == null) return;
+
+    // Check throttle (Only one offer per 12 hours)
+    if (_lastOfferTime != null && DateTime.now().difference(_lastOfferTime!).inHours < 12) {
+      return;
+    }
+
+    try {
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        // We don't nag with dialogs, just silent return if denied
+        return;
+      }
+
+      Position position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(accuracy: LocationAccuracy.medium),
+      );
+
+      double distanceInMeters = Geolocator.distanceBetween(
+        position.latitude,
+        position.longitude,
+        tenant.latitude!,
+        tenant.longitude!,
+      );
+
+      debugPrint("PROXIMITY: Distance to ${tenant.name} is ${distanceInMeters.toStringAsFixed(1)}m");
+
+      if (distanceInMeters <= 600) {
+        _lastOfferTime = DateTime.now();
+        isNearbyOfferVisible.value = true;
+      }
+    } catch (e) {
+      debugPrint("PROXIMITY ERROR: $e");
+    }
   }
 
   void _initPushListeners() {
@@ -128,6 +309,21 @@ class ShopManager {
     final prefs = await SharedPreferences.getInstance();
     isOnboardingComplete.value = prefs.getBool('onboarding_complete') ?? false;
 
+    // Restore Last View (Tab & Table)
+    currentTabIndex.value = prefs.getInt('last_tab_index') ?? 0;
+    final int? savedTable = prefs.getInt('selected_table_id');
+    if (savedTable != null && selectedTableId.value == null) {
+      selectedTableId.value = savedTable;
+    }
+
+    // Restore Generic Settings
+    showTableNumber.value = prefs.getBool('show_table_number') ?? true;
+    onlyMutualChat.value = prefs.getBool('only_mutual_chat') ?? false;
+    autoWaveBack.value = prefs.getBool('auto_wave_back') ?? false;
+    socialVibration.value = prefs.getBool('social_vibration') ?? true;
+    isProfileVisible.value = prefs.getBool('is_profile_visible') ?? true;
+    isWaveEnabled.value = prefs.getBool('is_wave_enabled') ?? true;
+
     String? savedEmail = prefs.getString('customer_email');
     if (savedEmail != null) {
       await syncCustomerIdentity(savedEmail);
@@ -214,6 +410,8 @@ class ShopManager {
   final ValueNotifier<bool> isEmailSynced = ValueNotifier<bool>(false);
   final ValueNotifier<bool> isNewToShop = ValueNotifier<bool>(false);
   final ValueNotifier<String> userGender = ValueNotifier<String>('Male');
+  final ValueNotifier<bool> isProfileVisible = ValueNotifier<bool>(true);
+  final ValueNotifier<bool> isWaveEnabled = ValueNotifier<bool>(true);
   final ValueNotifier<bool> isOnboardingComplete = ValueNotifier<bool>(true);
   final ValueNotifier<bool> showNotificationPrompt = ValueNotifier<bool>(false);
 
@@ -278,6 +476,10 @@ class ShopManager {
       isEmailSynced.value = true;
       userPoints.value = res['user']?['points'] ?? 0;
       orderStampCount.value = res['user']?['order_count'] ?? 0;
+      
+      // Load Privacy Settings
+      isProfileVisible.value = (res['user']?['is_public'] == 1 || res['user']?['is_public'] == true);
+      isWaveEnabled.value = (res['user']?['allow_waves'] == 1 || res['user']?['allow_waves'] == true);
 
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('customer_email', email);
@@ -324,9 +526,20 @@ class ShopManager {
     return success;
   }
 
-  Future<void> checkNotificationPermission() async {
-    if (!kIsWeb) return; 
+  Future<void> updatePrivacyOnServer() async {
+    final tenant = TenantService().currentTenant.value;
+    final uid = currentUserId;
+    if (tenant == null || uid.isEmpty) return;
 
+    await ApiService.updatePrivacySettings(
+      tenantId: tenant.id,
+      userId: uid,
+      isPublic: isProfileVisible.value,
+      allowWaves: isWaveEnabled.value,
+    );
+  }
+
+  Future<void> checkNotificationPermission() async {
     try {
       if (Firebase.apps.isEmpty) return;
 
@@ -377,10 +590,12 @@ class ShopManager {
       final prefs = await SharedPreferences.getInstance();
       
       if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-        debugPrint("FCM: Getting token with VAPID key...");
-        final token = await messaging.getToken(
-          vapidKey: 'BGfucW_HKKPEUrswHLq1S-WGdeyHv6jTkSGvsJ_bP20OelPwEpMcsxAkhpf34iK3g-H1E8NVVY8Vo96bIyxagQg', 
-        );
+        debugPrint("FCM: Getting token...");
+        
+        // Use VAPID key ONLY on Web. Using it on Native causes token retrieval to fail.
+        final token = await (kIsWeb 
+          ? messaging.getToken(vapidKey: 'BGfucW_HKKPEUrswHLq1S-WGdeyHv6jTkSGvsJ_bP20OelPwEpMcsxAkhpf34iK3g-H1E8NVVY8Vo96bIyxagQg') 
+          : messaging.getToken());
         
         if (token != null && token.isNotEmpty) {
           debugPrint("FCM: Token retrieved: $token");
@@ -485,8 +700,6 @@ class ShopManager {
 
   final ValueNotifier<Map<String, dynamic>?> activeWave = ValueNotifier<Map<String, dynamic>?>(null);
 
-  final ValueNotifier<bool> isLocationHidden = ValueNotifier<bool>(false);
-  final ValueNotifier<bool> isWaveEnabled = ValueNotifier<bool>(true);
   final ValueNotifier<bool> showSocialStatus = ValueNotifier<bool>(true);
   final ValueNotifier<bool> onlyMutualChat = ValueNotifier<bool>(false);
   final ValueNotifier<bool> showTableNumber = ValueNotifier<bool>(true);
@@ -853,28 +1066,43 @@ class ShopManager {
     activePoll.value = null;
   }
 
-  final ValueNotifier<List<Map<String, dynamic>>> musicQueue = ValueNotifier<List<Map<String, dynamic>>>([
-    {'title': 'Blinding Lights', 'artist': 'The Weeknd', 'image': 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=500&auto=format&fit=crop&q=60', 'votes': 12, 'hasVoted': false, 'dedication': 'For Table 12'},
-    {'title': 'Levitating', 'artist': 'Dua Lipa', 'image': 'https://images.unsplash.com/photo-1493225255756-d9584f8606e9?w=500&auto=format&fit=crop&q=60', 'votes': 8, 'hasVoted': false, 'dedication': 'To my best friend!'},
-    {'title': 'Heat Waves', 'artist': 'Glass Animals', 'image': 'https://images.unsplash.com/photo-1557672172-298e090bd0f1?w=500&auto=format&fit=crop&q=60', 'votes': 5, 'hasVoted': false, 'dedication': null},
-  ]);
+  final ValueNotifier<List<Map<String, dynamic>>> musicQueue = ValueNotifier<List<Map<String, dynamic>>>([]);
 
-  void toggleMusicVote(int index) {
-    List<Map<String, dynamic>> queue = List.from(musicQueue.value);
-    bool currentVoted = queue[index]['hasVoted'];
-    queue[index]['hasVoted'] = !currentVoted;
-    queue[index]['votes'] += currentVoted ? -1 : 1;
-    queue.sort((a, b) => b['votes'].compareTo(a['votes']));
-    musicQueue.value = queue;
-    if (!currentVoted) vibeScore.value = (vibeScore.value + 2).clamp(0, 100);
+  Future<Map<String, dynamic>> toggleMusicVote(int songId) async {
+    final tenant = TenantService().currentTenant.value;
+    if (tenant == null) return {"success": false, "message": "No restaurant identified."};
+
+    final result = await ApiService.voteSong(
+      tenantId: tenant.id, 
+      userId: currentUserId,
+      songId: songId, 
+    );
+    
+    if (result['status'] == 'success') {
+      await refreshMusicStatus();
+      vibeScore.value = (vibeScore.value + 2).clamp(0, 100);
+      return {"success": true};
+    }
+    return {"success": false, "message": result['message'] ?? "Vote failed."};
   }
 
-  void requestSong(String title, String artist, String? dedication) {
-    List<Map<String, dynamic>> queue = List.from(musicQueue.value);
-    queue.add({'title': title, 'artist': artist, 'image': 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=500&auto=format&fit=crop&q=60', 'votes': 1, 'hasVoted': true, 'dedication': dedication});
-    queue.sort((a, b) => b['votes'].compareTo(a['votes']));
-    musicQueue.value = queue;
-    vibeScore.value = (vibeScore.value + 5).clamp(0, 100);
+  Future<Map<String, dynamic>> requestSong(String title, String artist, String? dedication) async {
+    final tenant = TenantService().currentTenant.value;
+    if (tenant == null) return {"success": false, "message": "No restaurant identified."};
+
+    final result = await ApiService.requestMusic({
+      'tenant_id': tenant.id,
+      'title': title,
+      'artist': artist,
+      'dedication': dedication,
+      'user_id': currentUserId,
+    });
+
+    if (result['success'] == true) {
+      await refreshMusicStatus();
+      vibeScore.value = (vibeScore.value + 5).clamp(0, 100);
+    }
+    return result;
   }
 
   void requestService(String type) {

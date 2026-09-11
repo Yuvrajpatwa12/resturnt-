@@ -27,6 +27,7 @@ import 'screens/hr_policy_screen.dart';
 import 'screens/department_management_screen.dart';
 import 'screens/support_ticket_screen.dart';
 import 'screens/subscription_status_screen.dart';
+import 'screens/music_management_screen.dart';
 
 class AdminHub extends StatefulWidget {
   const AdminHub({super.key});
@@ -186,6 +187,7 @@ class _AdminHubState extends State<AdminHub> {
     const RewardManagementScreen(mode: "Mystery Box"), // 116
     const RewardManagementScreen(mode: "Claim History"), // 117
     const RewardManagementScreen(mode: "Marketing Banners"), // 118
+    const MusicManagementScreen(), // 119
   ];
 
   @override
@@ -266,6 +268,7 @@ class _AdminHubState extends State<AdminHub> {
                     _buildSubDrawerItem(8, "Counter List"),
                     _buildSubDrawerItem(9, "POS Setting"),
                     _buildSubDrawerItem(10, "Sound Setting"),
+                    _buildSubDrawerItem(119, "Live Jukebox Control"),
                   ],
                 ),
 
