@@ -49,7 +49,24 @@ class _NearbyPageState extends State<NearbyPage> {
     final data = await ApiService.fetchActiveGuests(tenant.id, myId);
     if (mounted) {
       setState(() {
-        if (data != null) _activeGuests = data;
+        if (data != null) {
+          // --- CLIENT-SIDE FILTERING (Server Efficiency) ---
+          // Only show users active in the last 5 minutes
+          final now = DateTime.now();
+          _activeGuests = data.where((user) {
+            final lastSeenStr = user['last_seen'];
+            if (lastSeenStr == null) return false;
+            
+            try {
+              // Parse 'YYYY-MM-DD HH:MM:SS'
+              final lastSeen = DateTime.parse(lastSeenStr).toLocal();
+              // Inactivity threshold: 5 minutes
+              return now.difference(lastSeen).inMinutes <= 5;
+            } catch (e) {
+              return false;
+            }
+          }).toList();
+        }
         _isLoading = false;
       });
     }
@@ -169,9 +186,9 @@ class _NearbyPageState extends State<NearbyPage> {
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(color: Colors.red[100]!),
                           ),
-                          child: Text(
-                            "तपाईंको प्रोफाइल सार्वजनिक रूपमा कसैलाई पनि देखिरहेको छैन। अरूलाई देखाउनको लागि सेटिङमा गई 'Public Profile' अन गर्नुहोस्।",
-                            style: TextStyle(color: Colors.red[700], fontSize: 11, fontWeight: FontWeight.bold),
+                          child: const Text(
+                            "Your profile is currently not visible to others. To show your location to other diners, please enable 'Public Profile' in settings.",
+                            style: TextStyle(color: Color(0xFFC62828), fontSize: 11, fontWeight: FontWeight.bold),
                             textAlign: TextAlign.center,
                           ),
                         );
@@ -342,7 +359,7 @@ class _NearbyPageState extends State<NearbyPage> {
                         // Check if user is public before following
                         if (user['is_public'] == 0 || user['is_public'] == false) {
                            ScaffoldMessenger.of(context).showSnackBar(
-                             const SnackBar(content: Text("तपाईं यो निजी प्रोफाइल (Private Profile) लाई पछ्याउन सक्नुहुन्न।"), backgroundColor: Colors.red),
+                             const SnackBar(content: Text("You cannot follow a private profile."), backgroundColor: Colors.red),
                            );
                            return;
                         }
@@ -433,9 +450,9 @@ class _NearbyPageState extends State<NearbyPage> {
                     if (!isVisible)
                       Padding(
                         padding: const EdgeInsets.only(top: 8, left: 40),
-                        child: Text(
-                          "तपाईंको प्रोफाइल लुकेको छ। सार्वजनिक रूपमा देखाउनको लागि यसलाई अन गर्नुहोस्।",
-                          style: TextStyle(color: Colors.red[700], fontSize: 11, fontWeight: FontWeight.bold),
+                        child: const Text(
+                          "Your profile is hidden. Turn it on to be visible to others.",
+                          style: TextStyle(color: Color(0xFFC62828), fontSize: 11, fontWeight: FontWeight.bold),
                         ),
                       ),
                   ],

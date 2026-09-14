@@ -17,7 +17,7 @@ class _MysteryBoxPageState extends State<MysteryBoxPage> {
 
   @override
   Widget build(BuildContext context) {
-    bool isWiFi = ShopManager.instance.isConnectedToRestaurantWiFi;
+    bool isWiFi = ShopManager.instance.isConnectedToRestaurantWiFi.value;
     bool isTime = ShopManager.instance.isMysteryBoxTime();
     bool isUnlocked = isWiFi && isTime;
 

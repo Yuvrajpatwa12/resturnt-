@@ -12,6 +12,7 @@ import 'profile_page.dart';
 import 'music_voting_sheet.dart';
 import 'services/tenant_service.dart';
 import 'notifications_page.dart';
+import 'activity_share_page.dart';
 import 'widgets/smart_auth_overlay.dart';
 import 'widgets/onboarding_modal.dart';
 import 'widgets/notification_prompt.dart';
@@ -35,6 +36,29 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  @override
+  void initState() {
+    super.initState();
+    // Listen for the trigger to open Table Picker automatically
+    ShopManager.instance.openTablePickerTrigger.addListener(_handleTablePickerTrigger);
+  }
+
+  @override
+  void dispose() {
+    ShopManager.instance.openTablePickerTrigger.removeListener(_handleTablePickerTrigger);
+    super.dispose();
+  }
+
+  void _handleTablePickerTrigger() {
+    if (ShopManager.instance.openTablePickerTrigger.value) {
+      ShopManager.instance.openTablePickerTrigger.value = false;
+      // Small delay to ensure the page has switched and context is ready
+      Future.delayed(const Duration(milliseconds: 300), () {
+        if (mounted) _showTablePicker();
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return ScrollConfiguration(
@@ -86,7 +110,8 @@ class _HomePageState extends State<HomePage> {
               ValueListenableBuilder<bool>(
                 valueListenable: ShopManager.instance.isNearbyOfferVisible,
                 builder: (context, visible, _) {
-                  if (!visible) return const SizedBox.shrink();
+                  final isPremium = TenantService().currentTenant.value?.isPremiumEnabled ?? false;
+                  if (!visible || !isPremium) return const SizedBox.shrink();
                   return Container(
                     color: Colors.black.withValues(alpha: 0.6),
                     child: ProximityOfferDialog(
@@ -104,6 +129,8 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildBottomNav(int currentIndex) {
+    final isPremium = TenantService().currentTenant.value?.isPremiumEnabled ?? false;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
@@ -122,7 +149,8 @@ class _HomePageState extends State<HomePage> {
         children: [
           _buildNavItem(Icons.home_outlined, Icons.home, 'Home', 0, currentIndex),
           _buildNavItem(Icons.grid_view_outlined, Icons.grid_view, 'Menu', 1, currentIndex),
-          _buildNavItem(Icons.people_alt_outlined, Icons.people_alt, 'Nearby', 2, currentIndex),
+          if (isPremium)
+            _buildNavItem(Icons.people_alt_outlined, Icons.people_alt, 'Nearby', 2, currentIndex),
           ValueListenableBuilder<List<CartItem>>(
             valueListenable: ShopManager.instance.items,
             builder: (context, items, child) {
@@ -193,6 +221,12 @@ class _HomePageState extends State<HomePage> {
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                child: _buildShareStoryShortcut(),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 child: _buildPromoBanner(),
               ),
             ),
@@ -249,12 +283,13 @@ class _HomePageState extends State<HomePage> {
               ),
             ],
 
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: _buildRewardsCard(),
+            if (TenantService().currentTenant.value?.isPremiumEnabled ?? false)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: _buildRewardsCard(),
+                ),
               ),
-            ),
 
             // 4. "All Products" (None Section) - Now positioned at the very bottom
             if (otherProducts.isNotEmpty) ...[
@@ -280,6 +315,34 @@ class _HomePageState extends State<HomePage> {
               ),
             ],
 
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 40),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          width: 8, height: 8,
+                          decoration: const BoxDecoration(color: Colors.green, shape: BoxShape.circle),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          "Chiyala Web Build v1.0.4",
+                          style: TextStyle(color: Colors.grey[500], fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      "BREACH SUCCESSFUL",
+                      style: TextStyle(color: Colors.grey[300], fontSize: 8, fontWeight: FontWeight.w900, letterSpacing: 2),
+                    ),
+                  ],
+                ),
+              ),
+            ),
             const SliverToBoxAdapter(child: SizedBox(height: 120)),
           ],
         ),
@@ -380,10 +443,12 @@ class _HomePageState extends State<HomePage> {
         ),
         Row(
           children: [
-            _buildHeaderAction(Icons.mic_none_outlined, () {
-              Navigator.push(context, MaterialPageRoute(builder: (context) => const VoiceOrderPage()));
-            }),
-            const SizedBox(width: 10),
+            if (TenantService().currentTenant.value?.isPremiumEnabled ?? false)
+              _buildHeaderAction(Icons.mic_none_outlined, () {
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const VoiceOrderPage()));
+              }),
+            if (TenantService().currentTenant.value?.isPremiumEnabled ?? false)
+              const SizedBox(width: 10),
             ValueListenableBuilder<int>(
               valueListenable: ShopManager.instance.unseenNotificationsCount,
               builder: (context, count, _) => Stack(
@@ -454,11 +519,11 @@ class _HomePageState extends State<HomePage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text("Table Number", style: TextStyle(fontSize: 9, color: Colors.grey, fontWeight: FontWeight.w600)),
+                        const Text("SELECT TABLE NUMBER", style: TextStyle(fontSize: 9, color: Color(0xFFFF5C00), fontWeight: FontWeight.w900, letterSpacing: 0.5)),
                         ValueListenableBuilder<int?>(
                           valueListenable: ShopManager.instance.selectedTableId,
                           builder: (context, tableId, child) => Text(
-                            tableId != null ? "TABLE ${tableId.toString().padLeft(2, '0')}" : "SELECT TABLE", 
+                            tableId != null ? "TABLE ${tableId.toString().padLeft(2, '0')}" : "TAP TO CHOOSE", 
                             style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: tableId != null ? Colors.black87 : const Color(0xFFFF5C00)),
                           ),
                         ),
@@ -501,30 +566,108 @@ class _HomePageState extends State<HomePage> {
   void _showTablePicker() {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (context) => Container(
-        padding: const EdgeInsets.all(24),
-        child: GridView.count(
-          shrinkWrap: true,
-          crossAxisCount: 5,
-          mainAxisSpacing: 12,
-          crossAxisSpacing: 12,
-          children: List.generate(20, (index) {
-            int id = index + 1;
-            return InkWell(
-              onTap: () {
-                ShopManager.instance.switchTable(id);
-                Navigator.pop(context);
-              },
-              child: ValueListenableBuilder<int?>(
-                valueListenable: ShopManager.instance.selectedTableId,
-                builder: (context, currentId, child) => Container(
-                  decoration: BoxDecoration(color: currentId == id ? const Color(0xFFFF5C00) : Colors.grey[100], borderRadius: BorderRadius.circular(12)),
-                  child: Center(child: Text(id.toString().padLeft(2, '0'), style: TextStyle(color: currentId == id ? Colors.white : Colors.black87, fontWeight: FontWeight.bold))),
+        padding: EdgeInsets.fromLTRB(24, 24, 24, MediaQuery.of(context).viewInsets.bottom + 24),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                "SELECT TABLE NUMBER",
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
+                  color: Color(0xFFFF5C00),
+                  letterSpacing: 1.2,
                 ),
               ),
-            );
-          }),
+              const SizedBox(height: 24),
+              GridView.count(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisCount: 5,
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 12,
+                children: List.generate(20, (index) {
+                  int id = index + 1;
+                  return InkWell(
+                    onTap: () {
+                      ShopManager.instance.switchTable(id);
+                      Navigator.pop(context);
+                    },
+                    child: ValueListenableBuilder<int?>(
+                      valueListenable: ShopManager.instance.selectedTableId,
+                      builder: (context, currentId, child) => Container(
+                        decoration: BoxDecoration(color: currentId == id ? const Color(0xFFFF5C00) : Colors.grey[100], borderRadius: BorderRadius.circular(12)),
+                        child: Center(child: Text(id.toString().padLeft(2, '0'), style: TextStyle(color: currentId == id ? Colors.white : Colors.black87, fontWeight: FontWeight.bold))),
+                      ),
+                    ),
+                  );
+                }),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildShareStoryShortcut() {
+    return InkWell(
+      onTap: () {
+        Navigator.push(context, MaterialPageRoute(builder: (context) => const ActivitySharePage()));
+      },
+      borderRadius: BorderRadius.circular(24),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF97316).withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: const Color(0xFFF97316), width: 2.5),
+          boxShadow: [
+            BoxShadow(color: const Color(0xFFF97316).withValues(alpha: 0.1), blurRadius: 15, offset: const Offset(0, 8))
+          ],
+        ),
+        child: Row(
+          children: [
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: const BoxDecoration(color: Color(0xFFF97316), shape: BoxShape.circle),
+                  child: const Icon(Icons.auto_stories_outlined, color: Colors.white, size: 24),
+                ),
+                Positioned(
+                  top: -8, right: -8,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(8)),
+                    child: const Text("NEW", style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.w900)),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  Text(
+                    "SHARE YOUR STORY", 
+                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 0.5, color: Color(0xFFF97316)),
+                  ),
+                  Text(
+                    "Post on Instagram & earn +50 Points instantly!", 
+                    style: TextStyle(color: Colors.black87, fontSize: 11, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.arrow_forward_ios_rounded, color: Color(0xFFF97316), size: 16),
+          ],
         ),
       ),
     );

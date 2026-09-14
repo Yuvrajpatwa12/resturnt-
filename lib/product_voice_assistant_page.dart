@@ -95,7 +95,7 @@ class _ProductVoiceAssistantPageState extends State<ProductVoiceAssistantPage> {
       await flutterTts.setSpeechRate(0.8); // Faster rate for more human-like flow
       
       // Initial messages
-      String welcomeMsg = "नमस्ते! म तपाईंलाई यो ${widget.product.title} को बारेमा के मद्दत गर्न सक्छु?";
+      String welcomeMsg = "Hello! How can I assist you with this ${widget.product.title} today?";
       
       _addStaffMessage(welcomeMsg, !kIsWeb);
     } catch (e) {

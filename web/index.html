@@ -1,62 +1,66 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
-  -->
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+  <meta name="description" content="Chiyala - Elevated Dining">
 
-  <!-- iOS meta tags & icons -->
+  <!-- FINAL CACHE BREACH V4 -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="apple-mobile-web-app-title" content="chiyabreak">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
-
-  <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <title>chiyabreak</title>
+  <title>Chiyala</title>
   <link rel="manifest" href="manifest.json">
 
-  <!-- GOOGLE MODEL VIEWER LIBRARY (3D/AR) -->
-  <link rel="preconnect" href="https://unpkg.com">
-  <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
-
-  <!-- URL PARAMETER GUARD -->
   <script>
+    // NUCLEAR RESET V4 - FORCE NEW VERSION ON ALL DEVICES
     (function() {
-      const urlParams = new URLSearchParams(window.location.search);
-      const tableId = urlParams.get('table');
-      if (tableId) {
-        window.sessionStorage.setItem('rescue_table_id', tableId);
-        console.log("GUARD: Table " + tableId + " captured in session storage.");
+      const version = "1.0.4";
+      const currentUrl = new URL(window.location.href);
+
+      // If version mismatch or missing update parameter, purge and redirect
+      if (localStorage.getItem('app_version') !== version || !currentUrl.searchParams.get('breach')) {
+        console.log("FINAL BREACH V4: Purging all caches and service workers...");
+
+        localStorage.clear();
+        sessionStorage.clear();
+        localStorage.setItem('app_version', version);
+
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.getRegistrations().then(function(registrations) {
+            for(let registration of registrations) {
+              registration.unregister();
+            }
+          });
+        }
+
+        // Redirect to unique URL to bypass server/ISP cache
+        currentUrl.searchParams.set('v', version);
+        currentUrl.searchParams.set('breach', Date.now());
+        window.location.replace(currentUrl.toString());
       }
     })();
   </script>
+
+  <link rel="preconnect" href="https://unpkg.com">
+  <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 </head>
 <body>
   <script>
-    // Force service worker update on every reload
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', function () {
-        navigator.serviceWorker.register('flutter_service_worker.js?v=' + new Date().getTime());
-      });
-    }
+    // Append unique token to bootstrap to kill cached JS files
+    const script = document.createElement('script');
+    script.src = "flutter_bootstrap.js?breach=" + Date.now();
+    script.async = true;
+    document.body.appendChild(script);
   </script>
-  <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

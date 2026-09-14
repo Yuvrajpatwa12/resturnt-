@@ -10,8 +10,11 @@ import 'live_order_tracking_screen.dart';
 import 'my_orders_page.dart';
 import 'user_profile_view_page.dart';
 import 'messages_list_page.dart';
+import 'chat_page.dart'; // Added
 import 'settings_page.dart';
 import 'services/tenant_service.dart';
+import 'activity_share_page.dart';
+import 'group_dining_wrapper.dart';
 
 
 class ProfilePage extends StatefulWidget {
@@ -22,6 +25,13 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
+  @override
+  void initState() {
+    super.initState();
+    // Refresh social data when profile is opened
+    ShopManager.instance.fetchSocialLists();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -43,9 +53,11 @@ class _ProfilePageState extends State<ProfilePage> {
         ],
       ),
       body: DefaultTabController(
-        length: 3,
+        length: (TenantService().currentTenant.value?.isPremiumEnabled ?? false) ? 3 : 2,
         child: NestedScrollView(
-          headerSliverBuilder: (context, innerBoxIsScrolled) => [
+          headerSliverBuilder: (context, innerBoxIsScrolled) {
+            final isPremium = TenantService().currentTenant.value?.isPremiumEnabled ?? false;
+            return [
             SliverToBoxAdapter(child: _buildSocialHeader()),
             SliverPersistentHeader(
               pinned: true,
@@ -75,26 +87,29 @@ class _ProfilePageState extends State<ProfilePage> {
                         ],
                       ),
                     ),
-                    Tab(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: const [
-                          Icon(Icons.people_outline, size: 18),
-                          SizedBox(width: 8),
-                          Text("Social", style: TextStyle(fontWeight: FontWeight.bold)),
-                        ],
+                    if (isPremium)
+                      Tab(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: const [
+                            Icon(Icons.people_outline, size: 18),
+                            SizedBox(width: 8),
+                            Text("Social", style: TextStyle(fontWeight: FontWeight.bold)),
+                          ],
+                        ),
                       ),
-                    ),
                   ],
                 ),
               ),
             ),
-          ],
+          ];
+          },
           body: TabBarView(
             children: [
               _buildActivityTab(),
               _buildAboutTab(),
-              _buildSocialTab(),
+              if (TenantService().currentTenant.value?.isPremiumEnabled ?? false)
+                _buildSocialTab(),
             ],
           ),
         ),
@@ -189,39 +204,40 @@ class _ProfilePageState extends State<ProfilePage> {
             },
           ),
           const SizedBox(height: 24),
-          Row(
-            children: [
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    ShopManager.instance.currentTabIndex.value = 2; // Navigate to Nearby
-                  },
-                  icon: const Icon(Icons.bolt, color: Colors.white),
-                  label: const Text("Connect", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFFF5C00),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+          if (TenantService().currentTenant.value?.isPremiumEnabled ?? false)
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      ShopManager.instance.currentTabIndex.value = 2; // Navigate to Nearby
+                    },
+                    icon: const Icon(Icons.bolt, color: Colors.white),
+                    label: const Text("Connect", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFFF5C00),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () {
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => const MessagesListPage()));
-                  },
-                  icon: const Icon(Icons.chat_bubble_outline, color: Colors.black, size: 20),
-                  label: const Text("Messages", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => const MessagesListPage()));
+                    },
+                    icon: const Icon(Icons.chat_bubble_outline, color: Colors.black, size: 20),
+                    label: const Text("Messages", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                    ),
                   ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            ),
         ],
       ),
     );
@@ -237,6 +253,8 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildActivityTab() {
+    final isPremium = TenantService().currentTenant.value?.isPremiumEnabled ?? false;
+    
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -248,15 +266,25 @@ class _ProfilePageState extends State<ProfilePage> {
           _buildMenuItem(Icons.history, "My Orders", "Track live orders & history", Colors.blue, () {
             Navigator.push(context, MaterialPageRoute(builder: (context) => const MyOrdersPage()));
           }),
-          _buildMenuItem(Icons.auto_stories, "Meat Master Passport", "Collect stamps & earn rewards", const Color(0xFFFF5C00), () {
-            Navigator.push(context, MaterialPageRoute(builder: (context) => const PassportPage()));
+          _buildMenuItem(Icons.auto_stories_outlined, "Share Your Story", "Post on Instagram & Earn 50 Points", Colors.pinkAccent, () {
+            // Need to import activity_share_page.dart first
+            Navigator.push(context, MaterialPageRoute(builder: (context) => const ActivitySharePage()));
           }),
-          _buildMenuItem(Icons.auto_awesome, "Surprise Mystery Box", "Win free items while in-house", Colors.purple, () {
-            Navigator.push(context, MaterialPageRoute(builder: (context) => const MysteryBoxPage()));
+          _buildMenuItem(Icons.account_balance_wallet_outlined, "Group Dining Session", "Live host & guest sync tools", Colors.deepOrange, () {
+            Navigator.push(context, MaterialPageRoute(builder: (context) => const GroupDiningWrapper()));
           }),
-          _buildMenuItem(Icons.card_giftcard, "Redeem Rewards", "Spend your loyalty points", Colors.green, () {
-            Navigator.push(context, MaterialPageRoute(builder: (context) => const RewardsPage()));
-          }),
+          if (isPremium)
+            _buildMenuItem(Icons.auto_stories, "Meat Master Passport", "Collect stamps & earn rewards", const Color(0xFFFF5C00), () {
+              Navigator.push(context, MaterialPageRoute(builder: (context) => const PassportPage()));
+            }),
+          if (isPremium)
+            _buildMenuItem(Icons.auto_awesome, "Surprise Mystery Box", "Win free items while in-house", Colors.purple, () {
+              Navigator.push(context, MaterialPageRoute(builder: (context) => const MysteryBoxPage()));
+            }),
+          if (isPremium)
+            _buildMenuItem(Icons.card_giftcard, "Redeem Rewards", "Spend your loyalty points", Colors.green, () {
+              Navigator.push(context, MaterialPageRoute(builder: (context) => const RewardsPage()));
+            }),
         ],
       ),
     );
@@ -288,20 +316,33 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildSocialTab() {
-    return ListView(
-      padding: const EdgeInsets.all(20),
-      children: [
-        _buildSectionHeader("My Social Circle"),
-        _buildSocialListTile(Icons.people_rounded, "Mutual Friends", "Connect & Message", Colors.green, () {
-          _showSocialListModal("Friends", ShopManager.instance.friendsList);
-        }),
-        _buildSocialListTile(Icons.person_add_alt_1_rounded, "Requests", "Follow them back", Colors.orange, () {
-          _showSocialListModal("Requests", ShopManager.instance.requestsList, isRequest: true);
-        }),
-        _buildSocialListTile(Icons.assignment_ind_rounded, "Following", "People you follow", Colors.blue, () {
-          _showSocialListModal("Following", ShopManager.instance.followingList);
-        }),
-      ],
+    return RefreshIndicator(
+      onRefresh: () => ShopManager.instance.fetchSocialLists(),
+      color: const Color(0xFFFF5C00),
+      child: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildSectionHeader("My Social Circle"),
+              IconButton(
+                onPressed: () => ShopManager.instance.fetchSocialLists(),
+                icon: const Icon(Icons.sync, size: 16, color: Colors.grey),
+              ),
+            ],
+          ),
+          _buildSocialListTile(Icons.people_rounded, "Mutual Friends", "Connect & Message", Colors.green, () {
+            _showSocialListModal("Mutual Friends", ShopManager.instance.friendsList);
+          }),
+          _buildSocialListTile(Icons.person_add_alt_1_rounded, "Requests", "Follow them back", Colors.orange, () {
+            _showSocialListModal("Follow Requests", ShopManager.instance.requestsList, isRequest: true);
+          }),
+          _buildSocialListTile(Icons.assignment_ind_rounded, "Following", "People you follow", Colors.blue, () {
+            _showSocialListModal("Following List", ShopManager.instance.followingList);
+          }),
+        ],
+      ),
     );
   }
 
@@ -361,7 +402,22 @@ class _ProfilePageState extends State<ProfilePage> {
                           style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFF5C00), foregroundColor: Colors.white),
                           child: const Text("Follow Back"),
                         )
-                      : (title == "Friends" ? const Icon(Icons.chat_bubble_outline, color: Color(0xFFFF5C00)) : null),
+                      : (title == "Mutual Friends" 
+                          ? IconButton(
+                              icon: const Icon(Icons.chat_bubble_outline, color: Color(0xFFFF5C00)),
+                              onPressed: () {
+                                Navigator.pop(context); // Close modal
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (context) => ChatPage(
+                                    userId: u['email'], 
+                                    userName: u['name'], 
+                                    userImage: avatarUrl
+                                  )),
+                                );
+                              },
+                            ) 
+                          : null),
                   );
                 }),
               ],

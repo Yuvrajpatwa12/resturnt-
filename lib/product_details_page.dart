@@ -3,6 +3,8 @@ import 'cart_manager.dart';
 import 'models.dart';
 import 'app_data.dart';
 import 'product_card.dart';
+import 'ar_view_page.dart';
+import 'services/tenant_service.dart';
 
 class ProductDetailsPage extends StatefulWidget {
   final Product product;
@@ -109,6 +111,39 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                       ),
                     ),
                   ),
+                  if (TenantService().currentTenant.value?.isPremiumEnabled ?? false)
+                    Positioned(
+                      top: 20, left: 20,
+                      child: GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => ARViewPage(product: widget.product)),
+                          );
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.1),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              )
+                            ],
+                          ),
+                          child: Icon(
+                            Icons.view_in_ar_rounded, 
+                            color: (widget.product.modelUrl != null && widget.product.modelUrl!.isNotEmpty)
+                                ? const Color(0xFFFF5C00)
+                                : Colors.grey,
+                            size: 24,
+                          ),
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),

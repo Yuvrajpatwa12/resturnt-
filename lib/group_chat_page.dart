@@ -1,8 +1,13 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'cart_manager.dart';
+import 'package:image_picker/image_picker.dart';
+import 'services/api_service.dart';
+import 'services/tenant_service.dart';
 
 class GroupChatPage extends StatefulWidget {
-  const GroupChatPage({super.key});
+  final bool showBackButton;
+  const GroupChatPage({super.key, this.showBackButton = false});
 
   @override
   State<GroupChatPage> createState() => _GroupChatPageState();
@@ -10,389 +15,339 @@ class GroupChatPage extends StatefulWidget {
 
 class _GroupChatPageState extends State<GroupChatPage> {
   final TextEditingController _controller = TextEditingController();
-  bool _isRecording = false;
   
-  final List<Map<String, dynamic>> _messages = [
-    {'sender': 'Mark', 'text': 'Hey everyone! Brisket is great here.', 'isMe': false, 'time': '12:40 PM', 'type': 'text'},
-    {'sender': 'Noah', 'text': 'I just ordered the same! 😋', 'isMe': false, 'time': '12:41 PM', 'type': 'text'},
-    {'sender': 'You', 'text': 'Can\'t wait to try it.', 'isMe': true, 'time': '12:42 PM', 'type': 'text'},
-    {'sender': 'Mark', 'text': '0:08', 'isMe': false, 'time': '12:43 PM', 'type': 'voice'},
-  ];
+  static const Color primaryBlue = Color(0xFF1E3A8A);
+  static const Color accentOrange = Color(0xFFF97316);
 
-  void _sendMessage() {
-    if (_controller.text.trim().isEmpty) return;
-    setState(() {
-      _messages.add({
-        'sender': 'You',
-        'text': _controller.text.trim(),
-        'isMe': true,
-        'time': '12:44 PM',
-        'type': 'text',
-      });
-      _controller.clear();
-    });
+  Future<void> _requestPayment() async {
+    final picker = ImagePicker();
+    final image = await picker.pickImage(source: ImageSource.gallery);
+    if (image == null) return;
+
+    final bytes = await image.readAsBytes();
+    final sid = ShopManager.instance.activeSessionId.value;
+    if (sid == null) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Uploading Payment QR...")));
+    final url = await ApiService.uploadGroupQR(sid, bytes, image.name);
+
+    if (url != null) {
+      ShopManager.instance.activeSessionQr.value = url;
+      ShopManager.instance.isSessionLocked.value = true;
+      ShopManager.instance.syncSessionData();
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Payment Request Sent!")));
+    }
   }
 
-  void _sendVoiceNote() {
-    setState(() {
-      _messages.add({
-        'sender': 'You',
-        'text': '0:05',
-        'isMe': true,
-        'time': '12:45 PM',
-        'type': 'voice',
-      });
-    });
+  Future<void> _uploadPaymentSS() async {
+    final picker = ImagePicker();
+    final image = await picker.pickImage(source: ImageSource.gallery);
+    if (image == null) return;
+
+    final bytes = await image.readAsBytes();
+    final sid = ShopManager.instance.activeSessionId.value;
+    final uid = ShopManager.instance.currentUserId;
+    if (sid == null || uid.isEmpty) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Uploading Payment Proof...")));
+    final url = await ApiService.submitGroupPayment(sid, uid, bytes, image.name);
+
+    if (url != null) {
+      ShopManager.instance.syncSessionData();
+      _showPaymentConfirmationPopup();
+    }
+  }
+
+  void _showPaymentConfirmationPopup() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: const Text("Payment Done?", style: TextStyle(fontWeight: FontWeight.w900)),
+        content: const Text("Has your transaction been successfully completed? This will notify the host."),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("NO", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold))),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.green, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+            onPressed: () {
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Host has been notified!"), backgroundColor: Colors.green));
+            },
+            child: const Text("YES, PAID", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final members = ShopManager.instance.currentGroupMembers;
+    final session = ShopManager.instance;
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF7F8FA),
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0.5,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black87),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Row(
-          children: [
-            Column(
+    return ValueListenableBuilder<List<Map<String, dynamic>>>(
+      valueListenable: session.liveSessionMembers,
+      builder: (context, members, _) {
+        return Scaffold(
+          backgroundColor: const Color(0xFFF4F6F9),
+          appBar: AppBar(
+            backgroundColor: Colors.white,
+            elevation: 0.5,
+            automaticallyImplyLeading: false,
+            leading: widget.showBackButton ? IconButton(
+              icon: const Icon(Icons.arrow_back, color: Colors.black87),
+              onPressed: () => Navigator.pop(context),
+            ) : null,
+            title: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text("Dining Group", style: TextStyle(color: Colors.black87, fontSize: 16, fontWeight: FontWeight.bold)),
+                const Text("GROUP SETTLEMENT", style: TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 1)),
                 Text(
-                  "Table 12 • ${members.length + 1} People", 
+                  "Table #04 • ${members.length} Diners Active", 
                   style: const TextStyle(color: Colors.green, fontSize: 10, fontWeight: FontWeight.bold)
                 ),
               ],
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: SizedBox(
-                height: 24,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: members.length,
-                  itemBuilder: (context, index) {
-                    return Container(
-                      margin: const EdgeInsets.only(right: 4),
-                      child: CircleAvatar(
-                        radius: 10,
-                        backgroundImage: NetworkImage(members[index]['image']),
-                      ),
-                    );
-                  },
+            actions: [
+              if (session.isSessionHost.value && !session.isSessionLocked.value)
+                IconButton(
+                  icon: const Icon(Icons.qr_code_scanner_rounded, color: accentOrange, size: 24),
+                  tooltip: "Request Payment",
+                  onPressed: _requestPayment,
                 ),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.qr_code_2_rounded, color: Colors.black87, size: 20),
-            onPressed: () => _showGroupQR(context),
+              const SizedBox(width: 8),
+            ],
           ),
-          IconButton(
-            icon: const Icon(Icons.person_add_alt_1, color: Colors.blue),
-            onPressed: () => _showAddMemberModal(context),
+          floatingActionButton: ValueListenableBuilder<bool>(
+            valueListenable: session.isSplitShared,
+            builder: (context, isShared, _) {
+              if (!isShared || session.isSessionHost.value) return const SizedBox.shrink();
+              return FloatingActionButton.extended(
+                onPressed: _uploadPaymentSS,
+                backgroundColor: primaryBlue,
+                icon: const Icon(Icons.cloud_upload_rounded, color: Colors.white),
+                label: const Text("UPLOAD PROOF", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              );
+            },
           ),
-          IconButton(
-            icon: const Icon(Icons.star_outline, color: Colors.amber),
-            onPressed: () => _showTableRatingDialog(context),
+          body: ValueListenableBuilder<bool>(
+            valueListenable: session.isSplitShared,
+            builder: (context, isShared, _) {
+              return Column(
+                children: [
+                  Expanded(
+                    child: ListView(
+                      padding: const EdgeInsets.all(20),
+                      children: [
+                        if (!isShared)
+                          _buildWaitingState()
+                        else ...[
+                          ValueListenableBuilder<String?>(
+                            valueListenable: session.activeSessionQr,
+                            builder: (context, qrUrl, _) {
+                              return _buildPaymentRequestCard(qrUrl);
+                            },
+                          ),
+                          const SizedBox(height: 32),
+                          _buildMemberStatusList(members),
+                        ],
+                      ],
+                    ),
+                  ),
+                  if (!isShared) _buildInputBar(),
+                ],
+              );
+            },
           ),
-        ],
+        );
+      }
+    );
+  }
+
+  Widget _buildInputBar() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 10, 20, 30),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, -5))],
       ),
-      body: Column(
+      child: Row(
         children: [
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(20),
-              itemCount: _messages.length,
-              itemBuilder: (context, index) {
-                final msg = _messages[index];
-                final bool isMe = msg['isMe'];
-                final bool isVoice = msg['type'] == 'voice';
-
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 20),
-                  child: Column(
-                    crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-                    children: [
-                      if (!isMe)
-                        Padding(
-                          padding: const EdgeInsets.only(left: 8, bottom: 4),
-                          child: Text(msg['sender'], style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 0.5)),
-                        ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        decoration: BoxDecoration(
-                          color: isMe ? const Color(0xFFFF5C00) : Colors.white,
-                          borderRadius: BorderRadius.only(
-                            topLeft: const Radius.circular(20),
-                            topRight: const Radius.circular(20),
-                            bottomLeft: Radius.circular(isMe ? 20 : 4),
-                            bottomRight: Radius.circular(isMe ? 4 : 20),
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: isMe ? const Color(0xFFFF5C00).withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.03), 
-                              blurRadius: 10, 
-                              offset: const Offset(0, 4)
-                            )
-                          ],
-                        ),
-                        child: isVoice 
-                          ? Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.play_circle_fill, color: isMe ? Colors.white : const Color(0xFFFF5C00), size: 28),
-                                const SizedBox(width: 8),
-                                _buildWaveform(isMe),
-                                const SizedBox(width: 12),
-                                Text(
-                                  msg['text'],
-                                  style: TextStyle(color: isMe ? Colors.white : Colors.black87, fontSize: 11, fontWeight: FontWeight.w900),
-                                ),
-                              ],
-                            )
-                          : Text(
-                              msg['text'],
-                              style: TextStyle(color: isMe ? Colors.white : Colors.black87, fontSize: 14, height: 1.3),
-                            ),
-                      ),
-                      const SizedBox(height: 4),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        child: Text(msg['time'], style: TextStyle(color: Colors.grey[400], fontSize: 9, fontWeight: FontWeight.bold)),
-                      ),
-                    ],
-                  ),
-                );
-              },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(color: const Color(0xFFF1F5F9), borderRadius: BorderRadius.circular(25)),
+              child: TextField(
+                controller: _controller,
+                decoration: const InputDecoration(
+                  hintText: 'Message everyone...',
+                  hintStyle: TextStyle(fontSize: 14, color: Colors.grey, fontWeight: FontWeight.w500),
+                  border: InputBorder.none,
+                ),
+              ),
             ),
           ),
-          // Input Bar
-          Container(
-            padding: const EdgeInsets.fromLTRB(20, 10, 20, 30),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, -5))],
-            ),
-            child: Row(
-              children: [
-                if (!_isRecording) ...[
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(color: Colors.grey[100], shape: BoxShape.circle),
-                    child: const Icon(Icons.add, color: Colors.grey, size: 20),
-                  ),
-                  const SizedBox(width: 12),
-                ],
-                Expanded(
-                  child: _isRecording 
-                    ? const Center(child: Text("Recording Group Note...", style: TextStyle(color: Colors.deepOrange, fontWeight: FontWeight.bold)))
-                    : Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(25)),
-                        child: TextField(
-                          controller: _controller,
-                          decoration: const InputDecoration(
-                            hintText: 'Message everyone...',
-                            hintStyle: TextStyle(fontSize: 14, color: Colors.grey),
-                            border: InputBorder.none,
-                          ),
-                        ),
-                      ),
-                ),
-                const SizedBox(width: 12),
-                GestureDetector(
-                  onLongPress: () => setState(() => _isRecording = true),
-                  onLongPressEnd: (_) {
-                    setState(() => _isRecording = false);
-                    _sendVoiceNote();
-                  },
-                  onTap: _sendMessage,
-                  child: Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: _isRecording ? Colors.deepOrange : const Color(0xFFFF5C00),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      _isRecording ? Icons.mic : (_controller.text.isEmpty ? Icons.mic : Icons.send),
-                      color: Colors.white,
-                      size: 20,
-                    ),
-                  ),
-                ),
-              ],
-            ),
+          const SizedBox(width: 12),
+          IconButton(
+            icon: const Icon(Icons.send, color: primaryBlue),
+            onPressed: () {
+               // Texting logic disabled per settlement requirements
+            },
           ),
         ],
       ),
     );
   }
 
-  void _showTableRatingDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          title: const Text("Rate Table Vibe", textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.w900)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(5, (index) => const Icon(Icons.star, color: Colors.amber, size: 36)),
-              ),
-              const SizedBox(height: 20),
-              const Text(
-                "How is the energy at your table right now?", 
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 13, color: Colors.black54),
-              ),
-            ],
-          ),
-          actions: [
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFFF5C00),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                ),
-                child: const Text("Submit Vibe", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-              ),
-            ),
-          ],
-        );
-      },
+  Widget _buildWaitingState() {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const SizedBox(height: 100),
+        Icon(Icons.hourglass_empty_rounded, size: 64, color: Colors.grey[300]),
+        const SizedBox(height: 24),
+        const Text(
+          "WAITING FOR HOST...",
+          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Colors.grey, letterSpacing: 1.2),
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          "The bill is being calculated using Smart Split.",
+          textAlign: TextAlign.center,
+          style: TextStyle(color: Colors.grey, fontSize: 12),
+        ),
+      ],
     );
   }
 
-  void _showGroupQR(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-          child: Container(
-            padding: const EdgeInsets.all(30),
+  Widget _buildMemberStatusList(List<Map<String, dynamic>> members) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text("MEMBER PAYMENT STATUS", style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, fontSize: 11, letterSpacing: 1)),
+        const SizedBox(height: 16),
+        ...members.map((m) => Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10)],
+          ),
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 18,
+                backgroundColor: (m['gender'] == 'Female' ? Colors.pink : Colors.blue).withValues(alpha: 0.1),
+                child: Text(m['name'] != null && m['name'].isNotEmpty ? m['name'][0] : "?", style: TextStyle(color: m['gender'] == 'Female' ? Colors.pink : Colors.blue, fontWeight: FontWeight.bold, fontSize: 12)),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(m['name'] ?? "Guest", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+              ),
+              if (m['is_paid'] == 1 || m['is_paid'] == true)
+                const Icon(Icons.check_circle_rounded, color: Colors.green, size: 20)
+              else
+                const Text("Pending", style: TextStyle(color: Colors.orange, fontWeight: FontWeight.w900, fontSize: 10)),
+            ],
+          ),
+        )).toList(),
+      ],
+    );
+  }
+
+  Widget _buildPaymentRequestCard(String? qrUrl) {
+    final session = ShopManager.instance;
+    final bool isHost = session.isSessionHost.value;
+    final double totalBill = session.liveSessionTotal.value;
+    final int memberCount = session.liveSessionMembers.value.length;
+    final String? vId = session.volunteerId.value;
+    final String myId = session.currentUserId;
+
+    // Calculate individual share
+    final int flatPay = memberCount == 0 ? 0 : (totalBill / memberCount).floor();
+    final double remainder = totalBill - (flatPay * memberCount);
+    final int myShare = (myId == vId) ? (flatPay + remainder.toInt()) : flatPay;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(colors: [primaryBlue, Color(0xFF2563EB)]),
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: [BoxShadow(color: primaryBlue.withValues(alpha: 0.3), blurRadius: 20, offset: const Offset(0, 10))],
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.1), shape: BoxShape.circle),
+                child: const Icon(Icons.account_balance_wallet_rounded, color: Colors.white, size: 24),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      isHost ? "PAYMENT TRACKER ACTIVE" : "YOUR SHARE DETAILS",
+                      style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 1),
+                    ),
+                    Text(
+                      isHost ? "Group Total: Rs. ${totalBill.toInt()}" : "Amount: Rs. $myShare",
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
             child: Column(
-              mainAxisSize: MainAxisSize.min,
               children: [
-                const Text("TABLE INVITE QR", style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 2, color: Colors.grey, fontSize: 10)),
-                const SizedBox(height: 20),
-                const Text("Table 12 Group", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFFFF5C00))),
-                const SizedBox(height: 24),
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    border: Border.all(color: Colors.grey[100]!, width: 2),
-                    borderRadius: BorderRadius.circular(20),
+                if (qrUrl != null)
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.network(qrUrl, height: 140, width: 140, fit: BoxFit.cover),
+                  )
+                else
+                  Container(
+                    height: 140,
+                    width: 140,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const CircularProgressIndicator(color: primaryBlue),
+                        const SizedBox(height: 16),
+                        Text(
+                          isHost ? "UPLOADING QR..." : "WAITING FOR HOST...",
+                          style: const TextStyle(color: primaryBlue, fontWeight: FontWeight.bold, fontSize: 10),
+                        ),
+                      ],
+                    ),
                   ),
-                  child: const Icon(Icons.qr_code_2_rounded, size: 160, color: Colors.black87),
-                ),
-                const SizedBox(height: 24),
-                const Text(
-                  "Ask friends to scan this code to join your dining group instantly.",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 12, color: Colors.black54),
-                ),
-                const SizedBox(height: 30),
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text("Close", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
-                ),
+                const SizedBox(height: 12),
+                const Text("SCAN TO PAY", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: primaryBlue, letterSpacing: 2)),
               ],
             ),
           ),
-        );
-      },
-    );
-  }
-
-  void _showAddMemberModal(BuildContext context) {
-    final users = ShopManager.instance.nearbyUsers.where((u) {
-      return !ShopManager.instance.currentGroupMembers.any((m) => m['name'] == u['name']);
-    }).toList();
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (context) {
-        return Container(
-          height: MediaQuery.of(context).size.height * 0.6,
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+          const SizedBox(height: 24),
+          Text(
+            isHost ? "Review and verify payments from members" : "Pay via eSewa/Khalti and upload proof below",
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 11, fontWeight: FontWeight.w500),
           ),
-          child: Column(
-            children: [
-              const SizedBox(height: 12),
-              Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2))),
-              const Padding(
-                padding: EdgeInsets.all(24.0),
-                child: Text("Add Member to Table", style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
-              ),
-              Expanded(
-                child: users.isEmpty 
-                  ? const Center(child: Text("No more nearby friends available", style: TextStyle(color: Colors.grey)))
-                  : ListView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      itemCount: users.length,
-                      itemBuilder: (context, index) {
-                        final user = users[index];
-                        return ListTile(
-                          leading: CircleAvatar(backgroundImage: NetworkImage(user['image'])),
-                          title: Text(user['name'], style: const TextStyle(fontWeight: FontWeight.bold)),
-                          subtitle: Text(user['location'], style: const TextStyle(fontSize: 11)),
-                          trailing: const Icon(Icons.add_circle_outline, color: Color(0xFFFF5C00)),
-                          onTap: () {
-                            setState(() {
-                              ShopManager.instance.addMembersToGroup([user]);
-                            });
-                            Navigator.pop(context);
-                            final bonus = int.tryParse(ShopManager.instance.loyaltySettings.value?['group_join_bonus']?.toString() ?? '200') ?? 200;
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text("${user['name']} added! +$bonus Reward Points earned.")),
-                            );
-                          },
-                        );
-                      },
-                    ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildWaveform(bool isMe) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: List.generate(8, (index) {
-        return Container(
-          width: 2,
-          height: (index % 3 + 1) * 4.0,
-          margin: const EdgeInsets.symmetric(horizontal: 1),
-          decoration: BoxDecoration(
-            color: isMe ? Colors.white.withValues(alpha: 0.5) : const Color(0xFFFF5C00).withValues(alpha: 0.5),
-            borderRadius: BorderRadius.circular(1),
-          ),
-        );
-      }),
+        ],
+      ),
     );
   }
 }

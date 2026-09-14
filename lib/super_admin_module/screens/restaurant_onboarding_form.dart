@@ -26,6 +26,7 @@ class _RestaurantOnboardingFormState extends State<RestaurantOnboardingForm> {
   
   String _selectedPlan = "Basic";
   DateTime _expiryDate = DateTime.now().add(const Duration(days: 365));
+  bool _isPremiumEnabled = false; // Added Master Switch
   bool _isSubmitting = false;
 
   @override
@@ -86,7 +87,17 @@ class _RestaurantOnboardingFormState extends State<RestaurantOnboardingForm> {
                         _buildDatePickerTile("Expiry Date", _expiryDate),
                       ]),
                       const SizedBox(height: 24),
-                      _buildSectionCard("4. Security & Access", [
+                      _buildSectionCard("4. Premium Package", [
+                        SwitchListTile(
+                          title: const Text("Enable Premium Services", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                          subtitle: const Text("Includes AR, Voice Assistant, Loyalty & Proximity.", style: TextStyle(fontSize: 11)),
+                          value: _isPremiumEnabled,
+                          activeColor: SAMStyles.royalBlue,
+                          onChanged: (val) => setState(() => _isPremiumEnabled = val),
+                        ),
+                      ]),
+                      const SizedBox(height: 24),
+                      _buildSectionCard("5. Security & Access", [
                         _buildTextField("Admin Email Address", _emailController, hint: "owner@cafe.com"), // UI for Email
                         _buildTextField("Initial Admin PIN", _pinController, hint: "1234"),
                       ]),
@@ -245,6 +256,7 @@ class _RestaurantOnboardingFormState extends State<RestaurantOnboardingForm> {
                 'admin_pin': _pinController.text,
                 'latitude': double.tryParse(_latController.text.trim()) ?? 0.0,
                 'longitude': double.tryParse(_lngController.text.trim()) ?? 0.0,
+                'is_premium_enabled': _isPremiumEnabled ? 1 : 0, 
               };
               
               widget.onRegister(newTenantData);

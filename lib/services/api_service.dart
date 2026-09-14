@@ -79,6 +79,23 @@ class ApiService {
     } catch (e) { return {"success": false, "message": "Connection failed"}; }
   }
 
+  static Future<Map<String, dynamic>> updateTenantPremiumStatus({
+    required String tenantId, 
+    required bool isEnabled
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse("$baseUrl/update_premium_status.php"), 
+        headers: {"Content-Type": "application/json"}, 
+        body: json.encode({
+          "tenant_id": tenantId, 
+          "is_premium_enabled": isEnabled ? 1 : 0
+        })
+      );
+      return json.decode(response.body);
+    } catch (e) { return {"success": false, "message": "Connection failed"}; }
+  }
+
   static Future<bool> deleteTenant(String tenantId) async {
     try {
       final response = await http.post(Uri.parse("$baseUrl/delete_tenant.php"), headers: {"Content-Type": "application/json"}, body: json.encode({"tenant_id": tenantId}));
@@ -549,6 +566,19 @@ class ApiService {
     } catch (e) { return null; }
   }
 
+  static Future<Map<String, dynamic>?> fetchLatestOrder(String tenantId, String userId) async {
+    try {
+      final response = await http.get(Uri.parse("$baseUrl/get_user_orders.php?tenant_id=$tenantId&user_id=$userId"));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['status'] == 'success' && data['orders'] != null && (data['orders'] as List).isNotEmpty) {
+          return Map<String, dynamic>.from(data['orders'][0]);
+        }
+      }
+      return null;
+    } catch (e) { return null; }
+  }
+
   static Future<int> checkOrderChange(String tenantId) async {
     try {
       final response = await http.get(Uri.parse("$baseUrl/check_order_sync.php?tenant_id=$tenantId"));
@@ -700,6 +730,21 @@ class ApiService {
     try {
       final request = http.MultipartRequest('POST', Uri.parse("$baseUrl/upload_product_image.php"));
       request.files.add(http.MultipartFile.fromBytes('product_image', bytes, filename: fileName));
+      final response = await request.send();
+      if (response.statusCode == 200) {
+        final resStr = await response.stream.bytesToString();
+        final data = json.decode(resStr);
+        if (data['status'] == 'success') return data['url'];
+      }
+      return null;
+    } catch (e) { return null; }
+  }
+
+  static Future<String?> upload3DModel(Uint8List bytes, String fileName) async {
+    try {
+      // Reusing a similar endpoint or specialized one
+      final request = http.MultipartRequest('POST', Uri.parse("$baseUrl/upload_3d_model.php"));
+      request.files.add(http.MultipartFile.fromBytes('model_file', bytes, filename: fileName));
       final response = await request.send();
       if (response.statusCode == 200) {
         final resStr = await response.stream.bytesToString();
@@ -1224,5 +1269,201 @@ class ApiService {
       );
       return json.decode(response.body)['status'] == 'success';
     } catch (e) { return false; }
+  }
+
+  // --- CHAT SYSTEM METHODS ---
+
+  static Future<List<Map<String, dynamic>>?> fetchConversations(String tenantId, String userId) async {
+    try {
+      final response = await http.get(Uri.parse("$baseUrl/chat_api.php?action=get_conversations&tenant_id=$tenantId&user_id=$userId"));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['status'] == 'success') return List<Map<String, dynamic>>.from(data['data']);
+      }
+      return null;
+    } catch (e) { return null; }
+  }
+
+  static Future<Map<String, dynamic>?> syncMessages({
+    required String tenantId, 
+    required String myId, 
+    required String friendId, 
+    required int lastId
+  }) async {
+    try {
+      final url = "$baseUrl/chat_api.php?action=sync&tenant_id=$tenantId&uid1=$myId&uid2=$friendId&last_id=$lastId";
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) return json.decode(response.body);
+      return null;
+    } catch (e) { return null; }
+  }
+
+  static Future<bool> sendMessage({
+    required String tenantId, 
+    required String senderId, 
+    required String receiverId, 
+    required String message,
+    String type = 'text'
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse("$baseUrl/chat_api.php?action=send&tenant_id=$tenantId"),
+        headers: {"Content-Type": "application/json"},
+        body: json.encode({
+          "sender_id": senderId,
+          "receiver_id": receiverId,
+          "message": message,
+          "type": type
+        })
+      );
+      return json.decode(response.body)['status'] == 'success';
+    } catch (e) { return false; }
+  }
+
+  static Future<void> updateTypingStatus(String tenantId, String userId, String toId) async {
+    try {
+      await http.post(
+        Uri.parse("$baseUrl/chat_api.php?action=typing&tenant_id=$tenantId"),
+        headers: {"Content-Type": "application/json"},
+        body: json.encode({"user_id": userId, "typing_to": toId})
+      );
+    } catch (e) {}
+  }
+
+  static Future<void> markMessagesRead(String tenantId, String myId, String fromId) async {
+    try {
+      await http.get(Uri.parse("$baseUrl/chat_api.php?action=mark_read&tenant_id=$tenantId&my_id=$myId&from_id=$fromId"));
+    } catch (e) {}
+  }
+
+  static Future<bool> editMessage(String tenantId, String userId, int messageId, String newText) async {
+    try {
+      final response = await http.post(
+        Uri.parse("$baseUrl/chat_api.php?action=edit&tenant_id=$tenantId"),
+        headers: {"Content-Type": "application/json"},
+        body: json.encode({"user_id": userId, "message_id": messageId, "message": newText})
+      );
+      return json.decode(response.body)['status'] == 'success';
+    } catch (e) { return false; }
+  }
+
+  static Future<bool> deleteMessage(String tenantId, String userId, int messageId) async {
+    try {
+      final response = await http.post(
+        Uri.parse("$baseUrl/chat_api.php?action=delete&tenant_id=$tenantId"),
+        headers: {"Content-Type": "application/json"},
+        body: json.encode({"user_id": userId, "message_id": messageId})
+      );
+      return json.decode(response.body)['status'] == 'success';
+    } catch (e) { return false; }
+  }
+
+  // --- COLLABORATIVE BILL SPLITTER METHODS (V3 - Real Backend) ---
+
+  static Future<Map<String, dynamic>?> createSplitGroup({
+    required String tenantId,
+    required String userId,
+    required int tableNumber,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse("$baseUrl/split_api.php?action=create&tenant_id=$tenantId"),
+        headers: {"Content-Type": "application/json"},
+        body: json.encode({
+          "user_id": userId,
+          "table_number": tableNumber,
+        }),
+      );
+      final data = json.decode(response.body);
+      if (data['status'] == 'success') return data['data'];
+      return null;
+    } catch (e) { return null; }
+  }
+
+  static Future<Map<String, dynamic>?> joinSplitGroup({
+    required String tenantId,
+    required String userId,
+    required String pin,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse("$baseUrl/split_api.php?action=join&tenant_id=$tenantId"),
+        headers: {"Content-Type": "application/json"},
+        body: json.encode({
+          "user_id": userId,
+          "pin": pin,
+        }),
+      );
+      final data = json.decode(response.body);
+      if (data['status'] == 'success') return data['data'];
+      return null;
+    } catch (e) { return null; }
+  }
+
+  static Future<Map<String, dynamic>?> getSplitGroupDetails({
+    required String tenantId, 
+    required int sessionId, 
+    String? lastSyncTime
+  }) async {
+    try {
+      final url = "$baseUrl/split_api.php?action=get_details&tenant_id=$tenantId&session_id=$sessionId&last_sync=${lastSyncTime ?? ''}";
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      }
+      return null;
+    } catch (e) { return null; }
+  }
+
+  static Future<bool> lockSplitGroup(String tenantId, int sessionId) async {
+    try {
+      final response = await http.get(Uri.parse("$baseUrl/split_api.php?action=lock&tenant_id=$tenantId&session_id=$sessionId"));
+      return json.decode(response.body)['status'] == 'success';
+    } catch (e) { return false; }
+  }
+
+  static Future<bool> shareSplitDetails(int sessionId, String volunteerId) async {
+    try {
+      final response = await http.post(
+        Uri.parse("$baseUrl/split_api.php?action=share_split"),
+        headers: {"Content-Type": "application/json"},
+        body: json.encode({
+          "session_id": sessionId,
+          "volunteer_id": volunteerId,
+        }),
+      );
+      return json.decode(response.body)['status'] == 'success';
+    } catch (e) { return false; }
+  }
+
+  static Future<String?> uploadGroupQR(int sessionId, Uint8List bytes, String fileName) async {
+    try {
+      final request = http.MultipartRequest('POST', Uri.parse("$baseUrl/split_api.php?action=upload_qr"));
+      request.fields['session_id'] = sessionId.toString();
+      request.files.add(http.MultipartFile.fromBytes('qr_image', bytes, filename: fileName));
+      final response = await request.send();
+      if (response.statusCode == 200) {
+        final resStr = await response.stream.bytesToString();
+        final data = json.decode(resStr);
+        if (data['status'] == 'success') return data['url'];
+      }
+      return null;
+    } catch (e) { return null; }
+  }
+
+  static Future<String?> submitGroupPayment(int sessionId, String userId, Uint8List bytes, String fileName) async {
+    try {
+      final request = http.MultipartRequest('POST', Uri.parse("$baseUrl/split_api.php?action=submit_payment"));
+      request.fields['session_id'] = sessionId.toString();
+      request.fields['user_id'] = userId;
+      request.files.add(http.MultipartFile.fromBytes('ss_image', bytes, filename: fileName));
+      final response = await request.send();
+      if (response.statusCode == 200) {
+        final resStr = await response.stream.bytesToString();
+        final data = json.decode(resStr);
+        if (data['status'] == 'success') return data['url'];
+      }
+      return null;
+    } catch (e) { return null; }
   }
 }

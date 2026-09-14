@@ -7,7 +7,7 @@ import 'package:http/http.dart' as http;
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/services.dart';
-import 'package:geolocator/geolocator.dart'; // Added
+import 'package:geolocator/geolocator.dart';
 
 import 'package:chiyabreak/models.dart';
 import 'package:chiyabreak/services/tenant_service.dart';
@@ -43,9 +43,9 @@ class ShopManager {
     _startMusicPoller();
     _initPushListeners();
     _startNearbyMonitor();
-    _startOrderSyncPoller(); // Start light polling for orders
+    _startOrderSyncPoller();
+    _startChatPoller();
     
-    // Add Listeners for Persistence
     currentTabIndex.addListener(_persistTab);
     selectedTableId.addListener(_persistTable);
     isProfileVisible.addListener(updatePrivacyOnServer);
@@ -71,19 +71,36 @@ class ShopManager {
 
   void _startOrderSyncPoller() {
     _orderSyncTimer?.cancel();
-    // Check for database changes every 7 seconds
-    _orderSyncTimer = Timer.periodic(const Duration(seconds: 7), (timer) async {
+    _orderSyncTimer = Timer.periodic(const Duration(seconds: 15), (timer) async {
       final tenant = TenantService().currentTenant.value;
       if (tenant == null) return;
 
       final serverTimestamp = await ApiService.checkOrderChange(tenant.id);
-      
       if (serverTimestamp > _lastOrderSyncTimestamp) {
-        debugPrint("ORDER SYNC: Change detected ($serverTimestamp > $_lastOrderSyncTimestamp). Syncing...");
         await refreshLiveOrders();
         _lastOrderSyncTimestamp = serverTimestamp;
       }
     });
+  }
+
+  // --- CHAT POLLING ---
+  Timer? _chatTimer;
+  final ValueNotifier<List<Map<String, dynamic>>> conversations = ValueNotifier([]);
+
+  void _startChatPoller() {
+    _chatTimer?.cancel();
+    _chatTimer = Timer.periodic(const Duration(seconds: 20), (timer) => refreshConversations());
+  }
+
+  Future<void> refreshConversations() async {
+    final tenant = TenantService().currentTenant.value;
+    final uid = currentUserId;
+    if (tenant == null || uid.isEmpty) return;
+
+    final data = await ApiService.fetchConversations(tenant.id, uid);
+    if (data != null) {
+      conversations.value = data;
+    }
   }
 
   Future<void> refreshLiveOrders() async {
@@ -93,7 +110,6 @@ class ShopManager {
     final List<Map<String, dynamic>>? orders = await ApiService.fetchActiveOrders(tenant.id);
     if (orders == null) return;
 
-    // --- SYNC WITH TABLES ---
     Map<int, String> newStatuses = Map.from(tableStatuses.value);
     Map<int, List<CartItem>> newOrders = {};
 
@@ -102,26 +118,13 @@ class ShopManager {
       if (tNum == 0) continue;
 
       String status = order['status'] ?? 'Pending';
-      
-      // Update Table Status
-      if (status == 'Pending') {
-        newStatuses[tNum] = 'NEW ORDER';
-      } else if (status == 'Ready') {
-        newStatuses[tNum] = 'READY';
-      } else {
-        newStatuses[tNum] = 'Dining';
-      }
+      if (status == 'Pending') newStatuses[tNum] = 'NEW ORDER';
+      else if (status == 'Ready') newStatuses[tNum] = 'READY';
+      else newStatuses[tNum] = 'Dining';
 
-      // Convert order items to CartItems
       final List<dynamic> rawItems = order['items'] ?? [];
       final List<CartItem> itemsList = rawItems.map((i) => CartItem(
-        product: Product(
-          title: i['product_name'] ?? 'Item',
-          price: i['price_at_order']?.toString() ?? '0',
-          image: '',
-          tag: 'Real',
-          rating: '5.0',
-        ),
+        product: Product(title: i['product_name'] ?? 'Item', price: i['price_at_order']?.toString() ?? '0', image: '', tag: 'Real', rating: '5.0'),
         quantity: int.tryParse(i['quantity']?.toString() ?? '1') ?? 1,
       )).toList();
 
@@ -139,15 +142,12 @@ class ShopManager {
 
   void _persistTable() async {
     final prefs = await SharedPreferences.getInstance();
-    if (selectedTableId.value != null) {
-      await prefs.setInt('selected_table_id', selectedTableId.value!);
-    } else {
-      await prefs.remove('selected_table_id');
-    }
+    if (selectedTableId.value != null) await prefs.setInt('selected_table_id', selectedTableId.value!);
+    else await prefs.remove('selected_table_id');
   }
 
   void _startMusicPoller() {
-    Timer.periodic(const Duration(seconds: 10), (timer) => refreshMusicStatus());
+    Timer.periodic(const Duration(seconds: 30), (timer) => refreshMusicStatus());
   }
 
   Future<void> refreshMusicStatus() async {
@@ -156,29 +156,15 @@ class ShopManager {
 
     final data = await ApiService.fetchMusicStatus(tenant.id, userId: currentUserId);
     if (data != null && data['status'] == 'success') {
-      // 1. Update Now Playing
-      if (data['now_playing'] != null) {
-        currentSong.value = Map<String, dynamic>.from(data['now_playing']);
-      }
-
-      // 2. Update Queue
-      if (data['queue'] != null) {
-        musicQueue.value = List<Map<String, dynamic>>.from(data['queue']);
-      }
-
-      // 3. Update Active Poll
-      if (data['active_poll'] != null) {
-        activePoll.value = Map<String, dynamic>.from(data['active_poll']);
-      } else {
-        activePoll.value = null;
-      }
+      if (data['now_playing'] != null) currentSong.value = Map<String, dynamic>.from(data['now_playing']);
+      if (data['queue'] != null) musicQueue.value = List<Map<String, dynamic>>.from(data['queue']);
+      if (data['active_poll'] != null) activePoll.value = Map<String, dynamic>.from(data['active_poll']);
+      else activePoll.value = null;
     }
   }
 
   void _startNearbyMonitor() {
-    // Check every 5 minutes if app is active
     Timer.periodic(const Duration(minutes: 5), (timer) => checkProximity());
-    // Also check once immediately on start
     Future.delayed(const Duration(seconds: 5), () => checkProximity());
   }
 
@@ -188,56 +174,33 @@ class ShopManager {
   Future<void> checkProximity() async {
     final tenant = TenantService().currentTenant.value;
     if (tenant == null || tenant.latitude == null || tenant.longitude == null) return;
-
-    // Check throttle (Only one offer per 12 hours)
-    if (_lastOfferTime != null && DateTime.now().difference(_lastOfferTime!).inHours < 12) {
-      return;
-    }
+    if (_lastOfferTime != null && DateTime.now().difference(_lastOfferTime!).inHours < 12) return;
 
     try {
       LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        // We don't nag with dialogs, just silent return if denied
-        return;
-      }
-
-      Position position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(accuracy: LocationAccuracy.medium),
-      );
-
-      double distanceInMeters = Geolocator.distanceBetween(
-        position.latitude,
-        position.longitude,
-        tenant.latitude!,
-        tenant.longitude!,
-      );
-
-      debugPrint("PROXIMITY: Distance to ${tenant.name} is ${distanceInMeters.toStringAsFixed(1)}m");
-
-      if (distanceInMeters <= 600) {
+      if (permission == LocationPermission.denied) return;
+      Position pos = await Geolocator.getCurrentPosition(locationSettings: const LocationSettings(accuracy: LocationAccuracy.medium));
+      double dist = Geolocator.distanceBetween(pos.latitude, pos.longitude, tenant.latitude!, tenant.longitude!);
+      if (dist <= 600) {
         _lastOfferTime = DateTime.now();
         isNearbyOfferVisible.value = true;
       }
-    } catch (e) {
-      debugPrint("PROXIMITY ERROR: $e");
-    }
+    } catch (e) {}
   }
 
   void _initPushListeners() {
     try {
       if (Firebase.apps.isNotEmpty) {
         FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-          debugPrint("FCM: Received foreground message: ${message.notification?.title}");
           refreshNotifications();
+          refreshConversations(); 
         });
       }
-    } catch (e) {
-      debugPrint("FCM Listener Error: $e");
-    }
+    } catch (e) {}
   }
 
   void _startNotificationsPoller() {
-    Timer.periodic(const Duration(seconds: 15), (timer) => refreshNotifications());
+    Timer.periodic(const Duration(seconds: 45), (timer) => refreshNotifications());
   }
 
   final ValueNotifier<int> unseenNotificationsCount = ValueNotifier<int>(0);
@@ -245,12 +208,8 @@ class ShopManager {
 
   Future<void> refreshNotifications() async {
     final tenant = TenantService().currentTenant.value;
-    if (tenant == null) return;
-    
-    final uid = currentUserId;
-    if (uid.isEmpty) return;
-
-    final data = await ApiService.fetchNotifications(tenant.id, uid);
+    if (tenant == null || currentUserId.isEmpty) return;
+    final data = await ApiService.fetchNotifications(tenant.id, currentUserId);
     if (data != null && data['status'] == 'success') {
       notificationsList.value = List<Map<String, dynamic>>.from(data['data'] ?? []);
       unseenNotificationsCount.value = data['unseen_count'] ?? 0;
@@ -259,64 +218,53 @@ class ShopManager {
 
   Future<void> clearNotificationBadge() async {
     final tenant = TenantService().currentTenant.value;
-    if (tenant == null) return;
-    final uid = currentUserId;
-    if (uid.isEmpty) return;
-
-    final bool success = await ApiService.markNotificationsRead(tenant.id, uid);
-    if (success) {
+    if (tenant == null || currentUserId.isEmpty) return;
+    if (await ApiService.markNotificationsRead(tenant.id, currentUserId)) {
       unseenNotificationsCount.value = 0;
     }
   }
 
   void _startWavePoller() {
-    Timer.periodic(const Duration(seconds: 10), (timer) async {
+    Timer.periodic(const Duration(seconds: 20), (timer) async {
       final tenant = TenantService().currentTenant.value;
-      final staff = TenantService().currentStaff.value;
-      final uid = staff != null ? staff.id.toString() : guestId.value;
-
-      if (tenant != null && uid.isNotEmpty) {
-        final waves = await ApiService.fetchWaves(tenant.id, uid);
-        if (waves != null && waves.isNotEmpty) {
-          HapticFeedback.vibrate();
-          debugPrint("SOCIAL: Received ${waves.length} waves!");
-        }
+      if (tenant != null && currentUserId.isNotEmpty) {
+        final waves = await ApiService.fetchWaves(tenant.id, currentUserId);
+        if (waves != null && waves.isNotEmpty) HapticFeedback.vibrate();
       }
     });
   }
 
   void _startPresenceCheckIn() {
-    Timer.periodic(const Duration(minutes: 5), (timer) => updatePresenceOnServer());
+    Timer.periodic(const Duration(minutes: 2), (timer) => updatePresenceOnServer());
   }
 
   Future<void> updatePresenceOnServer() async {
     final tenant = TenantService().currentTenant.value;
-    final staff = TenantService().currentStaff.value;
-    final uid = currentUserId;
-    final uname = staff != null ? staff.name : (customerName.value.isNotEmpty ? customerName.value : null);
-    
-    if (tenant != null && uid.isNotEmpty && selectedTableId.value != null) {
+    // Only update if we have a tenant, a user ID, and a locked-in table number
+    // This prevents "anonymous ghost" updates from overloading the server
+    if (tenant != null && currentUserId.isNotEmpty && selectedTableId.value != null && selectedTableId.value! > 0) {
       await ApiService.updatePresence(
-        tenantId: tenant.id,
-        userId: uid,
-        tableNumber: selectedTableId.value!,
-        userName: uname,
+        tenantId: tenant.id, 
+        userId: currentUserId, 
+        tableNumber: selectedTableId.value!, 
+        userName: customerName.value.isNotEmpty ? customerName.value : null
       );
+    }
+  }
+
+  Future<void> updatePrivacyOnServer() async {
+    final tenant = TenantService().currentTenant.value;
+    if (tenant != null && currentUserId.isNotEmpty) {
+      await ApiService.updatePrivacySettings(tenantId: tenant.id, userId: currentUserId, isPublic: isProfileVisible.value, allowWaves: isWaveEnabled.value);
     }
   }
 
   Future<void> _loadPersistedOrder() async {
     final prefs = await SharedPreferences.getInstance();
     isOnboardingComplete.value = prefs.getBool('onboarding_complete') ?? false;
-
-    // Restore Last View (Tab & Table)
     currentTabIndex.value = prefs.getInt('last_tab_index') ?? 0;
     final int? savedTable = prefs.getInt('selected_table_id');
-    if (savedTable != null && selectedTableId.value == null) {
-      selectedTableId.value = savedTable;
-    }
-
-    // Restore Generic Settings
+    if (savedTable != null) selectedTableId.value = savedTable;
     showTableNumber.value = prefs.getBool('show_table_number') ?? true;
     onlyMutualChat.value = prefs.getBool('only_mutual_chat') ?? false;
     autoWaveBack.value = prefs.getBool('auto_wave_back') ?? false;
@@ -324,14 +272,17 @@ class ShopManager {
     isProfileVisible.value = prefs.getBool('is_profile_visible') ?? true;
     isWaveEnabled.value = prefs.getBool('is_wave_enabled') ?? true;
 
-    String? savedEmail = prefs.getString('customer_email');
-    if (savedEmail != null) {
-      await syncCustomerIdentity(savedEmail);
-    } else {
-      Future.delayed(const Duration(seconds: 2), () {
-         isEmailSynced.value = false; 
-      });
+    // LOAD PERSISTED GROUP SESSION
+    final int? sid = prefs.getInt('active_session_id');
+    if (sid != null) {
+      final bool isHost = prefs.getBool('is_session_host') ?? false;
+      final String? pin = prefs.getString('active_session_pin');
+      startSessionPolling(sid, isHost, pin: pin);
     }
+
+    String? savedEmail = prefs.getString('customer_email');
+    if (savedEmail != null) await syncCustomerIdentity(savedEmail);
+    else Future.delayed(const Duration(seconds: 2), () => isEmailSynced.value = false);
 
     String? gId = prefs.getString('guest_id');
     if (gId == null) {
@@ -350,40 +301,28 @@ class ShopManager {
     await fetchLoyaltySettings();
     await refreshUserPoints();
     await refreshSocialStats();
+    await fetchSocialLists();
     checkNotificationPermission();
   }
 
   Future<void> _persistOrder(int id, {bool isRemove = false}) async {
     final prefs = await SharedPreferences.getInstance();
     List<String> current = prefs.getStringList('active_order_ids') ?? [];
-    
-    if (isRemove) {
-      current.remove(id.toString());
-    } else if (!current.contains(id.toString())) {
-      current.add(id.toString());
-    }
-    
+    if (isRemove) current.remove(id.toString());
+    else if (!current.contains(id.toString())) current.add(id.toString());
     await prefs.setStringList('active_order_ids', current);
     activeOrderIds.value = current.map((e) => int.parse(e)).toList();
   }
 
   void _startGlobalTimer() {
     Timer.periodic(const Duration(seconds: 1), (timer) {
-      _decrementTableTimers();
-    });
-  }
-
-  void _decrementTableTimers() {
-    if (tableCountdownTimers.value.isEmpty) return;
-    Map<int, int> current = Map.from(tableCountdownTimers.value);
-    bool changed = false;
-    current.forEach((id, seconds) {
-      if (seconds > 0) {
-        current[id] = seconds - 1;
-        changed = true;
+      if (tableCountdownTimers.value.isNotEmpty) {
+        Map<int, int> current = Map.from(tableCountdownTimers.value);
+        bool changed = false;
+        current.forEach((id, seconds) { if (seconds > 0) { current[id] = seconds - 1; changed = true; } });
+        if (changed) tableCountdownTimers.value = current;
       }
     });
-    if (changed) tableCountdownTimers.value = current;
   }
 
   void startTableTimer(int tableId, int minutes) {
@@ -397,10 +336,10 @@ class ShopManager {
     updateTableStatus(tableId, "Dining");
   }
 
+  // --- VARIABLES ---
   final ValueNotifier<List<CartItem>> items = ValueNotifier<List<CartItem>>([]);
   final ValueNotifier<List<CartItem>> placedOrderItems = ValueNotifier<List<CartItem>>([]);
   final ValueNotifier<int> currentTabIndex = ValueNotifier<int>(0);
-  final ValueNotifier<bool> isTenantActive = ValueNotifier<bool>(true);
   final ValueNotifier<bool> isQrLaunch = ValueNotifier<bool>(false);
   final ValueNotifier<int?> selectedTableId = ValueNotifier<int?>(null);
   final ValueNotifier<String> guestId = ValueNotifier<String>('');
@@ -414,6 +353,8 @@ class ShopManager {
   final ValueNotifier<bool> isWaveEnabled = ValueNotifier<bool>(true);
   final ValueNotifier<bool> isOnboardingComplete = ValueNotifier<bool>(true);
   final ValueNotifier<bool> showNotificationPrompt = ValueNotifier<bool>(false);
+  final ValueNotifier<bool> isConnectedToRestaurantWiFi = ValueNotifier<bool>(true);
+  final ValueNotifier<bool> isOrderPaid = ValueNotifier<bool>(false);
 
   String get currentUserId {
     final staff = TenantService().currentStaff.value;
@@ -429,19 +370,17 @@ class ShopManager {
   final ValueNotifier<OrderStatus> orderStatus = ValueNotifier<OrderStatus>(OrderStatus.pending);
   final ValueNotifier<Duration> totalGameTime = ValueNotifier<Duration>(Duration.zero);
   final ValueNotifier<int> totalOrdersCount = ValueNotifier<int>(0);
+  final ValueNotifier<int> followersCount = ValueNotifier<int>(0);
+  final ValueNotifier<int> followingCount = ValueNotifier<int>(0);
+  final ValueNotifier<int> connectionsCount = ValueNotifier<int>(0);
 
-  final ValueNotifier<int> followersCount = ValueNotifier<int>(852);
-  final ValueNotifier<int> followingCount = ValueNotifier<int>(156);
-  final ValueNotifier<int> connectionsCount = ValueNotifier<int>(100);
-
+  // --- SOCIAL METHODS ---
   Future<bool> toggleFollow(String targetId) async {
     final tenant = TenantService().currentTenant.value;
-    final myId = currentUserId;
-
-    if (tenant != null && myId.isNotEmpty && myId != targetId) {
-      final res = await ApiService.toggleFollow(tenantId: tenant.id, myId: myId, targetId: targetId);
-      if (res['success'] == true) {
+    if (tenant != null && currentUserId.isNotEmpty && currentUserId != targetId) {
+      if ((await ApiService.toggleFollow(tenantId: tenant.id, myId: currentUserId, targetId: targetId))['success'] == true) {
         await refreshSocialStats();
+        await fetchSocialLists();
         return true;
       }
     }
@@ -450,11 +389,8 @@ class ShopManager {
 
   Future<void> refreshSocialStats() async {
     final tenant = TenantService().currentTenant.value;
-    final staff = TenantService().currentStaff.value;
-    final myId = staff != null ? staff.id.toString() : guestId.value;
-
-    if (tenant != null && myId.isNotEmpty) {
-      final data = await ApiService.fetchSocialStats(tenant.id, myId);
+    if (tenant != null && currentUserId.isNotEmpty) {
+      final data = await ApiService.fetchSocialStats(tenant.id, currentUserId);
       if (data != null && data['status'] == 'success') {
         followersCount.value = data['followers'] ?? 0;
         followingCount.value = data['following'] ?? 0;
@@ -463,214 +399,39 @@ class ShopManager {
     }
   }
 
-  Future<void> syncCustomerIdentity(String email, {String? name}) async {
-    final tenant = TenantService().currentTenant.value;
-    if (tenant == null) return;
-
-    final res = await ApiService.syncCustomerProfile(tenantId: tenant.id, email: email, name: name);
-    if (res != null && res['status'] == 'success') {
-      customerEmail.value = email;
-      customerName.value = res['user']?['name'] ?? 'Guest';
-      needsPin.value = res['needs_pin'] == true;
-      isNewToShop.value = res['is_new_to_shop'] == true;
-      isEmailSynced.value = true;
-      userPoints.value = res['user']?['points'] ?? 0;
-      orderStampCount.value = res['user']?['order_count'] ?? 0;
-      
-      // Load Privacy Settings
-      isProfileVisible.value = (res['user']?['is_public'] == 1 || res['user']?['is_public'] == true);
-      isWaveEnabled.value = (res['user']?['allow_waves'] == 1 || res['user']?['allow_waves'] == true);
-
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('customer_email', email);
-    }
-  }
-
-  Future<bool> finalizeSecurityPin(String pin) async {
-    final tenant = TenantService().currentTenant.value;
-    if (tenant == null || customerEmail.value.isEmpty) return false;
-
-    final bool success = await ApiService.saveCustomerPin(tenantId: tenant.id, email: customerEmail.value, pin: pin);
-    if (success) {
-      needsPin.value = false;
-      await fetchSocialLists();
-    }
-    return success;
-  }
-
-  Future<bool> updateProfile({required String name, required String gender, bool isAnon = false}) async {
-    final tenant = TenantService().currentTenant.value;
-    if (tenant == null) return false;
-    
-    final uid = currentUserId;
-    if (uid.isEmpty) return false;
-
-    final bool success = await ApiService.submitOnboarding(
-      tenantId: tenant.id, 
-      userId: uid, 
-      name: name, 
-      gender: gender,
-      isAnonymous: isAnon,
-    );
-
-    if (success) {
-      customerName.value = name;
-      userGender.value = gender;
-      isOnboardingComplete.value = true;
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('onboarding_complete', true);
-      await refreshSocialStats();
-      await fetchSocialLists();
-      await setupPushNotifications();
-    }
-    return success;
-  }
-
-  Future<void> updatePrivacyOnServer() async {
-    final tenant = TenantService().currentTenant.value;
-    final uid = currentUserId;
-    if (tenant == null || uid.isEmpty) return;
-
-    await ApiService.updatePrivacySettings(
-      tenantId: tenant.id,
-      userId: uid,
-      isPublic: isProfileVisible.value,
-      allowWaves: isWaveEnabled.value,
-    );
-  }
-
-  Future<void> checkNotificationPermission() async {
-    try {
-      if (Firebase.apps.isEmpty) return;
-
-      final prefs = await SharedPreferences.getInstance();
-      if (prefs.getBool('notif_prompt_dismissed') == true) {
-        debugPrint("FCM: Prompt already dismissed by user.");
-        return;
-      }
-
-      FirebaseMessaging messaging = FirebaseMessaging.instance;
-      NotificationSettings settings = await messaging.getNotificationSettings();
-      
-      if (settings.authorizationStatus == AuthorizationStatus.notDetermined) {
-        showNotificationPrompt.value = true;
-      } else if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-        setupPushNotifications();
-      }
-    } catch (e) {
-      debugPrint("FCM Permission Check Error: $e");
-    }
-  }
-
-  Future<bool> setupPushNotifications() async {
-    final tenant = TenantService().currentTenant.value;
-    final uid = currentUserId;
-    if (tenant == null || uid.isEmpty) {
-      debugPrint("FCM ERROR: Tenant or User ID is missing.");
-      return false;
-    }
-
-    try {
-      if (Firebase.apps.isEmpty) {
-        debugPrint("FCM ERROR: Firebase is not initialized.");
-        return false;
-      }
-
-      FirebaseMessaging messaging = FirebaseMessaging.instance;
-      debugPrint("FCM: Requesting Permission...");
-      
-      NotificationSettings settings = await messaging.requestPermission(
-        alert: true,
-        badge: true,
-        sound: true,
-      );
-      
-      debugPrint("FCM: Permission status: ${settings.authorizationStatus}");
-      
-      final prefs = await SharedPreferences.getInstance();
-      
-      if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-        debugPrint("FCM: Getting token...");
-        
-        // Use VAPID key ONLY on Web. Using it on Native causes token retrieval to fail.
-        final token = await (kIsWeb 
-          ? messaging.getToken(vapidKey: 'BGfucW_HKKPEUrswHLq1S-WGdeyHv6jTkSGvsJ_bP20OelPwEpMcsxAkhpf34iK3g-H1E8NVVY8Vo96bIyxagQg') 
-          : messaging.getToken());
-        
-        if (token != null && token.isNotEmpty) {
-          debugPrint("FCM: Token retrieved: $token");
-          final bool success = await ApiService.updateFcmToken(
-            tenantId: tenant.id, 
-            userId: uid, 
-            token: token
-          );
-          debugPrint("FCM: Server sync status: $success");
-          showNotificationPrompt.value = false;
-          await prefs.setBool('notif_prompt_dismissed', true);
-          return success;
-        } else {
-          debugPrint("FCM ERROR: Token is null or empty.");
-        }
-      } else {
-        debugPrint("FCM: Permission denied by user.");
-        showNotificationPrompt.value = false;
-        await prefs.setBool('notif_prompt_dismissed', true);
-      }
-    } catch (e) { 
-      debugPrint("FCM SYSTEM ERROR: $e"); 
-    } finally {
-      showNotificationPrompt.value = false;
-    }
-    return false;
-  }
-
   final ValueNotifier<List<Map<String, dynamic>>> followingList = ValueNotifier([]);
   final ValueNotifier<List<Map<String, dynamic>>> requestsList = ValueNotifier([]);
   final ValueNotifier<List<Map<String, dynamic>>> friendsList = ValueNotifier([]);
 
   Future<void> fetchSocialLists() async {
     final tenant = TenantService().currentTenant.value;
-    if (tenant == null) return;
-    
-    final uid = currentUserId;
-
-    final following = await ApiService.fetchSocialList(action: 'get_following', tenantId: tenant.id, userId: uid);
-    final requests = await ApiService.fetchSocialList(action: 'get_requests', tenantId: tenant.id, userId: uid);
-    final friends = await ApiService.fetchSocialList(action: 'get_friends', tenantId: tenant.id, userId: uid);
-
+    if (tenant == null || currentUserId.isEmpty) return;
+    final following = await ApiService.fetchSocialList(action: 'get_following', tenantId: tenant.id, userId: currentUserId);
+    final requests = await ApiService.fetchSocialList(action: 'get_requests', tenantId: tenant.id, userId: currentUserId);
+    final friends = await ApiService.fetchSocialList(action: 'get_friends', tenantId: tenant.id, userId: currentUserId);
     if (following != null) followingList.value = List<Map<String, dynamic>>.from(following);
     if (requests != null) requestsList.value = List<Map<String, dynamic>>.from(requests);
     if (friends != null) friendsList.value = List<Map<String, dynamic>>.from(friends);
-
-    final orderData = await ApiService.fetchUserOrders(tenant.id, uid);
-    if (orderData != null) {
-      totalOrdersCount.value = orderData['total_count'] ?? 0;
-    }
+    final orderData = await ApiService.fetchUserOrders(tenant.id, currentUserId);
+    if (orderData != null) totalOrdersCount.value = orderData['total_count'] ?? 0;
   }
 
-  final ValueNotifier<List<Map<String, dynamic>>> allPurchases = ValueNotifier<List<Map<String, dynamic>>>([]);
-  final ValueNotifier<List<Map<String, dynamic>>> allSuppliers = ValueNotifier<List<Map<String, dynamic>>>([]);
-
+  // --- LOYALTY ---
+  final ValueNotifier<int> userPoints = ValueNotifier<int>(0);
+  final ValueNotifier<int> orderStampCount = ValueNotifier<int>(0);
   final ValueNotifier<Map<String, dynamic>?> loyaltySettings = ValueNotifier<Map<String, dynamic>?>(null);
-  final ValueNotifier<int> userPoints = ValueNotifier<int>(1250);
 
   Future<void> fetchLoyaltySettings() async {
     final tenant = TenantService().currentTenant.value;
     if (tenant == null) return;
     final settings = await ApiService.fetchLoyaltySettings(tenant.id);
-    if (settings != null) {
-      loyaltySettings.value = settings;
-    }
+    if (settings != null) loyaltySettings.value = settings;
   }
 
   Future<void> refreshUserPoints() async {
     final tenant = TenantService().currentTenant.value;
-    if (tenant == null) return;
-    
-    final uid = currentUserId;
-    if (uid.isEmpty) return;
-    
-    final response = await http.get(Uri.parse("${ApiService.baseUrl}/loyalty_api.php?action=get_points&user_id=$uid&tenant_id=${tenant.id}"));
+    if (tenant == null || currentUserId.isEmpty) return;
+    final response = await http.get(Uri.parse("${ApiService.baseUrl}/loyalty_api.php?action=get_points&user_id=$currentUserId&tenant_id=${tenant.id}"));
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
       if (data is Map<String, dynamic>) {
@@ -680,615 +441,330 @@ class ShopManager {
     }
   }
 
-  Future<void> syncProcurementData(String tenantId) async {
-    final supData = await ApiService.fetchSuppliers(tenantId);
-    final purData = await ApiService.fetchPurchases(tenantId);
-    if (supData != null) allSuppliers.value = List<Map<String, dynamic>>.from(supData);
-    if (purData != null) allPurchases.value = List<Map<String, dynamic>>.from(purData);
-  }
-
-  final ValueNotifier<int> orderCoins = ValueNotifier<int>(50);
-  final ValueNotifier<int> groupCoins = ValueNotifier<int>(200);
-  final ValueNotifier<int> orderStampCount = ValueNotifier<int>(8);
-  final ValueNotifier<bool> isGroupActive = ValueNotifier<bool>(false);
-  final List<Map<String, dynamic>> currentGroupMembers = [];
-  bool hasNewOrderCoins = false;
-
-  final ValueNotifier<bool> isMysteryBoxOpened = ValueNotifier<bool>(false);
-  final ValueNotifier<bool> isRewardClaimed = ValueNotifier<bool>(false);
-  bool isConnectedToRestaurantWiFi = true;
-
-  final ValueNotifier<Map<String, dynamic>?> activeWave = ValueNotifier<Map<String, dynamic>?>(null);
-
-  final ValueNotifier<bool> showSocialStatus = ValueNotifier<bool>(true);
-  final ValueNotifier<bool> onlyMutualChat = ValueNotifier<bool>(false);
-  final ValueNotifier<bool> showTableNumber = ValueNotifier<bool>(true);
-  final ValueNotifier<bool> socialVibration = ValueNotifier<bool>(true);
-  final ValueNotifier<bool> autoWaveBack = ValueNotifier<bool>(false);
-
-  void sendWave(Map<String, dynamic> friend) {
-    if (!isWaveEnabled.value) return;
-    Future.delayed(const Duration(seconds: 3), () {
-      if (isWaveEnabled.value) {
-        activeWave.value = friend;
-      }
-    });
-  }
-
-  void clearWave() {
-    activeWave.value = null;
-  }
-
-  final ValueNotifier<bool> isWaterRequested = ValueNotifier<bool>(false);
-  final ValueNotifier<bool> isWaiterRequested = ValueNotifier<bool>(false);
-  final ValueNotifier<int> waterCooldown = ValueNotifier<int>(0);
-  final ValueNotifier<int> waiterCooldown = ValueNotifier<int>(0);
-
-  final ValueNotifier<bool> isOrderPaid = ValueNotifier<bool>(false);
-
-  final ValueNotifier<Map<String, dynamic>> currentSong = ValueNotifier<Map<String, dynamic>>({
-    'title': 'Midnight City',
-    'artist': 'M83',
-    'image': 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=500&auto=format&fit=crop&q=60',
-    'progress': 0.45,
-    'dedication': 'For Everyone @ Arby\'s',
-  });
-
-  final ValueNotifier<List<Map<String, dynamic>>> meatStamps = ValueNotifier<List<Map<String, dynamic>>>([
-    {'id': 'beef', 'name': 'Roast Beef', 'icon': Icons.kebab_dining, 'isCollected': true, 'date': 'Aug 12, 2026'},
-    {'id': 'brisket', 'name': 'Smoke Brisket', 'icon': Icons.outdoor_grill_rounded, 'isCollected': true, 'date': 'Aug 15, 2026'},
-    {'id': 'chicken', 'name': 'Classic Chicken', 'icon': Icons.lunch_dining, 'isCollected': false, 'date': null},
-    {'id': 'turkey', 'name': 'Roast Turkey', 'icon': Icons.restaurant_rounded, 'isCollected': false, 'date': null},
-    {'id': 'bacon', 'name': 'Pepper Bacon', 'icon': Icons.bakery_dining_rounded, 'isCollected': true, 'date': 'Yesterday'},
-  ]);
-
-  bool get allStampsCollected => orderStampCount.value >= 20;
-
-  final ValueNotifier<int> vibeScore = ValueNotifier<int>(65);
-
-  final ValueNotifier<Map<String, dynamic>?> activePoll = ValueNotifier<Map<String, dynamic>?>(null);
-
-  final ValueNotifier<bool> isTapWarActive = ValueNotifier<bool>(false);
-  final ValueNotifier<int> tapWarTimer = ValueNotifier<int>(0);
-  final ValueNotifier<List<Map<String, dynamic>>> tapLeaderboard = ValueNotifier<List<Map<String, dynamic>>>([]);
-  Timer? _gameTimer;
-
-  void startTapWar() {
-    isTapWarActive.value = true;
-    tapWarTimer.value = 30;
-    tapLeaderboard.value = [
-      {'table': 'Table 12', 'score': 0, 'isUser': true},
-      {'table': 'Table 4', 'score': 0, 'isUser': false},
-      {'table': 'Table 8', 'score': 0, 'isUser': false},
-      {'table': 'Table 21', 'score': 0, 'isUser': false},
-    ];
-
-    _gameTimer?.cancel();
-    _gameTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (tapWarTimer.value > 0) {
-        tapWarTimer.value--;
-        _mockOpponentTaps();
-      } else {
-        timer.cancel();
-      }
-    });
-  }
-
-  void _mockOpponentTaps() {
-    List<Map<String, dynamic>> current = List.from(tapLeaderboard.value);
-    for (var item in current) {
-      if (!item['isUser']) {
-        item['score'] += (DateTime.now().millisecond % 7) + 2;
-      }
-    }
-    current.sort((a, b) => b['score'].compareTo(a['score']));
-    tapLeaderboard.value = current;
-  }
-
-  void recordTap() {
-    if (tapWarTimer.value <= 0) return;
-    List<Map<String, dynamic>> current = List.from(tapLeaderboard.value);
-    int userIndex = current.indexWhere((i) => i['isUser']);
-    if (userIndex != -1) {
-      current[userIndex]['score'] += 1;
-    }
-    current.sort((a, b) => b['score'].compareTo(a['score']));
-    tapLeaderboard.value = current;
-  }
-
-  void endTapWar() {
-    _gameTimer?.cancel();
-    isTapWarActive.value = false;
-    tapWarTimer.value = 0;
-  }
-
-  void updateTableName(String oldName, String newName) {
-    List<Map<String, dynamic>> current = List.from(tapLeaderboard.value);
-    int index = current.indexWhere((i) => i['table'] == oldName);
-    if (index != -1) {
-      current[index]['table'] = newName;
-      tapLeaderboard.value = current;
-    }
-  }
-
-  final ValueNotifier<Map<int, List<CartItem>>> tableOrders = ValueNotifier<Map<int, List<CartItem>>>({});
-  final ValueNotifier<Map<int, List<CartItem>>> confirmedTableOrders = ValueNotifier<Map<int, List<CartItem>>>({});
-  final ValueNotifier<Map<int, String>> tableStatuses = ValueNotifier<Map<int, String>>({});
-  final ValueNotifier<Map<int, DateTime>> tableStartTimes = ValueNotifier<Map<int, DateTime>>({});
-  final ValueNotifier<Map<int, int>> tableCountdownTimers = ValueNotifier<Map<int, int>>({});
-  final ValueNotifier<Map<int, int>> tableOriginalDurations = ValueNotifier<Map<int, int>>({});
-  final ValueNotifier<Map<int, String>> tableKitchenStages = ValueNotifier<Map<int, String>>({});
-  final ValueNotifier<Map<int, bool>> tableReadyNotifications = ValueNotifier<Map<int, bool>>({});
-  
-  final ValueNotifier<List<Map<String, dynamic>>> staffDirectory = ValueNotifier<List<Map<String, dynamic>>>([
-    {'id': 'WT-101', 'name': 'Catherine', 'role': 'Waiter', 'pin': '1111', 'shift': 'Morning', 'sales': 45200, 'tips': 1200},
-    {'id': 'WT-102', 'name': 'Noah', 'role': 'Waiter', 'pin': '2222', 'shift': 'Evening', 'sales': 32100, 'tips': 850},
-    {'id': 'CH-001', 'name': 'Chef Yuvraj', 'role': 'Chef', 'pin': '0000', 'shift': 'Morning', 'sales': 0, 'tips': 0},
-    {'id': 'CS-001', 'name': 'Sarah', 'role': 'Cashier', 'pin': '9999', 'shift': 'Full-time', 'sales': 88400, 'tips': 0},
-  ]);
-
-  final ValueNotifier<Map<String, dynamic>> inventoryStock = ValueNotifier<Map<String, dynamic>>({});
-
-  final ValueNotifier<List<Map<String, dynamic>>> allHistoricalBills = ValueNotifier<List<Map<String, dynamic>>>([
-    {'id': '146', 'table': 'Table 7', 'date': '20/08/2026', 'timestamp': DateTime.now(), 'time': '10:35 AM', 'items': [{'name': 'Iced Americano', 'qty': 2, 'price': 'NPR 600'}, {'name': 'Croque-Monsieur', 'qty': 1, 'price': 'NPR 650'}], 'total': 'NPR 1,250', 'status': 'Active', 'server': 'Catherine'},
-    {'id': '145', 'table': 'Table 5', 'date': '20/08/2026', 'timestamp': DateTime.now().subtract(const Duration(days: 1)), 'time': '10:28 AM', 'items': [{'name': 'Cold Brew', 'qty': 1, 'price': 'NPR 450'}, {'name': 'Chiya', 'qty': 1, 'price': 'NPR 449'}], 'total': 'NPR 899', 'status': 'Active', 'server': 'Noah'},
-    {'id': '144', 'table': 'Table 1', 'date': '20/08/2026', 'timestamp': DateTime.now().subtract(const Duration(days: 2)), 'time': '10:15 AM', 'items': [{'name': 'Matcha Frappe', 'qty': 1, 'price': 'NPR 750'}, {'name': 'Iced Black', 'qty': 1, 'price': 'NPR 750'}], 'total': 'NPR 1,500', 'status': 'Billed', 'server': 'Sarah'},
-  ]);
-
-  final ValueNotifier<int?> activeStaffTableId = ValueNotifier<int?>(null);
-  final ValueNotifier<int> waiterTabIndex = ValueNotifier<int>(0);
-  final ValueNotifier<Map<int, Map<String, CartItem>>> pendingTableOrders = ValueNotifier<Map<int, Map<String, CartItem>>>({});
-
-  void setPendingItem(int tableId, Map<String, dynamic> p, int qty) {
-    Map<int, Map<String, CartItem>> allPending = Map.from(pendingTableOrders.value);
-    Map<String, CartItem> tablePending = Map.from(allPending[tableId] ?? {});
-    String title = p['title'];
-    if (qty <= 0) {
-      tablePending.remove(title);
-    } else {
-      Product product = Product(title: p['title'], price: p['price'], image: p['image'], tag: p['tag'] ?? "Staff", rating: p['rating'] ?? "N/A", discount: p['discount'] ?? "");
-      tablePending[title] = CartItem(product: product, quantity: qty);
-    }
-    allPending[tableId] = tablePending;
-    pendingTableOrders.value = allPending;
-  }
-
-  void clearPendingOrder(int tableId) {
-    Map<int, Map<String, CartItem>> allPending = Map.from(pendingTableOrders.value);
-    allPending.remove(tableId);
-    pendingTableOrders.value = allPending;
-  }
-
-  final Map<String, dynamic> salesStats = {'totalSales': 'NPR 145,943', 'salesChange': '+14%', 'totalOrders': '116', 'ordersChange': '+11%', 'avgOrderValue': 'NPR 8.12K', 'avgValueChange': '-3%', 'reservations': '34', 'resChange': '-5%'};
-
-  void initializeTables(int tablesPerFloor) {
-    if (tableStatuses.value.isNotEmpty) return;
-    Map<int, String> initialStatuses = {};
-    for (int i = 1; i <= tablesPerFloor; i++) {
-      initialStatuses[100 + i] = "Available";
-    }
-    for (int i = 1; i <= tablesPerFloor; i++) {
-      initialStatuses[200 + i] = "Available";
-    }
-    tableStatuses.value = initialStatuses;
-  }
-
-  void updateTableStatus(int tableId, String status) {
-    Map<int, String> current = Map.from(tableStatuses.value);
-    current[tableId] = status;
-    tableStatuses.value = current;
-    if (status == "Dining" && !tableStartTimes.value.containsKey(tableId)) {
-      Map<int, DateTime> times = Map.from(tableStartTimes.value);
-      times[tableId] = DateTime.now();
-      tableStartTimes.value = times;
-    }
-  }
-
-  void settleTable(int tableId) {
-    updateTableStatus(tableId, "Available");
-    Map<int, List<CartItem>> orders = Map.from(tableOrders.value);
-    orders.remove(tableId);
-    tableOrders.value = orders;
-    Map<int, DateTime> times = Map.from(tableStartTimes.value);
-    times.remove(tableId);
-    tableStartTimes.value = times;
-    clearPendingOrder(tableId);
-  }
-
-  static int parseTableId(String tableIdStr) {
-    final numericOnly = tableIdStr.replaceAll(RegExp(r'[^0-9]'), '');
-    return int.tryParse(numericOnly) ?? 0;
-  }
-
-  void addOrderToTable(int tableId, List<CartItem> newItems) {
-    Map<int, List<CartItem>> orders = Map.from(tableOrders.value);
-    List<CartItem> existing = List.from(orders[tableId] ?? []);
-    for (var newItem in newItems) {
-      int index = existing.indexWhere((i) => i.product.title == newItem.product.title && i.notes == newItem.notes);
-      if (index != -1) {
-        existing[index].quantity += newItem.quantity;
-      } else {
-        existing.add(newItem);
-      }
-    }
-    orders[tableId] = existing;
-    tableOrders.value = orders;
-    updateTableStatus(tableId, "Dining");
-    if (!tableCountdownTimers.value.containsKey(tableId)) {
-      startTableTimer(tableId, 10);
-      updateKitchenStage(tableId, "Incoming");
-    }
-    _syncTableWithBills(tableId, existing);
-  }
-
-  void updateKitchenStage(int tableId, String stage) {
-    Map<int, String> current = Map.from(tableKitchenStages.value);
-    current[tableId] = stage;
-    tableKitchenStages.value = current;
-  }
-
-  void notifyWaiter(int tableId) {
-    Map<int, bool> current = Map.from(tableReadyNotifications.value);
-    current[tableId] = true;
-    tableReadyNotifications.value = current;
-  }
-
-  void clearWaiterNotification(int tableId) {
-    Map<int, bool> current = Map.from(tableReadyNotifications.value);
-    current.remove(tableId);
-    tableReadyNotifications.value = current;
-  }
-
-  void addStaff(Map<String, dynamic> staff) {
-    List<Map<String, dynamic>> current = List.from(staffDirectory.value);
-    current.add(staff);
-    staffDirectory.value = current;
-  }
-
-  void updateInventory(String item, double newAmount) {
-    Map<String, dynamic> current = Map.from(inventoryStock.value);
-    if (current.containsKey(item)) {
-      current[item]['amount'] = newAmount;
-      if (newAmount < 5) {
-        current[item]['status'] = 'Critical';
-      } else if (newAmount < 15) {
-        current[item]['status'] = 'Low';
-      } else {
-        current[item]['status'] = 'Normal';
-      }
-      inventoryStock.value = current;
-    }
-  }
-
-  void removeFromTableOrder(int tableId, String itemTitle) {
-    Map<int, List<CartItem>> orders = Map.from(tableOrders.value);
-    List<CartItem> existing = List.from(orders[tableId] ?? []);
-    existing.removeWhere((item) => item.product.title == itemTitle);
-    if (existing.isEmpty) {
-      settleTable(tableId);
-    } else {
-      orders[tableId] = existing;
-      tableOrders.value = orders;
-      _syncTableWithBills(tableId, existing);
-    }
-  }
-
-  void _syncTableWithBills(int tableId, List<CartItem> items) {
-    List<Map<String, dynamic>> bills = List.from(allHistoricalBills.value);
-    String tableStr = "Table $tableId";
-    int existingIdx = bills.indexWhere((b) => b['table'] == tableStr && b['status'] == 'Active');
-    double totalValue = 0;
-    List<Map<String, dynamic>> billItems = [];
-    for (var item in items) {
-      String priceStr = item.product.price.replaceAll('NPR ', '').replaceAll(',', '');
-      double price = double.tryParse(priceStr) ?? 0;
-      totalValue += price * item.quantity;
-      billItems.add({'name': item.product.title, 'qty': item.quantity, 'price': item.product.price});
-    }
-    Map<String, dynamic> billData = {'id': existingIdx != -1 ? bills[existingIdx]['id'] : '${147 + bills.length}', 'table': tableStr, 'date': '20/08/2026', 'timestamp': existingIdx != -1 ? bills[existingIdx]['timestamp'] : DateTime.now(), 'time': existingIdx != -1 ? bills[existingIdx]['time'] : 'Now', 'items': billItems, 'total': 'NPR ${totalValue.toStringAsFixed(0)}', 'status': 'Active', 'server': 'Catherine'};
-    if (existingIdx != -1) {
-      bills[existingIdx] = billData;
-    } else {
-      bills.insert(0, billData);
-    }
-    allHistoricalBills.value = bills;
-  }
-
-  void clearTable(int tableId) {
-    Map<int, List<CartItem>> orders = Map.from(tableOrders.value);
-    orders.remove(tableId);
-    tableOrders.value = orders;
-    Map<int, List<CartItem>> confirmed = Map.from(confirmedTableOrders.value);
-    confirmed.remove(tableId);
-    confirmedTableOrders.value = confirmed;
-    Map<int, DateTime> times = Map.from(tableStartTimes.value);
-    times.remove(tableId);
-    tableStartTimes.value = times;
-    updateTableStatus(tableId, "Available");
-  }
-
-  Future<Map<String, dynamic>> confirmTableOrderWithResult(int tableId) async {
-    final tenant = TenantService().currentTenant.value;
-    if (tenant == null) return {"success": false, "message": "No tenant identified. Please refresh app."};
-    final List<CartItem> newItems = tableOrders.value[tableId] ?? [];
-    if (newItems.isEmpty) return {"success": false, "message": "Cart is empty."};
-    double total = 0;
-    List<Map<String, dynamic>> itemsJson = [];
-    for (var item in newItems) {
-      double prc = double.tryParse(item.product.price.replaceAll(RegExp(r'[^0-9.]'), '')) ?? 0;
-      total += prc * item.quantity;
-      itemsJson.add({"name": item.product.title, "quantity": item.quantity, "price": prc});
-    }
-    final result = await ApiService.placeTableOrder({"tenant_id": tenant.id, "table_number": tableId, "total_amount": total, "items": itemsJson});
-    if (result != null && result['status'] == 'success') {
-      Map<int, List<CartItem>> allConfirmed = Map.from(confirmedTableOrders.value);
-      List<CartItem> existing = List.from(allConfirmed[tableId] ?? []);
-      existing.addAll(newItems);
-      allConfirmed[tableId] = existing;
-      confirmedTableOrders.value = allConfirmed;
-      Map<int, List<CartItem>> currentOrders = Map.from(tableOrders.value);
-      currentOrders.remove(tableId);
-      tableOrders.value = currentOrders;
-      return {"success": true};
-    }
-    return {"success": false, "message": result != null ? result['message'] : "Server connection failed."};
-  }
-
-  double getTableTotal(int tableId) {
-    List<CartItem>? items = tableOrders.value[tableId];
-    if (items == null) return 0;
-    double total = 0;
-    for (var item in items) {
-      String priceStr = item.product.price.replaceAll('NPR ', '').replaceAll(',', '');
-      double price = double.tryParse(priceStr) ?? 0;
-      total += price * item.quantity;
-    }
-    return total;
-  }
-
-  void createMusicPoll(String title, List<Map<String, dynamic>> songs) {
-    activePoll.value = {'title': title, 'options': songs.map((s) => {...s, 'votes': 0}).toList(), 'endTime': DateTime.now().add(const Duration(minutes: 5)), 'userVotedIndex': -1, 'totalVotes': 0};
-  }
-
-  void castPollVote(int optionIndex) {
-    if (activePoll.value == null || activePoll.value!['userVotedIndex'] != -1) return;
-    Map<String, dynamic> poll = Map.from(activePoll.value!);
-    List<dynamic> options = List.from(poll['options']);
-    options[optionIndex]['votes'] += 1;
-    poll['options'] = options;
-    poll['totalVotes'] += 1;
-    poll['userVotedIndex'] = optionIndex;
-    activePoll.value = poll;
-    vibeScore.value = (vibeScore.value + 3).clamp(0, 100);
-  }
-
-  void endPoll() {
-    activePoll.value = null;
-  }
-
+  // --- MUSIC ---
   final ValueNotifier<List<Map<String, dynamic>>> musicQueue = ValueNotifier<List<Map<String, dynamic>>>([]);
+  final ValueNotifier<Map<String, dynamic>> currentSong = ValueNotifier<Map<String, dynamic>>({'title': 'No Song Playing', 'artist': '-', 'image': 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=500', 'progress': 0.0});
+  final ValueNotifier<int> vibeScore = ValueNotifier<int>(50);
+  final ValueNotifier<Map<String, dynamic>?> activePoll = ValueNotifier<Map<String, dynamic>?>(null);
 
   Future<Map<String, dynamic>> toggleMusicVote(int songId) async {
     final tenant = TenantService().currentTenant.value;
-    if (tenant == null) return {"success": false, "message": "No restaurant identified."};
-
-    final result = await ApiService.voteSong(
-      tenantId: tenant.id, 
-      userId: currentUserId,
-      songId: songId, 
-    );
-    
-    if (result['status'] == 'success') {
-      await refreshMusicStatus();
-      vibeScore.value = (vibeScore.value + 2).clamp(0, 100);
-      return {"success": true};
-    }
-    return {"success": false, "message": result['message'] ?? "Vote failed."};
+    if (tenant == null) return {"success": false};
+    final result = await ApiService.voteSong(tenantId: tenant.id, userId: currentUserId, songId: songId);
+    if (result['status'] == 'success') { await refreshMusicStatus(); vibeScore.value = (vibeScore.value + 2).clamp(0, 100); return {"success": true}; }
+    return {"success": false};
   }
 
   Future<Map<String, dynamic>> requestSong(String title, String artist, String? dedication) async {
     final tenant = TenantService().currentTenant.value;
-    if (tenant == null) return {"success": false, "message": "No restaurant identified."};
-
-    final result = await ApiService.requestMusic({
-      'tenant_id': tenant.id,
-      'title': title,
-      'artist': artist,
-      'dedication': dedication,
-      'user_id': currentUserId,
-    });
-
-    if (result['success'] == true) {
-      await refreshMusicStatus();
-      vibeScore.value = (vibeScore.value + 5).clamp(0, 100);
-    }
+    if (tenant == null) return {"success": false};
+    final result = await ApiService.requestMusic({'tenant_id': tenant.id, 'title': title, 'artist': artist, 'dedication': dedication, 'user_id': currentUserId});
+    if (result['success'] == true) { await refreshMusicStatus(); vibeScore.value = (vibeScore.value + 5).clamp(0, 100); }
     return result;
   }
 
-  void requestService(String type) {
-    if (type == 'water') {
-      isWaterRequested.value = true;
-      _startCooldown('water');
-    } else {
-      isWaiterRequested.value = true;
-      _startCooldown('waiter');
-    }
+  void createMusicPoll(String title, List<Map<String, dynamic>> songs) { activePoll.value = {'title': title, 'options': songs.map((s) => {...s, 'votes': 0}).toList(), 'endTime': DateTime.now().add(const Duration(minutes: 5)), 'userVotedIndex': -1, 'totalVotes': 0}; }
+  void castPollVote(int optionIndex) {
+    if (activePoll.value == null || activePoll.value!['userVotedIndex'] != -1) return;
+    Map<String, dynamic> poll = Map.from(activePoll.value!);
+    List<dynamic> opts = List.from(poll['options']); opts[optionIndex]['votes'] += 1;
+    poll['options'] = opts; poll['totalVotes'] += 1; poll['userVotedIndex'] = optionIndex;
+    activePoll.value = poll;
   }
 
-  void _startCooldown(String type) {
-    final notifier = type == 'water' ? waterCooldown : waiterCooldown;
-    final boolNotifier = type == 'water' ? isWaterRequested : isWaiterRequested;
-    notifier.value = 120;
-    Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (notifier.value > 0) {
-        notifier.value--;
-      } else {
-        boolNotifier.value = false;
-        timer.cancel();
-      }
-    });
-  }
+  // --- TABLES & ORDERS ---
+  final ValueNotifier<Map<int, List<CartItem>>> tableOrders = ValueNotifier({});
+  final ValueNotifier<Map<int, List<CartItem>>> confirmedTableOrders = ValueNotifier({});
+  final ValueNotifier<Map<int, String>> tableStatuses = ValueNotifier({});
+  final ValueNotifier<Map<int, String>> tableKitchenStages = ValueNotifier({});
+  final ValueNotifier<Map<int, bool>> tableReadyNotifications = ValueNotifier({});
+  final ValueNotifier<Map<int, DateTime>> tableStartTimes = ValueNotifier({});
+  final ValueNotifier<Map<int, int>> tableCountdownTimers = ValueNotifier({});
+  final ValueNotifier<Map<int, int>> tableOriginalDurations = ValueNotifier({});
 
-  bool isMysteryBoxTime() {
-    final hour = DateTime.now().hour;
-    return hour >= 8 && hour < 20;
+  void initializeTables(int count) { if (tableStatuses.value.isEmpty) { Map<int, String> initial = {}; for (int i = 1; i <= count; i++) initial[i] = "Available"; tableStatuses.value = initial; } }
+  void updateTableStatus(int tableId, String status) { tableStatuses.value = Map.from(tableStatuses.value)..[tableId] = status; }
+  void settleTable(int tableId) { updateTableStatus(tableId, "Available"); tableOrders.value = Map.from(tableOrders.value)..remove(tableId); confirmedTableOrders.value = Map.from(confirmedTableOrders.value)..remove(tableId); }
+  void clearTable(int tableId) => settleTable(tableId);
+  void addOrderToTable(int tableId, List<CartItem> newItems) {
+    Map<int, List<CartItem>> orders = Map.from(tableOrders.value); List<CartItem> existing = List.from(orders[tableId] ?? []);
+    for (var newItem in newItems) { int idx = existing.indexWhere((i) => i.product.title == newItem.product.title); if (idx != -1) existing[idx].quantity += newItem.quantity; else existing.add(newItem); }
+    orders[tableId] = existing; tableOrders.value = orders; updateTableStatus(tableId, "Dining");
   }
-
-  void addMembersToGroup(List<Map<String, dynamic>> members) {
-    currentGroupMembers.addAll(members);
-    final bonus = int.tryParse(loyaltySettings.value?['group_join_bonus']?.toString() ?? '200') ?? 200;
-    groupCoins.value += (members.length * bonus);
+  void removeFromTableOrder(int tableId, String title) {
+    Map<int, List<CartItem>> orders = Map.from(tableOrders.value); List<CartItem> existing = List.from(orders[tableId] ?? []);
+    existing.removeWhere((i) => i.product.title == title); if (existing.isEmpty) settleTable(tableId); else { orders[tableId] = existing; tableOrders.value = orders; }
+  }
+  Future<Map<String, dynamic>> confirmTableOrderWithResult(int tableId) async {
     final tenant = TenantService().currentTenant.value;
-    final staff = TenantService().currentStaff.value;
-    final uid = staff != null ? staff.id.toString() : guestId.value;
-    if (tenant != null && uid.isNotEmpty) {
-      ApiService.addPoints(tenant.id, uid, points: members.length * bonus, incrementStamps: 0); 
-      userPoints.value += (members.length * bonus);
+    if (tenant == null) return {"success": false};
+    final List<CartItem> newItems = tableOrders.value[tableId] ?? [];
+    double total = 0; List<Map<String, dynamic>> itemsJson = [];
+    for (var item in newItems) { double prc = double.tryParse(item.product.price.replaceAll(RegExp(r'[^0-9.]'), '')) ?? 0; total += prc * item.quantity; itemsJson.add({"name": item.product.title, "quantity": item.quantity, "price": prc}); }
+    final result = await ApiService.placeTableOrder({"tenant_id": tenant.id, "table_number": tableId, "user_id": currentUserId, "total_amount": total, "items": itemsJson});
+    if (result != null && result['status'] == 'success') {
+       final Map<int, List<CartItem>> updated = Map.from(confirmedTableOrders.value);
+       updated[tableId] = (updated[tableId] ?? [])..addAll(newItems);
+       confirmedTableOrders.value = updated; tableOrders.value = Map.from(tableOrders.value)..remove(tableId); return {"success": true};
     }
-    isGroupActive.value = true;
+    return {"success": false};
   }
 
-  void resetGroup() {
-    isGroupActive.value = false;
-    currentGroupMembers.clear();
-  }
+  static int parseTableId(String str) => int.tryParse(str.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+  void clearWaiterNotification(int id) => tableReadyNotifications.value = Map.from(tableReadyNotifications.value)..remove(id);
 
-  final List<Map<String, dynamic>> nearbyUsers = [
-    {'name': 'Mark', 'location': 'Table 12 (Lounge)', 'distance': '2m away', 'time': 'Since 3:12 pm', 'image': 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=500&auto=format&fit=crop&q=60', 'status': 'Eating Brisket', 'battery': '92%', 'isFollowing': true, 'isFollowingMe': true, 'lastMsg': 'Voice Note (0:12)', 'unread': 0, 'isOnline': false, 'activeTable': null},
-    {'name': 'Noah', 'location': 'Table 4 (Window)', 'distance': '5m away', 'time': 'Since 4:45 pm', 'image': 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=500&auto=format&fit=crop&q=60', 'status': 'Waiting for Order', 'battery': '45%', 'isFollowing': true, 'isFollowingMe': true, 'lastMsg': 'Come say hi later!', 'unread': 2, 'isOnline': true, 'activeTable': 'Table 4'},
-    {'name': 'Sarah', 'location': 'Counter Bar', 'distance': '1m away', 'time': 'Since 5:30 pm', 'image': 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=500&auto=format&fit=crop&q=60', 'status': 'Drinking Coffee', 'battery': '88%', 'isFollowing': false, 'isFollowingMe': false, 'lastMsg': '', 'unread': 0, 'isOnline': true},
-    {'name': 'Emily', 'location': 'Outdoor Patio', 'distance': '15m away', 'time': 'Since 6:00 pm', 'image': 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=500&auto=format&fit=crop&q=60', 'status': 'Reading Book', 'battery': '70%', 'isFollowing': false, 'isFollowingMe': false, 'lastMsg': '', 'unread': 0, 'isOnline': false},
-  ];
-
-  List<Map<String, dynamic>> get mutualFriends => nearbyUsers.where((user) => (user['isFollowing'] ?? false) && (user['isFollowingMe'] ?? false)).toList();
-
-  int get cartCount {
-    int count = 0;
-    for (var item in items.value) {
-      count += item.quantity;
-    }
-    return count;
-  }
-
-  double get totalPrice {
-    double total = 0;
-    for (var item in items.value) {
-      String priceStr = item.product.price.replaceAll('NPR ', '').replaceAll(',', '');
-      double price = double.tryParse(priceStr) ?? 0;
-      total += price * item.quantity;
-    }
-    return total;
-  }
-
-  void pushToCart({required Product product, required int quantity}) {
-    List<CartItem> currentItems = List.from(items.value);
-    int index = currentItems.indexWhere((i) => i.product.title == product.title);
-    if (index != -1) {
-      currentItems[index].quantity += quantity;
-    } else {
-      currentItems.add(CartItem(product: product, quantity: quantity));
-    }
-    items.value = currentItems;
-  }
-
-  void removeFromCart(Product product) {
-    List<CartItem> currentItems = List.from(items.value);
-    currentItems.removeWhere((i) => i.product.title == product.title);
-    items.value = currentItems;
-  }
-
-  void updateQuantity(Product product, int newQuantity) {
-    if (newQuantity <= 0) {
-      removeFromCart(product);
-      return;
-    }
-    List<CartItem> currentItems = List.from(items.value);
-    int index = currentItems.indexWhere((i) => i.product.title == product.title);
-    if (index != -1) {
-      currentItems[index].quantity = newQuantity;
-      items.value = currentItems;
+  // --- IDENTITY ---
+  Future<void> syncCustomerIdentity(String email, {String? name}) async {
+    final tenant = TenantService().currentTenant.value; if (tenant == null) return;
+    final res = await ApiService.syncCustomerProfile(tenantId: tenant.id, email: email, name: name);
+    if (res != null && res['status'] == 'success') {
+      customerEmail.value = email; customerName.value = res['user']?['name'] ?? 'Guest'; needsPin.value = res['needs_pin'] == true; isNewToShop.value = res['is_new_to_shop'] == true; isEmailSynced.value = true; userPoints.value = res['user']?['points'] ?? 0; orderStampCount.value = res['user']?['order_count'] ?? 0;
+      isProfileVisible.value = (res['user']?['is_public'] == 1 || res['user']?['is_public'] == true); isWaveEnabled.value = (res['user']?['allow_waves'] == 1 || res['user']?['allow_waves'] == true);
+      final prefs = await SharedPreferences.getInstance(); await prefs.setString('customer_email', email);
     }
   }
 
-  Timer? _statusTimer;
+  Future<bool> finalizeSecurityPin(String pin) async {
+    final tenant = TenantService().currentTenant.value; if (tenant == null || customerEmail.value.isEmpty) return false;
+    if (await ApiService.saveCustomerPin(tenantId: tenant.id, email: customerEmail.value, pin: pin)) { needsPin.value = false; await fetchSocialLists(); return true; }
+    return false;
+  }
+
+  Future<bool> updateProfile({required String name, required String gender, bool isAnon = false}) async {
+    final tenant = TenantService().currentTenant.value; if (tenant == null || currentUserId.isEmpty) return false;
+    if (await ApiService.submitOnboarding(tenantId: tenant.id, userId: currentUserId, name: name, gender: gender, isAnonymous: isAnon)) {
+      customerName.value = name; userGender.value = gender; isOnboardingComplete.value = true;
+      final prefs = await SharedPreferences.getInstance(); await prefs.setBool('onboarding_complete', true);
+      await refreshSocialStats(); await fetchSocialLists(); await setupPushNotifications(); return true;
+    }
+    return false;
+  }
+
+  Future<void> checkNotificationPermission() async {
+    try {
+      if (Firebase.apps.isEmpty) return; final prefs = await SharedPreferences.getInstance(); if (prefs.getBool('notif_prompt_dismissed') == true) return;
+      FirebaseMessaging messaging = FirebaseMessaging.instance; NotificationSettings settings = await messaging.getNotificationSettings();
+      if (settings.authorizationStatus == AuthorizationStatus.notDetermined) showNotificationPrompt.value = true;
+      else if (settings.authorizationStatus == AuthorizationStatus.authorized) setupPushNotifications();
+    } catch (e) {}
+  }
+
+  Future<bool> setupPushNotifications() async {
+    final tenant = TenantService().currentTenant.value; if (tenant == null || currentUserId.isEmpty) return false;
+    try {
+      if (Firebase.apps.isEmpty) return false; FirebaseMessaging messaging = FirebaseMessaging.instance;
+      NotificationSettings settings = await messaging.requestPermission(alert: true, badge: true, sound: true);
+      if (settings.authorizationStatus == AuthorizationStatus.authorized) {
+        final token = await (kIsWeb ? messaging.getToken(vapidKey: 'BGfucW_HKKPEUrswHLq1S-WGdeyHv6jTkSGvsJ_bP20OelPwEpMcsxAkhpf34iK3g-H1E8NVVY8Vo96bIyxagQg') : messaging.getToken());
+        if (token != null) { await ApiService.updateFcmToken(tenantId: tenant.id, userId: currentUserId, token: token); final prefs = await SharedPreferences.getInstance(); await prefs.setBool('notif_prompt_dismissed', true); return true; }
+      }
+    } catch (e) {} finally { showNotificationPrompt.value = false; }
+    return false;
+  }
+
+  Future<void> syncProcurementData(String tenantId) async {
+    final supData = await ApiService.fetchSuppliers(tenantId); final purData = await ApiService.fetchPurchases(tenantId);
+    if (supData != null) allSuppliers.value = List<Map<String, dynamic>>.from(supData); if (purData != null) allPurchases.value = List<Map<String, dynamic>>.from(purData);
+  }
+
+  final ValueNotifier<List<Map<String, dynamic>>> allPurchases = ValueNotifier([]);
+  final ValueNotifier<List<Map<String, dynamic>>> allSuppliers = ValueNotifier([]);
+
+  // --- OTHERS ---
+  final ValueNotifier<bool> onlyMutualChat = ValueNotifier<bool>(false);
+  final ValueNotifier<bool> showTableNumber = ValueNotifier<bool>(true);
+  final ValueNotifier<bool> socialVibration = ValueNotifier<bool>(true);
+  final ValueNotifier<bool> autoWaveBack = ValueNotifier<bool>(false);
+  bool isMysteryBoxTime() { final h = DateTime.now().hour; return h >= 8 && h < 22; }
+  int getItemQuantity(String title) { final idx = items.value.indexWhere((i) => i.product.title == title); return idx != -1 ? items.value[idx].quantity : 0; }
+  void pushToCart({required Product product, required int quantity}) { List<CartItem> curr = List.from(items.value); int idx = curr.indexWhere((i) => i.product.title == product.title); if (idx != -1) curr[idx].quantity += quantity; else curr.add(CartItem(product: product, quantity: quantity)); items.value = curr; }
+  void removeFromCart(Product p) { items.value = List<CartItem>.from(items.value)..removeWhere((i) => i.product.title == p.title); }
+  void updateQuantity(Product p, int qty) { if (qty <= 0) removeFromCart(p); else { List<CartItem> curr = List.from(items.value); int idx = curr.indexWhere((i) => i.product.title == p.title); if (idx != -1) { curr[idx].quantity = qty; items.value = curr; } } }
+  void clearCart() => items.value = [];
+  void navigateToCategory(String? c) { activeCategory.value = c; currentTabIndex.value = 1; }
+  void switchTable(int id) => selectedTableId.value = id;
+  int get cartCount { int count = 0; for (var item in items.value) count += item.quantity; return count; }
+  double get totalPrice { double total = 0; for (var item in items.value) { String prcStr = item.product.price.replaceAll('NPR ', '').replaceAll(',', ''); total += (double.tryParse(prcStr) ?? 0) * item.quantity; } return total; }
+
+  final ValueNotifier<List<Map<String, dynamic>>> allHistoricalBills = ValueNotifier([]);
+  final ValueNotifier<Map<String, dynamic>> inventoryStock = ValueNotifier({});
+  final ValueNotifier<List<Map<String, dynamic>>> staffDirectory = ValueNotifier([]);
+  final ValueNotifier<int> waiterTabIndex = ValueNotifier(0);
+  final ValueNotifier<Map<int, Map<String, CartItem>>> pendingTableOrders = ValueNotifier({});
+  final ValueNotifier<int?> activeStaffTableId = ValueNotifier(null);
+  final ValueNotifier<bool> isMysteryBoxOpened = ValueNotifier(false);
+  final ValueNotifier<bool> isRewardClaimed = ValueNotifier(false);
+
+  void setPendingItem(int tableId, Map<String, dynamic> p, int qty) {
+    Map<int, Map<String, CartItem>> all = Map.from(pendingTableOrders.value); Map<String, CartItem> table = Map.from(all[tableId] ?? {}); String title = p['title'];
+    if (qty <= 0) table.remove(title);
+    else table[title] = CartItem(product: Product(title: p['title'], price: p['price'].toString(), image: p['image'] ?? '', tag: p['tag'] ?? "Staff", rating: p['rating'] ?? "N/A"), quantity: qty);
+    all[tableId] = table; pendingTableOrders.value = all;
+  }
+  void clearPendingOrder(int id) => pendingTableOrders.value = Map.from(pendingTableOrders.value)..remove(id);
 
   Future<void> placeOrder() async {
-    if (items.value.isEmpty) return;
-    final tenant = TenantService().currentTenant.value;
-    if (tenant == null) return;
-    double total = totalPrice;
-    final List<Map<String, dynamic>> itemsJson = items.value.map((i) => {"name": i.product.title, "quantity": i.quantity, "price": double.tryParse(i.product.price.replaceAll(RegExp(r'[^0-9.]'), '')) ?? 0}).toList();
-    if (selectedTableId.value == null) return;
-    final String myUid = currentUserId;
-    final result = await ApiService.placeTableOrder({"tenant_id": tenant.id, "table_number": selectedTableId.value, "user_id": myUid, "customer_email": customerEmail.value, "total_amount": total, "items": itemsJson});
-    if (result != null && result['status'] == 'success') {
-      int orderId = int.parse(result['order_id'].toString());
-      placedOrderItems.value = List.from(items.value);
-      activeOrderId.value = orderId;
-      await _persistOrder(orderId);
-      if (myUid.isNotEmpty) {
-          await ApiService.addPoints(tenant.id, myUid, orderAmount: total);
-          await refreshUserPoints();
-          await updatePresenceOnServer();
-          await fetchSocialLists();
-      }
-      clearCart();
-      isOrderActive.value = true;
-      orderStatus.value = OrderStatus.pending;
-      _startStatusSync();
+    if (items.value.isEmpty || selectedTableId.value == null) return;
+    double total = totalPrice; final itemsJson = items.value.map((i) => {"name": i.product.title, "quantity": i.quantity, "price": double.tryParse(i.product.price.replaceAll(RegExp(r'[^0-9.]'), '')) ?? 0}).toList();
+    final result = await ApiService.placeTableOrder({"tenant_id": TenantService().currentTenant.value!.id, "table_number": selectedTableId.value, "user_id": currentUserId, "customer_email": customerEmail.value, "total_amount": total, "items": itemsJson});
+    if (result != null && result['status'] == 'success') { 
+      int id = int.parse(result['order_id'].toString()); 
+      activeOrderId.value = id; 
+      
+      // AUTO-SYNC TO LIVE SESSION
+      final List<Map<String, dynamic>> sessionUpdate = items.value.map((i) => {
+        'title': i.product.title,
+        'who': customerName.value.isNotEmpty ? customerName.value : "Host",
+        'status': 'Kitchen',
+        'price': i.product.price,
+        'image': i.product.image,
+      }).toList();
+      liveSessionOrders.value = List.from(liveSessionOrders.value)..addAll(sessionUpdate);
+
+      await _persistOrder(id); 
+      clearCart(); 
+      isOrderActive.value = true; 
+      _startStatusSync(); 
     }
   }
 
   void _startStatusSync() {
-    _statusTimer?.cancel();
-    _statusTimer = Timer.periodic(const Duration(seconds: 10), (timer) async {
-      if (activeOrderId.value == null || !isOrderActive.value) {
-        timer.cancel();
-        return;
-      }
-      final liveStatus = await ApiService.fetchOrderStatus(activeOrderId.value!);
-      if (liveStatus != null) {
-        _mapStatus(liveStatus);
+    Timer.periodic(const Duration(seconds: 15), (timer) async {
+      if (activeOrderId.value == null) { timer.cancel(); return; }
+      final live = await ApiService.fetchOrderStatus(activeOrderId.value!);
+      if (live != null) {
+        if (live == 'Pending') orderStatus.value = OrderStatus.pending;
+        else if (live == 'Approved') orderStatus.value = OrderStatus.approved;
+        else if (live == 'Preparing') orderStatus.value = OrderStatus.preparing;
+        else if (live == 'Ready') orderStatus.value = OrderStatus.ready;
+        else if (live == 'Completed') { isOrderActive.value = false; timer.cancel(); }
       }
     });
   }
 
   void _mapStatus(String dbStatus) {
-    switch (dbStatus) {
-      case 'Pending': orderStatus.value = OrderStatus.pending; break;
-      case 'Approved': orderStatus.value = OrderStatus.approved; break;
-      case 'Preparing': orderStatus.value = OrderStatus.preparing; break;
-      case 'Ready': orderStatus.value = OrderStatus.ready; break;
-      case 'Completed': clearActiveOrder(); break;
+    if (dbStatus == 'Pending') orderStatus.value = OrderStatus.pending;
+    else if (dbStatus == 'Approved') orderStatus.value = OrderStatus.approved;
+    else if (dbStatus == 'Preparing') orderStatus.value = OrderStatus.preparing;
+    else if (dbStatus == 'Ready') orderStatus.value = OrderStatus.ready;
+  }
+
+  Future<void> clearActiveOrder() async { isOrderActive.value = false; activeOrderId.value = null; placedOrderItems.value = []; orderStatus.value = OrderStatus.pending; }
+
+  // --- GAMIFICATION ---
+  final ValueNotifier<int> tapWarTimer = ValueNotifier<int>(0);
+  final ValueNotifier<List<Map<String, dynamic>>> tapLeaderboard = ValueNotifier<List<Map<String, dynamic>>>([]);
+  void startTapWar() { tapWarTimer.value = 30; tapLeaderboard.value = [{'table': 'Your Table', 'score': 0, 'isUser': true}]; }
+  void recordTap() { if (tapWarTimer.value > 0) { List<Map<String, dynamic>> curr = List.from(tapLeaderboard.value); curr[0]['score']++; tapLeaderboard.value = curr; } }
+  void endTapWar() { tapWarTimer.value = 0; }
+  void updateTableName(String old, String newN) { List<Map<String, dynamic>> curr = List.from(tapLeaderboard.value); for (var i in curr) if (i['table'] == old) i['table'] = newN; tapLeaderboard.value = curr; }
+  void addGameTime(Duration d) { totalGameTime.value += d; }
+
+  Future<Map<String, dynamic>> addPoints(String tenantId, String userId, {double orderAmount = 0, int points = 0, int incrementStamps = 0}) async {
+    final result = await ApiService.addPoints(tenantId, userId, orderAmount: orderAmount, points: points, incrementStamps: incrementStamps);
+    await refreshUserPoints();
+    return result;
+  }
+
+  // --- GROUP DINING LIVE SYNC (V3 - Real Backend) ---
+  final ValueNotifier<List<Map<String, dynamic>>> liveSessionOrders = ValueNotifier([]);
+  final ValueNotifier<List<Map<String, dynamic>>> liveSessionMembers = ValueNotifier([]);
+  final ValueNotifier<double> liveSessionTotal = ValueNotifier(0.0);
+  final ValueNotifier<bool> isSessionHost = ValueNotifier(false);
+  final ValueNotifier<int?> activeSessionId = ValueNotifier(null);
+  final ValueNotifier<String?> activeSessionPin = ValueNotifier<String?> (null);
+  final ValueNotifier<bool> isSessionLocked = ValueNotifier(false);
+  final ValueNotifier<String?> activeSessionQr = ValueNotifier<String?>(null);
+  final ValueNotifier<bool> openTablePickerTrigger = ValueNotifier(false);
+  final ValueNotifier<bool> isSplitShared = ValueNotifier(false);
+  final ValueNotifier<String?> volunteerId = ValueNotifier<String?>(null);
+
+  Timer? _sessionPoller;
+  String? _lastSyncTime;
+
+  void startSessionPolling(int sid, bool asHost, {String? pin}) async {
+    if (pin != null) activeSessionPin.value = pin;
+    activeSessionId.value = sid;
+    isSessionHost.value = asHost;
+    
+    _lastSyncTime = null;
+    _sessionPoller?.cancel();
+    _sessionPoller = Timer.periodic(const Duration(seconds: 8), (timer) => syncSessionData());
+    syncSessionData(); // Initial immediate sync
+
+    // PERSIST SESSION
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('active_session_id', sid);
+    await prefs.setBool('is_session_host', asHost);
+    if (pin != null) await prefs.setString('active_session_pin', pin);
+  }
+
+  Future<void> syncSessionData() async {
+    if (activeSessionId.value == null) return;
+    final tenant = TenantService().currentTenant.value;
+    if (tenant == null) return;
+
+    final result = await ApiService.getSplitGroupDetails(
+      tenantId: tenant.id, 
+      sessionId: activeSessionId.value!,
+      lastSyncTime: _lastSyncTime
+    );
+
+    if (result != null) {
+      if (result['status'] == 'success') {
+        final data = result['data'];
+        liveSessionOrders.value = List<Map<String, dynamic>>.from(data['items'] ?? []);
+        liveSessionMembers.value = List<Map<String, dynamic>>.from(data['members'] ?? []);
+        liveSessionTotal.value = (data['total_bill'] ?? 0.0).toDouble();
+        
+        // CHECK FOR PAYMENT QR
+        if (data['payment_qr'] != null && activeSessionQr.value == null) {
+          activeSessionQr.value = data['payment_qr'];
+          // Trigger Popup Notifier
+          showPaymentPopup.value = true;
+        }
+
+        if (data['session_status'] == 'Locked') {
+          isSessionLocked.value = true;
+        }
+
+        if (data['is_split_shared'] != null) {
+          isSplitShared.value = data['is_split_shared'];
+        }
+        if (data['volunteer_id'] != null) {
+          volunteerId.value = data['volunteer_id'];
+        }
+
+        _lastSyncTime = data['server_time'];
+      } else if (result['status'] == 'no_change') {
+        _lastSyncTime = result['server_time'];
+      }
     }
   }
 
-  Future<void> clearActiveOrder() async {
-    isOrderActive.value = false;
-    activeOrderId.value = null;
-    placedOrderItems.value = [];
-    orderStatus.value = OrderStatus.pending;
-    _statusTimer?.cancel();
+  final ValueNotifier<bool> showPaymentPopup = ValueNotifier(false);
+
+  void resetSession() async {
+    _sessionPoller?.cancel();
+    liveSessionOrders.value = [];
+    liveSessionMembers.value = [];
+    liveSessionTotal.value = 0.0;
+    isSessionHost.value = false;
+    activeSessionId.value = null;
+    activeSessionPin.value = null;
+    isSessionLocked.value = false;
+    _lastSyncTime = null;
+
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('active_order_ids');
-    activeOrderIds.value = [];
+    await prefs.remove('active_session_id');
+    await prefs.remove('is_session_host');
+    await prefs.remove('active_session_pin');
   }
 
-  void clearCart() => items.value = [];
-
-  void addGameTime(Duration sessionTime) => totalGameTime.value += sessionTime;
-
-  void switchTable(int id) => selectedTableId.value = id;
-
-  int getItemQuantity(String title) {
-    final index = items.value.indexWhere((i) => i.product.title == title);
-    return index != -1 ? items.value[index].quantity : 0;
-  }
-
-  void navigateToCategory(String? category) {
-    activeCategory.value = category;
-    currentTabIndex.value = 1;
-  }
+  // --- GROUP CHAT ---
+  final List<Map<String, dynamic>> currentGroupMembers = [];
+  final List<Map<String, dynamic>> nearbyUsers = [];
+  void addMembersToGroup(List<Map<String, dynamic>> m) { currentGroupMembers.addAll(m); }
 }
 
 final storeManager = ShopManager();

@@ -56,9 +56,20 @@ try {
         $table_id = $conn->insert_id;
     }
 
-    // 2. Create Order
-    $stmt = $conn->prepare("INSERT INTO orders (tenant_id, table_id, user_id, customer_email, total_amount, status) VALUES (?, ?, ?, ?, ?, 'Pending')");
-    $stmt->bind_param("sissd", $tenant_id, $table_id, $user_id, $customer_email, $total_amount);
+    // 2. CHECK FOR ACTIVE DINING SESSION (Auto-Link)
+    $session_id = null;
+    $s_stmt = $conn->prepare("SELECT id FROM dining_sessions WHERE tenant_id = ? AND table_number = ? AND status = 'Open' LIMIT 1");
+    $s_stmt->bind_param("si", $tenant_id, $table_number);
+    $s_stmt->execute();
+    if ($s_row = $s_stmt->get_result()->fetch_assoc()) {
+        $session_id = $s_row['id'];
+        // Update session timestamp to trigger "Delta Sync" for all devices
+        $conn->query("UPDATE dining_sessions SET last_modified = CURRENT_TIMESTAMP WHERE id = $session_id");
+    }
+
+    // 3. Create Order
+    $stmt = $conn->prepare("INSERT INTO orders (tenant_id, table_id, user_id, customer_email, total_amount, status, session_id) VALUES (?, ?, ?, ?, ?, 'Pending', ?)");
+    $stmt->bind_param("sissdi", $tenant_id, $table_id, $user_id, $customer_email, $total_amount, $session_id);
     $stmt->execute();
     $order_id = $conn->insert_id;
 

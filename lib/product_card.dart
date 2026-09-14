@@ -4,6 +4,7 @@ import 'cart_manager.dart';
 import 'product_details_page.dart';
 import 'ar_view_page.dart';
 import 'product_voice_assistant_page.dart';
+import 'services/tenant_service.dart';
 
 class ProductCard extends StatelessWidget {
   final Map<String, dynamic> item;
@@ -100,8 +101,8 @@ class ProductCard extends StatelessWidget {
                         ),
                       ),
                     
-                    // 3D / AR Trigger Icon (Moved to Left)
-                    if (product.modelUrl != null && product.modelUrl!.isNotEmpty)
+                    // 3D / AR Trigger Icon (Premium Feature Check)
+                    if (TenantService().currentTenant.value?.isPremiumEnabled ?? false)
                       Positioned(
                         top: 8, left: 8,
                         child: GestureDetector(
@@ -115,32 +116,39 @@ class ProductCard extends StatelessWidget {
                               shape: BoxShape.circle,
                               boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 4)],
                             ),
-                            child: const Icon(Icons.view_in_ar_rounded, color: Color(0xFFFF5C00), size: 16),
+                            child: Icon(
+                              Icons.view_in_ar_rounded, 
+                              color: (product.modelUrl != null && product.modelUrl!.isNotEmpty) 
+                                  ? const Color(0xFFFF5C00) 
+                                  : Colors.grey, 
+                              size: 16
+                            ),
                           ),
                         ),
                       ),
 
-                    // Voice Assistant Trigger Icon (New - Top Right)
-                    Positioned(
-                      top: 8, right: 8,
-                      child: GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => ProductVoiceAssistantPage(product: product)),
-                          );
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.all(6),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.9),
-                            shape: BoxShape.circle,
-                            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 4)],
+                    // Voice Assistant Trigger Icon (Premium Feature Check)
+                    if (TenantService().currentTenant.value?.isPremiumEnabled ?? false)
+                      Positioned(
+                        top: 8, right: 8,
+                        child: GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => ProductVoiceAssistantPage(product: product)),
+                            );
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.9),
+                              shape: BoxShape.circle,
+                              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 4)],
+                            ),
+                            child: const Icon(Icons.spatial_audio_off_rounded, color: Color(0xFFFF5C00), size: 16),
                           ),
-                          child: const Icon(Icons.spatial_audio_off_rounded, color: Color(0xFFFF5C00), size: 16),
                         ),
                       ),
-                    ),
                   ],
                 ),
               ),

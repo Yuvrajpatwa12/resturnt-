@@ -52,7 +52,43 @@ CREATE TABLE IF NOT EXISTS customers (
     PRIMARY KEY (email, tenant_id)
 );
 
--- 3. ORDERING SYSTEM
+-- 3. MENU & PRODUCTS SYSTEM
+CREATE TABLE IF NOT EXISTS categories (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    tenant_id VARCHAR(50) NOT NULL,
+    title VARCHAR(100) NOT NULL,
+    rank INT DEFAULT 0,
+    icon VARCHAR(50) DEFAULT 'restaurant_menu',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS products (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    tenant_id VARCHAR(50) NOT NULL,
+    category_id INT NOT NULL,
+    title VARCHAR(150) NOT NULL,
+    price DECIMAL(10,2) NOT NULL,
+    image_url TEXT,
+    description TEXT,
+    slogan VARCHAR(255),
+    featured_section ENUM('none', 'just_for_you', 'trending', 'popular') DEFAULT 'none',
+    model_url TEXT,
+    ios_model_url TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS order_items (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    order_id INT NOT NULL,
+    product_id INT NOT NULL,
+    quantity INT NOT NULL,
+    price DECIMAL(10,2) NOT NULL,
+    FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
+);
+
+-- 4. ORDERING SYSTEM
 CREATE TABLE IF NOT EXISTS restaurant_tables (
     id INT AUTO_INCREMENT PRIMARY KEY,
     tenant_id VARCHAR(50) NOT NULL,

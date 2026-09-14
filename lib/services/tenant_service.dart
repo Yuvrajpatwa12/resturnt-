@@ -14,6 +14,7 @@ class Tenant {
   final String? storage;
   final double? latitude;  // Added
   final double? longitude; // Added
+  final bool isPremiumEnabled; // Master switch for AR, Voice, Loyalty, Proximity
 
   Tenant({
     required this.id,
@@ -28,6 +29,7 @@ class Tenant {
     this.storage,
     this.latitude,
     this.longitude,
+    required this.isPremiumEnabled,
   });
 
   factory Tenant.fromMap(Map<String, dynamic> map) {
@@ -36,7 +38,7 @@ class Tenant {
       name: map['restaurant_name'] ?? map['name'] ?? 'Unknown',
       logo: map['logo_url'] ?? map['logo'] ?? '',
       color: map['primary_color'] ?? map['color'] ?? '#FF5C00',
-      domain: map['domain'] ?? map['custom_domain'] ?? '', // Corrected mapping key
+      domain: map['domain'] ?? map['custom_domain'] ?? '', 
       isActive: (map['is_active'] == 1 || map['is_active'] == true),
       plan: map['plan'] ?? 'Basic',
       expiry: map['expiry_date'] ?? map['expiry'],
@@ -44,6 +46,7 @@ class Tenant {
       storage: map['storage_used'] ?? map['storage'] ?? '0.0 GB',
       latitude: double.tryParse(map['latitude']?.toString() ?? ''),
       longitude: double.tryParse(map['longitude']?.toString() ?? ''),
+      isPremiumEnabled: (map['is_premium_enabled'] == 1 || map['is_premium_enabled'] == true),
     );
   }
 }

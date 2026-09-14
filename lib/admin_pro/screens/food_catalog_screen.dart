@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import '../../services/api_service.dart';
 import '../../services/tenant_service.dart';
 import '../admin_theme.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart';
 import 'dart:typed_data';
+import 'dart:js_interop';
+import 'package:web/web.dart' as web;
 
 class FoodCatalogScreen extends StatefulWidget {
   final String mode;
@@ -27,6 +31,11 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
   bool _isSubmitting = false;
   Uint8List? _selectedImageBytes;
   String? _selectedImageName;
+  
+  Uint8List? _selectedGlbBytes;
+  String? _selectedGlbName;
+  Uint8List? _selectedUsdzBytes;
+  String? _selectedUsdzName;
 
   @override
   void dispose() {
@@ -371,7 +380,35 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
             _buildTextField("Product Slogan", _sloganController, hint: "e.g. The best momo in town!"),
             const SizedBox(height: 16),
             _buildTextField("Description", _descriptionController, hint: "Enter short product details..."),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
+            
+            // 3D Model Section (Premium Feature Check)
+            if (TenantService().currentTenant.value?.isPremiumEnabled ?? false) ...[
+              const Text("3D Models (AR)", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildModelPicker(
+                      "Android (.glb)", 
+                      _selectedGlbName, 
+                      () => _pickModel('glb'),
+                      Icons.android,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: _buildModelPicker(
+                      "iOS (.usdz)", 
+                      _selectedUsdzName, 
+                      () => _pickModel('usdz'),
+                      Icons.apple,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+            ],
             
             // Home Section Picker
             const Text("Home Page Section", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey)),
@@ -414,6 +451,122 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
     }
   }
 
+  Future<void> _pickModel(String type) async {
+    if (kIsWeb) {
+      try {
+        debugPrint("Opening Web native file picker for: $type");
+        final web.HTMLInputElement input = web.document.createElement('input') as web.HTMLInputElement;
+        input.type = 'file';
+        input.accept = '.$type';
+        
+        input.onChange.listen((event) {
+          if (input.files!.length > 0) {
+            final file = input.files!.item(0)!;
+            debugPrint("Web File selected: ${file.name}");
+            
+            final reader = web.FileReader();
+            reader.readAsArrayBuffer(file);
+            reader.onLoadEnd.listen((e) {
+              final Uint8List bytes = (reader.result as JSArrayBuffer).toDart.asUint8List();
+              setState(() {
+                if (type == 'glb') {
+                  _selectedGlbBytes = bytes;
+                  _selectedGlbName = file.name;
+                } else {
+                  _selectedUsdzBytes = bytes;
+                  _selectedUsdzName = file.name;
+                }
+              });
+            });
+          }
+        });
+        input.click();
+      } catch (e) {
+        debugPrint("Web Picker Error: $e");
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Web Picker Error: $e"), backgroundColor: Colors.red),
+          );
+        }
+      }
+      return;
+    }
+
+    // Fallback for Mobile/Desktop
+    try {
+      debugPrint("Opening file_picker for: $type");
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: [type],
+        withData: true,
+      );
+
+      if (result != null && result.files.isNotEmpty) {
+        final file = result.files.first;
+        setState(() {
+          if (type == 'glb') {
+            _selectedGlbBytes = file.bytes;
+            _selectedGlbName = file.name;
+          } else {
+            _selectedUsdzBytes = file.bytes;
+            _selectedUsdzName = file.name;
+          }
+        });
+      }
+    } catch (e) {
+      debugPrint("FilePicker Error: $e");
+    }
+  }
+
+  Widget _buildModelPicker(String label, String? fileName, VoidCallback onTap, IconData icon) {
+    final bool isSelected = fileName != null;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.grey)),
+        const SizedBox(height: 8),
+        GestureDetector(
+          onTap: onTap,
+          behavior: HitTestBehavior.opaque,
+          child: Container(
+            height: 50,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: isSelected ? Colors.green : Colors.grey[200]!, width: isSelected ? 2 : 1),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.02),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                )
+              ],
+            ),
+            child: Row(
+              children: [
+                Icon(icon, size: 18, color: isSelected ? Colors.green : AdminTheme.royalBlue),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    isSelected ? fileName : "Click to Upload",
+                    style: TextStyle(
+                      fontSize: 11, 
+                      fontWeight: FontWeight.bold,
+                      color: isSelected ? Colors.green : Colors.black87,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                if (isSelected) const Icon(Icons.check_circle, color: Colors.green, size: 16),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Future<void> _submitProduct() async {
     if (_titleController.text.isEmpty || _priceController.text.isEmpty || _selectedCategoryId == null) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please fill all required fields!")));
@@ -426,29 +579,37 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
     if (tenant == null) return;
 
     String finalImageUrl = "";
+    String finalGlbUrl = "";
+    String finalUsdzUrl = "";
 
-    // 1. Upload image if selected
+    // 1. Upload assets
     if (_selectedImageBytes != null && _selectedImageName != null) {
       final uploadedUrl = await ApiService.uploadProductImage(_selectedImageBytes!, _selectedImageName!);
-      if (uploadedUrl != null) {
-        finalImageUrl = uploadedUrl;
-      } else {
-        setState(() => _isSubmitting = false);
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Image upload failed!"), backgroundColor: Colors.red));
-        return;
-      }
+      if (uploadedUrl != null) finalImageUrl = uploadedUrl;
+    }
+
+    if (_selectedGlbBytes != null && _selectedGlbName != null) {
+      final uploadedUrl = await ApiService.upload3DModel(_selectedGlbBytes!, _selectedGlbName!);
+      if (uploadedUrl != null) finalGlbUrl = uploadedUrl;
+    }
+
+    if (_selectedUsdzBytes != null && _selectedUsdzName != null) {
+      final uploadedUrl = await ApiService.upload3DModel(_selectedUsdzBytes!, _selectedUsdzName!);
+      if (uploadedUrl != null) finalUsdzUrl = uploadedUrl;
     }
 
     // 2. Add product to DB
     final res = await ApiService.addProduct({
       'tenant_id': tenant.id,
       'category_id': _selectedCategoryId,
-      'title': _titleController.text.trim(), // Added title here
+      'title': _titleController.text.trim(),
       'price': _priceController.text.trim(),
       'image_url': finalImageUrl,
       'description': _descriptionController.text.trim(),
       'slogan': _sloganController.text.trim(),
       'featured_section': _selectedSection,
+      'model_url': finalGlbUrl,
+      'ios_model_url': finalUsdzUrl,
     });
 
     setState(() => _isSubmitting = false);
@@ -464,7 +625,11 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
       setState(() {
         _selectedImageBytes = null;
         _selectedImageName = null;
-        _selectedSection = 'none'; // Reset section
+        _selectedGlbBytes = null;
+        _selectedGlbName = null;
+        _selectedUsdzBytes = null;
+        _selectedUsdzName = null;
+        _selectedSection = 'none';
       });
       // Re-fetch menu to show new item
       TenantService().fetchMenuData(tenant.id);
@@ -541,10 +706,22 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
     if (tenant == null || _editingProduct == null) return;
 
     String finalImageUrl = _editingProduct!['image_url'] ?? _editingProduct!['image'] ?? "";
+    String finalGlbUrl = _editingProduct!['model_url'] ?? "";
+    String finalUsdzUrl = _editingProduct!['ios_model_url'] ?? "";
 
     if (_selectedImageBytes != null && _selectedImageName != null) {
       final uploadedUrl = await ApiService.uploadProductImage(_selectedImageBytes!, _selectedImageName!);
       if (uploadedUrl != null) finalImageUrl = uploadedUrl;
+    }
+
+    if (_selectedGlbBytes != null && _selectedGlbName != null) {
+      final uploadedUrl = await ApiService.upload3DModel(_selectedGlbBytes!, _selectedGlbName!);
+      if (uploadedUrl != null) finalGlbUrl = uploadedUrl;
+    }
+
+    if (_selectedUsdzBytes != null && _selectedUsdzName != null) {
+      final uploadedUrl = await ApiService.upload3DModel(_selectedUsdzBytes!, _selectedUsdzName!);
+      if (uploadedUrl != null) finalUsdzUrl = uploadedUrl;
     }
 
     final res = await ApiService.updateProduct({
@@ -557,6 +734,8 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
       'description': _descriptionController.text,
       'slogan': _sloganController.text.trim(),
       'featured_section': _selectedSection,
+      'model_url': finalGlbUrl,
+      'ios_model_url': finalUsdzUrl,
     });
 
     setState(() => _isSubmitting = false);

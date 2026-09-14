@@ -63,6 +63,8 @@ class _ClientDetailsScreenState extends State<ClientDetailsScreen> {
                   children: [
                     _buildCredentialCard(),
                     const SizedBox(height: 24),
+                    _buildPremiumFeaturesCard(),
+                    const SizedBox(height: 24),
                     _buildLocationCard(),
                     const SizedBox(height: 24),
                     _buildPaymentHistory(),
@@ -124,6 +126,69 @@ class _ClientDetailsScreenState extends State<ClientDetailsScreen> {
                 style: ElevatedButton.styleFrom(backgroundColor: SAMStyles.royalBlue, minimumSize: const Size(140, 44)),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPremiumFeaturesCard() {
+    final dynamic rawValue = widget.tenant['is_premium_enabled'];
+    bool isPremium = rawValue.toString() == "1" || rawValue == true;
+    
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(32),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: SAMStyles.softShadow,
+        border: Border.all(color: Colors.purple.withValues(alpha: 0.1)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.auto_awesome, color: Colors.purple, size: 20),
+              SizedBox(width: 12),
+              Text("Premium Package Management", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            ],
+          ),
+          const SizedBox(height: 24),
+          const Divider(),
+          const SizedBox(height: 16),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text("Premium Services (Master Toggle)", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+            subtitle: const Text("Enable AR, Voice, Loyalty & Proximity for this restaurant.", style: TextStyle(fontSize: 11)),
+            value: isPremium,
+            activeColor: Colors.purple,
+            onChanged: (val) async {
+              setState(() => _isUpdating = true);
+              final result = await ApiService.updateTenantPremiumStatus(
+                tenantId: widget.tenant['tenant_id']?.toString() ?? '',
+                isEnabled: val,
+              );
+              setState(() => _isUpdating = false);
+              
+              if (result['success'] == true || result['status'] == 'success') {
+                setState(() {
+                  widget.tenant['is_premium_enabled'] = val ? 1 : 0;
+                });
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("Premium Services: ${val ? 'ENABLED' : 'DISABLED'}"), backgroundColor: Colors.purple)
+                  );
+                }
+              } else {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("Error: ${result['message'] ?? 'Check API'}"), backgroundColor: Colors.red)
+                  );
+                }
+              }
+            },
           ),
         ],
       ),

@@ -310,25 +310,35 @@ class _SupportTicketScreenState extends State<SupportTicketScreen> {
           const Text("Create New Support Request", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
           const SizedBox(height: 8),
           const Text("Our team usually responds within 2-4 hours.", style: TextStyle(color: Colors.grey, fontSize: 13)),
-          const SizedBox(height: 40),
-          _buildTextField("Subject", _subjectController, "What is the issue about?"),
-          const SizedBox(height: 24),
-          const Text("Priority Level", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey)),
-          const SizedBox(height: 8),
-          DropdownButtonFormField<String>(
-            initialValue: _selectedPriority,
-            decoration: InputDecoration(
-              filled: true,
-              fillColor: const Color(0xFFF8FAFC),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          const SizedBox(height: 32),
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildTextField("Subject", _subjectController, "What is the issue about?"),
+                  const SizedBox(height: 24),
+                  const Text("Priority Level", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey)),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<String>(
+                    value: _selectedPriority,
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: const Color(0xFFF8FAFC),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                    ),
+                    items: ['Low', 'Medium', 'High'].map((p) => DropdownMenuItem(value: p, child: Text(p))).toList(),
+                    onChanged: (v) => setState(() => _selectedPriority = v!),
+                  ),
+                  const SizedBox(height: 24),
+                  _buildTextField("Detailed Description", _descController, "Explain your problem in detail so we can help you faster...", maxLines: 5),
+                  const SizedBox(height: 16),
+                ],
+              ),
             ),
-            items: ['Low', 'Medium', 'High'].map((p) => DropdownMenuItem(value: p, child: Text(p))).toList(),
-            onChanged: (v) => setState(() => _selectedPriority = v!),
           ),
           const SizedBox(height: 24),
-          _buildTextField("Detailed Description", _descController, "Explain your problem in detail so we can help you faster...", maxLines: 5),
-          const Spacer(),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(

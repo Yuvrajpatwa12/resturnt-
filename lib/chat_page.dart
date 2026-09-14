@@ -1,10 +1,20 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
+import 'services/api_service.dart';
+import 'services/tenant_service.dart';
+import 'cart_manager.dart';
 
 class ChatPage extends StatefulWidget {
+  final String userId;
   final String userName;
   final String userImage;
 
-  const ChatPage({super.key, required this.userName, required this.userImage});
+  const ChatPage({
+    super.key, 
+    required this.userId, 
+    required this.userName, 
+    required this.userImage
+  });
 
   @override
   State<ChatPage> createState() => _ChatPageState();
@@ -12,37 +22,196 @@ class ChatPage extends StatefulWidget {
 
 class _ChatPageState extends State<ChatPage> {
   final TextEditingController _controller = TextEditingController();
-  bool _isRecording = false;
+  final ScrollController _scrollController = ScrollController();
   
-  final List<Map<String, dynamic>> _messages = [
-    {'text': 'Hey! Are you at the restaurant?', 'isMe': false, 'time': '12:01 PM', 'type': 'text'},
-    {'text': 'Yes! Just ordered a brisket sandwich. It\'s amazing.', 'isMe': true, 'time': '12:02 PM', 'type': 'text'},
-    {'text': 'Nice! I\'m at the Lounge area. Come say hi later!', 'isMe': false, 'time': '12:03 PM', 'type': 'text'},
-    {'text': '0:12', 'isMe': false, 'time': '12:03 PM', 'type': 'voice'},
-  ];
+  List<Map<String, dynamic>> _messages = [];
+  bool _isLoading = true;
+  bool _isOtherTyping = false;
+  Timer? _pollingTimer;
+  int _lastId = 0;
+  
+  DateTime? _lastTypingSent;
 
-  void _sendMessage() {
-    if (_controller.text.trim().isEmpty) return;
-    setState(() {
-      _messages.add({
-        'text': _controller.text.trim(),
-        'isMe': true,
-        'time': '12:04 PM',
-        'type': 'text',
-      });
-      _controller.clear();
-    });
+  @override
+  void initState() {
+    super.initState();
+    _startPolling();
+    _markMessagesRead();
   }
 
-  void _sendVoiceNote() {
-    setState(() {
-      _messages.add({
-        'text': '0:05',
-        'isMe': true,
-        'time': '12:05 PM',
-        'type': 'voice',
-      });
-    });
+  @override
+  void dispose() {
+    _pollingTimer?.cancel();
+    _controller.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _startPolling() {
+    // Initial fetch
+    _syncMessages();
+    // Poll every 3 seconds (optimized for active chat)
+    _pollingTimer = Timer.periodic(const Duration(seconds: 3), (timer) => _syncMessages());
+  }
+
+  Future<void> _syncMessages() async {
+    final tenant = TenantService().currentTenant.value;
+    final myId = ShopManager.instance.currentUserId;
+    if (tenant == null || myId.isEmpty) return;
+
+    final data = await ApiService.syncMessages(
+      tenantId: tenant.id,
+      myId: myId,
+      friendId: widget.userId,
+      lastId: _lastId,
+    );
+
+    if (data != null && data['status'] == 'success') {
+      final List<dynamic> newMsgs = data['messages'] ?? [];
+      final bool typing = data['is_typing'] ?? false;
+
+      if (newMsgs.isNotEmpty || typing != _isOtherTyping || _isLoading) {
+        if (mounted) {
+          setState(() {
+            if (newMsgs.isNotEmpty) {
+              _messages.addAll(newMsgs.cast<Map<String, dynamic>>());
+              _lastId = int.parse(_messages.last['id'].toString());
+              _scrollToBottom();
+            }
+            _isOtherTyping = typing;
+            _isLoading = false;
+          });
+        }
+      }
+    }
+  }
+
+  void _markMessagesRead() {
+    final tenant = TenantService().currentTenant.value;
+    final myId = ShopManager.instance.currentUserId;
+    if (tenant != null && myId.isNotEmpty) {
+      ApiService.markMessagesRead(tenant.id, myId, widget.userId);
+    }
+  }
+
+  void _scrollToBottom() {
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent + 100,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
+  }
+
+  void _onTyping(String value) {
+    if (_lastTypingSent == null || DateTime.now().difference(_lastTypingSent!).inSeconds > 5) {
+      final tenant = TenantService().currentTenant.value;
+      final myId = ShopManager.instance.currentUserId;
+      if (tenant != null && myId.isNotEmpty) {
+        ApiService.updateTypingStatus(tenant.id, myId, widget.userId);
+        _lastTypingSent = DateTime.now();
+      }
+    }
+  }
+
+  Future<void> _sendMessage() async {
+    final text = _controller.text.trim();
+    if (text.isEmpty) return;
+
+    final tenant = TenantService().currentTenant.value;
+    final myId = ShopManager.instance.currentUserId;
+    if (tenant == null || myId.isEmpty) return;
+
+    _controller.clear();
+    final success = await ApiService.sendMessage(
+      tenantId: tenant.id,
+      senderId: myId,
+      receiverId: widget.userId,
+      message: text,
+    );
+
+    if (success) {
+      _syncMessages(); // Immediate sync after sending
+    }
+  }
+
+  void _showOptions(Map<String, dynamic> msg) {
+    final myId = ShopManager.instance.currentUserId;
+    if (msg['sender_id'] != myId || msg['is_deleted'] == 1) return;
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SizedBox(height: 12),
+          ListTile(
+            leading: const Icon(Icons.edit_outlined, color: Colors.blue),
+            title: const Text("Edit Message"),
+            onTap: () {
+              Navigator.pop(ctx);
+              _editMessage(msg);
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.delete_outline, color: Colors.red),
+            title: const Text("Unsend Message"),
+            onTap: () {
+              Navigator.pop(ctx);
+              _deleteMessage(msg['id']);
+            },
+          ),
+          const SizedBox(height: 24),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _editMessage(Map<String, dynamic> msg) async {
+    final controller = TextEditingController(text: msg['message']);
+    final newText = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Edit Message"),
+        content: TextField(controller: controller, autofocus: true),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("CANCEL")),
+          ElevatedButton(onPressed: () => Navigator.pop(ctx, controller.text), child: const Text("SAVE")),
+        ],
+      ),
+    );
+
+    if (newText != null && newText.trim().isNotEmpty && newText != msg['message']) {
+      final tenant = TenantService().currentTenant.value;
+      final myId = ShopManager.instance.currentUserId;
+      if (tenant != null) {
+        final success = await ApiService.editMessage(tenant.id, myId, int.parse(msg['id'].toString()), newText.trim());
+        if (success) {
+          setState(() {
+            _messages = [];
+            _lastId = 0;
+          });
+          _syncMessages();
+        }
+      }
+    }
+  }
+
+  Future<void> _deleteMessage(dynamic msgId) async {
+    final tenant = TenantService().currentTenant.value;
+    final myId = ShopManager.instance.currentUserId;
+    if (tenant != null) {
+      final success = await ApiService.deleteMessage(tenant.id, myId, int.parse(msgId.toString()));
+      if (success) {
+        setState(() {
+          _messages = [];
+          _lastId = 0;
+        });
+        _syncMessages();
+      }
+    }
   }
 
   @override
@@ -63,161 +232,161 @@ class _ChatPageState extends State<ChatPage> {
               backgroundImage: NetworkImage(widget.userImage),
             ),
             const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(widget.userName, style: const TextStyle(color: Colors.black87, fontSize: 16, fontWeight: FontWeight.bold)),
-                const Text('Online • In-House', style: TextStyle(color: Colors.green, fontSize: 10, fontWeight: FontWeight.bold)),
-              ],
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(widget.userName, style: const TextStyle(color: Colors.black87, fontSize: 16, fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis),
+                  Text(
+                    _isOtherTyping ? 'Typing...' : 'Online', 
+                    style: TextStyle(color: _isOtherTyping ? const Color(0xFFFF5C00) : Colors.green, fontSize: 10, fontWeight: FontWeight.bold)
+                  ),
+                ],
+              ),
             ),
           ],
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.star_outline, color: Colors.amber),
-            onPressed: () => _showRatingDialog(context),
-          ),
-          IconButton(icon: const Icon(Icons.videocam_outlined, color: Colors.black87), onPressed: () {}),
-          IconButton(icon: const Icon(Icons.call_outlined, color: Colors.black87), onPressed: () {}),
-        ],
       ),
       body: Column(
         children: [
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(20),
-              itemCount: _messages.length,
-              itemBuilder: (context, index) {
-                final msg = _messages[index];
-                final bool isMe = msg['isMe'];
-                final bool isVoice = msg['type'] == 'voice';
+            child: _isLoading 
+              ? const Center(child: CircularProgressIndicator(color: Color(0xFFFF5C00)))
+              : _messages.isEmpty
+                  ? _buildEmptyState()
+                  : ListView.builder(
+                      controller: _scrollController,
+                      padding: const EdgeInsets.all(20),
+                      itemCount: _messages.length,
+                      itemBuilder: (context, index) {
+                        final msg = _messages[index];
+                        final bool isMe = msg['sender_id'] == ShopManager.instance.currentUserId;
+                        final bool isDeleted = (msg['is_deleted'] == 1 || msg['is_deleted'] == true);
+                        final bool isEdited = (msg['is_edited'] == 1 || msg['is_edited'] == true);
 
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 15),
-                  child: Column(
-                    crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        decoration: BoxDecoration(
-                          color: isMe ? const Color(0xFFFF5C00) : Colors.white,
-                          borderRadius: BorderRadius.only(
-                            topLeft: const Radius.circular(20),
-                            topRight: const Radius.circular(20),
-                            bottomLeft: Radius.circular(isMe ? 20 : 0),
-                            bottomRight: Radius.circular(isMe ? 0 : 20),
-                          ),
-                          boxShadow: [
-                            BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 4, offset: const Offset(0, 2))
-                          ],
-                        ),
-                        child: isVoice 
-                          ? Row(
-                              mainAxisSize: MainAxisSize.min,
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: GestureDetector(
+                            onLongPress: () => _showOptions(msg),
+                            child: Column(
+                              crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
                               children: [
-                                Icon(
-                                  index == 3 ? Icons.pause : Icons.play_arrow, 
-                                  color: isMe ? Colors.white : const Color(0xFFFF5C00)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                  constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
+                                  decoration: BoxDecoration(
+                                    color: isMe 
+                                      ? (isDeleted ? Colors.grey[200] : const Color(0xFFFF5C00)) 
+                                      : Colors.white,
+                                    borderRadius: BorderRadius.only(
+                                      topLeft: const Radius.circular(20),
+                                      topRight: const Radius.circular(20),
+                                      bottomLeft: Radius.circular(isMe ? 20 : 0),
+                                      bottomRight: Radius.circular(isMe ? 0 : 20),
+                                    ),
+                                    border: isDeleted ? Border.all(color: Colors.grey[300]!) : null,
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        msg['message'],
+                                        style: TextStyle(
+                                          color: isMe 
+                                            ? (isDeleted ? Colors.grey : Colors.white) 
+                                            : (isDeleted ? Colors.grey : Colors.black87),
+                                          fontSize: 14,
+                                          fontStyle: isDeleted ? FontStyle.italic : FontStyle.normal,
+                                        ),
+                                      ),
+                                      if (isEdited && !isDeleted)
+                                        Padding(
+                                          padding: const EdgeInsets.only(top: 4),
+                                          child: Text(
+                                            "edited", 
+                                            style: TextStyle(fontSize: 8, color: isMe ? Colors.white70 : Colors.grey),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
                                 ),
-                                const SizedBox(width: 8),
-                                _buildWaveform(isMe, isActive: index == 3),
-                                const SizedBox(width: 8),
-                                Text(
-                                  msg['text'],
-                                  style: TextStyle(color: isMe ? Colors.white : Colors.black87, fontSize: 12, fontWeight: FontWeight.bold),
+                                const SizedBox(height: 4),
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      _formatMsgTime(msg['created_at']),
+                                      style: TextStyle(color: Colors.grey[500], fontSize: 9),
+                                    ),
+                                    if (isMe && !isDeleted) ...[
+                                      const SizedBox(width: 4),
+                                      Icon(
+                                        Icons.done_all, 
+                                        size: 12, 
+                                        color: (msg['is_read'] == 1) ? Colors.blue : Colors.grey[400]
+                                      ),
+                                    ],
+                                  ],
                                 ),
                               ],
-                            )
-                          : Text(
-                              msg['text'],
-                              style: TextStyle(color: isMe ? Colors.white : Colors.black87, fontSize: 14),
                             ),
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            msg['time'],
-                            style: TextStyle(color: Colors.grey[500], fontSize: 9),
                           ),
-                          if (isMe) ...[
-                            const SizedBox(width: 4),
-                            Icon(Icons.done_all, size: 12, color: index == 1 ? Colors.blue : Colors.grey[400]),
-                          ],
-                        ],
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
+                        );
+                      },
+                    ),
           ),
           // Input Bar
-          Container(
-            padding: const EdgeInsets.fromLTRB(20, 10, 20, 30),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, -5))],
+          _buildInputBar(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.chat_bubble_outline, size: 48, color: Colors.grey[300]),
+          const SizedBox(height: 16),
+          Text("Say hello to ${widget.userName}!", style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInputBar() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 10, 20, 30),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, -5))],
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(25)),
+              child: TextField(
+                controller: _controller,
+                onChanged: _onTyping,
+                onSubmitted: (_) => _sendMessage(),
+                decoration: const InputDecoration(
+                  hintText: 'Type a message...',
+                  hintStyle: TextStyle(fontSize: 14, color: Colors.grey),
+                  border: InputBorder.none,
+                ),
+              ),
             ),
-            child: Row(
-              children: [
-                if (!_isRecording) ...[
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(color: Colors.grey[100], shape: BoxShape.circle),
-                    child: const Icon(Icons.add, color: Colors.grey, size: 20),
-                  ),
-                  const SizedBox(width: 12),
-                ],
-                Expanded(
-                  child: _isRecording 
-                    ? Row(
-                        children: [
-                          const Icon(Icons.circle, color: Colors.deepOrange, size: 12),
-                          const SizedBox(width: 8),
-                          const Text("Recording...", style: TextStyle(color: Colors.deepOrange, fontWeight: FontWeight.bold)),
-                          const Spacer(),
-                          const Text("0:04", style: TextStyle(color: Colors.grey)),
-                        ],
-                      )
-                    : Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(25)),
-                        child: TextField(
-                          controller: _controller,
-                          decoration: const InputDecoration(
-                            hintText: 'Type a message...',
-                            hintStyle: TextStyle(fontSize: 14, color: Colors.grey),
-                            border: InputBorder.none,
-                          ),
-                        ),
-                      ),
-                ),
-                const SizedBox(width: 12),
-                GestureDetector(
-                  onLongPress: () {
-                    setState(() => _isRecording = true);
-                  },
-                  onLongPressEnd: (_) {
-                    setState(() => _isRecording = false);
-                    _sendVoiceNote();
-                  },
-                  onTap: _sendMessage,
-                  child: Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: _isRecording ? Colors.deepOrange : const Color(0xFFFF5C00),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      _isRecording ? Icons.mic : (_controller.text.isEmpty ? Icons.mic : Icons.send),
-                      color: Colors.white,
-                      size: 20,
-                    ),
-                  ),
-                ),
-              ],
+          ),
+          const SizedBox(width: 12),
+          GestureDetector(
+            onTap: _sendMessage,
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: const BoxDecoration(color: Color(0xFFFF5C00), shape: BoxShape.circle),
+              child: const Icon(Icons.send, color: Colors.white, size: 20),
             ),
           ),
         ],
@@ -225,88 +394,10 @@ class _ChatPageState extends State<ChatPage> {
     );
   }
 
-  void _showRatingDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        int rating = 0;
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              title: const Text("Rate your companion", textAlign: TextAlign.center),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(5, (index) {
-                      return IconButton(
-                        icon: Icon(
-                          index < rating ? Icons.star : Icons.star_border,
-                          color: Colors.amber,
-                          size: 32,
-                        ),
-                        onPressed: () {
-                          setDialogState(() => rating = index + 1);
-                        },
-                      );
-                    }),
-                  ),
-                  const SizedBox(height: 16),
-                  const TextField(
-                    decoration: InputDecoration(
-                      hintText: "Add a comment (optional)",
-                      border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
-                    ),
-                    maxLines: 2,
-                  ),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Thank you for your rating!")),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFFF5C00),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
-                  child: const Text("Submit"),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Widget _buildWaveform(bool isMe, {bool isActive = false}) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: List.generate(12, (index) {
-        return AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
-          width: 2,
-          height: isActive ? (index % 3 + 2) * 6.0 : (index % 3 + 1) * 4.0,
-          margin: const EdgeInsets.symmetric(horizontal: 1),
-          decoration: BoxDecoration(
-            color: isMe 
-              ? (isActive ? Colors.white : Colors.white.withValues(alpha: 0.5)) 
-              : (isActive ? const Color(0xFFFF5C00) : const Color(0xFFFF5C00).withValues(alpha: 0.5)),
-            borderRadius: BorderRadius.circular(1),
-          ),
-        );
-      }),
-    );
+  String _formatMsgTime(String raw) {
+    try {
+      final dt = DateTime.parse(raw);
+      return "${dt.hour}:${dt.minute.toString().padLeft(2, '0')}";
+    } catch (e) { return ""; }
   }
 }
