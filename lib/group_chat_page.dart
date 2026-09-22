@@ -270,7 +270,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
         gradient: const LinearGradient(colors: [primaryBlue, Color(0xFF2563EB)]),
         borderRadius: BorderRadius.circular(28),
@@ -313,12 +313,12 @@ class _GroupChatPageState extends State<GroupChatPage> {
                 if (qrUrl != null)
                   ClipRRect(
                     borderRadius: BorderRadius.circular(12),
-                    child: Image.network(qrUrl, height: 140, width: 140, fit: BoxFit.cover),
+                    child: Image.network(qrUrl, height: 120, width: 120, fit: BoxFit.cover),
                   )
                 else
                   Container(
-                    height: 140,
-                    width: 140,
+                    height: 120,
+                    width: 120,
                     decoration: BoxDecoration(
                       color: const Color(0xFFF1F5F9),
                       borderRadius: BorderRadius.circular(12),
@@ -326,17 +326,20 @@ class _GroupChatPageState extends State<GroupChatPage> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const CircularProgressIndicator(color: primaryBlue),
-                        const SizedBox(height: 16),
+                        const SizedBox(
+                          width: 20, height: 20,
+                          child: CircularProgressIndicator(color: primaryBlue, strokeWidth: 2),
+                        ),
+                        const SizedBox(height: 12),
                         Text(
-                          isHost ? "UPLOADING QR..." : "WAITING FOR HOST...",
-                          style: const TextStyle(color: primaryBlue, fontWeight: FontWeight.bold, fontSize: 10),
+                          isHost ? "UPLOADING..." : "WAITING...",
+                          style: const TextStyle(color: primaryBlue, fontWeight: FontWeight.bold, fontSize: 9),
                         ),
                       ],
                     ),
                   ),
                 const SizedBox(height: 12),
-                const Text("SCAN TO PAY", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: primaryBlue, letterSpacing: 2)),
+                const Text("SCAN TO PAY", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11, color: primaryBlue, letterSpacing: 2)),
               ],
             ),
           ),

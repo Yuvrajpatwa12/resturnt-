@@ -283,24 +283,38 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
   Future<void> _submitCategory() async {
     if (_nameController.text.isEmpty) return;
 
-    setState(() => _isSubmitting = true);
     final tenant = TenantService().currentTenant.value;
-    if (tenant == null) return;
+    if (tenant == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Error: Tenant data not loaded properly!"), backgroundColor: Colors.red),
+        );
+      }
+      return;
+    }
 
-    final success = await ApiService.addCategory(
-      tenant.id, 
-      _nameController.text, 
-      int.tryParse(_rankController.text) ?? 1,
-      icon: _selectedIcon,
-    );
+    setState(() => _isSubmitting = true);
+    try {
+      final success = await ApiService.addCategory(
+        tenant.id, 
+        _nameController.text, 
+        int.tryParse(_rankController.text) ?? 1,
+        icon: _selectedIcon,
+      );
 
-    setState(() => _isSubmitting = false);
-    if (success) {
-      _nameController.clear();
-      TenantService().fetchMenuData(tenant.id);
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Category added successfully!"), backgroundColor: Colors.green));
-    } else {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Failed to add category."), backgroundColor: Colors.red));
+      if (success) {
+        _nameController.clear();
+        await TenantService().fetchMenuData(tenant.id);
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Category added successfully!"), backgroundColor: Colors.green));
+      } else {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Failed to add category."), backgroundColor: Colors.red));
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("An error occurred: $e"), backgroundColor: Colors.red));
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
     }
   }
 

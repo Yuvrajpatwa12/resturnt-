@@ -3,6 +3,7 @@ import 'dart:async';
 import 'services/api_service.dart';
 import 'services/tenant_service.dart';
 import 'cart_manager.dart';
+import 'package:flutter/services.dart';
 
 class ChatPage extends StatefulWidget {
   final String userId;
@@ -32,6 +33,8 @@ class _ChatPageState extends State<ChatPage> {
   
   DateTime? _lastTypingSent;
 
+  Map<String, dynamic>? _replyingTo;
+
   @override
   void initState() {
     super.initState();
@@ -48,10 +51,8 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   void _startPolling() {
-    // Initial fetch
     _syncMessages();
-    // Poll every 3 seconds (optimized for active chat)
-    _pollingTimer = Timer.periodic(const Duration(seconds: 3), (timer) => _syncMessages());
+    _pollingTimer = Timer.periodic(const Duration(seconds: 2), (timer) => _syncMessages());
   }
 
   Future<void> _syncMessages() async {
@@ -96,16 +97,18 @@ class _ChatPageState extends State<ChatPage> {
 
   void _scrollToBottom() {
     if (_scrollController.hasClients) {
-      _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent + 100,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOut,
-      );
+      Future.delayed(const Duration(milliseconds: 100), () {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      });
     }
   }
 
   void _onTyping(String value) {
-    if (_lastTypingSent == null || DateTime.now().difference(_lastTypingSent!).inSeconds > 5) {
+    if (_lastTypingSent == null || DateTime.now().difference(_lastTypingSent!).inSeconds > 2) {
       final tenant = TenantService().currentTenant.value;
       final myId = ShopManager.instance.currentUserId;
       if (tenant != null && myId.isNotEmpty) {
@@ -123,16 +126,21 @@ class _ChatPageState extends State<ChatPage> {
     final myId = ShopManager.instance.currentUserId;
     if (tenant == null || myId.isEmpty) return;
 
+    final int? replyId = _replyingTo != null ? int.tryParse(_replyingTo!['id'].toString()) : null;
+    
     _controller.clear();
+    setState(() => _replyingTo = null); // Clear reply state after send
+
     final success = await ApiService.sendMessage(
       tenantId: tenant.id,
       senderId: myId,
       receiverId: widget.userId,
       message: text,
+      replyToId: replyId,
     );
 
     if (success) {
-      _syncMessages(); // Immediate sync after sending
+      _syncMessages(); 
     }
   }
 
@@ -232,17 +240,29 @@ class _ChatPageState extends State<ChatPage> {
               backgroundImage: NetworkImage(widget.userImage),
             ),
             const SizedBox(width: 12),
-            Expanded(
+          Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(widget.userName, style: const TextStyle(color: Colors.black87, fontSize: 16, fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis),
                   Text(
-                    _isOtherTyping ? 'Typing...' : 'Online', 
+                    _isOtherTyping ? 'typing...' : 'Online', 
                     style: TextStyle(color: _isOtherTyping ? const Color(0xFFFF5C00) : Colors.green, fontSize: 10, fontWeight: FontWeight.bold)
                   ),
                 ],
               ),
+            ),
+            IconButton(
+              onPressed: () {
+                setState(() {
+                  _messages = [];
+                  _lastId = 0;
+                  _isLoading = true;
+                });
+                _syncMessages();
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Refreshing chat..."), duration: Duration(seconds: 1)));
+              }, 
+              icon: const Icon(Icons.refresh_rounded, color: Colors.grey, size: 20)
             ),
           ],
         ),
@@ -267,48 +287,70 @@ class _ChatPageState extends State<ChatPage> {
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 12),
                           child: GestureDetector(
-                            onLongPress: () => _showOptions(msg),
+                            onHorizontalDragUpdate: (details) {
+                              // Custom smooth swipe logic for Mobile
+                              if (details.primaryDelta! > 8 && !isDeleted) {
+                                if (_replyingTo?['id'] != msg['id']) {
+                                  HapticFeedback.lightImpact();
+                                  setState(() => _replyingTo = msg);
+                                }
+                              }
+                            },
                             child: Column(
                               crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
                               children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                  constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
-                                  decoration: BoxDecoration(
-                                    color: isMe 
-                                      ? (isDeleted ? Colors.grey[200] : const Color(0xFFFF5C00)) 
-                                      : Colors.white,
-                                    borderRadius: BorderRadius.only(
-                                      topLeft: const Radius.circular(20),
-                                      topRight: const Radius.circular(20),
-                                      bottomLeft: Radius.circular(isMe ? 20 : 0),
-                                      bottomRight: Radius.circular(isMe ? 0 : 20),
-                                    ),
-                                    border: isDeleted ? Border.all(color: Colors.grey[300]!) : null,
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        msg['message'],
-                                        style: TextStyle(
+                                Row(
+                                  mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    if (!isMe && !isDeleted) _buildDesktopOptions(msg),
+                                    Flexible(
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                        decoration: BoxDecoration(
                                           color: isMe 
-                                            ? (isDeleted ? Colors.grey : Colors.white) 
-                                            : (isDeleted ? Colors.grey : Colors.black87),
-                                          fontSize: 14,
-                                          fontStyle: isDeleted ? FontStyle.italic : FontStyle.normal,
+                                            ? (isDeleted ? Colors.grey[200] : const Color(0xFFFF5C00)) 
+                                            : Colors.white,
+                                          borderRadius: BorderRadius.only(
+                                            topLeft: const Radius.circular(20),
+                                            topRight: const Radius.circular(20),
+                                            bottomLeft: Radius.circular(isMe ? 20 : 0),
+                                            bottomRight: Radius.circular(isMe ? 0 : 20),
+                                          ),
+                                          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 5)],
+                                          border: isDeleted ? Border.all(color: Colors.grey[300]!) : null,
+                                        ),
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            // Reply Preview
+                                            if (msg['reply_to_id'] != null && !isDeleted)
+                                              _buildReplyPreviewInBubble(msg['reply_to_id']),
+                                                
+                                            Text(
+                                              msg['message'],
+                                              style: TextStyle(
+                                                color: isMe 
+                                                  ? (isDeleted ? Colors.grey : Colors.white) 
+                                                  : (isDeleted ? Colors.grey : Colors.black87),
+                                                fontSize: 14,
+                                                fontStyle: isDeleted ? FontStyle.italic : FontStyle.normal,
+                                              ),
+                                            ),
+                                            if (isEdited && !isDeleted)
+                                              Padding(
+                                                padding: const EdgeInsets.only(top: 4),
+                                                child: Text(
+                                                  "edited", 
+                                                  style: TextStyle(fontSize: 8, color: isMe ? Colors.white70 : Colors.grey),
+                                                ),
+                                              ),
+                                          ],
                                         ),
                                       ),
-                                      if (isEdited && !isDeleted)
-                                        Padding(
-                                          padding: const EdgeInsets.only(top: 4),
-                                          child: Text(
-                                            "edited", 
-                                            style: TextStyle(fontSize: 8, color: isMe ? Colors.white70 : Colors.grey),
-                                          ),
-                                        ),
-                                    ],
-                                  ),
+                                    ),
+                                    if (isMe && !isDeleted) _buildDesktopOptions(msg),
+                                  ],
                                 ),
                                 const SizedBox(height: 4),
                                 Row(
@@ -322,8 +364,8 @@ class _ChatPageState extends State<ChatPage> {
                                       const SizedBox(width: 4),
                                       Icon(
                                         Icons.done_all, 
-                                        size: 12, 
-                                        color: (msg['is_read'] == 1) ? Colors.blue : Colors.grey[400]
+                                        size: 14, 
+                                        color: (msg['is_read'] == 1 || msg['is_read'] == true) ? Colors.blue : Colors.grey[400]
                                       ),
                                     ],
                                   ],
@@ -342,6 +384,47 @@ class _ChatPageState extends State<ChatPage> {
     );
   }
 
+  Widget _buildDesktopOptions(Map<String, dynamic> msg) {
+    // Only show 3-dot for PC or Hover-like feel
+    return PopupMenuButton<String>(
+      padding: EdgeInsets.zero,
+      icon: const Icon(Icons.more_vert_rounded, color: Colors.grey, size: 16),
+      onSelected: (val) {
+        if (val == 'reply') setState(() => _replyingTo = msg);
+        if (val == 'edit') _editMessage(msg);
+        if (val == 'delete') _deleteMessage(msg['id']);
+      },
+      itemBuilder: (context) => [
+        const PopupMenuItem(value: 'reply', child: Text("Reply", style: TextStyle(fontSize: 12))),
+        if (msg['sender_id'] == ShopManager.instance.currentUserId) ...[
+          const PopupMenuItem(value: 'edit', child: Text("Edit", style: TextStyle(fontSize: 12))),
+          const PopupMenuItem(value: 'delete', child: Text("Delete", style: TextStyle(fontSize: 12, color: Colors.red))),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildReplyPreviewInBubble(dynamic replyId) {
+    final parent = _messages.firstWhere((m) => m['id'].toString() == replyId.toString(), orElse: () => {});
+    if (parent.isEmpty) return const SizedBox.shrink();
+    
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(8),
+        border: const Border(left: BorderSide(color: Color(0xFFFF5C00), width: 3)),
+      ),
+      child: Text(
+        parent['message'] ?? '',
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(fontSize: 11, color: Colors.grey),
+      ),
+    );
+  }
+
   Widget _buildEmptyState() {
     return Center(
       child: Column(
@@ -356,41 +439,71 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   Widget _buildInputBar() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 10, 20, 30),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, -5))],
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(25)),
-              child: TextField(
-                controller: _controller,
-                onChanged: _onTyping,
-                onSubmitted: (_) => _sendMessage(),
-                decoration: const InputDecoration(
-                  hintText: 'Type a message...',
-                  hintStyle: TextStyle(fontSize: 14, color: Colors.grey),
-                  border: InputBorder.none,
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (_replyingTo != null)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            color: Colors.white,
+            child: Row(
+              children: [
+                const Icon(Icons.reply_rounded, color: Color(0xFFFF5C00), size: 20),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text("Replying to", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFFFF5C00))),
+                      Text(_replyingTo!['message'], maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                    ],
+                  ),
+                ),
+                IconButton(onPressed: () => setState(() => _replyingTo = null), icon: const Icon(Icons.close, size: 18, color: Colors.grey)),
+              ],
+            ),
+          ),
+        Container(
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 30),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, -5))],
+          ),
+          child: Row(
+            children: [
+              IconButton(
+                onPressed: () {}, // Trigger system emoji picker
+                icon: const Icon(Icons.emoji_emotions_outlined, color: Colors.grey),
+              ),
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(25)),
+                  child: TextField(
+                    controller: _controller,
+                    onChanged: _onTyping,
+                    onSubmitted: (_) => _sendMessage(),
+                    decoration: const InputDecoration(
+                      hintText: 'Type a message...',
+                      hintStyle: TextStyle(fontSize: 14, color: Colors.grey),
+                      border: InputBorder.none,
+                    ),
+                  ),
                 ),
               ),
-            ),
+              const SizedBox(width: 12),
+              GestureDetector(
+                onTap: _sendMessage,
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: const BoxDecoration(color: Color(0xFFFF5C00), shape: BoxShape.circle),
+                  child: const Icon(Icons.send, color: Colors.white, size: 20),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 12),
-          GestureDetector(
-            onTap: _sendMessage,
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: const BoxDecoration(color: Color(0xFFFF5C00), shape: BoxShape.circle),
-              child: const Icon(Icons.send, color: Colors.white, size: 20),
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 

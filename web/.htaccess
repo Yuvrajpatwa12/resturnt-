@@ -1,29 +1,27 @@
-<IfModule mod_expires.c>
-  ExpiresActive On
-
-  # NO CACHE for critical entry files
-  ExpiresByType text/html "access plus 0 seconds"
-  ExpiresByType application/javascript "access plus 0 seconds"
-  ExpiresByType application/x-javascript "access plus 0 seconds"
-  ExpiresByType text/javascript "access plus 0 seconds"
-  ExpiresByType application/json "access plus 0 seconds"
-
-  # Default cache for assets (images, etc)
-  ExpiresDefault "access plus 1 month"
+# Flutter Web Standard Routing & Cache Control
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+  RewriteRule ^index\.html$ - [L]
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule . /index.html [L]
 </IfModule>
 
+# Basic Cache Control (Safer for Shared Hosting)
 <IfModule mod_headers.c>
-  # Aggressive No-Cache Headers
-  <FilesMatch "\.(html|js|json)$">
+  <FilesMatch "\.(html|js|json|png|jpg|jpeg|gif|webp|svg)$">
     Header set Cache-Control "no-cache, no-store, must-revalidate"
     Header set Pragma "no-cache"
     Header set Expires 0
+    # ALLOW CORS FOR LOCALHOST TESTING
+    Header set Access-Control-Allow-Origin "*"
   </FilesMatch>
 </IfModule>
 
-# Stop Service Worker from being served from cache
-<Files "flutter_service_worker.js">
-    Header set Cache-Control "max-age=0, no-cache, no-store, must-revalidate"
-    Header set Pragma "no-cache"
-    Header set Expires "Wed, 11 Jan 1984 05:00:00 GMT"
-</Files>
+# Explicitly Allow Access to Uploads Folder
+<IfModule mod_authz_core.c>
+    <FilesMatch "\.(png|jpg|jpeg|gif|webp|svg)$">
+        Require all granted
+    </FilesMatch>
+</IfModule>

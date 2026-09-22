@@ -1,39 +1,33 @@
-# Super Admin - Categorized Staff Management & Dynamic Analytics
+# Consolidated Management & Multi-Platform Social Integration
 
-I have successfully updated the **Super Admin** module to provide a clear visual and analytical distinction between **Waiters** and the **Kitchen Team**.
+I have successfully relocated the administrative access points from the diner-facing app to the internal Staff Hub and expanded the social media management capabilities for restaurants.
 
-## Key Deliverables
+## 1. Diner App Cleanup (Public Privacy)
 
-### 1. Categorized Staff Directory
-- **Role-Based Grouping**: In the restaurant's detail view, staff members are no longer in a single list. They are now grouped into:
-    - **Service Team (Waiters)**: Highlighted with **Royal Blue** accents and service icons.
-    - **Production Team (Kitchen)**: Highlighted with **Orange** accents and kitchen/chef icons.
-- **Visual Distinction**: Each group has a colored left-border and dedicated iconography to help administrators quickly identify departments.
+To maintain a professional customer experience, I have removed all "Staff Dashboard" and "Master Hub" buttons from the public profiles:
+- **[profile_page.dart](file:///C:/Users/yuraj/AndroidStudioProjects/chiyabreak/lib/profile_page.dart)**: Removed the "Management" section and Staff Hub button.
+- **[settings_page.dart](file:///C:/Users/yuraj/AndroidStudioProjects/chiyabreak/lib/settings_page.dart)**: Removed the "Internal Tools" section.
 
-### 2. Contextual Profile Deep-Dive
-The staff profile subview ([staff_detail_subview.dart](file:///C:/Users/yuraj/AndroidStudioProjects/chiyabreak/lib/super_admin_module/screens/staff_detail_subview.dart)) now dynamically adapts its metrics based on the person's role:
+Customers will now see a clean interface, while admins can access their tools securely from the staff login flow.
 
-- **For Waiters**:
-    - **Performance Metrics**: Focuses on "Orders Taken" and "Revenue Generated (NPR)".
-    - **Insights**: Shows "Most Sold Items" to track sales performance.
-    - **History**: Displays a "Waiter Order History" table with table IDs and response times.
-- **For Kitchen Team**:
-    - **Performance Metrics**: Focuses on "Items Prepped" and "Prep Efficiency (%)".
-    - **Insights**: Shows "High Volume Prepared Items" to track production output.
-    - **History**: Displays a "Kitchen Prep History" table with department stations and prep durations.
+## 2. Advanced Social Media Management (Admin)
 
-### 3. Unified Session Tracking
-- Both roles share a consistent **Attendance Record** log, tracking shift starts, meal breaks, and clock-outs.
-- **Live Status**: Real-time "ACTIVE NOW" badges are color-coded by role for instant departmental monitoring.
+Admins now have a dedicated space to manage their restaurant's global presence:
+- **Multi-Platform Links**: Added support for **Instagram, Facebook, and TikTok** URLs in addition to Google Maps.
+- **New Management Screen**: Created **[social_media_management_screen.dart](file:///C:/Users/yuraj/AndroidStudioProjects/chiyabreak/lib/admin_pro/screens/social_media_management_screen.dart)**, accessible via the **Admin Hub Drawer** (under "Setting" -> "Social Media").
+- **Dynamic Integration**: All social links are synchronized with the `Tenant` model, allowing future features (like "Follow us on IG") to use real data.
 
-## Technical Polish
-- **Scalable Architecture**: The UI logic automatically detects keywords in the staff role (e.g., "Chef", "Kitchen", "Waiter") to switch between Blue and Orange design states.
-- **Mock Data Ready**: Pre-populated with diverse roles (Manager, Head Chef, Waiter, Kitchen Assistant) to demonstrate the categorization.
+## 3. Secure Internal Navigation
 
-## How to Test
-1. Open **Admin Hub** > **Clients** > **Cafe Himalaya**.
-2. Observe the two separate boxes for **Service Team** and **Production Team**.
-3. **Tap on "Sita Rai" (Head Chef)**: Notice the orange theme and preparation-focused metrics.
-4. **Tap on "Kiran Magar" (Waiter)**: Notice the blue theme and sales-focused metrics.
+Administrative tools are now centralized within the staff area:
+- **[admin_hub.dart](file:///C:/Users/yuraj/AndroidStudioProjects/chiyabreak/lib/admin_pro/admin_hub.dart)**: Integrated the Social Media manager into the sidebar drawer for quick access.
+- **[settings_tab.dart](file:///C:/Users/yuraj/AndroidStudioProjects/chiyabreak/lib/staff/tabs/settings_tab.dart)**: Added a "Master Hub (SaaS)" entry point, ensuring Super Admins can still navigate to the root management module after logging in as staff.
 
-Please restart the app to explore the new departmental staff management system!
+## 4. Backend Deployment (V2)
+
+I have generated updated server-side files to support these new fields:
+- **[backend_setup_v2.sql](file:///C:/Users/yuraj/AppData/Local/Google/AndroidStudio2026.1.2/projects/chiyabreak.60a64e92/.artifacts/76cc3ff0-f3ff-4b5d-b6f9-eb37f4b62f61/scratch/backend_setup_v2.sql)**: Adds the `instagram_link`, `facebook_link`, and `tiktok_link` columns to your database.
+- **[review_api_v2.php](file:///C:/Users/yuraj/AppData/Local/Google/AndroidStudio2026.1.2/projects/chiyabreak.60a64e92/.artifacts/76cc3ff0-f3ff-4b5d-b6f9-eb37f4b62f61/scratch/review_api_v2.php)**: Handles the consolidated saving of all social media profiles in one request.
+
+> [!IMPORTANT]
+> Please run the V2 SQL script and upload the V2 PHP file to your server to enable these multi-social features.

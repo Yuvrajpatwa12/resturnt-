@@ -1,37 +1,32 @@
-# Implementation Plan - Final Cache Breach (v1.0.4)
+# Implementation Plan - Deep Debug & Startup Fix
 
-Kill all persistent browser caches and server-side LiteSpeed locks to ensure the latest "Share Your Story" and "Group Dining" features are visible on all devices.
+Identify the specific point of failure during the web boot process by implementing an on-screen visual debugger and switching to the high-stability bootstrap protocol.
 
 ## User Review Required
 
-> [!CAUTION]
-> **Disabling Service Workers**: I am disabling the "Offline Support" (Service Worker) for this build. This is the only guaranteed way to stop browsers (especially iOS Safari) from showing old versions of your app.
+> [!IMPORTANT]
+> **On-Screen Debugging**: I am adding a small console window to the bottom of the loading screen. If the app fails to load, it will print the error message there in red. You can take a screenshot of this to show me.
 
-> [!TIP]
-> **Visual Indicator**: I am incrementing the version to **v1.0.4**. If you see this number at the bottom of your screen, the breach is successful.
+> [!NOTE]
+> **Bootstrap protocol**: Your server contains `flutter_bootstrap.js`. I am updating `index.html` to use this file directly, as it is the most reliable way to start a Flutter 3.24 app.
 
 ## Proposed Changes
 
-### 1. Web Root Configuration
-#### [MODIFY] [index.html](file:///C:/Users/yuraj/AndroidStudioProjects/chiyabreak/web/index.html)
-- Increment version to `1.0.4`.
-- Add script to `unregister()` all service workers immediately on load.
-- Force a redirect to `?v=1.0.4` if the version doesn't match.
+### 1. Visual Debugger
+#### [MODIFY] [web/index.html](file:///C:/Users/yuraj/AndroidStudioProjects/chiyabreak/web/index.html)
+- Add a `<div id="debug-log">` to show real-time status.
+- Add a global `window.onerror` handler to catch and display any JavaScript crashes on the screen.
+- Switch to the official `<script src="flutter_bootstrap.js" async></script>` method.
 
-#### [MODIFY] [.htaccess](file:///C:/Users/yuraj/AndroidStudioProjects/chiyabreak/web/.htaccess)
-- Add explicit headers for `main.dart.js` and `flutter_service_worker.js` to prevent server-side caching.
-
-### 2. UI Updates
-#### [MODIFY] [homepage.dart](file:///C:/Users/yuraj/AndroidStudioProjects/chiyabreak/lib/homepage.dart)
-- Update version text to **"Chiyala Web Build v1.0.4"**.
-- Add a small green indicator icon next to the version to make it visually different from previous attempts.
+### 2. Dart-to-JS Handshake
+#### [MODIFY] [lib/main.dart](file:///C:/Users/yuraj/AndroidStudioProjects/chiyabreak/lib/main.dart)
+- Call a small JavaScript function as the first line of `main()` to notify the browser that the Dart code has successfully started executing.
 
 ## Verification Plan
 
 ### Manual Verification
 1. Run `flutter build web --release`.
-2. Delete `public_html/index.html` and `public_html/main.dart.js` on Hostinger before uploading.
-3. Upload new files.
-4. Open `startupsgo.tech` on iPhone.
-5. Confirm that **v1.0.4** is visible at the bottom.
-6. Verify "SHARE YOUR STORY" card is visible.
+2. Upload to Hostinger.
+3. Open `startupsgo.tech`.
+4. Watch the "Log Messages" at the bottom.
+5. If it stays stuck, take a screenshot of the **Red Error Text** and show me.

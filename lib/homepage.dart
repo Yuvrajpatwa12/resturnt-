@@ -16,7 +16,8 @@ import 'activity_share_page.dart';
 import 'widgets/smart_auth_overlay.dart';
 import 'widgets/onboarding_modal.dart';
 import 'widgets/notification_prompt.dart';
-import 'widgets/proximity_offer_dialog.dart'; // Added
+import 'widgets/proximity_offer_dialog.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 // Enables Mouse Drag Scrolling on Web/Desktop
 class MyCustomScrollBehavior extends MaterialScrollBehavior {
@@ -41,6 +42,121 @@ class _HomePageState extends State<HomePage> {
     super.initState();
     // Listen for the trigger to open Table Picker automatically
     ShopManager.instance.openTablePickerTrigger.addListener(_handleTablePickerTrigger);
+    
+    // 1. CHECK FOR PENDING REVIEW VERIFICATION
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (ShopManager.instance.isWaitingForGoogleReview.value) {
+        _showReviewVerificationDialog();
+      }
+    });
+  }
+
+  void _showReviewVerificationDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: Row(
+          children: [
+            const Icon(Icons.verified_rounded, color: Colors.indigo),
+            const SizedBox(width: 12),
+            const Text("Review Posted?", style: TextStyle(fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              "Did you successfully post your review on Google Maps?",
+              style: TextStyle(fontSize: 14, color: Colors.black87),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              "\"${ShopManager.instance.lastReviewText.value ?? ''}\"",
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 12, color: Colors.grey, fontStyle: FontStyle.italic),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              final tenant = TenantService().currentTenant.value;
+              final String googleReviewUrl = tenant?.googleMapsLink ?? "https://www.google.com/maps/search/?api=1&query=${tenant?.name ?? 'ChiyaBreak+Restaurant'}";
+              
+              if (await canLaunchUrl(Uri.parse(googleReviewUrl))) {
+                await launchUrl(Uri.parse(googleReviewUrl), mode: LaunchMode.externalApplication);
+              }
+              Navigator.pop(context);
+            },
+            child: const Text("FINISH REVIEW", style: TextStyle(color: Colors.indigo, fontWeight: FontWeight.bold)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              await ShopManager.instance.verifyReviewSuccess();
+              Navigator.pop(context);
+              _showSuccessAnimation();
+              // Add Points as reward
+              ShopManager.instance.addPoints(
+                TenantService().currentTenant.value?.id ?? '', 
+                ShopManager.instance.currentUserId,
+                points: 10
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.indigo,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text("YES, POSTED!", style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showSuccessAnimation() {
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: "Success",
+      pageBuilder: (context, _, __) {
+        return Center(
+          child: Material(
+            color: Colors.transparent,
+            child: TweenAnimationBuilder<double>(
+              duration: const Duration(milliseconds: 600),
+              tween: Tween(begin: 0.0, end: 1.0),
+              curve: Curves.elasticOut,
+              builder: (context, value, child) {
+                return Transform.scale(
+                  scale: value,
+                  child: Container(
+                    padding: const EdgeInsets.all(32),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [BoxShadow(color: Colors.indigo.withValues(alpha: 0.3), blurRadius: 20, spreadRadius: 5)],
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: const [
+                        Icon(Icons.check_circle_rounded, color: Colors.green, size: 80),
+                        SizedBox(height: 16),
+                        Text("AWESOME!", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.indigo)),
+                        Text("+10 COINS EARNED", style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Colors.green, letterSpacing: 1)),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -202,7 +318,7 @@ class _HomePageState extends State<HomePage> {
             slivers: [
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
+                padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
                 child: _buildSmartGreetingCard(),
               ),
             ),
@@ -244,10 +360,7 @@ class _HomePageState extends State<HomePage> {
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 12),
-                  child: _buildHorizontalList(
-                    popularItems.map((e) => Map<String, String>.from(e.map((k, v) => MapEntry(k, v.toString())))).toList(), 
-                    'popular'
-                  ),
+                  child: _buildHorizontalList(popularItems, 'popular'),
                 ),
               ),
             ],
@@ -329,14 +442,14 @@ class _HomePageState extends State<HomePage> {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          "Chiyala Web Build v1.0.4",
+                          "Chiyala Web Build v1.1.6",
                           style: TextStyle(color: Colors.grey[500], fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1),
                         ),
                       ],
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      "BREACH SUCCESSFUL",
+                      "STABILITY SHIELD ACTIVE",
                       style: TextStyle(color: Colors.grey[300], fontSize: 8, fontWeight: FontWeight.w900, letterSpacing: 2),
                     ),
                   ],
@@ -767,7 +880,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildHorizontalList(List<Map<String, String>> items, String prefix) {
+  Widget _buildHorizontalList(List<Map<String, dynamic>> items, String prefix) {
     return SizedBox(
       height: 190,
       child: ListView.builder(
@@ -819,6 +932,29 @@ class _HomePageState extends State<HomePage> {
           decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10)]),
           child: Row(children: [const Icon(Icons.equalizer_rounded, color: Color(0xFFFF5C00), size: 18), const SizedBox(width: 12), const Text("Now Playing...", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))]),
         ),
+      ),
+    );
+  }
+
+  Widget _buildStatusTag(IconData icon, String label, bool isActive) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white12,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: Colors.white70, size: 14),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(width: 6),
+          CircleAvatar(radius: 3, backgroundColor: isActive ? Colors.greenAccent : Colors.grey),
+        ],
       ),
     );
   }

@@ -306,21 +306,53 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
             const SizedBox(height: 16),
             
             // Dynamic Category Dropdown
-            const Text("Category", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey)),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text("Category", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey)),
+                IconButton(
+                  onPressed: () {
+                    final tenant = TenantService().currentTenant.value;
+                    if (tenant != null) {
+                      TenantService().fetchMenuData(tenant.id);
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Syncing with database...")));
+                    }
+                  }, 
+                  icon: const Icon(Icons.refresh_rounded, size: 20, color: AdminTheme.royalBlue),
+                  constraints: const BoxConstraints(),
+                  padding: EdgeInsets.zero,
+                ),
+              ],
+            ),
             const SizedBox(height: 8),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              decoration: BoxDecoration(
+                color: Colors.white, 
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey[200]!, width: 1.5)
+              ),
               child: DropdownButtonHideUnderline(
                 child: DropdownButton<String>(
                   value: _selectedCategoryId,
-                  hint: const Text("Select Category", style: TextStyle(fontSize: 13)),
+                  hint: Text(
+                    categories.isEmpty ? "No Categories Found" : "Select Category", 
+                    style: TextStyle(fontSize: 13, color: categories.isEmpty ? Colors.red : Colors.grey[600])
+                  ),
                   isExpanded: true,
+                  dropdownColor: Colors.white,
+                  icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AdminTheme.royalBlue),
                   items: categories.map((c) => DropdownMenuItem(
                     value: c['id'].toString(),
-                    child: Text(c['title']),
+                    child: Text(
+                      c['title'] ?? 'Unnamed', 
+                      style: const TextStyle(fontSize: 14, color: Colors.black87, fontWeight: FontWeight.w500)
+                    ),
                   )).toList(),
-                  onChanged: (val) => setState(() => _selectedCategoryId = val),
+                  onChanged: (val) {
+                    debugPrint("CATEGORY SELECTED: $val");
+                    setState(() => _selectedCategoryId = val);
+                  },
                 ),
               ),
             ),
@@ -573,71 +605,72 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
       return;
     }
 
-    setState(() => _isSubmitting = true);
-
     final tenant = TenantService().currentTenant.value;
-    if (tenant == null) return;
-
-    String finalImageUrl = "";
-    String finalGlbUrl = "";
-    String finalUsdzUrl = "";
-
-    // 1. Upload assets
-    if (_selectedImageBytes != null && _selectedImageName != null) {
-      final uploadedUrl = await ApiService.uploadProductImage(_selectedImageBytes!, _selectedImageName!);
-      if (uploadedUrl != null) finalImageUrl = uploadedUrl;
+    if (tenant == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Error: Tenant data not loaded!"), backgroundColor: Colors.red));
+      return;
     }
 
-    if (_selectedGlbBytes != null && _selectedGlbName != null) {
-      final uploadedUrl = await ApiService.upload3DModel(_selectedGlbBytes!, _selectedGlbName!);
-      if (uploadedUrl != null) finalGlbUrl = uploadedUrl;
-    }
+    setState(() => _isSubmitting = true);
+    try {
+      String finalImageUrl = "";
+      String finalGlbUrl = "";
+      String finalUsdzUrl = "";
 
-    if (_selectedUsdzBytes != null && _selectedUsdzName != null) {
-      final uploadedUrl = await ApiService.upload3DModel(_selectedUsdzBytes!, _selectedUsdzName!);
-      if (uploadedUrl != null) finalUsdzUrl = uploadedUrl;
-    }
+      // 1. Upload assets
+      if (_selectedImageBytes != null && _selectedImageName != null) {
+        final uploadedUrl = await ApiService.uploadProductImage(_selectedImageBytes!, _selectedImageName!);
+        if (uploadedUrl != null) finalImageUrl = uploadedUrl;
+      }
 
-    // 2. Add product to DB
-    final res = await ApiService.addProduct({
-      'tenant_id': tenant.id,
-      'category_id': _selectedCategoryId,
-      'title': _titleController.text.trim(),
-      'price': _priceController.text.trim(),
-      'image_url': finalImageUrl,
-      'description': _descriptionController.text.trim(),
-      'slogan': _sloganController.text.trim(),
-      'featured_section': _selectedSection,
-      'model_url': finalGlbUrl,
-      'ios_model_url': finalUsdzUrl,
-    });
+      if (_selectedGlbBytes != null && _selectedGlbName != null) {
+        final uploadedUrl = await ApiService.upload3DModel(_selectedGlbBytes!, _selectedGlbName!);
+        if (uploadedUrl != null) finalGlbUrl = uploadedUrl;
+      }
 
-    setState(() => _isSubmitting = false);
+      if (_selectedUsdzBytes != null && _selectedUsdzName != null) {
+        final uploadedUrl = await ApiService.upload3DModel(_selectedUsdzBytes!, _selectedUsdzName!);
+        if (uploadedUrl != null) finalUsdzUrl = uploadedUrl;
+      }
 
-    if (!mounted) return;
-
-    if (res['success'] == true) {
-      _titleController.clear();
-      _priceController.clear();
-      _imageController.clear();
-      _descriptionController.clear();
-      _sloganController.clear();
-      setState(() {
-        _selectedImageBytes = null;
-        _selectedImageName = null;
-        _selectedGlbBytes = null;
-        _selectedGlbName = null;
-        _selectedUsdzBytes = null;
-        _selectedUsdzName = null;
-        _selectedSection = 'none';
+      // 2. Add product to DB
+      final res = await ApiService.addProduct({
+        'tenant_id': tenant.id,
+        'category_id': _selectedCategoryId,
+        'title': _titleController.text.trim(),
+        'price': _priceController.text.trim(),
+        'image_url': finalImageUrl,
+        'description': _descriptionController.text.trim(),
+        'slogan': _sloganController.text.trim(),
+        'featured_section': _selectedSection,
+        'model_url': finalGlbUrl,
+        'ios_model_url': finalUsdzUrl,
       });
-      // Re-fetch menu to show new item
-      TenantService().fetchMenuData(tenant.id);
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Product added successfully!"), backgroundColor: Colors.green));
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: ${res['message']}"), backgroundColor: Colors.red)
-      );
+
+      if (res['success'] == true) {
+        _titleController.clear();
+        _priceController.clear();
+        _descriptionController.clear();
+        _sloganController.clear();
+        setState(() {
+          _selectedImageBytes = null;
+          _selectedImageName = null;
+          _selectedGlbBytes = null;
+          _selectedGlbName = null;
+          _selectedUsdzBytes = null;
+          _selectedUsdzName = null;
+        });
+        TenantService().fetchMenuData(tenant.id);
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Product added successfully!"), backgroundColor: Colors.green));
+      } else {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(res['message'] ?? "Failed to add product."), backgroundColor: Colors.red));
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red));
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
     }
   }
 
@@ -701,48 +734,58 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
 
   Future<void> _submitEdit() async {
     if (_titleController.text.isEmpty || _priceController.text.isEmpty || _selectedCategoryId == null) return;
-    setState(() => _isSubmitting = true);
+    
     final tenant = TenantService().currentTenant.value;
     if (tenant == null || _editingProduct == null) return;
 
-    String finalImageUrl = _editingProduct!['image_url'] ?? _editingProduct!['image'] ?? "";
-    String finalGlbUrl = _editingProduct!['model_url'] ?? "";
-    String finalUsdzUrl = _editingProduct!['ios_model_url'] ?? "";
+    setState(() => _isSubmitting = true);
+    try {
+      String finalImageUrl = _editingProduct!['image_url'] ?? _editingProduct!['image'] ?? "";
+      String finalGlbUrl = _editingProduct!['model_url'] ?? "";
+      String finalUsdzUrl = _editingProduct!['ios_model_url'] ?? "";
 
-    if (_selectedImageBytes != null && _selectedImageName != null) {
-      final uploadedUrl = await ApiService.uploadProductImage(_selectedImageBytes!, _selectedImageName!);
-      if (uploadedUrl != null) finalImageUrl = uploadedUrl;
-    }
+      if (_selectedImageBytes != null && _selectedImageName != null) {
+        final uploadedUrl = await ApiService.uploadProductImage(_selectedImageBytes!, _selectedImageName!);
+        if (uploadedUrl != null) finalImageUrl = uploadedUrl;
+      }
 
-    if (_selectedGlbBytes != null && _selectedGlbName != null) {
-      final uploadedUrl = await ApiService.upload3DModel(_selectedGlbBytes!, _selectedGlbName!);
-      if (uploadedUrl != null) finalGlbUrl = uploadedUrl;
-    }
+      if (_selectedGlbBytes != null && _selectedGlbName != null) {
+        final uploadedUrl = await ApiService.upload3DModel(_selectedGlbBytes!, _selectedGlbName!);
+        if (uploadedUrl != null) finalGlbUrl = uploadedUrl;
+      }
 
-    if (_selectedUsdzBytes != null && _selectedUsdzName != null) {
-      final uploadedUrl = await ApiService.upload3DModel(_selectedUsdzBytes!, _selectedUsdzName!);
-      if (uploadedUrl != null) finalUsdzUrl = uploadedUrl;
-    }
+      if (_selectedUsdzBytes != null && _selectedUsdzName != null) {
+        final uploadedUrl = await ApiService.upload3DModel(_selectedUsdzBytes!, _selectedUsdzName!);
+        if (uploadedUrl != null) finalUsdzUrl = uploadedUrl;
+      }
 
-    final res = await ApiService.updateProduct({
-      'id': _editingProduct!['id'],
-      'tenant_id': tenant.id,
-      'category_id': _selectedCategoryId,
-      'title': _titleController.text,
-      'price': _priceController.text,
-      'image_url': finalImageUrl,
-      'description': _descriptionController.text,
-      'slogan': _sloganController.text.trim(),
-      'featured_section': _selectedSection,
-      'model_url': finalGlbUrl,
-      'ios_model_url': finalUsdzUrl,
-    });
+      final res = await ApiService.updateProduct({
+        'id': _editingProduct!['id'],
+        'tenant_id': tenant.id,
+        'category_id': _selectedCategoryId,
+        'title': _titleController.text,
+        'price': _priceController.text,
+        'image_url': finalImageUrl,
+        'description': _descriptionController.text,
+        'slogan': _sloganController.text.trim(),
+        'featured_section': _selectedSection,
+        'model_url': finalGlbUrl,
+        'ios_model_url': finalUsdzUrl,
+      });
 
-    setState(() => _isSubmitting = false);
-    if (res['success'] == true) {
-      setState(() => _editingProduct = null);
-      TenantService().fetchMenuData(tenant.id);
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Product updated!"), backgroundColor: Colors.green));
+      if (res['success'] == true) {
+        setState(() => _editingProduct = null);
+        TenantService().fetchMenuData(tenant.id);
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Product updated!"), backgroundColor: Colors.green));
+      } else {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(res['message'] ?? "Failed to update product."), backgroundColor: Colors.red));
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red));
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
     }
   }
 

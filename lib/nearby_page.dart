@@ -50,22 +50,12 @@ class _NearbyPageState extends State<NearbyPage> {
     if (mounted) {
       setState(() {
         if (data != null) {
-          // --- CLIENT-SIDE FILTERING (Server Efficiency) ---
-          // Only show users active in the last 5 minutes
-          final now = DateTime.now();
-          _activeGuests = data.where((user) {
-            final lastSeenStr = user['last_seen'];
-            if (lastSeenStr == null) return false;
-            
-            try {
-              // Parse 'YYYY-MM-DD HH:MM:SS'
-              final lastSeen = DateTime.parse(lastSeenStr).toLocal();
-              // Inactivity threshold: 5 minutes
-              return now.difference(lastSeen).inMinutes <= 5;
-            } catch (e) {
-              return false;
-            }
-          }).toList();
+          debugPrint("NEARBY: Received ${data.length} users from server.");
+          // --- SERVER-DRIVEN SYNC ---
+          // Trust the server's window (60 mins). No local filtering to avoid Timezone issues.
+          _activeGuests = data;
+        } else {
+          debugPrint("NEARBY: ERROR - Received NULL or failed response from server.");
         }
         _isLoading = false;
       });
@@ -135,7 +125,26 @@ class _NearbyPageState extends State<NearbyPage> {
                             const Spacer(),
                             _buildMapActionBtn(Icons.refresh, () => _fetchGuests(isInitial: true)),
                             const SizedBox(width: 8),
-                            _buildMapActionBtn(Icons.chat_bubble_outline, () => Navigator.push(context, MaterialPageRoute(builder: (context) => const MessagesListPage()))),
+                            ValueListenableBuilder<int>(
+                              valueListenable: ShopManager.instance.totalUnreadChatCount,
+                              builder: (context, unread, _) {
+                                return Stack(
+                                  clipBehavior: Clip.none,
+                                  children: [
+                                    _buildMapActionBtn(Icons.chat_bubble_outline, () => Navigator.push(context, MaterialPageRoute(builder: (context) => const MessagesListPage()))),
+                                    if (unread > 0)
+                                      Positioned(
+                                        top: -4, right: -4,
+                                        child: Container(
+                                          padding: const EdgeInsets.all(4),
+                                          decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                                          child: Text("$unread", style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
+                                        ),
+                                      ),
+                                  ],
+                                );
+                              }
+                            ),
                           ],
                         ),
                       ),
@@ -285,21 +294,26 @@ class _NearbyPageState extends State<NearbyPage> {
        displayName = "Diner ${uidStr.length >= 4 ? uidStr.substring(uidStr.length - 4) : uidStr}";
     }
     final String displayLocation = "Table ${user['table_number']}";
-    final String displayImage = user['gender'] == 'Female'
+    final String displayImage = (user['gender'] == 'Female')
         ? 'https://img.freepik.com/free-vector/beauty-woman-face-concept_23-2148679462.jpg'
         : 'https://img.freepik.com/free-vector/businessman-character-avatar-isolated_24877-60111.jpg';
     final String targetId = user['user_id']?.toString() ?? '';
     
+    // Convert to int/bool safely
     bool isFollowing = _optimisticFollows.containsKey(targetId) 
         ? _optimisticFollows[targetId]! 
-        : (user['is_following'] ?? 0) > 0;
-    bool isFriend = isFollowing && (user['follows_me'] ?? 0) > 0;
+        : (int.tryParse(user['is_following']?.toString() ?? '0') ?? 0) > 0;
+        
+    bool followsMe = (int.tryParse(user['follows_me']?.toString() ?? '0') ?? 0) > 0;
+    bool isPublic = (user['is_public'] == 1 || user['is_public'] == true || user['is_public'] == "1");
+    bool allowWaves = (user['allow_waves'] == 1 || user['allow_waves'] == true || user['allow_waves'] == "1");
     
     final myId = ShopManager.instance.currentUserId;
     final bool isMe = targetId == myId;
 
     return InkWell(
       onTap: () {
+        if (targetId.isEmpty) return;
         Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => UserProfileViewPage(userId: targetId, name: displayName)),
@@ -324,28 +338,13 @@ class _NearbyPageState extends State<NearbyPage> {
             if (!isMe)
               Row(
                 children: [
-                  _buildSocialIcon(
-                    Icons.chat_bubble_outline_rounded, 
-                    isFriend ? Colors.green : Colors.grey, 
-                    () {
-                      if (!isFriend) {
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Follow back to unlock messaging!")));
-                        return;
-                      }
-                    }
-                  ),
-                  const SizedBox(width: 10),
-                  
-                  // Wave Icon (Visible only if target user allows it)
-                  if (user['allow_waves'] == 1 || user['allow_waves'] == true)
+                  // Social logic updated for stability
+                  if (allowWaves)
                     _buildSocialIcon(Icons.back_hand_rounded, Colors.amber, () async {
                        final tenant = TenantService().currentTenant.value;
                        if (tenant != null && myId.isNotEmpty) {
-                         if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Waving at $displayName..."), duration: const Duration(milliseconds: 500)));
-                         final success = await ApiService.sendWave(tenantId: tenant.id, myId: myId, targetId: targetId);
-                         if (success && mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Waved at $displayName!"), duration: const Duration(seconds: 1)));
-                         }
+                         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Waving at $displayName..."), duration: const Duration(milliseconds: 500)));
+                         await ApiService.sendWave(tenantId: tenant.id, myId: myId, targetId: targetId);
                        }
                     }),
 
@@ -355,12 +354,8 @@ class _NearbyPageState extends State<NearbyPage> {
                     child: InkWell(
                       onTap: () async {
                         if (_loadingFollowIds.contains(targetId)) return;
-                        
-                        // Check if user is public before following
-                        if (user['is_public'] == 0 || user['is_public'] == false) {
-                           ScaffoldMessenger.of(context).showSnackBar(
-                             const SnackBar(content: Text("You cannot follow a private profile."), backgroundColor: Colors.red),
-                           );
+                        if (!isPublic) {
+                           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Profile is private.")));
                            return;
                         }
 
@@ -368,28 +363,21 @@ class _NearbyPageState extends State<NearbyPage> {
                           _optimisticFollows[targetId] = !isFollowing;
                           _loadingFollowIds.add(targetId);
                         });
-                        final success = await ShopManager.instance.toggleFollow(targetId);
-                        if (success) {
-                          await _fetchGuests();
-                        } else {
-                          setState(() => _optimisticFollows.remove(targetId));
-                        }
+                        await ShopManager.instance.toggleFollow(targetId);
+                        await _fetchGuests();
                         if (mounted) setState(() => _loadingFollowIds.remove(targetId));
                       },
                       borderRadius: BorderRadius.circular(12),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
+                      child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                         decoration: BoxDecoration(
                           color: isFollowing ? const Color(0xFFF1F5F9) : const Color(0xFFFF5C00),
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: _loadingFollowIds.contains(targetId)
-                          ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                          : Text(
-                              isFollowing ? "Following" : "Follow",
-                              style: TextStyle(color: isFollowing ? Colors.black87 : Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
-                            ),
+                        child: Text(
+                          isFollowing ? "Following" : (followsMe ? "Follow Back" : "Follow"),
+                          style: TextStyle(color: isFollowing ? Colors.black87 : Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                        ),
                       ),
                     ),
                   ),

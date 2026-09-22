@@ -28,6 +28,7 @@ import 'screens/department_management_screen.dart';
 import 'screens/support_ticket_screen.dart';
 import 'screens/subscription_status_screen.dart';
 import 'screens/music_management_screen.dart';
+import 'screens/social_media_management_screen.dart';
 
 class AdminHub extends StatefulWidget {
   const AdminHub({super.key});
@@ -188,6 +189,7 @@ class _AdminHubState extends State<AdminHub> {
     const RewardManagementScreen(mode: "Claim History"), // 117
     const RewardManagementScreen(mode: "Marketing Banners"), // 118
     const MusicManagementScreen(), // 119
+    const SocialMediaManagementScreen(), // 120
   ];
 
   @override
@@ -471,6 +473,7 @@ class _AdminHubState extends State<AdminHub> {
                         _buildSubDrawerItem(84, "Shipping Method Setting", isDoubleNested: true),
                       ],
                     ),
+                    _buildSubDrawerItem(120, "Social Media"),
                     _buildNestedExpandableItem(
                       title: "Manage Table",
                       children: [

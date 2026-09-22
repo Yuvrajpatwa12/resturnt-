@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../kitchen_pro/kitchen_hub.dart';
+import '../../super_admin_module/master_hub.dart';
+import '../pages/restaurant_profile_page.dart';
 
 class SettingsTab extends StatelessWidget {
   const SettingsTab({super.key});
@@ -19,6 +21,9 @@ class SettingsTab extends StatelessWidget {
           _buildSettingsItem(Icons.language, "App Language", "English (US)"),
           const SizedBox(height: 16),
           _buildActionItem(context, Icons.restaurant_menu, "Kitchen KDS View", "Switch to kitchen display mode"),
+          _buildActionItemNav(context, Icons.hub_rounded, "Master Hub (SaaS)", "Super Admin root access", () {
+             Navigator.push(context, MaterialPageRoute(builder: (context) => const SuperAdminMasterHub()));
+          }),
           const SizedBox(height: 40),
           SizedBox(
             width: double.infinity,
@@ -74,6 +79,7 @@ class SettingsTab extends StatelessWidget {
     return InkWell(
       onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const KitchenHub())),
       child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: Colors.white,
@@ -85,6 +91,40 @@ class SettingsTab extends StatelessWidget {
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(color: Colors.blue.withValues(alpha: 0.1), shape: BoxShape.circle),
               child: Icon(icon, color: Colors.blue, size: 20),
+            ),
+            const SizedBox(width: 15),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                  Text(subtitle, style: TextStyle(color: Colors.grey[500], fontSize: 11)),
+                ],
+              ),
+            ),
+            const Icon(Icons.arrow_forward, color: Colors.grey, size: 18),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionItemNav(BuildContext context, IconData icon, String title, String subtitle, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(color: Colors.orange.withValues(alpha: 0.1), shape: BoxShape.circle),
+              child: Icon(icon, color: Colors.orange, size: 20),
             ),
             const SizedBox(width: 15),
             Expanded(

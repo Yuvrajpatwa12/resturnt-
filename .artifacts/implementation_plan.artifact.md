@@ -1,47 +1,47 @@
-# Implementation Plan - Functional HomePage Integration
+# Consolidated Admin Management & Social Links Integration
 
-This plan details the transition of `HomePage` from a demo UI to a fully functional application interface, connecting all interactions to the global state and specialized sub-pages.
+This plan details moving administrative access points from the user app to the Staff Hub and expanding the restaurant's social profile capabilities.
+
+## User Review Required
+
+> [!IMPORTANT]
+> - **Management Access**: The "Staff Dashboard" and "Master Hub" buttons will be removed from the public diner profiles and diner settings. They will only be accessible from within the Staff Settings area.
+> - **Database Columns**: New columns (`instagram_link`, `facebook_link`, `tiktok_link`) must be added to the `tenants` table.
+> - **Admin UI**: The "Restaurant Profile" page will be renamed or expanded to "Social & Business Profile" to manage all external links in one place.
 
 ## Proposed Changes
 
-### Core Logic
+### 1. Database & Backend
+#### [MODIFY] [review_api.php](file:///C:/Users/yuraj/AppData/Local/Google/AndroidStudio2026.1.2/projects/chiyabreak.60a64e92/.artifacts/76cc3ff0-f3ff-4b5d-b6f9-eb37f4b62f61/scratch/review_api.php)
+- Update `update_google_link` action (or rename to `update_social_links`) to handle `google_maps_link`, `instagram_link`, `facebook_link`, and `tiktok_link`.
 
-#### [MODIFY] [cart_manager.dart](file:///C:/Users/yuraj/AndroidStudioProjects/chiyabreak/lib/cart_manager.dart)
-- **State Expansion**:
-    - Add `ValueNotifier<int> selectedTableId` to manage the user's current table.
-    - Add `ValueNotifier<String?> activeCategory` to handle home-to-menu category filtering.
-- **Methods**:
-    - Add `switchTable(int id)` to update the session.
-    - Add `navigateToCategory(String category)` to handle cross-tab navigation.
+### 2. Core Models & Services
+#### [MODIFY] [tenant_service.dart](file:///C:/Users/yuraj/AndroidStudioProjects/chiyabreak/lib/services/tenant_service.dart)
+- Expand `Tenant` class with `instagramLink`, `facebookLink`, and `tiktokLink`.
+- Update `fromMap` factory to parse these new fields from the API response.
 
-### Client Module
+#### [MODIFY] [api_service.dart](file:///C:/Users/yuraj/AndroidStudioProjects/chiyabreak/lib/services/api_service.dart)
+- Add `updateSocialLinks(String tenantId, Map<String, String> links)` to send all social URLs to the server in one request.
 
-#### [MODIFY] [homepage.dart](file:///C:/Users/yuraj/AndroidStudioProjects/chiyabreak/lib/homepage.dart)
-- **Table Selector**:
-    - Make the "TABLE 12" card clickable.
-    - Open a `TableSelectionBottomSheet` allowing users to choose their table.
-- **Header Actions**:
-    - **Notifications**: Link to the existing `AlertsScreen` (or a client-side equivalent).
-    - **Profile**: Switch to tab index 4 (Profile).
-- **Categories**:
-    - Tapping a category (e.g., "Momos") will now:
-        1. Update `ShopManager.instance.activeCategory`.
-        2. Switch `currentTabIndex` to 1 (Menu).
-- **Section Actions**:
-    - "View All", "Explore", and Promo "Order Now" will all trigger a navigation to the Menu tab.
-- **Rewards Card**:
-    - "Join Now" will navigate to the `RewardsPage`.
-- **Summer Offer**:
-    - Clickable card leading to a filtered "Special Items" view in the Menu.
+### 3. Admin Panel (Staff Hub)
+#### [MODIFY] [restaurant_profile_page.dart](file:///C:/Users/yuraj/AndroidStudioProjects/chiyabreak/lib/staff/pages/restaurant_profile_page.dart)
+- Add input fields for Instagram, Facebook, and TikTok.
+- Update saving logic to use the new multi-field API method.
 
-#### [MODIFY] [menu.dart](file:///C:/Users/yuraj/AndroidStudioProjects/chiyabreak/lib/menu.dart)
-- Listen to `ShopManager.instance.activeCategory` on initialization to auto-filter the menu when arriving from Home.
+#### [MODIFY] [settings_tab.dart](file:///C:/Users/yuraj/AndroidStudioProjects/chiyabreak/lib/staff/tabs/settings_tab.dart)
+- Add "Master Hub (SaaS)" access point here for Super Admins.
+
+### 4. Diner App Cleanup
+#### [MODIFY] [profile_page.dart](file:///C:/Users/yuraj/AndroidStudioProjects/chiyabreak/lib/profile_page.dart)
+- Remove the "Management" section and "Staff Dashboard" menu item.
+
+#### [MODIFY] [settings_page.dart](file:///C:/Users/yuraj/AndroidStudioProjects/chiyabreak/lib/settings_page.dart)
+- Remove the "Internal Tools" section (Dashboard and Master Hub).
 
 ## Verification Plan
 
 ### Manual Verification
-1. **Table Switch**: Tap "TABLE 12", select "TABLE 05", and verify the header updates globally.
-2. **Category Flow**: Tap the "Momos" icon on Home. Verify the app switches to the Menu tab and only Momos are shown.
-3. **Promo Flow**: Click "Order Now" on the Sandwich banner and verify it leads to the Menu tab.
-4. **Rewards Flow**: Click "Join Now" on the Rewards card and verify it opens the `RewardsPage`.
-5. **Direct Navigation**: Click the profile icon in the header and verify it switches to the Profile tab.
+1.  **Cleanup Check**: Verify that "Staff Dashboard" is no longer visible in the regular diner Profile or Settings.
+2.  **Social Config**: Log into Staff mode, go to Restaurant Profile, enter links for FB/IG/TikTok, and save.
+3.  **Persistence**: Refresh the app and verify the links are still there in the Admin panel.
+4.  **Master Hub Access**: Verify that Master Hub can be accessed from the Staff Settings tab.

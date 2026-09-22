@@ -5,6 +5,7 @@ import 'package:web/web.dart' as web;
 import 'models.dart';
 import 'dart:async';
 import 'package:url_launcher/url_launcher.dart';
+import 'dart:js_interop';
 
 class ARViewPage extends StatefulWidget {
   final Product product;
@@ -47,8 +48,6 @@ class _ARViewPageState extends State<ARViewPage> {
         element.setAttribute('shadow-intensity', '1');
         element.style.width = '100%';
         element.style.height = '100%';
-        
-        // Set white background to cover the spinner once the component is ready
         element.style.backgroundColor = 'white'; 
         
         return element;

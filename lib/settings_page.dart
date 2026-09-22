@@ -3,6 +3,8 @@ import 'cart_manager.dart';
 import 'services/tenant_service.dart';
 import 'package:geolocator/geolocator.dart';
 import 'account_settings_page.dart';
+import 'staff/staff_hub.dart';
+import 'super_admin_module/master_hub.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});

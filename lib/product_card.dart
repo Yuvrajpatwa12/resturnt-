@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'models.dart';
 import 'cart_manager.dart';
 import 'product_details_page.dart';
 import 'ar_view_page.dart';
 import 'product_voice_assistant_page.dart';
 import 'services/tenant_service.dart';
+import 'services/api_service.dart';
 
 class ProductCard extends StatelessWidget {
   final Map<String, dynamic> item;
@@ -20,8 +22,52 @@ class ProductCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final String displayImage = item['image_url'] ?? item['image'] ?? '';
+    String displayImage = item['image_url'] ?? item['image'] ?? '';
     
+    // --- THE ULTIMATE PATH RESOLVER ---
+    if (displayImage.isNotEmpty) {
+      // 1. Fix Broken Domain (if SQL removed dots)
+      if (displayImage.contains('startupsgotech') && !displayImage.contains('startupsgo.tech')) {
+        displayImage = displayImage.replaceFirst('startupsgotech', 'startupsgo.tech');
+      }
+
+      // 2. Ensure saas_api is in the path
+      if (displayImage.contains('/uploads/') && !displayImage.contains('/saas_api/')) {
+        displayImage = displayImage.replaceFirst('/uploads/', '/saas_api/uploads/');
+      }
+      
+      // 3. FIX DOUBLE SAAS_API (Critical for chaumin)
+      while (displayImage.contains('/saas_api/saas_api/')) {
+        displayImage = displayImage.replaceFirst('/saas_api/saas_api/', '/saas_api/');
+      }
+
+      // 4. Fix Middle Dots in filenames (prod_xxx.yyy.jpg -> prod_xxxyyy.jpg)
+      if (displayImage.contains('/products/prod_')) {
+        String base = displayImage.split('/products/').first;
+        String filename = displayImage.split('/products/').last;
+        
+        // Preservation logic
+        String extension = filename.split('.').last;
+        String nameWithoutExt = filename.substring(0, filename.lastIndexOf('.'));
+        String cleanName = nameWithoutExt.replaceAll('.', '') + "." + extension;
+        
+        displayImage = "$base/products/$cleanName";
+      }
+
+      // 5. Handle relative paths
+      if (!displayImage.startsWith('http')) {
+        String baseUrl = ApiService.baseUrl; 
+        if (baseUrl.endsWith('/')) baseUrl = baseUrl.substring(0, baseUrl.length - 1);
+        String cleanPath = displayImage.startsWith('/') ? displayImage.substring(1) : displayImage;
+        displayImage = "$baseUrl/$cleanPath";
+      }
+    }
+    
+    // Debug print for localhost troubleshooting
+    if (kDebugMode && displayImage.isNotEmpty) {
+       print("DEBUG: Loading image from -> $displayImage");
+    }
+
     String displayPrice = item['price']?.toString() ?? 'N/A';
     if (!displayPrice.contains('NPR') && displayPrice != 'N/A') {
       displayPrice = "NPR $displayPrice";
@@ -83,9 +129,21 @@ class ProductCard extends StatelessWidget {
                           width: double.infinity,
                           height: double.infinity,
                           fit: BoxFit.cover,
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return Center(
+                              child: CircularProgressIndicator(
+                                value: loadingProgress.expectedTotalBytes != null
+                                    ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                                    : null,
+                                strokeWidth: 2,
+                                color: const Color(0xFFFF5C00),
+                              ),
+                            );
+                          },
                           errorBuilder: (context, error, stackTrace) => Container(
                             color: const Color(0xFFF1F5F9),
-                            child: const Icon(Icons.broken_image, color: Colors.grey),
+                            child: const Icon(Icons.broken_image_rounded, color: Colors.grey, size: 24),
                           ),
                         ),
                       ),

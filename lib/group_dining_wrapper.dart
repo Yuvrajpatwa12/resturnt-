@@ -8,14 +8,14 @@ import 'package:chiyabreak/services/tenant_service.dart';
 import 'package:chiyabreak/cart_manager.dart';
 import 'package:chiyabreak/services/api_service.dart';
 
-class GroupDiningWrapper extends StatefulWidget {
-  const GroupDiningWrapper({super.key});
+class DineWrapper extends StatefulWidget {
+  const DineWrapper({super.key});
 
   @override
-  State<GroupDiningWrapper> createState() => _GroupDiningWrapperState();
+  State<DineWrapper> createState() => _DineWrapperState();
 }
 
-class _GroupDiningWrapperState extends State<GroupDiningWrapper> {
+class _DineWrapperState extends State<DineWrapper> {
   bool? _isHost;
   int _currentIndex = 0;
   bool _termsAccepted = false;
@@ -30,7 +30,6 @@ class _GroupDiningWrapperState extends State<GroupDiningWrapper> {
     final tableId = ShopManager.instance.selectedTableId.value;
 
     if (tenant == null || tableId == null) {
-      // Redirect to Home and open Table Picker
       ShopManager.instance.currentTabIndex.value = 0;
       ShopManager.instance.openTablePickerTrigger.value = true;
       Navigator.pop(context);

@@ -657,28 +657,40 @@ class _PurchaseManagementScreenState extends State<PurchaseManagementScreen> {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Fill all required fields!"), backgroundColor: Colors.orange)); 
       return; 
     }
-    setState(() => _isSubmitting = true);
+    
     final tenant = TenantService().currentTenant.value;
-    if (tenant == null) return;
-    final result = await ApiService.addPurchase({
-      'tenant_id': tenant.id,
-      'ingredient_name': _ingredientController.text,
-      'supplier_name': _supplierController.text,
-      'quantity': _quantityController.text,
-      'unit': _unitController.text,
-      'total_price': _priceController.text,
-      'paid_amount': _paidAmountController.text, // Added this
-    });
-    setState(() => _isSubmitting = false);
-    if (result['success'] == true) { 
-      _ingredientController.clear(); 
-      _quantityController.clear(); 
-      _priceController.clear(); 
-      // SYNC CENTRAL STATE
-      ShopManager.instance.syncProcurementData(tenant.id);
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Purchase recorded!"), backgroundColor: Colors.green)); 
+    if (tenant == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Error: Tenant data not loaded!"), backgroundColor: Colors.red));
+      return;
     }
-    else { final String msg = result['message']?.toString() ?? "Failed to save."; if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: Colors.red)); }
+
+    setState(() => _isSubmitting = true);
+    try {
+      final result = await ApiService.addPurchase({
+        'tenant_id': tenant.id,
+        'ingredient_name': _ingredientController.text,
+        'supplier_name': _supplierController.text,
+        'quantity': _quantityController.text,
+        'unit': _unitController.text,
+        'total_price': _priceController.text,
+        'paid_amount': _paidAmountController.text, // Added this
+      });
+      if (result['success'] == true) { 
+        _ingredientController.clear(); 
+        _quantityController.clear(); 
+        _priceController.clear(); 
+        // SYNC CENTRAL STATE
+        ShopManager.instance.syncProcurementData(tenant.id);
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Purchase recorded!"), backgroundColor: Colors.green)); 
+      }
+      else { final String msg = result['message']?.toString() ?? "Failed to save."; if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: Colors.red)); }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red));
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
   }
 
   // ==========================================

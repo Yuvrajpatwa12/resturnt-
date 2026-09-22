@@ -86,6 +86,7 @@ class ShopManager {
   // --- CHAT POLLING ---
   Timer? _chatTimer;
   final ValueNotifier<List<Map<String, dynamic>>> conversations = ValueNotifier([]);
+  final ValueNotifier<int> totalUnreadChatCount = ValueNotifier<int>(0);
 
   void _startChatPoller() {
     _chatTimer?.cancel();
@@ -100,6 +101,13 @@ class ShopManager {
     final data = await ApiService.fetchConversations(tenant.id, uid);
     if (data != null) {
       conversations.value = data;
+      
+      // Calculate total unread count across all friends
+      int count = 0;
+      for (var chat in data) {
+        count += (int.tryParse(chat['unread']?.toString() ?? '0') ?? 0);
+      }
+      totalUnreadChatCount.value = count;
     }
   }
 
@@ -235,18 +243,22 @@ class ShopManager {
   }
 
   void _startPresenceCheckIn() {
-    Timer.periodic(const Duration(minutes: 2), (timer) => updatePresenceOnServer());
+    Timer.periodic(const Duration(seconds: 45), (timer) => updatePresenceOnServer());
   }
 
   Future<void> updatePresenceOnServer() async {
     final tenant = TenantService().currentTenant.value;
-    // Only update if we have a tenant, a user ID, and a locked-in table number
-    // This prevents "anonymous ghost" updates from overloading the server
-    if (tenant != null && currentUserId.isNotEmpty && selectedTableId.value != null && selectedTableId.value! > 0) {
+    final uid = currentUserId;
+    
+    if (tenant != null && uid.isNotEmpty) {
+      // If table is not selected, we use 0 to indicate "Browsing/Near"
+      int tableNum = selectedTableId.value ?? 0;
+      
+      debugPrint("NEARBY: Updating presence for $uid at Table $tableNum");
       await ApiService.updatePresence(
         tenantId: tenant.id, 
-        userId: currentUserId, 
-        tableNumber: selectedTableId.value!, 
+        userId: uid, 
+        tableNumber: tableNum, 
         userName: customerName.value.isNotEmpty ? customerName.value : null
       );
     }
@@ -271,6 +283,9 @@ class ShopManager {
     socialVibration.value = prefs.getBool('social_vibration') ?? true;
     isProfileVisible.value = prefs.getBool('is_profile_visible') ?? true;
     isWaveEnabled.value = prefs.getBool('is_wave_enabled') ?? true;
+    isWaitingForGoogleReview.value = prefs.getBool('is_waiting_for_google_review') ?? false;
+    lastReviewText.value = prefs.getString('last_review_text');
+    lastReviewId.value = prefs.getInt('last_review_id');
 
     // LOAD PERSISTED GROUP SESSION
     final int? sid = prefs.getInt('active_session_id');
@@ -302,6 +317,7 @@ class ShopManager {
     await refreshUserPoints();
     await refreshSocialStats();
     await fetchSocialLists();
+    await fetchReviews(); // Fetch reviews on load
     checkNotificationPermission();
   }
 
@@ -355,6 +371,36 @@ class ShopManager {
   final ValueNotifier<bool> showNotificationPrompt = ValueNotifier<bool>(false);
   final ValueNotifier<bool> isConnectedToRestaurantWiFi = ValueNotifier<bool>(true);
   final ValueNotifier<bool> isOrderPaid = ValueNotifier<bool>(false);
+
+  // --- REVIEW SYSTEM ---
+  final ValueNotifier<bool> isWaitingForGoogleReview = ValueNotifier<bool>(false);
+  final ValueNotifier<String?> lastReviewText = ValueNotifier<String?>(null);
+  final ValueNotifier<int?> lastReviewId = ValueNotifier<int?>(null);
+
+  Future<void> submitLocalReview(String text, int rating, {int? reviewId}) async {
+    lastReviewText.value = text;
+    lastReviewId.value = reviewId;
+    isWaitingForGoogleReview.value = true;
+    
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('is_waiting_for_google_review', true);
+    await prefs.setString('last_review_text', text);
+    if (reviewId != null) await prefs.setInt('last_review_id', reviewId);
+  }
+
+  Future<void> clearReviewFlag() async {
+    isWaitingForGoogleReview.value = false;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('is_waiting_for_google_review');
+    await prefs.remove('last_review_id');
+  }
+
+  Future<void> verifyReviewSuccess() async {
+    if (lastReviewId.value != null) {
+      await ApiService.verifyReviewOnServer(lastReviewId.value!);
+    }
+    await clearReviewFlag();
+  }
 
   String get currentUserId {
     final staff = TenantService().currentStaff.value;
@@ -414,6 +460,90 @@ class ShopManager {
     if (friends != null) friendsList.value = List<Map<String, dynamic>>.from(friends);
     final orderData = await ApiService.fetchUserOrders(tenant.id, currentUserId);
     if (orderData != null) totalOrdersCount.value = orderData['total_count'] ?? 0;
+  }
+
+  // --- REVIEWS ---
+  final ValueNotifier<List<Map<String, dynamic>>> activeReviews = ValueNotifier([]);
+  final ValueNotifier<double> averageRating = ValueNotifier(0.0);
+  final ValueNotifier<int> totalReviewsCount = ValueNotifier(0);
+  final ValueNotifier<Map<int, double>> ratingDistribution = ValueNotifier({});
+
+  Future<void> fetchReviews({String? targetUserId}) async {
+    final tenant = TenantService().currentTenant.value;
+    if (tenant == null) return;
+
+    final data = await ApiService.fetchReviews(tenant.id, targetUserId: targetUserId);
+    if (data != null) {
+      activeReviews.value = data;
+      _calculateReviewStats(data);
+    }
+  }
+
+  void _calculateReviewStats(List<Map<String, dynamic>> reviews) {
+    if (reviews.isEmpty) {
+      averageRating.value = 0.0;
+      totalReviewsCount.value = 0;
+      ratingDistribution.value = {};
+      return;
+    }
+
+    double total = 0;
+    Map<int, int> counts = {5: 0, 4: 0, 3: 0, 2: 0, 1: 0};
+
+    for (var r in reviews) {
+      int rating = int.tryParse(r['rating']?.toString() ?? '0') ?? 0;
+      total += rating;
+      if (counts.containsKey(rating)) {
+        counts[rating] = (counts[rating] ?? 0) + 1;
+      }
+    }
+
+    averageRating.value = total / reviews.length;
+    totalReviewsCount.value = reviews.length;
+
+    Map<int, double> distribution = {};
+    for (int i = 1; i <= 5; i++) {
+      distribution[i] = reviews.isEmpty ? 0.0 : (counts[i]! / reviews.length);
+    }
+    ratingDistribution.value = distribution;
+  }
+
+  Future<bool> postReview(String text, int rating) async {
+    final tenant = TenantService().currentTenant.value;
+    if (tenant == null || currentUserId.isEmpty) {
+      debugPrint("REVIEW: Missing Tenant or User ID");
+      return false;
+    }
+
+    final res = await ApiService.submitReview({
+      "tenant_id": tenant.id,
+      "user_id": currentUserId,
+      "user_name": customerName.value.isNotEmpty ? customerName.value : "Diner",
+      "user_image": userGender.value == 'Female' 
+          ? 'https://randomuser.me/api/portraits/women/44.jpg' 
+          : 'https://randomuser.me/api/portraits/men/32.jpg',
+      "rating": rating,
+      "review": text,
+    });
+
+    if (res['status'] == 'success') {
+      await fetchReviews();
+      return true;
+    } else {
+      debugPrint("REVIEW ERROR: ${res['message'] ?? 'Unknown Server Error'}");
+      return false;
+    }
+  }
+
+  Future<bool> deleteReview(int reviewId) async {
+    final tenant = TenantService().currentTenant.value;
+    if (tenant == null || currentUserId.isEmpty) return false;
+
+    if (await ApiService.deleteReview(tenant.id, reviewId, currentUserId)) {
+      await fetchReviews();
+      return true;
+    }
+    return false;
   }
 
   // --- LOYALTY ---
@@ -745,6 +875,11 @@ class ShopManager {
   final ValueNotifier<bool> showPaymentPopup = ValueNotifier(false);
 
   void resetSession() async {
+    final tenant = TenantService().currentTenant.value;
+    if (tenant != null && currentUserId.isNotEmpty) {
+      ApiService.goOffline(tenantId: tenant.id, userId: currentUserId);
+    }
+    
     _sessionPoller?.cancel();
     liveSessionOrders.value = [];
     liveSessionMembers.value = [];

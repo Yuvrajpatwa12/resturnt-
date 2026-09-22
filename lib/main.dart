@@ -13,9 +13,17 @@ import 'package:web/web.dart' as web; // Import for SessionStorage access
 import 'splash_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
+import 'dart:js' as js; // Add for JavaScript Handshake
 
 void main() async {
-  // 1. Remove the '#' from URLs (e.g. startupsgo.tech/#/ -> startupsgo.tech/)
+  // 1. Notify JS that Dart has started
+  try {
+    js.context.callMethod('onFlutterAppStarted');
+  } catch (e) {
+    debugPrint("Handshake failed: $e");
+  }
+
+  // 2. Remove the '#' from URLs
   usePathUrlStrategy();
   
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,7 +33,7 @@ void main() async {
       options: DefaultFirebaseOptions.currentPlatform,
     );
   } catch (e) {
-    debugPrint("FIREBASE INIT FAILED (Probably missing config): $e");
+    debugPrint("FIREBASE INIT FAILED: $e");
   }
 
   runApp(const MyApp());
