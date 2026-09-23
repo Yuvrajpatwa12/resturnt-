@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'cart_manager.dart';
 import 'services/api_service.dart';
 
@@ -308,16 +309,70 @@ class _SmartSplitScreenState extends State<SmartSplitScreen> {
     if (sid == null || selectedVolunteerId == null) return;
 
     setState(() => _isSharing = true);
+    await Future.delayed(const Duration(seconds: 3));
+
+    if (mounted) {
+      setState(() => _isSharing = false);
+      _showUploadQrDialog();
+    }
+  }
+
+  void _showUploadQrDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: const Text("Upload Payment QR", style: TextStyle(fontWeight: FontWeight.bold)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text("Please select your payment QR code (eSewa / Khalti / Fonepay) so table members can scan and pay."),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              onPressed: () async {
+                Navigator.pop(context);
+                await _uploadAndShareQr();
+              },
+              icon: const Icon(Icons.upload_file_rounded),
+              label: const Text("Select QR Image & Share"),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: accentOrange,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _uploadAndShareQr() async {
+    final picker = ImagePicker();
+    final image = await picker.pickImage(source: ImageSource.gallery);
+    if (image == null) return;
+
+    final bytes = await image.readAsBytes();
+    final sid = ShopManager.instance.activeSessionId.value;
+    if (sid == null || selectedVolunteerId == null) return;
+
+    setState(() => _isSharing = true);
     
+    final qrUrl = await ApiService.uploadGroupQR(sid, bytes, image.name);
     final success = await ApiService.shareSplitDetails(sid, selectedVolunteerId!);
 
     if (success) {
-      await Future.delayed(const Duration(seconds: 1)); // For animation feel
+      if (qrUrl != null) {
+        ShopManager.instance.activeSessionQr.value = qrUrl;
+      }
+      ShopManager.instance.isSessionLocked.value = true;
       ShopManager.instance.syncSessionData();
+      await Future.delayed(const Duration(seconds: 1));
       if (mounted) {
         setState(() => _isSharing = false);
-        // Switch to Group Chat Tab
-        ShopManager.instance.currentTabIndex.value = 1; 
+        _showSuccessAnimationDialog();
       }
     } else {
       if (mounted) {
@@ -325,6 +380,60 @@ class _SmartSplitScreenState extends State<SmartSplitScreen> {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Failed to share split. Try again.")));
       }
     }
+  }
+
+  void _showSuccessAnimationDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.green.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.check_circle_rounded, color: Colors.green, size: 56),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              "Successfully Shared!",
+              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: Colors.black87),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              "Successfully shared bill to the group! You can now track bill payments and amounts.",
+              style: TextStyle(color: Colors.grey, fontSize: 13, height: 1.4),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  ShopManager.instance.currentTabIndex.value = 1; // Group Chat Tab
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: accentOrange,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  elevation: 0,
+                ),
+                child: const Text("VIEW IN GROUP CHAT", style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildSharingOverlay() {

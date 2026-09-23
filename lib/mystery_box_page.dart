@@ -276,6 +276,7 @@ class _MysteryBoxPageState extends State<MysteryBoxPage> {
         _wonPrize = res['data'];
         _claimCode = res['claim_code'];
         ShopManager.instance.isMysteryBoxOpened.value = true;
+        ShopManager.instance.previousWins.value = List.from(ShopManager.instance.previousWins.value)..add(_wonPrize!);
       });
       _showWinCelebration();
     } else {
@@ -410,14 +411,38 @@ class _MysteryBoxPageState extends State<MysteryBoxPage> {
   }
 
   Widget _buildPreviousWinsList() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Column(
-        children: [
-          _buildWinItem("Curly Fries", "Claimed 2 days ago"),
-          _buildWinItem("Small Soda", "Claimed last week"),
-        ],
-      ),
+    return ValueListenableBuilder<List<Map<String, dynamic>>>(
+      valueListenable: ShopManager.instance.previousWins,
+      builder: (context, wins, _) {
+        if (wins.isEmpty) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.grey[100]!),
+              ),
+              child: const Center(
+                child: Text(
+                  "No previous wins yet. Open mystery boxes to win rewards!",
+                  style: TextStyle(color: Colors.grey, fontSize: 12),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+          );
+        }
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Column(
+            children: wins.map((w) => _buildWinItem(w['reward_name'] ?? 'Mystery Prize', "Claimed recently")).toList(),
+          ),
+        );
+      },
     );
   }
 

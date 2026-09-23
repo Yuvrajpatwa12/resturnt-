@@ -1599,6 +1599,13 @@ class ApiService {
     } catch (e) { return null; }
   }
 
+  static Future<bool> deleteSplitGroupSession(String tenantId, int sessionId) async {
+    try {
+      final response = await _get(Uri.parse("$baseUrl/split_api.php?action=delete_session&tenant_id=$tenantId&session_id=$sessionId"));
+      return json.decode(response.body)['status'] == 'success';
+    } catch (e) { return false; }
+  }
+
   static Future<String?> submitGroupPayment(int sessionId, String userId, Uint8List bytes, String fileName) async {
     try {
       final request = http.MultipartRequest('POST', Uri.parse("$baseUrl/split_api.php?action=submit_payment"));

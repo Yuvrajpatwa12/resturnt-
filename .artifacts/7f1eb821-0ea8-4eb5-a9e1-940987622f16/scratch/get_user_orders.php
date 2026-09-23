@@ -21,8 +21,6 @@ if (empty($tenant_id) || empty($user_id)) {
 }
 
 try {
-    // Fetch ALL orders matching this user in this restaurant
-    // Matching either user_id OR customer_email
     $sql = "SELECT o.*, t.table_number
             FROM orders o
             JOIN restaurant_tables t ON o.table_id = t.id
@@ -37,6 +35,23 @@ try {
 
     $orders = [];
     while ($row = $result->fetch_assoc()) {
+        $order_id = $row['id'];
+        $items_res = $conn->query("SELECT * FROM order_items WHERE order_id = $order_id");
+        $items = [];
+        if ($items_res) {
+            while ($item_row = $items_res->fetch_assoc()) {
+                $p_name = $conn->real_escape_string($item_row['product_name'] ?? '');
+                $p_id = intval($item_row['product_id'] ?? 0);
+                $p_res = $conn->query("SELECT image_url FROM products WHERE tenant_id = '$tenant_id' AND (id = $p_id OR title = '$p_name') LIMIT 1");
+                if ($p_res && $p_row = $p_res->fetch_assoc()) {
+                    $item_row['image_url'] = $p_row['image_url'];
+                } else {
+                    $item_row['image_url'] = '';
+                }
+                $items[] = $item_row;
+            }
+        }
+        $row['items'] = $items;
         $orders[] = $row;
     }
 

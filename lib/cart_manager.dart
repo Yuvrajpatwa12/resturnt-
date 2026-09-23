@@ -739,6 +739,7 @@ class ShopManager {
   final ValueNotifier<int?> activeStaffTableId = ValueNotifier(null);
   final ValueNotifier<bool> isMysteryBoxOpened = ValueNotifier(false);
   final ValueNotifier<bool> isRewardClaimed = ValueNotifier(false);
+  final ValueNotifier<List<Map<String, dynamic>>> previousWins = ValueNotifier([]);
 
   void setPendingItem(int tableId, Map<String, dynamic> p, int qty) {
     Map<int, Map<String, CartItem>> all = Map.from(pendingTableOrders.value); Map<String, CartItem> table = Map.from(all[tableId] ?? {}); String title = p['title'];
@@ -827,6 +828,7 @@ class ShopManager {
 
   Timer? _sessionPoller;
   String? _lastSyncTime;
+  int _failedSyncCount = 0;
 
   void startSessionPolling(int sid, bool asHost, {String? pin}) async {
     if (pin != null) activeSessionPin.value = pin;
@@ -834,6 +836,7 @@ class ShopManager {
     isSessionHost.value = asHost;
     
     _lastSyncTime = null;
+    _failedSyncCount = 0;
     _sessionPoller?.cancel();
     _sessionPoller = Timer.periodic(const Duration(seconds: 8), (timer) => syncSessionData());
     syncSessionData(); // Initial immediate sync
@@ -857,6 +860,7 @@ class ShopManager {
     );
 
     if (result != null) {
+      _failedSyncCount = 0;
       if (result['status'] == 'success') {
         final data = result['data'];
         liveSessionOrders.value = List<Map<String, dynamic>>.from(data['items'] ?? []);
@@ -884,6 +888,13 @@ class ShopManager {
         _lastSyncTime = data['server_time'];
       } else if (result['status'] == 'no_change') {
         _lastSyncTime = result['server_time'];
+      } else {
+        resetSession();
+      }
+    } else {
+      _failedSyncCount++;
+      if (_failedSyncCount >= 2) {
+        resetSession();
       }
     }
   }

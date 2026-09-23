@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:chiyabreak/cart_manager.dart';
+import 'services/api_service.dart';
+import 'services/tenant_service.dart';
 
 class HostHubScreen extends StatelessWidget {
   final String tablePin;
@@ -29,6 +31,11 @@ class HostHubScreen extends StatelessWidget {
                     title: const Text("HOST HUB", style: TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 1.2)),
                     centerTitle: true,
                     actions: [
+                      IconButton(
+                        icon: const Icon(Icons.delete_sweep_rounded, color: Colors.red),
+                        tooltip: "Delete Group",
+                        onPressed: () => _showDeleteGroupConfirmation(context),
+                      ),
                       Container(
                         margin: const EdgeInsets.only(right: 12),
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -73,10 +80,21 @@ class HostHubScreen extends StatelessWidget {
                                 Text("Himalayan Java • Jhamsikhel", style: TextStyle(color: Colors.grey, fontSize: 12)),
                               ],
                             ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                              decoration: BoxDecoration(color: Colors.green.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
-                              child: Text("● ${members.length} Connected", style: const TextStyle(color: Colors.green, fontSize: 10, fontWeight: FontWeight.bold)),
+                            GestureDetector(
+                              onTap: () => _showConnectedMembersModal(context, members),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(color: Colors.green.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Text("● ", style: TextStyle(color: Colors.green, fontSize: 10)),
+                                    Text("${members.length} Connected", style: const TextStyle(color: Colors.green, fontSize: 10, fontWeight: FontWeight.bold)),
+                                    const SizedBox(width: 4),
+                                    const Icon(Icons.chevron_right, size: 14, color: Colors.green),
+                                  ],
+                                ),
+                              ),
                             ),
                           ],
                         ),
@@ -154,7 +172,27 @@ class HostHubScreen extends StatelessWidget {
                                   ],
                                 ),
                               ),
-                              TextButton(onPressed: () {}, child: const Text("Lock Order", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey))),
+                              ValueListenableBuilder<bool>(
+                                valueListenable: session.isSessionLocked,
+                                builder: (context, isLocked, _) {
+                                  return TextButton(
+                                    onPressed: isLocked ? null : () {
+                                      session.isSessionLocked.value = true;
+                                      session.isSplitShared.value = true;
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text("Table ordering locked! Bill shared with members.")),
+                                      );
+                                    },
+                                    child: Text(
+                                      isLocked ? "Locked" : "Lock Order",
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: isLocked ? Colors.green : Colors.orange,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
                             ],
                           ),
                         ),
@@ -233,6 +271,117 @@ class HostHubScreen extends StatelessWidget {
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  void _showDeleteGroupConfirmation(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: const Text("Delete Group Session", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
+        content: const Text("Are you sure you want to end and delete this group session? All members will be disconnected and removed."),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              final sid = ShopManager.instance.activeSessionId.value;
+              final tenant = TenantService().currentTenant.value;
+              if (sid != null && tenant != null) {
+                await ApiService.deleteSplitGroupSession(tenant.id, sid);
+              }
+              ShopManager.instance.resetSession();
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Group session ended and deleted.")));
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+            child: const Text("Delete Group", style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showConnectedMembersModal(BuildContext context, List<Map<String, dynamic>> members) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2)),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text("Connected Table Members", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(color: Colors.green.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
+                  child: Text("${members.length} Online", style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 12)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            if (members.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 30),
+                child: Center(child: Text("No members connected yet.", style: TextStyle(color: Colors.grey))),
+              )
+            else
+              ...members.map((m) => Container(
+                margin: const EdgeInsets.only(bottom: 10),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
+                ),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 18,
+                      backgroundColor: (m['gender'] == 'Female' ? Colors.pink : Colors.blue).withValues(alpha: 0.1),
+                      child: Text(
+                        m['name'] != null && m['name'].isNotEmpty ? m['name'][0] : "?",
+                        style: TextStyle(color: m['gender'] == 'Female' ? Colors.pink : Colors.blue, fontWeight: FontWeight.bold, fontSize: 12),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(m['name'] ?? "Guest Diner", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                          const Text("Connected to Table #04", style: TextStyle(color: Colors.grey, fontSize: 11)),
+                        ],
+                      ),
+                    ),
+                    const Icon(Icons.fiber_manual_record, color: Colors.green, size: 12),
+                  ],
+                ),
+              )).toList(),
+            const SizedBox(height: 20),
+          ],
+        ),
       ),
     );
   }

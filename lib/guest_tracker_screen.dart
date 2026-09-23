@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:chiyabreak/cart_manager.dart';
+import 'widgets/waiter_assistance_modal.dart';
 
 class GuestTrackerScreen extends StatefulWidget {
   const GuestTrackerScreen({super.key});
@@ -9,13 +10,14 @@ class GuestTrackerScreen extends StatefulWidget {
   State<GuestTrackerScreen> createState() => _GuestTrackerScreenState();
 }
 
-class _GuestTrackerScreenState extends State<GuestTrackerScreen> with SingleTickerProviderStateMixin {
+class _GuestTrackerScreenState extends State<GuestTrackerScreen> with TickerProviderStateMixin {
   static const Color primaryBlue = Color(0xFF1E3A8A);
   static const Color accentOrange = Color(0xFFF97316);
   static const Color bgColor = Color(0xFFF8F9FA);
 
   late AnimationController _pulseController;
-  bool _isTableLocked = false; 
+  late AnimationController _bellController;
+  bool _isCallingWaiter = false;
 
   @override
   void initState() {
@@ -24,16 +26,17 @@ class _GuestTrackerScreenState extends State<GuestTrackerScreen> with SingleTick
       vsync: this,
       duration: const Duration(seconds: 2),
     )..repeat(reverse: true);
-    
-    // Simulate a lock event after 30 seconds for demo
-    Future.delayed(const Duration(seconds: 30), () {
-      if (mounted) setState(() => _isTableLocked = true);
-    });
+
+    _bellController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 150),
+    );
   }
 
   @override
   void dispose() {
     _pulseController.dispose();
+    _bellController.dispose();
     super.dispose();
   }
 
@@ -146,8 +149,13 @@ class _GuestTrackerScreenState extends State<GuestTrackerScreen> with SingleTick
                       ),
                       
                       // 6. PREMIUM LOCK OVERLAY
-                      if (_isTableLocked)
-                        _buildLockOverlay(),
+                      ValueListenableBuilder<bool>(
+                        valueListenable: ShopManager.instance.isSessionLocked,
+                        builder: (context, isLocked, _) {
+                          if (!isLocked) return const SizedBox.shrink();
+                          return _buildLockOverlay();
+                        },
+                      ),
                     ],
                   ),
                 );
@@ -448,7 +456,19 @@ class _GuestTrackerScreenState extends State<GuestTrackerScreen> with SingleTick
       children: [
         Expanded(
           child: ElevatedButton(
-            onPressed: () {},
+            onPressed: _isCallingWaiter ? null : () async {
+              setState(() => _isCallingWaiter = true);
+              _bellController.repeat(reverse: true);
+              
+              await Future.delayed(const Duration(seconds: 1));
+              
+              if (mounted) {
+                _bellController.stop();
+                _bellController.reset();
+                setState(() => _isCallingWaiter = false);
+                WaiterAssistanceModal.show(context);
+              }
+            },
             style: ElevatedButton.styleFrom(
               backgroundColor: accentOrange,
               foregroundColor: Colors.white,
@@ -456,7 +476,13 @@ class _GuestTrackerScreenState extends State<GuestTrackerScreen> with SingleTick
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
               elevation: 0,
             ),
-            child: const Text("ORDER MORE", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, letterSpacing: 0.5)),
+            child: _isCallingWaiter
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                  )
+                : const Text("CALL WAITER", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, letterSpacing: 0.5)),
           ),
         ),
         const SizedBox(width: 12),
@@ -467,9 +493,12 @@ class _GuestTrackerScreenState extends State<GuestTrackerScreen> with SingleTick
             borderRadius: BorderRadius.circular(18),
             border: Border.all(color: primaryBlue.withOpacity(0.1)),
           ),
-          child: IconButton(
-            icon: const Icon(Icons.notifications_active_outlined, color: primaryBlue),
-            onPressed: () {},
+          child: RotationTransition(
+            turns: Tween(begin: -0.15, end: 0.15).animate(CurvedAnimation(parent: _bellController, curve: Curves.easeInOut)),
+            child: IconButton(
+              icon: const Icon(Icons.notifications_active_outlined, color: primaryBlue),
+              onPressed: () {},
+            ),
           ),
         ),
       ],

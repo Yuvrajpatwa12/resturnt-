@@ -120,7 +120,27 @@ class _GroupChatPageState extends State<GroupChatPage> {
           floatingActionButton: ValueListenableBuilder<bool>(
             valueListenable: session.isSplitShared,
             builder: (context, isShared, _) {
-              if (!isShared || session.isSessionHost.value) return const SizedBox.shrink();
+              if (!isShared) return const SizedBox.shrink();
+
+              final myId = session.currentUserId;
+              final myEmail = session.customerEmail.value;
+              final currentUserMember = members.firstWhere(
+                (m) => m['user_id']?.toString() == myId || m['email']?.toString() == myEmail || m['name']?.toString() == session.customerName.value,
+                orElse: () => {},
+              );
+              final bool hasPaid = currentUserMember['is_paid'] == 1 || currentUserMember['is_paid'] == true;
+
+              if (hasPaid) {
+                return FloatingActionButton.small(
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Payment proof already uploaded & verified!")));
+                  },
+                  backgroundColor: Colors.green,
+                  tooltip: "Already Paid & Verified",
+                  child: const Icon(Icons.check_rounded, color: Colors.white),
+                );
+              }
+
               return FloatingActionButton.extended(
                 onPressed: _uploadPaymentSS,
                 backgroundColor: primaryBlue,
