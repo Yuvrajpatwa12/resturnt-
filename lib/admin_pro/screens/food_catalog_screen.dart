@@ -26,6 +26,8 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
   
   String? _selectedCategoryId;
   String _selectedSection = 'none'; // Added for Just For You, Trending, etc.
+  String _selectedSuitableTime = 'All Day'; // Morning, Lunch, Evening, Late Night, All Day
+  String _selectedMealTag = 'Popular'; // ✨ AI Picks, ⚡ Fast Food, 🔥 Popular, 🌱 Healthy, 😋 Sweet Cravings
   Map<String, dynamic>? _editingProduct; // State for Edit mode
   
   bool _isSubmitting = false;
@@ -159,8 +161,38 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
                       Text(
                         description,
                         style: TextStyle(fontSize: 11, color: Colors.grey[500], height: 1.3),
-                        maxLines: 2,
+                        maxLines: 1,
                         overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          if (p['suitable_time'] != null && p['suitable_time'].toString().isNotEmpty)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              margin: const EdgeInsets.only(right: 6),
+                              decoration: BoxDecoration(
+                                color: AdminTheme.royalBlue.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                p['suitable_time'].toString(),
+                                style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: AdminTheme.royalBlue),
+                              ),
+                            ),
+                          if ((p['meal_tag'] ?? p['tag']) != null && (p['meal_tag'] ?? p['tag']).toString().isNotEmpty)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFF5C00).withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                (p['meal_tag'] ?? p['tag']).toString(),
+                                style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Color(0xFFFF5C00)),
+                              ),
+                            ),
+                        ],
                       ),
                       const Spacer(),
                       Text(
@@ -454,6 +486,38 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
                 _buildSectionChip("popular", "Popular"),
               ],
             ),
+            const SizedBox(height: 20),
+
+            // Suitable Time Slot Selector
+            const Text("Suitable Time Slot", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey)),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _buildTimeChip("All Day", "🌟 All Day"),
+                _buildTimeChip("Morning", "☕ Morning"),
+                _buildTimeChip("Lunch", "🍕 Lunch"),
+                _buildTimeChip("Evening", "🍔 Evening"),
+                _buildTimeChip("Late Night", "🌙 Late Night"),
+              ],
+            ),
+            const SizedBox(height: 20),
+
+            // Meal Filter Tag Selector
+            const Text("Meal Filter Tag", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey)),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _buildTagChip("✨ AI Picks"),
+                _buildTagChip("⚡ Fast Food"),
+                _buildTagChip("🔥 Popular"),
+                _buildTagChip("🌱 Healthy"),
+                _buildTagChip("😋 Sweet Cravings"),
+              ],
+            ),
             const SizedBox(height: 32),
             
             if (_isSubmitting)
@@ -643,6 +707,9 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
         'description': _descriptionController.text.trim(),
         'slogan': _sloganController.text.trim(),
         'featured_section': _selectedSection,
+        'suitable_time': _selectedSuitableTime,
+        'tag': _selectedMealTag,
+        'meal_tag': _selectedMealTag,
         'model_url': finalGlbUrl,
         'ios_model_url': finalUsdzUrl,
       });
@@ -703,6 +770,28 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
     );
   }
 
+  Widget _buildTimeChip(String value, String label) {
+    bool isSelected = _selectedSuitableTime == value;
+    return ChoiceChip(
+      label: Text(label),
+      selected: isSelected,
+      selectedColor: AdminTheme.royalBlue,
+      labelStyle: TextStyle(color: isSelected ? Colors.white : Colors.black87, fontWeight: FontWeight.bold, fontSize: 11),
+      onSelected: (val) => setState(() => _selectedSuitableTime = value),
+    );
+  }
+
+  Widget _buildTagChip(String label) {
+    bool isSelected = _selectedMealTag == label;
+    return ChoiceChip(
+      label: Text(label),
+      selected: isSelected,
+      selectedColor: const Color(0xFFFF5C00),
+      labelStyle: TextStyle(color: isSelected ? Colors.white : Colors.black87, fontWeight: FontWeight.bold, fontSize: 11),
+      onSelected: (val) => setState(() => _selectedMealTag = label),
+    );
+  }
+
   void _startEditing(Map<String, dynamic> p) {
     setState(() {
       _editingProduct = p;
@@ -712,6 +801,8 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
       _sloganController.text = p['slogan'] ?? '';
       _selectedCategoryId = p['category_id']?.toString();
       _selectedSection = p['featured_section'] ?? 'none';
+      _selectedSuitableTime = p['suitable_time'] ?? 'All Day';
+      _selectedMealTag = p['meal_tag'] ?? p['tag'] ?? '🔥 Popular';
       _selectedImageBytes = null; // Don't show preview for existing image unless picked new
     });
   }
@@ -769,6 +860,9 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
         'description': _descriptionController.text,
         'slogan': _sloganController.text.trim(),
         'featured_section': _selectedSection,
+        'suitable_time': _selectedSuitableTime,
+        'tag': _selectedMealTag,
+        'meal_tag': _selectedMealTag,
         'model_url': finalGlbUrl,
         'ios_model_url': finalUsdzUrl,
       });

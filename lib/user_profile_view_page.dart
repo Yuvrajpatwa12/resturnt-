@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:math';
 import 'widgets/review_loading_dialog.dart';
+import 'widgets/waiter_assistance_modal.dart';
 import 'app_data.dart';
 import 'services/tenant_service.dart';
 import 'services/api_service.dart';
@@ -23,6 +24,17 @@ class _UserProfileViewPageState extends State<UserProfileViewPage> with SingleTi
   Map<String, dynamic>? _socialStats;
   bool _isLoading = true;
   late AnimationController _animationController;
+  late Color primaryColor;
+  late Color secondaryColor;
+
+  Color _parseColor(String? hex) {
+    if (hex == null || hex.isEmpty) return const Color(0xFFFF5C00);
+    try {
+      return Color(int.parse(hex.replaceFirst('#', '0xFF')));
+    } catch (e) {
+      return const Color(0xFFFF5C00);
+    }
+  }
 
   @override
   void initState() {
@@ -64,8 +76,9 @@ class _UserProfileViewPageState extends State<UserProfileViewPage> with SingleTi
 
   @override
   Widget build(BuildContext context) {
-    const Color primaryColor = Color(0xFF6366F1); // Indigo
-    const Color secondaryColor = Color(0xFF4F46E5); // Darker Indigo
+    final tenant = TenantService().currentTenant.value;
+    primaryColor = _parseColor(tenant?.color);
+    secondaryColor = primaryColor.withValues(alpha: 0.8);
     final screenHeight = MediaQuery.of(context).size.height;
 
     return DefaultTabController(
@@ -73,30 +86,33 @@ class _UserProfileViewPageState extends State<UserProfileViewPage> with SingleTi
       child: Scaffold(
         backgroundColor: Colors.white,
         body: _isLoading
-            ? const Center(child: CircularProgressIndicator(color: primaryColor))
+            ? Center(child: CircularProgressIndicator(color: primaryColor))
             : _profile == null
                 ? const Center(child: Text("Profile not found"))
                 : Stack(
                     children: [
-                      // 1. FIXED BACKGROUND HEADER
-                      _buildFixedHeader(primaryColor, secondaryColor),
+                      // 1. FIXED BACKGROUND GRADIENT & RAYS ONLY
+                      _buildFixedBackground(primaryColor, secondaryColor),
                       
-                      // 2. SCROLLABLE CONTENT
+                      // 2. SCROLLABLE CONTENT (Header + White Card)
                       SafeArea(
                         child: SingleChildScrollView(
                           physics: const BouncingScrollPhysics(),
                           child: Column(
                             children: [
-                              // Gap to show header (Compact adjustment)
-                              const SizedBox(height: 350),
+                              const SizedBox(height: 12),
+                              // Interactive Profile Header Content
+                              _buildProfileHeaderContent(primaryColor),
+                              const SizedBox(height: 16),
+
+                              // White Rounded Card
                               Container(
                                 width: double.infinity,
-                                constraints: BoxConstraints(minHeight: screenHeight - 100),
                                 decoration: const BoxDecoration(
                                   color: Colors.white,
                                   borderRadius: BorderRadius.only(
-                                    topLeft: Radius.circular(40),
-                                    topRight: Radius.circular(40),
+                                    topLeft: Radius.circular(36),
+                                    topRight: Radius.circular(36),
                                   ),
                                   boxShadow: [
                                     BoxShadow(color: Colors.black12, blurRadius: 20, offset: Offset(0, -10))
@@ -105,20 +121,19 @@ class _UserProfileViewPageState extends State<UserProfileViewPage> with SingleTi
                                 child: Column(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    const SizedBox(height: 20),
+                                    const SizedBox(height: 12),
+                                    _buildSwipeGuidance(primaryColor),
+                                    const SizedBox(height: 8),
                                     _buildTabBar(primaryColor),
-                                    ConstrainedBox(
-                                      constraints: BoxConstraints(maxHeight: screenHeight * 1.5),
-                                      child: SizedBox(
-                                        height: 800,
-                                        child: TabBarView(
-                                          physics: const NeverScrollableScrollPhysics(),
-                                          children: [
-                                            _buildActivityTab(),
-                                            _buildReviewTab(),
-                                            _buildSocialTab(),
-                                          ],
-                                        ),
+                                    SizedBox(
+                                      height: 480,
+                                      child: TabBarView(
+                                        physics: const NeverScrollableScrollPhysics(),
+                                        children: [
+                                          _buildActivityTab(),
+                                          _buildReviewTab(),
+                                          _buildSocialTab(),
+                                        ],
                                       ),
                                     ),
                                   ],
@@ -131,26 +146,47 @@ class _UserProfileViewPageState extends State<UserProfileViewPage> with SingleTi
 
                       // 3. TOP NAVIGATION
                       _buildTopNavigation(),
-
-                      // 4. CALL WAITER BUTTON (Fixed at bottom)
-                      _buildBottomButton(primaryColor),
                     ],
                   ),
       ),
     );
   }
 
-  Widget _buildFixedHeader(Color startColor, Color endColor) {
-    final String gender = _profile?['gender'] ?? 'Male';
-    final String avatarUrl = gender == 'Female'
-        ? 'https://img.freepik.com/free-vector/beauty-woman-face-concept_23-2148679462.jpg'
-        : 'https://img.freepik.com/free-vector/businessman-character-avatar-isolated_24877-60111.jpg';
-    
-    final bool isFollowing = _profile?['is_following'] ?? false;
-    final bool followsMe = _profile?['follows_me'] ?? false;
+  Widget _buildSwipeGuidance(Color color) {
+    return AnimatedBuilder(
+      animation: _animationController,
+      builder: (context, child) {
+        // Simple vertical slide animation
+        final double slide = 8.0 * sin(_animationController.value * 2 * pi);
+        return Opacity(
+          opacity: 0.6 + (0.4 * sin(_animationController.value * 2 * pi).abs()),
+          child: Transform.translate(
+            offset: Offset(0, slide),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.touch_app_rounded, color: color, size: 24),
+                const SizedBox(height: 2),
+                Text(
+                  "SWIPE UP",
+                  style: TextStyle(
+                    fontSize: 8,
+                    fontWeight: FontWeight.w900,
+                    color: color,
+                    letterSpacing: 1,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 
+  Widget _buildFixedBackground(Color startColor, Color endColor) {
     return Container(
-      height: 440, // Reduced height as requested
+      height: 440,
       width: double.infinity,
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -159,144 +195,150 @@ class _UserProfileViewPageState extends State<UserProfileViewPage> with SingleTi
           colors: [startColor, endColor],
         ),
       ),
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          // CENTERED CONTENT
-          Positioned(
-            top: 25, // Moved even higher up
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    // 1. ANIMATED RAYS
-                    AnimatedBuilder(
-                      animation: _animationController,
-                      builder: (context, child) {
-                        return CustomPaint(
-                          painter: ProfileRaysPainter(_animationController.value, Colors.white.withOpacity(0.2)),
-                          size: const Size(140, 140),
-                        );
-                      },
-                    ),
+    );
+  }
 
-                    Stack(
-                      alignment: Alignment.bottomRight,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: BoxDecoration(
-                            color: Colors.white24,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 2),
-                          ),
-                          child: CircleAvatar(
-                            radius: 45,
-                            backgroundImage: NetworkImage(avatarUrl),
-                          ),
-                        ),
-                        Positioned(
-                          bottom: 2,
-                          right: 2,
-                          child: Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: BoxDecoration(
-                              color: Colors.orange,
-                              shape: BoxShape.circle,
-                              border: Border.all(color: Colors.white, width: 1.5),
-                            ),
-                            child: const Icon(Icons.location_on, color: Colors.white, size: 10),
-                          ),
-                        ),
-                      ],
+  Widget _buildProfileHeaderContent(Color startColor) {
+    final String gender = _profile?['gender'] ?? 'Male';
+    final String avatarUrl = gender == 'Female'
+        ? 'https://img.freepik.com/free-vector/beauty-woman-face-concept_23-2148679462.jpg'
+        : 'https://img.freepik.com/free-vector/businessman-character-avatar-isolated_24877-60111.jpg';
+    
+    final bool isFollowing = _profile?['is_following'] ?? false;
+    final bool followsMe = _profile?['follows_me'] ?? false;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              // 1. ANIMATED RAYS
+              AnimatedBuilder(
+                animation: _animationController,
+                builder: (context, child) {
+                  return CustomPaint(
+                    painter: ProfileRaysPainter(_animationController.value, Colors.white.withOpacity(0.2)),
+                    size: const Size(140, 140),
+                  );
+                },
+              ),
+
+              Stack(
+                alignment: Alignment.bottomRight,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: Colors.white24,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 2),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  _profile!['name'] ?? "Anonymous",
-                  style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
-                ),
-                const Text(
-                  "Currently Dining Nearby",
-                  style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.0),
-                ),
-                const SizedBox(height: 8),
-                
-                // 4-STAT BAR (Interactive like Instagram)
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    _buildCenteredStat(_profile!['order_count'].toString(), "Orders"),
-                    _buildStatDivider(),
-                    _buildInteractiveStat(
-                      (_socialStats?['followers'] ?? 0).toString(), 
-                      "Followers",
-                      () => _showGuestSocialListModal("Followers", "get_followers")
+                    child: CircleAvatar(
+                      radius: 45,
+                      backgroundImage: NetworkImage(avatarUrl),
                     ),
-                    _buildStatDivider(),
-                    _buildInteractiveStat(
-                      (_socialStats?['following'] ?? 0).toString(), 
-                      "Following",
-                      () => _showGuestSocialListModal("Following", "get_following")
-                    ),
-                    _buildStatDivider(),
-                    _buildInteractiveStat(
-                      (_socialStats?['connections'] ?? 0).toString(), 
-                      "Friends",
-                      () => _showGuestSocialListModal("Mutual Friends", "get_friends")
-                    ),
-                  ],
-                ),
-                
-                const SizedBox(height: 12),
-                
-                // ACTION BUTTONS
-                Row(
-                  children: [
-                    ElevatedButton.icon(
-                      onPressed: _toggleFollow,
-                      icon: Icon(isFollowing ? Icons.check : Icons.person_add, size: 18),
-                      label: Text(
-                        isFollowing ? "FOLLOWING" : (followsMe ? "FOLLOW BACK" : "FOLLOW"),
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 1),
+                  ),
+                  Positioned(
+                    bottom: 2,
+                    right: 2,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: Colors.orange,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 1.5),
                       ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: startColor,
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
-                        elevation: 0,
-                      ),
+                      child: const Icon(Icons.location_on, color: Colors.white, size: 10),
                     ),
-                    const SizedBox(width: 12),
-                    OutlinedButton.icon(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => ChatPage(
-                              userId: widget.userId,
-                              userName: _profile!['name'] ?? "Guest",
-                              userImage: avatarUrl,
-                            ),
-                          ),
-                        );
-                      },
-                      icon: const Icon(Icons.chat_bubble_outline, size: 18, color: Colors.white),
-                      label: const Text("MESSAGE", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.white, letterSpacing: 1)),
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Colors.white54),
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
-                      ),
-                    ),
-                  ],
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 2),
+          Text(
+            _profile!['name'] ?? "Anonymous",
+            style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+          ),
+          const Text(
+            "Currently Dining Nearby",
+            style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.0),
+          ),
+          const SizedBox(height: 8),
+          
+          // 4-STAT BAR (Interactive like Instagram)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _buildCenteredStat(_profile!['order_count'].toString(), "Orders"),
+              _buildStatDivider(),
+              _buildInteractiveStat(
+                (_socialStats?['followers'] ?? 0).toString(), 
+                "Followers",
+                () => _showGuestSocialListModal("Followers", "get_followers")
+              ),
+              _buildStatDivider(),
+              _buildInteractiveStat(
+                (_socialStats?['following'] ?? 0).toString(), 
+                "Following",
+                () => _showGuestSocialListModal("Following", "get_following")
+              ),
+              _buildStatDivider(),
+              _buildInteractiveStat(
+                (_socialStats?['connections'] ?? 0).toString(), 
+                "Friends",
+                () => _showGuestSocialListModal("Mutual Friends", "get_friends")
+              ),
+            ],
+          ),
+          
+          const SizedBox(height: 12),
+          
+          // ACTION BUTTONS
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              ElevatedButton.icon(
+                onPressed: _toggleFollow,
+                icon: Icon(isFollowing ? (followsMe ? Icons.people : Icons.check) : Icons.person_add, size: 18),
+                label: Text(
+                  isFollowing ? (followsMe ? "FRIEND" : "FOLLOWING") : (followsMe ? "FOLLOW BACK" : "FOLLOW"),
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 1),
                 ),
-              ],
-            ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: startColor,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+                  elevation: 0,
+                ),
+              ),
+              const SizedBox(width: 12),
+              OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ChatPage(
+                        userId: widget.userId,
+                        userName: _profile!['name'] ?? "Guest",
+                        userImage: avatarUrl,
+                      ),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.chat_bubble_outline, size: 18, color: Colors.white),
+                label: const Text("MESSAGE", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.white, letterSpacing: 1)),
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: Colors.white54),
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -428,6 +470,35 @@ class _UserProfileViewPageState extends State<UserProfileViewPage> with SingleTi
             Expanded(child: _buildStatBox(_profile!['points'].toString(), "Loyalty Points", Icons.stars_rounded)),
           ],
         ),
+        const SizedBox(height: 24),
+        GestureDetector(
+          onTap: () => WaiterAssistanceModal.show(context),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.orange.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.notifications_active_rounded, color: Colors.orange, size: 28),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      Text("Call Waiter / Assistance", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.orange)),
+                      SizedBox(height: 2),
+                      Text("Request immediate assistance, water, or bill", style: TextStyle(fontSize: 11, color: Colors.black54)),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.orange),
+              ],
+            ),
+          ),
+        ),
       ],
     );
   }
@@ -435,7 +506,7 @@ class _UserProfileViewPageState extends State<UserProfileViewPage> with SingleTi
   Widget _buildReviewTab() {
     return RefreshIndicator(
       onRefresh: () => ShopManager.instance.fetchReviews(targetUserId: widget.userId),
-      color: Colors.indigo,
+      color: primaryColor,
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(24),
@@ -538,7 +609,7 @@ class _UserProfileViewPageState extends State<UserProfileViewPage> with SingleTi
                       children: [
                         Row(
                           children: [
-                            const Icon(Icons.auto_awesome, color: Colors.indigo, size: 20),
+                            Icon(Icons.auto_awesome, color: primaryColor, size: 20),
                             const SizedBox(width: 12),
                             const Expanded(
                               child: Text("Need help? Generate an AI Review", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
@@ -554,14 +625,14 @@ class _UserProfileViewPageState extends State<UserProfileViewPage> with SingleTi
                                     isThinking = false;
                                   });
                                 },
-                                child: const Text("GENERATE"),
+                                child: Text("GENERATE", style: TextStyle(color: primaryColor)),
                               ),
                           ],
                         ),
                         if (isThinking)
-                          const Padding(
-                            padding: EdgeInsets.only(top: 8),
-                            child: LinearProgressIndicator(minHeight: 2, color: Colors.indigo, backgroundColor: Colors.transparent),
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: LinearProgressIndicator(minHeight: 2, color: primaryColor, backgroundColor: Colors.transparent),
                           ),
                       ],
                     ),
@@ -634,7 +705,7 @@ class _UserProfileViewPageState extends State<UserProfileViewPage> with SingleTi
                       }
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.indigo,
+                      backgroundColor: primaryColor,
                       foregroundColor: Colors.white,
                       minimumSize: const Size(double.infinity, 56),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -705,11 +776,11 @@ class _UserProfileViewPageState extends State<UserProfileViewPage> with SingleTi
         selected: isSelected,
         onSelected: (val) {},
         backgroundColor: Colors.white,
-        selectedColor: Colors.indigo,
+        selectedColor: primaryColor,
         checkmarkColor: Colors.white,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
-          side: BorderSide(color: isSelected ? Colors.indigo : Colors.orange, width: 1.5),
+          side: BorderSide(color: isSelected ? primaryColor : primaryColor.withValues(alpha: 0.5), width: 1.5),
         ),
         showCheckmark: false,
       ),
@@ -983,36 +1054,6 @@ class _UserProfileViewPageState extends State<UserProfileViewPage> with SingleTi
           Text(value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
           Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
         ],
-      ),
-    );
-  }
-
-  Widget _buildBottomButton(Color color) {
-    return Positioned(
-      bottom: 20,
-      left: 24,
-      right: 24,
-      child: ElevatedButton(
-        onPressed: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("Waiter notified! Someone will be with you shortly."),
-              backgroundColor: Color(0xFF6366F1),
-            ),
-          );
-        },
-        style: ElevatedButton.styleFrom(
-          backgroundColor: color,
-          foregroundColor: Colors.white,
-          minimumSize: const Size(double.infinity, 56),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          elevation: 8,
-          shadowColor: color.withValues(alpha: 0.4),
-        ),
-        child: const Text(
-          "CALL WAITER",
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1.2),
-        ),
       ),
     );
   }

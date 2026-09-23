@@ -8,6 +8,7 @@ import 'services/suspension_screen.dart';
 import 'super_admin_module/master_hub.dart';
 
 import 'services/staff_gateway.dart';
+import 'services/language_service.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
 import 'package:web/web.dart' as web; // Import for SessionStorage access
 import 'splash_screen.dart';
@@ -27,6 +28,9 @@ void main() async {
   usePathUrlStrategy();
   
   WidgetsFlutterBinding.ensureInitialized();
+
+  // 3. Initialize Language Service
+  await LanguageService().initialize();
 
   try {
     await Firebase.initializeApp(

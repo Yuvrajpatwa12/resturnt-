@@ -1,9 +1,92 @@
 import 'package:flutter/material.dart';
 import 'cart_manager.dart';
+import 'models.dart';
 import 'checkout_process_page.dart';
 
 class CartPage extends StatelessWidget {
   const CartPage({super.key});
+
+  void _showDeleteConfirmationDialog(BuildContext context, Product product) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Colors.redAccent),
+            SizedBox(width: 8),
+            Text("Remove Item?", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+          ],
+        ),
+        content: Text(
+          "Are you sure you want to delete '${product.title}' from your cart?",
+          style: const TextStyle(fontSize: 14, color: Colors.black87),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              ShopManager.instance.removeFromCart(product);
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text("'${product.title}' removed from cart"),
+                  duration: const Duration(seconds: 2),
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text("Yes, Remove", style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCartItemImage(String imagePath) {
+    if (imagePath.isEmpty) {
+      return Container(
+        width: 80,
+        height: 80,
+        color: const Color(0xFFFFF0E5),
+        child: const Icon(Icons.fastfood, color: Colors.orange, size: 28),
+      );
+    }
+    if (imagePath.startsWith('assets/')) {
+      return Image.asset(
+        imagePath,
+        width: 80,
+        height: 80,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => Container(
+          width: 80,
+          height: 80,
+          color: const Color(0xFFFFF0E5),
+          child: const Icon(Icons.fastfood, color: Colors.orange, size: 28),
+        ),
+      );
+    }
+    return Image.network(
+      imagePath,
+      width: 80,
+      height: 80,
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) => Container(
+        width: 80,
+        height: 80,
+        color: const Color(0xFFFFF0E5),
+        child: const Icon(Icons.fastfood, color: Colors.orange, size: 28),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -64,12 +147,7 @@ class CartPage extends StatelessWidget {
                         children: [
                           ClipRRect(
                             borderRadius: BorderRadius.circular(12),
-                            child: Image.network(
-                              item.product.image,
-                              width: 80,
-                              height: 80,
-                              fit: BoxFit.cover,
-                            ),
+                            child: _buildCartItemImage(item.product.image),
                           ),
                           const SizedBox(width: 16),
                           Expanded(
@@ -91,7 +169,11 @@ class CartPage extends StatelessWidget {
                                 Row(
                                   children: [
                                     _quantityBtn(Icons.remove, () {
-                                      ShopManager.instance.updateQuantity(item.product, item.quantity - 1);
+                                      if (item.quantity > 1) {
+                                        ShopManager.instance.updateQuantity(item.product, item.quantity - 1);
+                                      } else {
+                                        _showDeleteConfirmationDialog(context, item.product);
+                                      }
                                     }),
                                     Padding(
                                       padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -107,7 +189,7 @@ class CartPage extends StatelessWidget {
                           ),
                           IconButton(
                             icon: const Icon(Icons.delete_outline, color: Colors.red),
-                            onPressed: () => ShopManager.instance.removeFromCart(item.product),
+                            onPressed: () => _showDeleteConfirmationDialog(context, item.product),
                           ),
                         ],
                       ),

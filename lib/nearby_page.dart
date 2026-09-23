@@ -375,7 +375,7 @@ class _NearbyPageState extends State<NearbyPage> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
-                          isFollowing ? "Following" : (followsMe ? "Follow Back" : "Follow"),
+                          isFollowing ? (followsMe ? "Friend" : "Following") : (followsMe ? "Follow Back" : "Follow"),
                           style: TextStyle(color: isFollowing ? Colors.black87 : Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
                         ),
                       ),

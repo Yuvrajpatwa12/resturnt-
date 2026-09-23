@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 import '../services/tenant_service.dart';
 import '../services/api_service.dart';
+import '../services/language_service.dart';
 import 'admin_theme.dart';
 import 'screens/dashboard_screen.dart';
-
 import 'screens/placeholder_screen.dart';
 import 'screens/pos_invoice_screen.dart';
 import 'screens/order_management_screen.dart';
@@ -16,10 +17,13 @@ import 'screens/category_management_screen.dart';
 import 'screens/food_catalog_screen.dart';
 import 'screens/addons_management_screen.dart';
 import 'screens/reservation_management_screen.dart';
+import 'screens/room_maintenance_screen.dart';
 import 'screens/production_management_screen.dart';
 import 'screens/hrm_management_screen.dart';
 import 'screens/report_management_screen.dart';
 import 'screens/table_configuration_screen.dart';
+import 'screens/customer_management_screen.dart';
+import 'screens/kitchen_management_screen.dart';
 import 'screens/system_configuration_screen.dart';
 import 'screens/expense_management_screen.dart';
 import 'screens/reward_management_screen.dart';
@@ -27,7 +31,9 @@ import 'screens/hr_policy_screen.dart';
 import 'screens/department_management_screen.dart';
 import 'screens/support_ticket_screen.dart';
 import 'screens/subscription_status_screen.dart';
+import 'screens/purchase_report_screen.dart';
 import 'screens/music_management_screen.dart';
+import 'screens/theme_management_screen.dart';
 import 'screens/social_media_management_screen.dart';
 
 class AdminHub extends StatefulWidget {
@@ -38,12 +44,12 @@ class AdminHub extends StatefulWidget {
 }
 
 class _AdminHubState extends State<AdminHub> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   int _selectedIndex = 0;
   String _currentTitle = "Dashboard";
-  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  
   int _alertCount = 0;
   bool _isDisposed = false;
+  bool _isSidebarVisible = true;
 
   @override
   void initState() {
@@ -89,7 +95,7 @@ class _AdminHubState extends State<AdminHub> {
     const IngredientStockScreen(), // 17
     const ReservationManagementScreen(mode: "Reservation"), // 18
     const ReservationManagementScreen(mode: "Add Booking"), // 19
-    const ReservationManagementScreen(mode: "Unavailable Day"), // 20
+    const RoomMaintenanceScreen(), // 20
     const ReservationManagementScreen(mode: "Reservation Setting"), // 21
     const CategoryManagementScreen(mode: "Add Category"), // 22
     const CategoryManagementScreen(mode: "Category List"), // 23
@@ -102,10 +108,10 @@ class _AdminHubState extends State<AdminHub> {
     const AddonsManagementScreen(mode: "Add Add-ons"), // 30
     const AddonsManagementScreen(mode: "Add-ons List"), // 31
     const AddonsManagementScreen(mode: "Add-ons Assign List"), // 32
-    const ProductionManagementScreen(mode: "Set Production Unit"), // 33
-    const ProductionManagementScreen(mode: "Production Set List"), // 34
+    const ProductionManagementScreen(mode: "Production Units"), // 33
+    const ProductionManagementScreen(mode: "Production List"), // 34
     const ProductionManagementScreen(mode: "Add Production"), // 35
-    const ProductionManagementScreen(mode: "Production Setting"), // 36
+    const ProductionManagementScreen(mode: "Production Settings"), // 36
     const HRMManagementScreen(mode: "Designation"), // 37
     const HRMManagementScreen(mode: "Add Employee"), // 38
     const HRMManagementScreen(mode: "Manage Employee"), // 39
@@ -136,424 +142,550 @@ class _AdminHubState extends State<AdminHub> {
     const HRMManagementScreen(mode: "Salary Type Setup"), // 64
     const HRMManagementScreen(mode: "Salary Setup"), // 65
     const HRMManagementScreen(mode: "Salary Generate"), // 66
-    const ReportManagementScreen(mode: "Purchase Report"), // 67
+    const PurchaseReportScreen(), // 67
     const ReportManagementScreen(mode: "Stock Report (Food Items)"), // 68
     const ReportManagementScreen(mode: "Stock Report (Kitchen)"), // 69
     const ReportManagementScreen(mode: "Sales Report"), // 70
     const ReportManagementScreen(mode: "Items Sales Report"), // 71
-    const ReportManagementScreen(mode: "Service Charge Report"), // 72
-    const ReportManagementScreen(mode: "Waiters Sales Report"), // 73
-    const ReportManagementScreen(mode: "Kitchen Sales Report"), // 74
-    const ReportManagementScreen(mode: "Delivery Type Sales Report"), // 75
-    const ReportManagementScreen(mode: "Sale Report Cashier"), // 76
-    const ReportManagementScreen(mode: "Cash Register Report"), // 77
-    const ReportManagementScreen(mode: "Sale Report Filtering"), // 78
-    const ReportManagementScreen(mode: "Sale By Date"), // 79
-    const ReportManagementScreen(mode: "Commission"), // 80
-    const ReportManagementScreen(mode: "Sale By Table"), // 81
-    const SystemConfigurationScreen(mode: "Payment Method List"), // 82
-    const SystemConfigurationScreen(mode: "Payment Setup"), // 83
-    const SystemConfigurationScreen(mode: "Shipping Method Setting"), // 84
-    const TableConfigurationScreen(mode: "Table List"), // 85
-    const TableConfigurationScreen(mode: "Table Setting"), // 86
-    const SystemConfigurationScreen(mode: "Customer List"), // 87
-    const SystemConfigurationScreen(mode: "Customer Type List"), // 88
-    const SystemConfigurationScreen(mode: "Third-Party Customers"), // 89
-    const SystemConfigurationScreen(mode: "Card Terminal List"), // 90
-    const SystemConfigurationScreen(mode: "Kitchen List"), // 91
-    const SystemConfigurationScreen(mode: "Kitchen Assign"), // 92
-    const SystemConfigurationScreen(mode: "Kitchen Dashboard Setting"), // 93
-    const SystemConfigurationScreen(mode: "Unit Measurement List"), // 94
-    const SystemConfigurationScreen(mode: "Ingredient List"), // 95
-    const SystemConfigurationScreen(mode: "SMS Configuration"), // 96
-    const SystemConfigurationScreen(mode: "SMS Template"), // 97
-    const SystemConfigurationScreen(mode: "Bank List"), // 98
-    const SystemConfigurationScreen(mode: "Bank Transaction"), // 99
-    const SystemConfigurationScreen(mode: "Language"), // 100
-    const SystemConfigurationScreen(mode: "Application Setting"), // 101
-    const SystemConfigurationScreen(mode: "App Setting"), // 102
-    const SystemConfigurationScreen(mode: "Factory Reset"), // 103
-    const SystemConfigurationScreen(mode: "Currency"), // 104
-    const SystemConfigurationScreen(mode: "Country"), // 105
-    const SystemConfigurationScreen(mode: "State"), // 106
-    const SystemConfigurationScreen(mode: "City"), // 107
-    const SystemConfigurationScreen(mode: "Commission"), // 108
-    const HRMManagementScreen(mode: "User Management"), // 109
-    const AdminSettingsScreen(section: "Modules"), // 110
-    const AdminPlaceholderScreen(title: "Themes"), // 111
-    const SupportTicketScreen(), // 112
-    const SubscriptionStatusScreen(), // 113
-    const RewardManagementScreen(mode: "Rewards Config"), // 114
-    const RewardManagementScreen(mode: "Redeem Items"), // 115
-    const RewardManagementScreen(mode: "Mystery Box"), // 116
-    const RewardManagementScreen(mode: "Claim History"), // 117
-    const RewardManagementScreen(mode: "Marketing Banners"), // 118
-    const MusicManagementScreen(), // 119
-    const SocialMediaManagementScreen(), // 120
+    const ReportManagementScreen(mode: "Waiters Sales Report"), // 72
+    const ReportManagementScreen(mode: "Delivery Type Sales Report"), // 73
+    const ReportManagementScreen(mode: "Order Source Report"), // 74
+    const ReportManagementScreen(mode: "Cash Register Report"), // 75
+    const ReportManagementScreen(mode: "Sale By Table"), // 76
+    const SystemConfigurationScreen(mode: "Payment Method List"), // 77
+    const SystemConfigurationScreen(mode: "Payment Setup"), // 78
+    const SystemConfigurationScreen(mode: "Shipping Method Setting"), // 79
+    const TableConfigurationScreen(mode: "Table List"), // 80
+    const TableConfigurationScreen(mode: "Table Setting"), // 81
+    const CustomerManagementScreen(mode: "Customer List"), // 82
+    const CustomerManagementScreen(mode: "Customer Type List"), // 83
+    const CustomerManagementScreen(mode: "Third-Party Customers"), // 84
+    const CustomerManagementScreen(mode: "Card Terminal List"), // 85
+    const KitchenManagementScreen(mode: "Kitchen List"), // 86
+    const KitchenManagementScreen(mode: "Kitchen Assign"), // 87
+    const KitchenManagementScreen(mode: "Kitchen Dashboard Setting"), // 88
+    const SystemConfigurationScreen(mode: "Unit Measurement List"), // 89
+    const SystemConfigurationScreen(mode: "Ingredient List"), // 90
+    const SystemConfigurationScreen(mode: "SMS Configuration"), // 91
+    const SystemConfigurationScreen(mode: "SMS Template"), // 92
+    const SystemConfigurationScreen(mode: "Bank List"), // 93
+    const SystemConfigurationScreen(mode: "Bank Transaction"), // 94
+    const SystemConfigurationScreen(mode: "Language"), // 95
+    const SystemConfigurationScreen(mode: "Application Setting"), // 96
+    const SystemConfigurationScreen(mode: "App Setting"), // 97
+    const SystemConfigurationScreen(mode: "Factory Reset"), // 98
+    const SystemConfigurationScreen(mode: "Currency"), // 99
+    const SystemConfigurationScreen(mode: "Country"), // 100
+    const SystemConfigurationScreen(mode: "State"), // 101
+    const SystemConfigurationScreen(mode: "City"), // 102
+    const SystemConfigurationScreen(mode: "Commission"), // 103
+    const HRMManagementScreen(mode: "User Management"), // 104
+    const AdminSettingsScreen(section: "Modules"), // 105
+    const ThemeManagementScreen(), // 106
+    const SupportTicketScreen(), // 107
+    const SubscriptionStatusScreen(), // 108
+    const RewardManagementScreen(mode: "Rewards Config"), // 109
+    const RewardManagementScreen(mode: "Redeem Items"), // 110
+    const RewardManagementScreen(mode: "Mystery Box"), // 111
+    const RewardManagementScreen(mode: "Claim History"), // 112
+    const RewardManagementScreen(mode: "Marketing Banners"), // 113
+    const MusicManagementScreen(), // 114
+    const TableConfigurationScreen(mode: "Room List"), // 115
+    const TableConfigurationScreen(mode: "Room Setting"), // 116
+    const SocialMediaManagementScreen(), // 117
   ];
 
   @override
   Widget build(BuildContext context) {
     return Theme(
       data: AdminTheme.lightTheme,
-      child: Scaffold(
-            key: _scaffoldKey,
-            appBar: AppBar(
-              titleSpacing: 0,
-              leading: IconButton(
-                onPressed: () => _scaffoldKey.currentState?.openDrawer(),
-                icon: const Icon(Icons.menu_rounded, color: AdminTheme.royalBlue, size: 28),
-              ),
-              title: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+      child: ScrollConfiguration(
+        behavior: const ScrollBehavior().copyWith(
+          dragDevices: {
+            PointerDeviceKind.touch,
+            PointerDeviceKind.mouse,
+            PointerDeviceKind.trackpad,
+          },
+        ),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            bool isMobile = constraints.maxWidth < 1100;
+            return Scaffold(
+              key: _scaffoldKey,
+              backgroundColor: const Color(0xFF1E1E2C), 
+              drawer: isMobile ? _buildAdminDrawer(isFixed: false) : null,
+              drawerEnableOpenDragGesture: true,
+              body: Row(
                 children: [
-                  Text(_currentTitle, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
-                  const Text("Admin Console", style: TextStyle(fontSize: 9, color: Colors.grey, fontWeight: FontWeight.bold)),
-                ],
-              ),
-              actions: [
-                Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    const CircleAvatar(
-                      radius: 16,
-                      backgroundColor: AdminTheme.darkNavy,
-                      child: Icon(Icons.admin_panel_settings, color: Colors.white, size: 18),
-                    ),
-                    if (_alertCount > 0)
-                      Positioned(
-                        right: 0, top: 0,
-                        child: Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
-                          child: Text("$_alertCount", style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
+                  if (!isMobile && _isSidebarVisible) _buildAdminDrawer(isFixed: true),
+                  Expanded(
+                    child: Container(
+                      margin: (isMobile || !_isSidebarVisible) ? EdgeInsets.zero : const EdgeInsets.fromLTRB(0, 20, 20, 20),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC), 
+                        borderRadius: (isMobile || !_isSidebarVisible) ? BorderRadius.zero : const BorderRadius.all(Radius.circular(40)),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: (isMobile || !_isSidebarVisible) ? BorderRadius.zero : const BorderRadius.all(Radius.circular(40)),
+                        child: Column(
+                          children: [
+                            _buildHeader(isMobile),
+                            Expanded(
+                              child: _screens[_selectedIndex],
+                            ),
+                          ],
                         ),
                       ),
-                  ],
-                ),
-                const SizedBox(width: 24),
-              ],
-            ),
-            drawer: _buildAdminDrawer(),
-            body: IndexedStack(
-          index: _selectedIndex,
-          children: _screens,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
         ),
       ),
     );
   }
 
-  Widget _buildAdminDrawer() {
-    return Drawer(
-      width: MediaQuery.of(context).size.width * 0.8,
-      backgroundColor: const Color(0xFF1E1E2C),
-      child: Column(
+  Widget _buildHeader(bool isMobile) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      color: Colors.white,
+      child: Row(
         children: [
-          _buildDrawerHeader(),
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.symmetric(vertical: 20),
-              children: [
-                _buildDrawerItem(0, Icons.dashboard_outlined, "Dashboard"),
-
-                _buildExpandableDrawerItem(
-                  icon: Icons.shopping_cart_outlined,
-                  title: "Manage Order",
-                  children: [
-                    _buildSubDrawerItem(1, "POS Invoice"),
-                    _buildSubDrawerItem(2, "Order List"),
-                    _buildSubDrawerItem(3, "Pending Order"),
-                    _buildSubDrawerItem(4, "Complete Order"),
-                    _buildSubDrawerItem(5, "Cancel Order"),
-                    _buildSubDrawerItem(6, "Kitchen Dashboard"),
-                    _buildSubDrawerItem(7, "Counter Dashboard"),
-                    _buildSubDrawerItem(8, "Counter List"),
-                    _buildSubDrawerItem(9, "POS Setting"),
-                    _buildSubDrawerItem(10, "Sound Setting"),
-                    _buildSubDrawerItem(119, "Live Jukebox Control"),
-                  ],
+          if (isMobile || !_isSidebarVisible)
+            IconButton(
+              icon: const Icon(Icons.menu_rounded, color: AdminTheme.royalBlue, size: 28),
+              onPressed: () {
+                if (isMobile) {
+                  _scaffoldKey.currentState?.openDrawer();
+                } else {
+                  setState(() => _isSidebarVisible = true);
+                }
+              },
+              tooltip: isMobile ? "Open Menu" : "Show Sidebar",
+            ),
+          if (!isMobile) ...[
+            const SizedBox(width: 16),
+            Expanded(
+              child: Container(
+                constraints: const BoxConstraints(maxWidth: 400),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-
-                _buildExpandableDrawerItem(
-                  icon: Icons.add_shopping_cart_rounded,
-                  title: "Purchase Manage",
-                  alertCount: _alertCount,
-                  children: [
-                    _buildSubDrawerItem(11, "Purchase Item"),
-                    _buildSubDrawerItem(12, "Add Purchase"),
-                    _buildSubDrawerItem(13, "Purchase Return"),
-                    _buildSubDrawerItem(14, "Return Invoice"),
-                    _buildSubDrawerItem(15, "Supplier Manage"),
-                    _buildSubDrawerItem(16, "Supplier Ledger"),
-                    _buildSubDrawerItem(17, "Stock Out Ingredients", hasBadge: _alertCount > 0),
-                  ],
-                ),
-
-                _buildExpandableDrawerItem(
-                  icon: Icons.event_available_outlined,
-                  title: "Reservation",
-                  children: [
-                    _buildSubDrawerItem(18, "Reservation"),
-                    _buildSubDrawerItem(19, "Add Booking"),
-                    _buildSubDrawerItem(20, "Unavailable Day"),
-                    _buildSubDrawerItem(21, "Reservation Setting"),
-                  ],
-                ),
-
-                _buildExpandableDrawerItem(
-                  icon: Icons.restaurant_menu,
-                  title: "Food Management",
-                  children: [
-                    _buildNestedExpandableItem(
-                      title: "Manage Category",
-                      children: [
-                        _buildSubDrawerItem(22, "Add Category", isDoubleNested: true),
-                        _buildSubDrawerItem(23, "Category List", isDoubleNested: true),
-                      ],
-                    ),
-                    _buildNestedExpandableItem(
-                      title: "Manage Food",
-                      children: [
-                        _buildSubDrawerItem(24, "Add Food", isDoubleNested: true),
-                        _buildSubDrawerItem(25, "Food List", isDoubleNested: true),
-                        _buildSubDrawerItem(26, "Add Group Item", isDoubleNested: true),
-                        _buildSubDrawerItem(27, "Food Variant", isDoubleNested: true),
-                        _buildSubDrawerItem(28, "Food Availability", isDoubleNested: true),
-                        _buildSubDrawerItem(29, "Menu Type", isDoubleNested: true),
-                      ],
-                    ),
-                    _buildNestedExpandableItem(
-                      title: "Manage Add-ons",
-                      children: [
-                        _buildSubDrawerItem(30, "Add Add-ons", isDoubleNested: true),
-                        _buildSubDrawerItem(31, "Add-ons List", isDoubleNested: true),
-                        _buildSubDrawerItem(32, "Add-ons Assign List", isDoubleNested: true),
-                      ],
-                    ),
-                  ],
-                ),
-
-                _buildExpandableDrawerItem(
-                  icon: Icons.outdoor_grill_outlined,
-                  title: "Production",
-                  children: [
-                    _buildSubDrawerItem(33, "Set Production Unit"),
-                    _buildSubDrawerItem(34, "Production Set List"),
-                    _buildSubDrawerItem(35, "Add Production"),
-                    _buildSubDrawerItem(36, "Production Setting"),
-                  ],
-                ),
-
-                _buildExpandableDrawerItem(
-                  icon: Icons.people_outline,
-                  title: "Human Resource",
-                  children: [
-                    _buildNestedExpandableItem(
-                      title: "HRM",
-                      children: [
-                        _buildSubDrawerItem(38, "Add Employee", isDoubleNested: true),
-                        _buildSubDrawerItem(39, "Manage Employee", isDoubleNested: true),
-                        _buildSubDrawerItem(40, "Manage Employee Salary", isDoubleNested: true),
-                      ],
-                    ),
-                    _buildNestedExpandableItem(
-                      title: "Attendance",
-                      children: [
-                        _buildSubDrawerItem(41, "Attendance Form", isDoubleNested: true),
-                        _buildSubDrawerItem(42, "Attendance Report", isDoubleNested: true),
-                      ],
-                    ),
-                    _buildNestedExpandableItem(
-                      title: "Expense",
-                      children: [
-                        _buildSubDrawerItem(43, "Add Expense Item", isDoubleNested: true),
-                        _buildSubDrawerItem(45, "Add Expense", isDoubleNested: true),
-                        _buildSubDrawerItem(46, "Manage Expense", isDoubleNested: true),
-                        _buildSubDrawerItem(47, "Expense Statement", isDoubleNested: true),
-                      ],
-                    ),
-                    _buildNestedExpandableItem(
-                      title: "Loyalty & Rewards",
-                      children: [
-                        _buildSubDrawerItem(114, "Rewards Config", isDoubleNested: true),
-                        _buildSubDrawerItem(115, "Redeem Items", isDoubleNested: true),
-                        _buildSubDrawerItem(116, "Mystery Box", isDoubleNested: true),
-                        _buildSubDrawerItem(117, "Claim History", isDoubleNested: true),
-                        _buildSubDrawerItem(118, "Marketing Banners", isDoubleNested: true),
-                      ],
-                    ),
-                    _buildNestedExpandableItem(
-                      title: "Award",
-                      children: [
-                        _buildSubDrawerItem(48, "New Award", isDoubleNested: true),
-                      ],
-                    ),
-                    _buildNestedExpandableItem(
-                      title: "Recruitment",
-                      children: [
-                        _buildSubDrawerItem(49, "Add New Candidate", isDoubleNested: true),
-                        _buildSubDrawerItem(50, "Manage Candidate", isDoubleNested: true),
-                        _buildSubDrawerItem(51, "Candidate Shortlist", isDoubleNested: true),
-                        _buildSubDrawerItem(52, "Interview", isDoubleNested: true),
-                        _buildSubDrawerItem(53, "Candidate Selection", isDoubleNested: true),
-                      ],
-                    ),
-                    _buildNestedExpandableItem(
-                      title: "Department",
-                      children: [
-                        _buildSubDrawerItem(54, "Department", isDoubleNested: true),
-                        _buildSubDrawerItem(55, "Add Division", isDoubleNested: true),
-                        _buildSubDrawerItem(56, "Manage Division", isDoubleNested: true),
-                      ],
-                    ),
-                    _buildNestedExpandableItem(
-                      title: "Leave",
-                      children: [
-                        _buildSubDrawerItem(57, "Weekly Holiday", isDoubleNested: true),
-                        _buildSubDrawerItem(58, "Holiday", isDoubleNested: true),
-                        _buildSubDrawerItem(59, "Add Leave Type", isDoubleNested: true),
-                        _buildSubDrawerItem(60, "Leave Application", isDoubleNested: true),
-                      ],
-                    ),
-                    _buildNestedExpandableItem(
-                      title: "Loan",
-                      children: [
-                        _buildSubDrawerItem(61, "Grant Loan", isDoubleNested: true),
-                        _buildSubDrawerItem(62, "Loan Installment", isDoubleNested: true),
-                        _buildSubDrawerItem(63, "Loan Report", isDoubleNested: true),
-                      ],
-                    ),
-                    _buildNestedExpandableItem(
-                      title: "Payroll",
-                      children: [
-                        _buildSubDrawerItem(64, "Salary Type Setup", isDoubleNested: true),
-                        _buildSubDrawerItem(65, "Salary Setup", isDoubleNested: true),
-                        _buildSubDrawerItem(66, "Salary Generate", isDoubleNested: true),
-                      ],
-                    ),
-                  ],
-                ),
-
-                _buildExpandableDrawerItem(
-                  icon: Icons.bar_chart_outlined,
-                  title: "Report",
-                  children: [
-                    _buildSubDrawerItem(67, "Purchase Report"),
-                    _buildSubDrawerItem(68, "Stock Report (Food Items)"),
-                    _buildSubDrawerItem(69, "Stock Report (Kitchen)"),
-                    _buildNestedExpandableItem(
-                      title: "Sales Report",
-                      children: [
-                        _buildSubDrawerItem(70, "Sales Report", isDoubleNested: true),
-                        _buildSubDrawerItem(71, "Items Sales Report", isDoubleNested: true),
-                        _buildSubDrawerItem(72, "Service Charge Report", isDoubleNested: true),
-                        _buildSubDrawerItem(73, "Waiters Sales Report", isDoubleNested: true),
-                        _buildSubDrawerItem(74, "Kitchen Sales Report", isDoubleNested: true),
-                        _buildSubDrawerItem(75, "Delivery Type Sales Report", isDoubleNested: true),
-                        _buildSubDrawerItem(76, "Sale Report Cashier", isDoubleNested: true),
-                      ],
-                    ),
-                    _buildSubDrawerItem(77, "Cash Register Report"),
-                    _buildSubDrawerItem(78, "Sale Report Filtering"),
-                    _buildSubDrawerItem(79, "Sale By Date"),
-                    _buildSubDrawerItem(80, "Commission"),
-                    _buildSubDrawerItem(81, "Sale By Table"),
-                  ],
-                ),
-
-                _buildExpandableDrawerItem(
-                  icon: Icons.settings_outlined,
-                  title: "Setting",
-                  children: [
-                    _buildNestedExpandableItem(
-                      title: "Payment Method Setting",
-                      children: [
-                        _buildSubDrawerItem(82, "Payment Method List", isDoubleNested: true),
-                        _buildSubDrawerItem(83, "Payment Setup", isDoubleNested: true),
-                        _buildSubDrawerItem(84, "Shipping Method Setting", isDoubleNested: true),
-                      ],
-                    ),
-                    _buildSubDrawerItem(120, "Social Media"),
-                    _buildNestedExpandableItem(
-                      title: "Manage Table",
-                      children: [
-                        _buildSubDrawerItem(85, "Table List", isDoubleNested: true),
-                        _buildSubDrawerItem(86, "Table Setting", isDoubleNested: true),
-                      ],
-                    ),
-                    _buildNestedExpandableItem(
-                      title: "Customer Type",
-                      children: [
-                        _buildSubDrawerItem(87, "Customer List", isDoubleNested: true),
-                        _buildSubDrawerItem(88, "Customer Type List", isDoubleNested: true),
-                        _buildSubDrawerItem(89, "Third-Party Customers", isDoubleNested: true),
-                        _buildSubDrawerItem(90, "Card Terminal List", isDoubleNested: true),
-                      ],
-                    ),
-                    _buildNestedExpandableItem(
-                      title: "kitchen Setting",
-                      children: [
-                        _buildSubDrawerItem(91, "Kitchen List", isDoubleNested: true),
-                        _buildSubDrawerItem(92, "Kitchen Assign", isDoubleNested: true),
-                        _buildSubDrawerItem(93, "Kitchen Dashboard Setting", isDoubleNested: true),
-                      ],
-                    ),
-                    _buildNestedExpandableItem(
-                      title: "Unit Measurement",
-                      children: [
-                        _buildSubDrawerItem(94, "Unit Measurement List", isDoubleNested: true),
-                        _buildSubDrawerItem(95, "Ingredient List", isDoubleNested: true),
-                      ],
-                    ),
-                    _buildNestedExpandableItem(
-                      title: "SMS Setting",
-                      children: [
-                        _buildSubDrawerItem(96, "SMS Configuration", isDoubleNested: true),
-                        _buildSubDrawerItem(97, "SMS Template", isDoubleNested: true),
-                      ],
-                    ),
-                    _buildNestedExpandableItem(
-                      title: "Bank",
-                      children: [
-                        _buildSubDrawerItem(98, "Bank List", isDoubleNested: true),
-                        _buildSubDrawerItem(99, "Bank Transaction", isDoubleNested: true),
-                      ],
-                    ),
-                    _buildSubDrawerItem(100, "Language"),
-                    _buildSubDrawerItem(101, "Application Setting"),
-                    _buildSubDrawerItem(102, "App Setting"),
-                    _buildSubDrawerItem(103, "Factory Reset"),
-                    _buildSubDrawerItem(104, "Currency"),
-                    _buildSubDrawerItem(105, "Country"),
-                    _buildSubDrawerItem(106, "State"),
-                    _buildSubDrawerItem(107, "City"),
-                    _buildSubDrawerItem(108, "Commission"),
-                  ],
-                ),
-
-                const Divider(color: Colors.white10, height: 40),
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                  child: Text("ACCESS", style: TextStyle(color: Colors.white30, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1)),
-                ),
-                _buildDrawerItem(113, Icons.card_membership_rounded, "Subscription Status"),
-                _buildDrawerItem(112, Icons.help_outline_rounded, "Support & Help"),
-                _buildDrawerItem(109, Icons.security_outlined, "User Management"),
-                _buildDrawerItem(110, Icons.grid_view_rounded, "Modules", hasAddon: true),
-                _buildDrawerItem(111, Icons.palette_outlined, "Themes"),
-                
-                const SizedBox(height: 20),
-                const Center(
-                  child: Text(
-                    "SYSTEM VERSION: 2.0 (QR FIXED)",
-                    style: TextStyle(color: Colors.white24, fontSize: 8, fontWeight: FontWeight.bold),
+                child: const TextField(
+                  decoration: InputDecoration(
+                    hintText: "Search anything...",
+                    border: InputBorder.none,
+                    icon: Icon(Icons.search, color: Colors.grey, size: 20),
                   ),
                 ),
-                const SizedBox(height: 20),
+              ),
+            ),
+          ],
+          if (isMobile)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(_currentTitle, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AdminTheme.darkNavy)),
+                const Text("Admin Console", style: TextStyle(fontSize: 8, color: Colors.grey, fontWeight: FontWeight.bold)),
+              ],
+            ),
+          const Spacer(),
+          _buildLanguageSwitcher(),
+          const SizedBox(width: 16),
+          _buildHeaderAction(Icons.notifications_none_outlined, () {}),
+          const SizedBox(width: 16),
+          Row(
+            children: [
+              const CircleAvatar(
+                radius: 18,
+                backgroundColor: AdminTheme.royalBlue,
+                child: Icon(Icons.person, color: Colors.white, size: 20),
+              ),
+              if (!isMobile) ...[
+                const SizedBox(width: 12),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: const [
+                    Text("Admin User", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AdminTheme.darkNavy)),
+                    Text("Super Admin", style: TextStyle(fontSize: 10, color: Colors.grey)),
+                  ],
+                ),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeaderAction(IconData icon, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        child: Icon(icon, color: AdminTheme.darkNavy, size: 24),
+      ),
+    );
+  }
+
+  Widget _buildLanguageSwitcher() {
+    return ValueListenableBuilder<String>(
+      valueListenable: LanguageService().currentLanguageCode,
+      builder: (context, currentCode, child) {
+        final currentLang = LanguageService().languages.value.firstWhere((l) => l.code == currentCode, orElse: () => LanguageService().languages.value.first);
+        return PopupMenuButton<String>(
+          onSelected: (code) => LanguageService().setLanguage(code),
+          tooltip: "Switch Language",
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(color: AdminTheme.royalBlue.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
+            child: Row(
+              children: [
+                const Icon(Icons.language_rounded, color: AdminTheme.royalBlue, size: 18),
+                const SizedBox(width: 8),
+                Text(currentLang.nativeName, style: const TextStyle(color: AdminTheme.royalBlue, fontSize: 12, fontWeight: FontWeight.bold)),
+                const Icon(Icons.arrow_drop_down, color: AdminTheme.royalBlue, size: 16),
               ],
             ),
           ),
-        ],
+          itemBuilder: (ctx) => LanguageService().languages.value.where((l) => l.status).map((l) => PopupMenuItem(
+            value: l.code,
+            child: Row(
+              children: [
+                if (l.code == currentCode) const Icon(Icons.check, size: 16, color: Colors.green),
+                const SizedBox(width: 8),
+                Text(l.nativeName),
+              ],
+            ),
+          )).toList(),
+        );
+      },
+    );
+  }
+
+  Widget _buildAdminDrawer({required bool isFixed}) {
+    double width = isFixed ? 280 : MediaQuery.of(context).size.width * 0.8;
+    return Material(
+      color: const Color(0xFF1E1E2C),
+      child: SizedBox(
+        width: width,
+        height: double.infinity,
+        child: Column(
+          children: [
+            _buildDrawerHeader(),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                children: [
+                  _buildDrawerItem(0, Icons.dashboard_outlined, "Dashboard", isFixed),
+
+                  _buildExpandableDrawerItem(
+                    icon: Icons.shopping_cart_outlined,
+                    title: "Manage Order",
+                    isFixed: isFixed,
+                    children: [
+                      _buildSubDrawerItem(1, "POS Invoice", isFixed),
+                      _buildSubDrawerItem(2, "Order List", isFixed),
+                      _buildSubDrawerItem(3, "Pending Order", isFixed),
+                      _buildSubDrawerItem(4, "Complete Order", isFixed),
+                      _buildSubDrawerItem(5, "Cancel Order", isFixed),
+                      _buildSubDrawerItem(6, "Kitchen Dashboard", isFixed),
+                      _buildSubDrawerItem(7, "Counter Dashboard", isFixed),
+                      _buildSubDrawerItem(8, "Counter List", isFixed),
+                      _buildSubDrawerItem(9, "POS Setting", isFixed),
+                      _buildSubDrawerItem(10, "Sound Setting", isFixed),
+                      _buildSubDrawerItem(114, "Live Jukebox Control", isFixed),
+                    ],
+                  ),
+
+                  _buildExpandableDrawerItem(
+                    icon: Icons.add_shopping_cart_rounded,
+                    title: "Purchase Manage",
+                    alertCount: _alertCount,
+                    isFixed: isFixed,
+                    children: [
+                      _buildSubDrawerItem(11, "Purchase Item", isFixed),
+                      _buildSubDrawerItem(12, "Add Purchase", isFixed),
+                      _buildSubDrawerItem(13, "Purchase Return", isFixed),
+                      _buildSubDrawerItem(14, "Return Invoice", isFixed),
+                      _buildSubDrawerItem(15, "Supplier Manage", isFixed),
+                      _buildSubDrawerItem(16, "Supplier Ledger", isFixed),
+                      _buildSubDrawerItem(17, "Stock Out Ingredients", isFixed, hasBadge: _alertCount > 0),
+                    ],
+                  ),
+
+                  _buildExpandableDrawerItem(
+                    icon: Icons.event_available_outlined,
+                    title: "Reservation",
+                    isFixed: isFixed,
+                    children: [
+                      _buildSubDrawerItem(18, "Reservation", isFixed),
+                      _buildSubDrawerItem(19, "Add Booking", isFixed),
+                      _buildSubDrawerItem(115, "Room List", isFixed),
+                      _buildSubDrawerItem(116, "Room Setting", isFixed),
+                      _buildSubDrawerItem(20, "Room Maintenance", isFixed),
+                      _buildSubDrawerItem(21, "Reservation Setting", isFixed),
+                    ],
+                  ),
+
+                  _buildExpandableDrawerItem(
+                    icon: Icons.restaurant_menu,
+                    title: "Food Management",
+                    isFixed: isFixed,
+                    children: [
+                      _buildNestedExpandableItem(
+                        title: "Manage Category",
+                        children: [
+                          _buildSubDrawerItem(22, "Add Category", isFixed, isDoubleNested: true),
+                          _buildSubDrawerItem(23, "Category List", isFixed, isDoubleNested: true),
+                        ],
+                      ),
+                      _buildNestedExpandableItem(
+                        title: "Manage Food",
+                        children: [
+                          _buildSubDrawerItem(24, "Add Food", isFixed, isDoubleNested: true),
+                          _buildSubDrawerItem(25, "Food List", isFixed, isDoubleNested: true),
+                          _buildSubDrawerItem(26, "Add Group Item", isFixed, isDoubleNested: true),
+                          _buildSubDrawerItem(27, "Food Variant", isFixed, isDoubleNested: true),
+                          _buildSubDrawerItem(28, "Food Availability", isFixed, isDoubleNested: true),
+                          _buildSubDrawerItem(29, "Menu Type", isFixed, isDoubleNested: true),
+                        ],
+                      ),
+                      _buildNestedExpandableItem(
+                        title: "Manage Add-ons",
+                        children: [
+                          _buildSubDrawerItem(30, "Add Add-ons", isFixed, isDoubleNested: true),
+                          _buildSubDrawerItem(31, "Add-ons List", isFixed, isDoubleNested: true),
+                          _buildSubDrawerItem(32, "Add-ons Assign List", isFixed, isDoubleNested: true),
+                        ],
+                      ),
+                    ],
+                  ),
+
+                  _buildExpandableDrawerItem(
+                    icon: Icons.outdoor_grill_outlined,
+                    title: "Production",
+                    isFixed: isFixed,
+                    children: [
+                      _buildSubDrawerItem(33, "Set Production Unit", isFixed),
+                      _buildSubDrawerItem(34, "Production List", isFixed),
+                      _buildSubDrawerItem(35, "Add Production", isFixed),
+                      _buildSubDrawerItem(36, "Production Settings", isFixed),
+                    ],
+                  ),
+
+                  _buildExpandableDrawerItem(
+                    icon: Icons.people_outline,
+                    title: "Human Resource",
+                    isFixed: isFixed,
+                    children: [
+                      _buildNestedExpandableItem(
+                        title: "HRM",
+                        children: [
+                          _buildSubDrawerItem(38, "Add Employee", isFixed, isDoubleNested: true),
+                          _buildSubDrawerItem(39, "Manage Employee", isFixed, isDoubleNested: true),
+                          _buildSubDrawerItem(40, "Manage Employee Salary", isFixed, isDoubleNested: true),
+                        ],
+                      ),
+                      _buildNestedExpandableItem(
+                        title: "Attendance",
+                        children: [
+                          _buildSubDrawerItem(41, "Attendance Form", isFixed, isDoubleNested: true),
+                          _buildSubDrawerItem(42, "Attendance Report", isFixed, isDoubleNested: true),
+                        ],
+                      ),
+                      _buildNestedExpandableItem(
+                        title: "Expense",
+                        children: [
+                          _buildSubDrawerItem(43, "Add Expense Item", isFixed, isDoubleNested: true),
+                          _buildSubDrawerItem(45, "Add Expense", isFixed, isDoubleNested: true),
+                          _buildSubDrawerItem(46, "Manage Expense", isFixed, isDoubleNested: true),
+                          _buildSubDrawerItem(47, "Expense Statement", isFixed, isDoubleNested: true),
+                        ],
+                      ),
+                      _buildNestedExpandableItem(
+                        title: "Loyalty & Rewards",
+                        children: [
+                          _buildSubDrawerItem(109, "Rewards Config", isFixed, isDoubleNested: true),
+                          _buildSubDrawerItem(110, "Redeem Items", isFixed, isDoubleNested: true),
+                          _buildSubDrawerItem(111, "Mystery Box", isFixed, isDoubleNested: true),
+                          _buildSubDrawerItem(112, "Claim History", isFixed, isDoubleNested: true),
+                          _buildSubDrawerItem(113, "Marketing Banners", isFixed, isDoubleNested: true),
+                        ],
+                      ),
+                      _buildNestedExpandableItem(
+                        title: "Award",
+                        children: [
+                          _buildSubDrawerItem(48, "New Award", isFixed, isDoubleNested: true),
+                        ],
+                      ),
+                      _buildNestedExpandableItem(
+                        title: "Recruitment",
+                        children: [
+                          _buildSubDrawerItem(49, "Add New Candidate", isFixed, isDoubleNested: true),
+                          _buildSubDrawerItem(50, "Manage Candidate", isFixed, isDoubleNested: true),
+                          _buildSubDrawerItem(51, "Candidate Shortlist", isFixed, isDoubleNested: true),
+                          _buildSubDrawerItem(52, "Interview", isFixed, isDoubleNested: true),
+                          _buildSubDrawerItem(53, "Candidate Selection", isFixed, isDoubleNested: true),
+                        ],
+                      ),
+                      _buildNestedExpandableItem(
+                        title: "Department",
+                        children: [
+                          _buildSubDrawerItem(54, "Department", isFixed, isDoubleNested: true),
+                          _buildSubDrawerItem(55, "Add Division", isFixed, isDoubleNested: true),
+                          _buildSubDrawerItem(56, "Manage Division", isFixed, isDoubleNested: true),
+                        ],
+                      ),
+                      _buildNestedExpandableItem(
+                        title: "Leave",
+                        children: [
+                          _buildSubDrawerItem(57, "Weekly Holiday", isFixed, isDoubleNested: true),
+                          _buildSubDrawerItem(58, "Holiday", isFixed, isDoubleNested: true),
+                          _buildSubDrawerItem(59, "Add Leave Type", isFixed, isDoubleNested: true),
+                          _buildSubDrawerItem(60, "Leave Application", isFixed, isDoubleNested: true),
+                        ],
+                      ),
+                      _buildNestedExpandableItem(
+                        title: "Loan",
+                        children: [
+                          _buildSubDrawerItem(61, "Grant Loan", isFixed, isDoubleNested: true),
+                          _buildSubDrawerItem(62, "Loan Installment", isFixed, isDoubleNested: true),
+                          _buildSubDrawerItem(63, "Loan Report", isFixed, isDoubleNested: true),
+                        ],
+                      ),
+                      _buildNestedExpandableItem(
+                        title: "Payroll",
+                        children: [
+                          _buildSubDrawerItem(64, "Salary Type Setup", isFixed, isDoubleNested: true),
+                          _buildSubDrawerItem(65, "Salary Setup", isFixed, isDoubleNested: true),
+                          _buildSubDrawerItem(66, "Salary Generate", isFixed, isDoubleNested: true),
+                        ],
+                      ),
+                    ],
+                  ),
+
+                  _buildExpandableDrawerItem(
+                    icon: Icons.bar_chart_outlined,
+                    title: "Report",
+                    isFixed: isFixed,
+                    children: [
+                      _buildSubDrawerItem(67, "Purchase Report", isFixed),
+                      _buildSubDrawerItem(68, "Stock Report (Food Items)", isFixed),
+                      _buildSubDrawerItem(69, "Stock Report (Kitchen)", isFixed),
+                      _buildNestedExpandableItem(
+                        title: "Sales Report",
+                        children: [
+                          _buildSubDrawerItem(70, "Sales Report", isFixed, isDoubleNested: true),
+                          _buildSubDrawerItem(71, "Items Sales Report", isFixed, isDoubleNested: true),
+                          _buildSubDrawerItem(72, "Waiters Sales Report", isFixed, isDoubleNested: true),
+                          _buildSubDrawerItem(73, "Delivery Type Sales Report", isFixed, isDoubleNested: true),
+                          _buildSubDrawerItem(74, "Order Source Report", isFixed, isDoubleNested: true),
+                          _buildSubDrawerItem(75, "Cash Register Report", isFixed, isDoubleNested: true),
+                          _buildSubDrawerItem(76, "Sale By Table", isFixed, isDoubleNested: true),
+                        ],
+                      ),
+                    ],
+                  ),
+
+                  _buildExpandableDrawerItem(
+                    icon: Icons.settings_outlined,
+                    title: "Setting",
+                    isFixed: isFixed,
+                    children: [
+                      _buildNestedExpandableItem(
+                        title: "Payment Method Setting",
+                        children: [
+                          _buildSubDrawerItem(77, "Payment Method List", isFixed, isDoubleNested: true),
+                          _buildSubDrawerItem(78, "Payment Setup", isFixed, isDoubleNested: true),
+                          _buildSubDrawerItem(79, "Shipping Method Setting", isFixed, isDoubleNested: true),
+                        ],
+                      ),
+                      _buildSubDrawerItem(117, "Social Media", isFixed),
+                      _buildNestedExpandableItem(
+                        title: "Manage Table",
+                        children: [
+                          _buildSubDrawerItem(80, "Table List", isFixed, isDoubleNested: true),
+                          _buildSubDrawerItem(81, "Table Setting", isFixed, isDoubleNested: true),
+                        ],
+                      ),
+                      _buildNestedExpandableItem(
+                        title: "Customer Type",
+                        children: [
+                          _buildSubDrawerItem(82, "Customer List", isFixed, isDoubleNested: true),
+                          _buildSubDrawerItem(83, "Customer Type List", isFixed, isDoubleNested: true),
+                          _buildSubDrawerItem(84, "Third-Party Customers", isFixed, isDoubleNested: true),
+                          _buildSubDrawerItem(85, "Card Terminal List", isFixed, isDoubleNested: true),
+                        ],
+                      ),
+                      _buildNestedExpandableItem(
+                        title: "kitchen Setting",
+                        children: [
+                          _buildSubDrawerItem(86, "Kitchen List", isFixed, isDoubleNested: true),
+                          _buildSubDrawerItem(87, "Kitchen Assign", isFixed, isDoubleNested: true),
+                          _buildSubDrawerItem(88, "Kitchen Dashboard Setting", isFixed, isDoubleNested: true),
+                        ],
+                      ),
+                      _buildNestedExpandableItem(
+                        title: "Unit Measurement",
+                        children: [
+                          _buildSubDrawerItem(89, "Unit Measurement List", isFixed, isDoubleNested: true),
+                          _buildSubDrawerItem(90, "Ingredient List", isFixed, isDoubleNested: true),
+                        ],
+                      ),
+                      _buildNestedExpandableItem(
+                        title: "SMS Setting",
+                        children: [
+                          _buildSubDrawerItem(91, "SMS Configuration", isFixed, isDoubleNested: true),
+                          _buildSubDrawerItem(92, "SMS Template", isFixed, isDoubleNested: true),
+                        ],
+                      ),
+                      _buildNestedExpandableItem(
+                        title: "Bank",
+                        children: [
+                          _buildSubDrawerItem(93, "Bank List", isFixed, isDoubleNested: true),
+                          _buildSubDrawerItem(94, "Bank Transaction", isFixed, isDoubleNested: true),
+                        ],
+                      ),
+                      _buildSubDrawerItem(95, "Language", isFixed),
+                      _buildSubDrawerItem(96, "Application Setting", isFixed),
+                      _buildSubDrawerItem(97, "App Setting", isFixed),
+                      _buildSubDrawerItem(98, "Factory Reset", isFixed),
+                      _buildSubDrawerItem(99, "Currency", isFixed),
+                      _buildSubDrawerItem(100, "Country", isFixed),
+                      _buildSubDrawerItem(101, "State", isFixed),
+                      _buildSubDrawerItem(102, "City", isFixed),
+                      _buildSubDrawerItem(103, "Commission", isFixed),
+                    ],
+                  ),
+
+                  const Divider(color: Colors.white10, height: 40),
+                  _buildDrawerItem(108, Icons.card_membership_rounded, "Subscription Status", isFixed),
+                  _buildDrawerItem(107, Icons.help_outline_rounded, "Support & Help", isFixed),
+                  _buildDrawerItem(104, Icons.security_outlined, "User Management", isFixed),
+                  _buildDrawerItem(105, Icons.grid_view_rounded, "Modules", isFixed, hasAddon: true),
+                  _buildDrawerItem(106, Icons.palette_outlined, "Themes", isFixed),
+                  
+                  const SizedBox(height: 20),
+                  const Center(
+                    child: Text(
+                      "SYSTEM VERSION: 3.0",
+                      style: TextStyle(color: Colors.white24, fontSize: 8, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -569,16 +701,17 @@ class _AdminHubState extends State<AdminHub> {
           const Expanded(
             child: Text("Chiyalaa Admin", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
           ),
-          IconButton(
-            onPressed: () => Navigator.pop(context),
-            icon: const Icon(Icons.close, color: Colors.white30, size: 20),
-          ),
+          if (!_isSidebarVisible)
+            IconButton(
+              onPressed: () => Navigator.pop(context),
+              icon: const Icon(Icons.close, color: Colors.white30, size: 20),
+            ),
         ],
       ),
     );
   }
 
-  Widget _buildDrawerItem(int index, IconData icon, String title, {bool hasAddon = false}) {
+  Widget _buildDrawerItem(int index, IconData icon, String title, bool isFixed, {bool hasAddon = false}) {
     bool isSelected = _selectedIndex == index;
     return ListTile(
       onTap: () {
@@ -586,7 +719,7 @@ class _AdminHubState extends State<AdminHub> {
           _selectedIndex = index;
           _currentTitle = title;
         });
-        Navigator.pop(context);
+        if (!isFixed) Navigator.pop(context);
       },
       contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 0),
       leading: Icon(icon, color: isSelected ? AdminTheme.royalBlue : Colors.white60, size: 20),
@@ -613,7 +746,7 @@ class _AdminHubState extends State<AdminHub> {
     );
   }
 
-  Widget _buildExpandableDrawerItem({required IconData icon, required String title, required List<Widget> children, int alertCount = 0}) {
+  Widget _buildExpandableDrawerItem({required IconData icon, required String title, required List<Widget> children, int alertCount = 0, required bool isFixed}) {
     return Theme(
       data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
       child: ExpansionTile(
@@ -657,7 +790,7 @@ class _AdminHubState extends State<AdminHub> {
     );
   }
 
-  Widget _buildSubDrawerItem(int index, String title, {bool isDoubleNested = false, bool hasBadge = false}) {
+  Widget _buildSubDrawerItem(int index, String title, bool isFixed, {bool isDoubleNested = false, bool hasBadge = false}) {
     bool isSelected = _selectedIndex == index;
     return IntrinsicHeight(
       child: Row(
@@ -671,7 +804,7 @@ class _AdminHubState extends State<AdminHub> {
                   _selectedIndex = index;
                   _currentTitle = title;
                 });
-                Navigator.pop(context);
+                if (!isFixed) Navigator.pop(context);
               },
               dense: true,
               title: Row(

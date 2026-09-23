@@ -3,6 +3,7 @@ import 'cart_manager.dart';
 import 'services/api_service.dart';
 import 'dart:async';
 import 'homepage.dart';
+import 'widgets/waiter_assistance_modal.dart';
 
 class LiveOrderTrackingScreen extends StatefulWidget {
   final int orderId;
@@ -234,15 +235,40 @@ class _LiveOrderTrackingScreenState extends State<LiveOrderTrackingScreen> {
   }
 
   Widget _buildHelpCard() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(color: const Color(0xFF002D62), borderRadius: BorderRadius.circular(20)),
-      child: const Row(
-        children: [
-          Icon(Icons.support_agent, color: Colors.white, size: 24),
-          SizedBox(width: 16),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text("Need help?", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), Text("Ask our waiter for assistance.", style: TextStyle(color: Colors.white70, fontSize: 11))])),
-        ],
+    return GestureDetector(
+      onTap: () {
+        WaiterAssistanceModal.show(context);
+      },
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: const Color(0xFF002D62),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF002D62).withValues(alpha: 0.3),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.support_agent_rounded, color: Colors.white, size: 28),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  Text("Need help?", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                  SizedBox(height: 2),
+                  Text("Ask our waiter for assistance ->", style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w500)),
+                ],
+              ),
+            ),
+            const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white70, size: 16),
+          ],
+        ),
       ),
     );
   }

@@ -576,6 +576,118 @@ class ApiService {
     } catch (e) { return null; }
   }
 
+  static Future<Map<String, dynamic>> uploadVoiceOrder({
+    required String tenantId,
+    required int tableNumber,
+    required String customerName,
+    required String transcript,
+    List<int>? audioBytes,
+    String? audioFileName,
+  }) async {
+    try {
+      final Uri url = Uri.parse("$baseUrl/upload_voice_order.php");
+      
+      if (audioBytes != null && audioBytes.isNotEmpty) {
+        var request = http.MultipartRequest('POST', url);
+        request.fields['tenant_id'] = tenantId;
+        request.fields['table_number'] = tableNumber.toString();
+        request.fields['customer_name'] = customerName;
+        request.fields['transcript'] = transcript;
+
+        request.files.add(http.MultipartFile.fromBytes(
+          'audio_file',
+          audioBytes,
+          filename: audioFileName ?? 'voice_order.m4a',
+        ));
+
+        var streamedResponse = await request.send();
+        var response = await http.Response.fromStream(streamedResponse);
+        return json.decode(response.body);
+      } else {
+        final response = await _post(
+          url,
+          headers: {"Content-Type": "application/json"},
+          body: json.encode({
+            "tenant_id": tenantId,
+            "table_number": tableNumber,
+            "customer_name": customerName,
+            "transcript": transcript,
+          }),
+        );
+        return json.decode(response.body);
+      }
+    } catch (e) {
+      return {"status": "error", "message": "Connection error: $e"};
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>?> fetchVoiceOrders(String tenantId) async {
+    try {
+      final response = await _get(Uri.parse("$baseUrl/get_voice_orders.php?tenant_id=$tenantId"));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['status'] == 'success') {
+          return List<Map<String, dynamic>>.from(data['orders'] ?? []);
+        }
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  static Future<Map<String, dynamic>> requestWaiterAssistance({
+    required String tenantId,
+    required int tableNumber,
+    required String customerName,
+    required String assistanceType,
+    String? notes,
+  }) async {
+    final String transcript = "ASSISTANCE: $assistanceType - ${notes ?? 'Immediate assistance requested'}";
+    return uploadVoiceOrder(
+      tenantId: tenantId,
+      tableNumber: tableNumber,
+      customerName: customerName,
+      transcript: transcript,
+    );
+  }
+
+  static Future<Map<String, dynamic>> updateVoiceOrderStatus(int voiceOrderId, String newStatus) async {
+    try {
+      final response = await _post(
+        Uri.parse("$baseUrl/update_voice_order_status.php"),
+        headers: {"Content-Type": "application/json"},
+        body: json.encode({"voice_order_id": voiceOrderId, "new_status": newStatus}),
+      );
+      final result = json.decode(response.body);
+      if (result['status'] == 'success') {
+        return {"success": true};
+      } else {
+        return {"success": false, "message": result['message'] ?? "Unknown Error"};
+      }
+    } catch (e) {
+      return {"success": false, "message": "Connection error: $e"};
+    }
+  }
+
+  static Future<Map<String, dynamic>> deleteVoiceOrder(int voiceOrderId) async {
+    try {
+      final response = await _post(
+        Uri.parse("$baseUrl/delete_voice_order.php"),
+        headers: {"Content-Type": "application/json"},
+        body: json.encode({"voice_order_id": voiceOrderId}),
+      );
+      final result = json.decode(response.body);
+      if (result['status'] == 'success') {
+        return {"success": true};
+      } else {
+        return {"success": false, "message": result['message'] ?? "Unknown Error"};
+      }
+    } catch (e) {
+      return {"success": false, "message": "Connection error: $e"};
+    }
+  }
+
   static Future<List<Map<String, dynamic>>?> fetchPendingOrders(String tenantId) async {
     try {
       final response = await _get(Uri.parse("$baseUrl/get_pending_orders.php?tenant_id=$tenantId"));

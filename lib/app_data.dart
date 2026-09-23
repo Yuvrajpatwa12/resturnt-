@@ -38,33 +38,6 @@ class AppData {
 
   static const List<Map<String, dynamic>> darazStyleProducts = [
     {
-      'title': 'T53 Kid\'s Adventure Smartwatch',
-      'price': 'NPR 6,573',
-      'discount': '-6%',
-      'tag': 'FREE DELIVERY',
-      'rating': '4.9 (1)',
-      'image': 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500&auto=format&fit=crop&q=60',
-      'cardHeight': 285.0,
-    },
-    {
-      'title': '6 Feet Long Bluetooth Selfie Stick Tripod',
-      'price': 'NPR 637',
-      'discount': '-20%',
-      'tag': 'GEMS',
-      'rating': '4.4 (111)',
-      'image': 'https://images.unsplash.com/photo-1583394838336-acd977736f90?w=500&auto=format&fit=crop&q=60',
-      'cardHeight': 230.0,
-    },
-    {
-      'title': 'Portable Mini Gas Stove Outdoor Camping',
-      'price': 'NPR 1,299',
-      'discount': '-15%',
-      'tag': 'HOT',
-      'rating': '4.7 (45)',
-      'image': 'https://images.unsplash.com/photo-1510312305653-8ed496efae75?w=500&auto=format&fit=crop&q=60',
-      'cardHeight': 240.0,
-    },
-    {
       'title': 'Smokehouse Brisket Deluxe Burger with Extra Cheese and Bacon',
       'price': 'NPR 899',
       'discount': '-10%',

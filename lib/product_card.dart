@@ -249,15 +249,8 @@ class ProductCard extends StatelessWidget {
                         builder: (context, cartItems, child) {
                           final qty = ShopManager.instance.getItemQuantity(product.title);
                           return Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            mainAxisAlignment: MainAxisAlignment.end,
                             children: [
-                              Row(
-                                children: [
-                                  const Icon(Icons.star, color: Colors.amber, size: 10),
-                                  const SizedBox(width: 2),
-                                  Text(item['rating'] ?? '4.9', style: const TextStyle(fontSize: 9, color: Color(0xFF64748B))),
-                                ],
-                              ),
                               if (qty == 0)
                                 _buildAddButton(context, product)
                               else

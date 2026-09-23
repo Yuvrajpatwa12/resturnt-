@@ -19,6 +19,7 @@ import 'group_dining_wrapper.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:math';
 import 'widgets/review_loading_dialog.dart';
+import 'widgets/waiter_assistance_modal.dart';
 import 'app_data.dart';
 
 
@@ -31,11 +32,14 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
+  late Color primaryColor;
+  late Color secondaryColor;
 
   @override
   void initState() {
     super.initState();
     ShopManager.instance.fetchSocialLists();
+    ShopManager.instance.refreshUserPoints();
     
     _animationController = AnimationController(
       vsync: this,
@@ -49,10 +53,20 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
     super.dispose();
   }
 
+  Color _parseColor(String? hex) {
+    if (hex == null || hex.isEmpty) return const Color(0xFFFF5C00);
+    try {
+      return Color(int.parse(hex.replaceFirst('#', '0xFF')));
+    } catch (e) {
+      return const Color(0xFFFF5C00);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    const Color primaryColor = Color(0xFF6366F1); // Indigo
-    const Color secondaryColor = Color(0xFF4F46E5); // Darker Indigo
+    final tenant = TenantService().currentTenant.value;
+    primaryColor = _parseColor(tenant?.color);
+    secondaryColor = primaryColor.withValues(alpha: 0.8);
     final screenHeight = MediaQuery.of(context).size.height;
 
     return DefaultTabController(
@@ -62,7 +76,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
         body: Stack(
           children: [
             // 1. FIXED BACKGROUND HEADER
-            _buildFixedIndigoHeader(primaryColor, secondaryColor),
+            _buildFixedBrandHeader(primaryColor, secondaryColor),
             
             // 2. SCROLLABLE CONTENT
             SafeArea(
@@ -90,7 +104,10 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const SizedBox(height: 20),
+                          const SizedBox(height: 12),
+                          // SWIPE GUIDANCE ANIMATION
+                          _buildSwipeGuidance(primaryColor),
+                          const SizedBox(height: 8),
                           // Custom Tab Bar
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -150,7 +167,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
     );
   }
 
-  Widget _buildFixedIndigoHeader(Color startColor, Color endColor) {
+  Widget _buildFixedBrandHeader(Color startColor, Color endColor) {
     final isPremium = TenantService().currentTenant.value?.isPremiumEnabled ?? false;
 
     return Container(
@@ -187,6 +204,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
                     
                     Stack(
                       alignment: Alignment.bottomRight,
+                      clipBehavior: Clip.none,
                       children: [
                         ValueListenableBuilder<String>(
                           valueListenable: ShopManager.instance.userGender,
@@ -209,18 +227,52 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
                             );
                           },
                         ),
-                        // Badge integrated correctly at the edge of the circle
+                        // Coins balance badge in elegant cream color with high contrast bold text, clickable to open Rewards
                         Positioned(
-                          bottom: 2,
-                          right: 2,
-                          child: Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: BoxDecoration(
-                              color: Colors.green,
-                              shape: BoxShape.circle,
-                              border: Border.all(color: Colors.white, width: 1.5),
-                            ),
-                            child: const Icon(Icons.near_me, color: Colors.white, size: 10),
+                          bottom: -2,
+                          right: -8,
+                          child: ValueListenableBuilder<int>(
+                            valueListenable: ShopManager.instance.userPoints,
+                            builder: (context, points, _) {
+                              return GestureDetector(
+                                onTap: () {
+                                  Navigator.push(context, MaterialPageRoute(builder: (context) => const RewardsPage()));
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFEF3C7), // Elegant Cream Color
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: Colors.white, width: 2),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(alpha: 0.15),
+                                        blurRadius: 6,
+                                        offset: const Offset(0, 3),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        "$points",
+                                        style: const TextStyle(
+                                          color: Color(0xFF78350F), // Premium dark amber for perfect contrast
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w900,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 3),
+                                      const Text(
+                                        "🪙",
+                                        style: TextStyle(fontSize: 12),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
                           ),
                         ),
                       ],
@@ -404,41 +456,80 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // HIGH VISIBILITY VERSION BADGE
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            margin: const EdgeInsets.only(bottom: 24),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFF5C00).withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFFF5C00).withValues(alpha: 0.3), width: 1.5),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.verified_rounded, color: Color(0xFFFF5C00)),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text("SYSTEM v1.1.6 LOADED", style: TextStyle(color: Color(0xFFFF5C00), fontWeight: FontWeight.w900, fontSize: 13)),
-                      Text("Full stability shield and network guardrails active.", style: TextStyle(color: Colors.black54, fontSize: 10, fontWeight: FontWeight.bold)),
-                    ],
-                  ),
+          // SYNC PROFILE CARD (Replaces SYSTEM v1.1.6 LOADED)
+          ValueListenableBuilder<bool>(
+            valueListenable: ShopManager.instance.isEmailSynced,
+            builder: (context, synced, _) {
+              if (synced) return const SizedBox.shrink();
+              return Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                margin: const EdgeInsets.only(bottom: 24),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                  border: Border.all(color: primaryColor.withValues(alpha: 0.2), width: 1.5),
                 ),
-              ],
-            ),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      backgroundColor: primaryColor.withValues(alpha: 0.1),
+                      child: Icon(Icons.account_circle_outlined, color: primaryColor),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: const [
+                          Text("Sync Your Profile", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                          SizedBox(height: 2),
+                          Text("Sync to track coins & orders globally across devices.", style: TextStyle(color: Colors.black54, fontSize: 11)),
+                        ],
+                      ),
+                    ),
+                    ElevatedButton(
+                      onPressed: () => _showManualSyncDialog(context),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: primaryColor,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      ),
+                      child: const Text("SYNC", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                    ),
+                  ],
+                ),
+              );
+            },
           ),
 
           _buildLiveOrdersRow(),
           const SizedBox(height: 24),
           _buildSectionHeader("Recent Activity"),
           
-          // CORE COLLABORATIVE FEATURES (ALWAYS VISIBLE)
-          _buildMenuItem(Icons.auto_stories_outlined, "Share Your Story", "Post on Instagram & Earn 50 Points", Colors.pinkAccent, () {
-            Navigator.push(context, MaterialPageRoute(builder: (context) => ActivitySharePage()));
-          }),
+          // CORE COLLABORATIVE FEATURES (REQUIRES 1000+ ORDER)
+          ValueListenableBuilder<bool>(
+            valueListenable: ShopManager.instance.hasConfirmedOrderAbove1000,
+            builder: (context, hasQualifiedOrder, _) {
+              if (!hasQualifiedOrder) return const SizedBox.shrink();
+              return _buildMenuItem(
+                Icons.auto_stories_outlined,
+                "Share Your Story",
+                "Post on Instagram & Earn 50 Points",
+                Colors.pinkAccent,
+                () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => ActivitySharePage()));
+                },
+              );
+            },
+          ),
           _buildMenuItem(Icons.account_balance_wallet_outlined, "Group Dining Session", "Live host & guest sync tools", Colors.deepOrange, () {
             Navigator.push(context, MaterialPageRoute(builder: (context) => DineWrapper()));
           }),
@@ -448,9 +539,9 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
           }),
           
           if (isPremium)
-            _buildMenuItem(Icons.auto_stories, "Meat Master Passport", "Collect stamps & earn rewards", const Color(0xFFFF5C00), () {
+            _buildMenuItem(Icons.auto_stories, "Meat Master Passport", "Collect stamps & earn rewards", primaryColor, () {
               if (ShopManager.instance.isEmailSynced.value) {
-                Navigator.push(context, MaterialPageRoute(builder: (context) => PassportPage()));
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const PassportPage()));
               } else {
                 _showAuthRequiredDialog(context, "Meat Master Passport");
               }
@@ -469,9 +560,62 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
             }),
 
           // --- NEW: SOCIAL MEDIA LINKS SECTION ---
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () {
+                WaiterAssistanceModal.show(context);
+              },
+              icon: const Icon(Icons.notifications_active_rounded),
+              label: const Text(
+                "CALL WAITER",
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1.2),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primaryColor,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+                elevation: 4,
+              ),
+            ),
+          ),
           const SizedBox(height: 20),
         ],
       ),
+    );
+  }
+
+  Widget _buildSwipeGuidance(Color color) {
+    return AnimatedBuilder(
+      animation: _animationController,
+      builder: (context, child) {
+        // Simple vertical slide animation
+        final double slide = 8.0 * sin(_animationController.value * 2 * pi);
+        return Opacity(
+          opacity: 0.6 + (0.4 * sin(_animationController.value * 2 * pi).abs()),
+          child: Transform.translate(
+            offset: Offset(0, slide),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.touch_app_rounded, color: color, size: 24),
+                const SizedBox(height: 2),
+                Text(
+                  "SWIPE UP",
+                  style: TextStyle(
+                    fontSize: 8,
+                    fontWeight: FontWeight.w900,
+                    color: color,
+                    letterSpacing: 1,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -482,7 +626,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         title: Row(
           children: [
-            const Icon(Icons.lock_outline_rounded, color: Color(0xFFFF5C00)),
+            Icon(Icons.lock_outline_rounded, color: primaryColor),
             const SizedBox(width: 12),
             const Text("Login Required", style: TextStyle(fontWeight: FontWeight.bold)),
           ],
@@ -512,7 +656,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
               _showManualSyncDialog(context);
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFFF5C00),
+              backgroundColor: primaryColor,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
@@ -526,14 +670,13 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
   Widget _buildReviewTab() {
     return RefreshIndicator(
       onRefresh: () => ShopManager.instance.fetchReviews(),
-      color: Colors.indigo,
+      color: primaryColor,
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 0. WRITE REVIEW ACTION
             InkWell(
               onTap: () => _showWriteReviewModal(context),
               child: Container(
@@ -541,16 +684,16 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 margin: const EdgeInsets.only(bottom: 24),
                 decoration: BoxDecoration(
-                  color: Colors.indigo.withValues(alpha: 0.1),
+                  color: primaryColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.indigo.withValues(alpha: 0.2)),
+                  border: Border.all(color: primaryColor.withValues(alpha: 0.2)),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
-                    Icon(Icons.edit_note_rounded, color: Colors.indigo),
-                    SizedBox(width: 12),
-                    Text("WRITE A REVIEW", style: TextStyle(color: Colors.indigo, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                  children: [
+                    Icon(Icons.edit_note_rounded, color: primaryColor),
+                    const SizedBox(width: 12),
+                    Text("WRITE A REVIEW", style: TextStyle(color: primaryColor, fontWeight: FontWeight.bold, letterSpacing: 1)),
                   ],
                 ),
               ),
@@ -678,11 +821,11 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
         selected: isSelected,
         onSelected: (val) {},
         backgroundColor: Colors.white,
-        selectedColor: Colors.indigo,
+        selectedColor: primaryColor,
         checkmarkColor: Colors.white,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
-          side: BorderSide(color: isSelected ? Colors.indigo : Colors.orange, width: 1.5),
+          side: BorderSide(color: isSelected ? primaryColor : primaryColor.withValues(alpha: 0.5), width: 1.5),
         ),
         showCheckmark: false,
       ),
@@ -746,7 +889,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
                       children: [
                         Row(
                           children: [
-                            const Icon(Icons.auto_awesome, color: Colors.indigo, size: 20),
+                            Icon(Icons.auto_awesome, color: primaryColor, size: 20),
                             const SizedBox(width: 12),
                             const Expanded(
                               child: Text("Need help? Generate an AI Review", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
@@ -762,14 +905,14 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
                                     isThinking = false;
                                   });
                                 },
-                                child: const Text("GENERATE"),
+                                child: Text("GENERATE", style: TextStyle(color: primaryColor)),
                               ),
                           ],
                         ),
                         if (isThinking)
-                          const Padding(
-                            padding: EdgeInsets.only(top: 8),
-                            child: LinearProgressIndicator(minHeight: 2, color: Colors.indigo, backgroundColor: Colors.transparent),
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: LinearProgressIndicator(minHeight: 2, color: primaryColor, backgroundColor: Colors.transparent),
                           ),
                       ],
                     ),
@@ -842,7 +985,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
                       }
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.indigo,
+                      backgroundColor: primaryColor,
                       foregroundColor: Colors.white,
                       minimumSize: const Size(double.infinity, 56),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -982,7 +1125,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
   Widget _buildSocialTab() {
     return RefreshIndicator(
       onRefresh: () => ShopManager.instance.fetchSocialLists(),
-      color: const Color(0xFFFF5C00),
+      color: primaryColor,
       child: ListView(
         padding: const EdgeInsets.all(20),
         children: [
@@ -992,7 +1135,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
               _buildSectionHeader("My Social Circle"),
               IconButton(
                 onPressed: () => ShopManager.instance.fetchSocialLists(),
-                icon: const Icon(Icons.sync, size: 16, color: Colors.grey),
+                icon: Icon(Icons.sync, size: 16, color: primaryColor),
               ),
             ],
           ),
@@ -1163,12 +1306,12 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
                               ShopManager.instance.fetchSocialLists();
                             }
                           }, 
-                          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFF5C00), foregroundColor: Colors.white),
+                          style: ElevatedButton.styleFrom(backgroundColor: primaryColor, foregroundColor: Colors.white),
                           child: const Text("Follow Back"),
                         )
                       : (title == "Mutual Friends" 
                           ? IconButton(
-                              icon: const Icon(Icons.chat_bubble_outline, color: Color(0xFFFF5C00)),
+                              icon: Icon(Icons.chat_bubble_outline, color: primaryColor),
                               onPressed: () {
                                 Navigator.pop(context); // Close modal
                                 Navigator.push(
@@ -1204,13 +1347,13 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
           child: Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(colors: [Color(0xFFFF5C00), Color(0xFFFF8C00)]),
+              gradient: LinearGradient(colors: [primaryColor, primaryColor.withValues(alpha: 0.8)]),
               borderRadius: BorderRadius.circular(20),
-              boxShadow: [BoxShadow(color: const Color(0xFFFF5C00).withValues(alpha: 0.3), blurRadius: 10, offset: const Offset(0, 4))],
+              boxShadow: [BoxShadow(color: primaryColor.withValues(alpha: 0.3), blurRadius: 10, offset: const Offset(0, 4))],
             ),
             child: Row(
               children: [
-                const CircleAvatar(backgroundColor: Colors.white, child: Icon(Icons.delivery_dining, color: Color(0xFFFF5C00))),
+                CircleAvatar(backgroundColor: Colors.white, child: Icon(Icons.delivery_dining, color: primaryColor)),
                 const SizedBox(width: 16),
                 Expanded(
                   child: Column(

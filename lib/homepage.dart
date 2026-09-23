@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:flutter/gestures.dart';
 import 'cart_manager.dart';
 import 'cart_page.dart';
@@ -9,6 +10,7 @@ import 'menu.dart';
 import 'search_delegate.dart';
 import 'nearby_page.dart';
 import 'profile_page.dart';
+import 'rewards_page.dart';
 import 'music_voting_sheet.dart';
 import 'services/tenant_service.dart';
 import 'notifications_page.dart';
@@ -290,15 +292,18 @@ class _HomePageState extends State<HomePage> {
     return ValueListenableBuilder<List<Map<String, dynamic>>>(
       valueListenable: TenantService().products,
       builder: (context, dbProducts, child) {
+        final List<Map<String, dynamic>> sourceList = dbProducts.isNotEmpty ? dbProducts : List<Map<String, dynamic>>.from(AppData.popularPicks);
+
         // Filter products based on featured_section
-        final List<Map<String, dynamic>> gridTopItems = dbProducts.where((p) => p['featured_section'] == 'just_for_you').toList();
-        final List<Map<String, dynamic>> rowScrollItems = dbProducts.where((p) => p['featured_section'] == 'trending').toList();
-        final List<Map<String, dynamic>> popularItems = dbProducts.where((p) => p['featured_section'] == 'popular').toList();
+        final List<Map<String, dynamic>> gridTopItems = sourceList.where((p) => p['featured_section'] == 'just_for_you').toList();
+        final List<Map<String, dynamic>> rowScrollItems = sourceList.where((p) => p['featured_section'] == 'trending').toList();
+        final List<Map<String, dynamic>> popularItems = sourceList.where((p) => p['featured_section'] == 'popular').toList();
         
-        // Products with NO section selected (or 'none')
-        final List<Map<String, dynamic>> otherProducts = dbProducts.where((p) => 
-          p['featured_section'] == 'none' || p['featured_section'] == null || p['featured_section'] == ''
-        ).toList();
+        // Products with NO section selected (or fallback if no sections set)
+        final List<Map<String, dynamic>> otherProducts = sourceList.where((p) {
+          final sec = p['featured_section'];
+          return sec == 'none' || sec == null || sec == '' || (gridTopItems.isEmpty && rowScrollItems.isEmpty && popularItems.isEmpty);
+        }).toList();
 
         return RefreshIndicator(
           onRefresh: () async {
@@ -316,12 +321,6 @@ class _HomePageState extends State<HomePage> {
           child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(), // Required for RefreshIndicator
             slivers: [
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
-                child: _buildSmartGreetingCard(),
-              ),
-            ),
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
@@ -464,78 +463,7 @@ class _HomePageState extends State<HomePage> {
   );
 }
 
-  Widget _buildSmartGreetingCard() {
-    final tenant = TenantService().currentTenant.value;
-    if (tenant == null) return const SizedBox.shrink();
 
-    return ValueListenableBuilder<bool>(
-      valueListenable: ShopManager.instance.isEmailSynced,
-      builder: (context, synced, _) {
-        if (!synced) {
-           return Container(
-             padding: const EdgeInsets.all(20),
-             decoration: BoxDecoration(
-               color: Colors.white,
-               borderRadius: BorderRadius.circular(24),
-               boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10)],
-             ),
-             child: Row(
-               children: [
-                 const CircleAvatar(backgroundColor: Color(0xFFF7F8FA), child: Icon(Icons.account_circle_outlined, color: Colors.grey)),
-                 const SizedBox(width: 16),
-                 Expanded(
-                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: const [
-                     Text("Welcome Guest!", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                     Text("Sync your profile to track coins globally.", style: TextStyle(color: Colors.grey, fontSize: 11)),
-                   ]),
-                 ),
-                 TextButton(onPressed: () => ShopManager.instance.currentTabIndex.value = 4, child: const Text("SYNC")),
-               ],
-             ),
-           );
-        }
-
-        return ValueListenableBuilder<bool>(
-          valueListenable: ShopManager.instance.isNewToShop,
-          builder: (context, isNew, _) {
-            final String title = isNew ? "Welcome to ${tenant.name}!" : "Welcome Back, ${ShopManager.instance.customerName.value}!";
-            final String sub = isNew ? "Join our loyalty program to earn rewards." : "You have ${ShopManager.instance.userPoints.value} coins waiting for you.";
-            
-            return Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: isNew ? [const Color(0xFF0047AB), const Color(0xFF002D62)] : [const Color(0xFFFF5C00), const Color(0xFFFF8C00)],
-                ),
-                borderRadius: BorderRadius.circular(24),
-                boxShadow: [BoxShadow(color: (isNew ? Colors.blue : Colors.orange).withValues(alpha: 0.3), blurRadius: 10, offset: const Offset(0, 4))],
-              ),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    backgroundColor: Colors.white.withValues(alpha: 0.2),
-                    child: Icon(isNew ? Icons.celebration_rounded : Icons.auto_awesome, color: Colors.white),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
-                        Text(sub, style: const TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold)),
-                      ],
-                    ),
-                  ),
-                  if (!isNew)
-                    const Icon(Icons.verified_rounded, color: Colors.white, size: 20),
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
 
   Widget _buildHeader() {
     return Row(
@@ -652,8 +580,11 @@ class _HomePageState extends State<HomePage> {
         const SizedBox(width: 10),
         GestureDetector(
           onTap: () {
-            final allProducts = [...AppData.popularPicks.map((p) => ({...p, 'tag': 'Popular', 'rating': '4.9', 'discount': ''})), ...AppData.darazStyleProducts];
-            showSearch(context: context, delegate: MySearchDelegate(allProducts));
+            final dbProducts = TenantService().products.value;
+            final searchProducts = dbProducts.isNotEmpty
+                ? dbProducts
+                : AppData.popularPicks.map((p) => ({...p, 'tag': 'Popular', 'rating': '4.9', 'discount': ''})).toList();
+            showSearch(context: context, delegate: MySearchDelegate(searchProducts));
           },
           child: Container(
             width: 48,
@@ -728,89 +659,73 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildShareStoryShortcut() {
-    return InkWell(
-      onTap: () {
-        Navigator.push(context, MaterialPageRoute(builder: (context) => const ActivitySharePage()));
-      },
-      borderRadius: BorderRadius.circular(24),
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF97316).withValues(alpha: 0.1),
+    return ValueListenableBuilder<bool>(
+      valueListenable: ShopManager.instance.hasConfirmedOrderAbove1000,
+      builder: (context, hasQualifiedOrder, _) {
+        if (!hasQualifiedOrder) return const SizedBox.shrink();
+
+        return InkWell(
+          onTap: () {
+            Navigator.push(context, MaterialPageRoute(builder: (context) => const ActivitySharePage()));
+          },
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: const Color(0xFFF97316), width: 2.5),
-          boxShadow: [
-            BoxShadow(color: const Color(0xFFF97316).withValues(alpha: 0.1), blurRadius: 15, offset: const Offset(0, 8))
-          ],
-        ),
-        child: Row(
-          children: [
-            Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: const BoxDecoration(color: Color(0xFFF97316), shape: BoxShape.circle),
-                  child: const Icon(Icons.auto_stories_outlined, color: Colors.white, size: 24),
-                ),
-                Positioned(
-                  top: -8, right: -8,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(8)),
-                    child: const Text("NEW", style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.w900)),
-                  ),
-                ),
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF97316).withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: const Color(0xFFF97316), width: 2.5),
+              boxShadow: [
+                BoxShadow(color: const Color(0xFFF97316).withValues(alpha: 0.1), blurRadius: 15, offset: const Offset(0, 8))
               ],
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  Text(
-                    "SHARE YOUR STORY", 
-                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 0.5, color: Color(0xFFF97316)),
+            child: Row(
+              children: [
+                Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: const BoxDecoration(color: Color(0xFFF97316), shape: BoxShape.circle),
+                      child: const Icon(Icons.auto_stories_outlined, color: Colors.white, size: 24),
+                    ),
+                    Positioned(
+                      top: -8, right: -8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(8)),
+                        child: const Text("NEW", style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.w900)),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      Text(
+                        "SHARE YOUR STORY", 
+                        style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 0.5, color: Color(0xFFF97316)),
+                      ),
+                      Text(
+                        "Post on Instagram & earn +50 Points instantly!", 
+                        style: TextStyle(color: Colors.black87, fontSize: 11, fontWeight: FontWeight.bold),
+                      ),
+                    ],
                   ),
-                  Text(
-                    "Post on Instagram & earn +50 Points instantly!", 
-                    style: TextStyle(color: Colors.black87, fontSize: 11, fontWeight: FontWeight.bold),
-                  ),
-                ],
-              ),
+                ),
+                const Icon(Icons.arrow_forward_ios_rounded, color: Color(0xFFF97316), size: 16),
+              ],
             ),
-            const Icon(Icons.arrow_forward_ios_rounded, color: Color(0xFFF97316), size: 16),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
   Widget _buildPromoBanner() {
-    return Container(
-      height: 160,
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(colors: [Color(0xFF8A1820), Color(0xFF5A0D12)]),
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: Stack(
-        children: [
-          Positioned(right: -10, bottom: 0, child: Image.network('https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500', height: 140, fit: BoxFit.cover)),
-          const Padding(
-            padding: EdgeInsets.all(20.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text('MEAT CRAFT.\nPERFECTED.', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900, fontStyle: FontStyle.italic)),
-                SizedBox(height: 10),
-                Text('Order Now', style: TextStyle(color: Color(0xFFFF5C00), fontSize: 10, fontWeight: FontWeight.bold)),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
+    return const _PromoBannerCarousel();
   }
 
   Widget _buildCategories() {
@@ -905,15 +820,57 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildRewardsCard() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10)]),
-      child: const Row(
-        children: [
-          Icon(Icons.local_activity_outlined, color: Color(0xFFFF5C00), size: 20),
-          SizedBox(width: 12),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text("REWARDS", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)), Text('Earn points with every order.', style: TextStyle(fontSize: 9, color: Colors.grey))])),
-        ],
+    return InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const RewardsPage()),
+        );
+      },
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFF5C00).withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.stars_rounded, color: Color(0xFFFF5C00), size: 22),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  Text(
+                    "REWARDS & BENEFITS 🎁",
+                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 0.5),
+                  ),
+                  SizedBox(height: 2),
+                  Text(
+                    "Use coins to redeem free food & exclusive rewards",
+                    style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.arrow_forward_ios_rounded, color: Color(0xFFFF5C00), size: 14),
+          ],
+        ),
       ),
     );
   }
@@ -991,6 +948,247 @@ class _HomePageState extends State<HomePage> {
               Text(label, style: TextStyle(fontSize: 10, color: isSelected ? const Color(0xFFFF5C00) : Colors.grey, fontWeight: FontWeight.w600)),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PromoBannerCarousel extends StatefulWidget {
+  const _PromoBannerCarousel();
+
+  @override
+  State<_PromoBannerCarousel> createState() => _PromoBannerCarouselState();
+}
+
+class _PromoBannerCarouselState extends State<_PromoBannerCarousel> {
+  final PageController _pageController = PageController();
+  Timer? _timer;
+  int _currentPage = 0;
+
+  final List<String> _images = [
+    'assets/images/food1.png',
+    'assets/images/food2.png',
+    'assets/images/food3.png',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _startTimer();
+  }
+
+  void _startTimer() {
+    _timer = Timer.periodic(const Duration(seconds: 3), (timer) {
+      if (_pageController.hasClients) {
+        _currentPage = (_currentPage + 1) % _images.length;
+        _pageController.animateToPage(
+          _currentPage,
+          duration: const Duration(milliseconds: 600),
+          curve: Curves.easeInOutCubic,
+        );
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  void _goToMenuPage() {
+    ShopManager.instance.currentTabIndex.value = 1;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: _goToMenuPage,
+      child: Container(
+        height: 175,
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFFFFF4EC),
+              Color(0xFFFFE4D3),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(28),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFE8C8B5).withValues(alpha: 0.3),
+              blurRadius: 15,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Stack(
+          children: [
+            // Text Content on the left
+            Positioned(
+              left: 0,
+              top: 0,
+              bottom: 0,
+              right: 150,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // Top Pill Badge: Hot Deals
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.05),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            '🔥',
+                            style: TextStyle(fontSize: 11),
+                          ),
+                          SizedBox(width: 4),
+                          Text(
+                            'Hot Deals',
+                            style: TextStyle(
+                              color: Color(0xFFD8521D),
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Main Title - Single Line
+                    const Text(
+                      'Delicious Fast Food',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Color(0xFF3B1E13),
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.3,
+                      ),
+                    ),
+
+                    // Subtitle / Slogan - Fills space nicely
+                    const Text(
+                      'Craving deliciousness? Enjoy hot, fresh & flavorful meals delivered fast right to your door!',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Color(0xFF7A5C50),
+                        fontSize: 10,
+                        fontWeight: FontWeight.w500,
+                        height: 1.25,
+                      ),
+                    ),
+
+                    // Order Now Button (Arrow on the LEFT)
+                    GestureDetector(
+                      onTap: _goToMenuPage,
+                      child: Container(
+                        padding: const EdgeInsets.only(left: 6, right: 14, top: 4, bottom: 4),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFFFF8A00), Color(0xFFFF5500)],
+                          ),
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFFFF6600).withValues(alpha: 0.3),
+                              blurRadius: 8,
+                              offset: const Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: const BoxDecoration(
+                                color: Colors.white,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.arrow_forward_rounded,
+                                size: 11,
+                                color: Color(0xFFFF5500),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            const Text(
+                              'Order Now',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Auto-scrolling image carousel on the right half
+            Positioned(
+              top: 0,
+              bottom: 0,
+              right: 0,
+              child: SizedBox(
+                width: 155,
+                child: PageView.builder(
+                  controller: _pageController,
+                  itemCount: _images.length,
+                  onPageChanged: (index) {
+                    _currentPage = index;
+                  },
+                  itemBuilder: (context, index) {
+                    return Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(18),
+                        child: Image.asset(
+                          _images[index],
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              color: const Color(0xFFFFF0E5),
+                              child: const Center(
+                                child: Icon(Icons.fastfood_rounded, color: Color(0xFFFF7A00), size: 32),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

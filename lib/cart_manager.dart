@@ -286,6 +286,7 @@ class ShopManager {
     isWaitingForGoogleReview.value = prefs.getBool('is_waiting_for_google_review') ?? false;
     lastReviewText.value = prefs.getString('last_review_text');
     lastReviewId.value = prefs.getInt('last_review_id');
+    hasConfirmedOrderAbove1000.value = prefs.getBool('has_confirmed_order_above_1000') ?? false;
 
     // LOAD PERSISTED GROUP SESSION
     final int? sid = prefs.getInt('active_session_id');
@@ -416,6 +417,15 @@ class ShopManager {
   final ValueNotifier<OrderStatus> orderStatus = ValueNotifier<OrderStatus>(OrderStatus.pending);
   final ValueNotifier<Duration> totalGameTime = ValueNotifier<Duration>(Duration.zero);
   final ValueNotifier<int> totalOrdersCount = ValueNotifier<int>(0);
+  final ValueNotifier<bool> hasConfirmedOrderAbove1000 = ValueNotifier<bool>(false);
+
+  Future<void> _checkAndSetQualifiedOrder(double totalAmount) async {
+    if (totalAmount >= 1000) {
+      hasConfirmedOrderAbove1000.value = true;
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('has_confirmed_order_above_1000', true);
+    }
+  }
   final ValueNotifier<int> followersCount = ValueNotifier<int>(0);
   final ValueNotifier<int> followingCount = ValueNotifier<int>(0);
   final ValueNotifier<int> connectionsCount = ValueNotifier<int>(0);
@@ -459,7 +469,11 @@ class ShopManager {
     if (requests != null) requestsList.value = List<Map<String, dynamic>>.from(requests);
     if (friends != null) friendsList.value = List<Map<String, dynamic>>.from(friends);
     final orderData = await ApiService.fetchUserOrders(tenant.id, currentUserId);
-    if (orderData != null) totalOrdersCount.value = orderData['total_count'] ?? 0;
+    if (orderData != null) {
+      totalOrdersCount.value = orderData['total_count'] ?? 0;
+      double maxAmt = double.tryParse(orderData['max_amount']?.toString() ?? '0') ?? 0;
+      if (maxAmt >= 1000) _checkAndSetQualifiedOrder(maxAmt);
+    }
   }
 
   // --- REVIEWS ---
@@ -633,6 +647,7 @@ class ShopManager {
     for (var item in newItems) { double prc = double.tryParse(item.product.price.replaceAll(RegExp(r'[^0-9.]'), '')) ?? 0; total += prc * item.quantity; itemsJson.add({"name": item.product.title, "quantity": item.quantity, "price": prc}); }
     final result = await ApiService.placeTableOrder({"tenant_id": tenant.id, "table_number": tableId, "user_id": currentUserId, "total_amount": total, "items": itemsJson});
     if (result != null && result['status'] == 'success') {
+       _checkAndSetQualifiedOrder(total);
        final Map<int, List<CartItem>> updated = Map.from(confirmedTableOrders.value);
        updated[tableId] = (updated[tableId] ?? [])..addAll(newItems);
        confirmedTableOrders.value = updated; tableOrders.value = Map.from(tableOrders.value)..remove(tableId); return {"success": true};
@@ -738,6 +753,7 @@ class ShopManager {
     double total = totalPrice; final itemsJson = items.value.map((i) => {"name": i.product.title, "quantity": i.quantity, "price": double.tryParse(i.product.price.replaceAll(RegExp(r'[^0-9.]'), '')) ?? 0}).toList();
     final result = await ApiService.placeTableOrder({"tenant_id": TenantService().currentTenant.value!.id, "table_number": selectedTableId.value, "user_id": currentUserId, "customer_email": customerEmail.value, "total_amount": total, "items": itemsJson});
     if (result != null && result['status'] == 'success') { 
+      _checkAndSetQualifiedOrder(total);
       int id = int.parse(result['order_id'].toString()); 
       activeOrderId.value = id; 
       

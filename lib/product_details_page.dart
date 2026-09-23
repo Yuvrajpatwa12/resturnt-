@@ -5,6 +5,7 @@ import 'app_data.dart';
 import 'product_card.dart';
 import 'ar_view_page.dart';
 import 'services/tenant_service.dart';
+import 'services/api_service.dart';
 
 class ProductDetailsPage extends StatefulWidget {
   final Product product;
@@ -20,6 +21,100 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
   int quantity = 1;
   bool isFavorite = false;
   String selectedSize = "Medium";
+
+  String _resolveImageUrl(String raw) {
+    if (raw.isEmpty) return '';
+    if (raw.startsWith('assets/')) return raw;
+    
+    String url = raw;
+    if (url.contains('startupsgotech') && !url.contains('startupsgo.tech')) {
+      url = url.replaceFirst('startupsgotech', 'startupsgo.tech');
+    }
+    if (url.contains('/uploads/') && !url.contains('/saas_api/')) {
+      url = url.replaceFirst('/uploads/', '/saas_api/uploads/');
+    }
+    while (url.contains('/saas_api/saas_api/')) {
+      url = url.replaceFirst('/saas_api/saas_api/', '/saas_api/');
+    }
+    if (!url.startsWith('http')) {
+      String baseUrl = ApiService.baseUrl;
+      if (baseUrl.endsWith('/')) baseUrl = baseUrl.substring(0, baseUrl.length - 1);
+      String cleanPath = url.startsWith('/') ? url.substring(1) : url;
+      url = "$baseUrl/$cleanPath";
+    }
+    return url;
+  }
+
+  Widget _buildProductImage(String imagePath) {
+    final resolvedPath = _resolveImageUrl(imagePath);
+
+    if (resolvedPath.isEmpty) {
+      return Container(
+        height: 220,
+        width: 220,
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFF0E5),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: const Center(
+          child: Icon(Icons.fastfood_rounded, color: Color(0xFFFF5C00), size: 64),
+        ),
+      );
+    }
+
+    if (resolvedPath.startsWith('assets/')) {
+      return Image.asset(
+        resolvedPath,
+        height: 220,
+        width: 220,
+        fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) => Container(
+          height: 220,
+          width: 220,
+          decoration: BoxDecoration(
+            color: const Color(0xFFFFF0E5),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: const Center(
+            child: Icon(Icons.fastfood_rounded, color: Color(0xFFFF5C00), size: 64),
+          ),
+        ),
+      );
+    }
+
+    return Image.network(
+      resolvedPath,
+      height: 220,
+      width: 220,
+      fit: BoxFit.contain,
+      loadingBuilder: (context, child, loadingProgress) {
+        if (loadingProgress == null) return child;
+        return SizedBox(
+          height: 220,
+          width: 220,
+          child: Center(
+            child: CircularProgressIndicator(
+              value: loadingProgress.expectedTotalBytes != null
+                  ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                  : null,
+              color: const Color(0xFFFF5C00),
+            ),
+          ),
+        );
+      },
+      errorBuilder: (context, error, stackTrace) => Container(
+        height: 220,
+        width: 220,
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFF0E5),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: const Center(
+          child: Icon(Icons.fastfood_rounded, color: Color(0xFFFF5C00), size: 64),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -89,12 +184,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                   Center(
                     child: Hero(
                       tag: widget.heroTag ?? widget.product.title,
-                      child: Image.network(
-                        widget.product.image,
-                        height: 220,
-                        width: 220,
-                        fit: BoxFit.contain,
-                      ),
+                      child: _buildProductImage(widget.product.image),
                     ),
                   ),
                   Positioned(
@@ -189,16 +279,10 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                   const SizedBox(height: 12),
                   
                   Row(
-                    children: [
-                      const Icon(Icons.star_rounded, color: Colors.amber, size: 20),
-                      const SizedBox(width: 4),
-                      Text(widget.product.rating, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                      const SizedBox(width: 8),
-                      const Text("•", style: TextStyle(color: Colors.grey)),
-                      const SizedBox(width: 8),
-                      const Icon(Icons.timer_outlined, color: Colors.grey, size: 16),
-                      const SizedBox(width: 4),
-                      const Text("15-20 min", style: TextStyle(color: Colors.grey, fontSize: 13)),
+                    children: const [
+                      Icon(Icons.timer_outlined, color: Colors.grey, size: 16),
+                      SizedBox(width: 4),
+                      Text("15-20 min", style: TextStyle(color: Colors.grey, fontSize: 13)),
                     ],
                   ),
 
