@@ -19,6 +19,7 @@ class ExpenseManagementScreen extends StatefulWidget {
 class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
   String _searchQuery = "";
   bool _isLoading = false;
+  Set<String> _selectedExpenseIds = {};
   
   // Data State
   Map<String, dynamic>? _dashboardData;
@@ -79,18 +80,18 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
 
     setState(() => _isLoading = true);
     
+    _vendors = await ApiService.fetchVendors(tenant.id) ?? [];
     if (widget.mode == "Expense Statement") {
       _dashboardData = await ApiService.fetchExpenseDashboard(tenant.id, "Month");
       _allExpenses = await ApiService.fetchExpenseList(tenant.id) ?? [];
-      _vendors = await ApiService.fetchVendors(tenant.id) ?? [];
     } else if (widget.mode == "Manage Expense") {
       _allExpenses = await ApiService.fetchExpenseList(tenant.id) ?? [];
     } else if (widget.mode == "Manage Expense Item") {
-      _vendors = await ApiService.fetchVendors(tenant.id) ?? [];
+      // already fetched vendors
     } else if (widget.mode == "Add Expense Item") {
       _recurring = await ApiService.fetchRecurringExpenses(tenant.id) ?? [];
     } else if (widget.mode == "Add Expense") {
-      _vendors = await ApiService.fetchVendors(tenant.id) ?? [];
+      // already fetched vendors
     }
 
     if (mounted) setState(() => _isLoading = false);
@@ -292,23 +293,62 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
   // --- 2. MANAGE EXPENSE (Premium Data Table) ---
 
   Widget _buildManageExpenseView() {
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(40, 40, 40, 24),
-          child: Row(
+    final filtered = _allExpenses.where((e) {
+      if (_searchQuery.isEmpty) return true;
+      final q = _searchQuery.toLowerCase();
+      return (e['category']?.toString().toLowerCase().contains(q) ?? false) ||
+             (e['note']?.toString().toLowerCase().contains(q) ?? false);
+    }).toList();
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text("Transaction Audit", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF4C49ED))),
               _buildTopActionToolbar(),
             ],
           ),
-        ),
-        _buildSearchAndFilterBar(),
-        const SizedBox(height: 24),
-        Expanded(child: _buildProfessionalTable()),
-        _buildPaginationFooter(),
-      ],
+          const SizedBox(height: 24),
+          _buildSearchAndFilterBar(),
+          const SizedBox(height: 16),
+
+          if (_selectedExpenseIds.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                ),
+                onPressed: () async {
+                  bool? confirm = await _showConfirmDelete();
+                  if (confirm == true) {
+                    for (var id in _selectedExpenseIds) {
+                      await ApiService.deleteExpenseV3(int.parse(id));
+                    }
+                    setState(() => _selectedExpenseIds.clear());
+                    _loadDataForMode();
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Selected expenses deleted successfully!"), backgroundColor: Colors.green));
+                    }
+                  }
+                },
+                icon: const Icon(Icons.delete_sweep_rounded, size: 18),
+                label: Text("Delete Selected (${_selectedExpenseIds.length})"),
+              ),
+            ),
+
+          _buildProfessionalTable(filtered),
+          const SizedBox(height: 24),
+          _buildPaginationFooter(),
+        ],
+      ),
     );
   }
 
@@ -334,36 +374,25 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
   }
 
   Widget _buildSearchAndFilterBar() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 40),
-      child: Row(
-        children: [
-          Expanded(
-            child: Container(
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), boxShadow: AdminTheme.softShadow),
-              child: TextField(
-                onChanged: (v) => setState(() => _searchQuery = v),
-                decoration: const InputDecoration(hintText: "Search transactions...", prefixIcon: Icon(Icons.search, size: 20), border: InputBorder.none),
-              ),
+    return Row(
+      children: [
+        Expanded(
+          child: Container(
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), boxShadow: AdminTheme.softShadow),
+            child: TextField(
+              onChanged: (v) => setState(() => _searchQuery = v),
+              decoration: const InputDecoration(hintText: "Search transactions...", prefixIcon: Icon(Icons.search, size: 20), border: InputBorder.none),
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
 
 
-  Widget _buildProfessionalTable() {
-    final filtered = _allExpenses.where((e) {
-      if (_searchQuery.isEmpty) return true;
-      final q = _searchQuery.toLowerCase();
-      return (e['category']?.toString().toLowerCase().contains(q) ?? false) ||
-             (e['note']?.toString().toLowerCase().contains(q) ?? false);
-    }).toList();
-
+  Widget _buildProfessionalTable(List<Map<String, dynamic>> filtered) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 40),
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: AdminTheme.softShadow),
       child: Column(
         children: [
@@ -371,24 +400,40 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
             decoration: const BoxDecoration(color: Color(0xFF4C49ED), borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-            child: const Row(
+            child: Row(
               children: [
-                SizedBox(width: 40, child: Icon(Icons.check_box_outline_blank, color: Colors.white70, size: 20)),
-                Expanded(flex: 3, child: Text("EXPENSE CATEGORY", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10, letterSpacing: 1))),
-                Expanded(flex: 2, child: Text("METHOD", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10, letterSpacing: 1))),
-                Expanded(flex: 2, child: Text("DATE", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10, letterSpacing: 1))),
-                Expanded(flex: 2, child: Text("AMOUNT", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10, letterSpacing: 1))),
-                SizedBox(width: 100, child: Text("ACTIONS", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10, letterSpacing: 1))),
+                SizedBox(
+                  width: 40,
+                  child: Checkbox(
+                    value: filtered.isNotEmpty && _selectedExpenseIds.length == filtered.length,
+                    activeColor: Colors.white,
+                    checkColor: const Color(0xFF4C49ED),
+                    onChanged: (bool? val) {
+                      setState(() {
+                        if (val == true) {
+                          _selectedExpenseIds = filtered.map((e) => e['id'].toString()).toSet();
+                        } else {
+                          _selectedExpenseIds.clear();
+                        }
+                      });
+                    },
+                  ),
+                ),
+                const Expanded(flex: 3, child: Text("EXPENSE CATEGORY", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10, letterSpacing: 1))),
+                const Expanded(flex: 2, child: Text("METHOD", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10, letterSpacing: 1))),
+                const Expanded(flex: 2, child: Text("DATE", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10, letterSpacing: 1))),
+                const Expanded(flex: 2, child: Text("AMOUNT", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10, letterSpacing: 1))),
+                const SizedBox(width: 100, child: Text("ACTIONS", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10, letterSpacing: 1))),
               ],
             ),
           ),
           // Table Rows
-          Expanded(
-            child: ListView.separated(
-              itemCount: filtered.length,
-              separatorBuilder: (_, __) => const Divider(height: 1, color: Color(0xFFF1F4F9)),
-              itemBuilder: (ctx, i) => _buildTableRow(filtered[i]),
-            ),
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: filtered.length,
+            separatorBuilder: (_, __) => const Divider(height: 1, color: Color(0xFFF1F4F9)),
+            itemBuilder: (ctx, i) => _buildTableRow(filtered[i]),
           ),
         ],
       ),
@@ -398,12 +443,28 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
   Widget _buildTableRow(Map<String, dynamic> e) {
     final catId = e['category'];
     final color = _categoriesIconMap[catId]?['color'] ?? Colors.blue;
+    final idStr = e['id']?.toString() ?? '';
+    final isSelected = _selectedExpenseIds.contains(idStr);
     
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       child: Row(
         children: [
-          const SizedBox(width: 40, child: Icon(Icons.check_box_outline_blank, color: Colors.black12, size: 20)),
+          SizedBox(
+            width: 40,
+            child: Checkbox(
+              value: isSelected,
+              onChanged: (bool? val) {
+                setState(() {
+                  if (val == true) {
+                    _selectedExpenseIds.add(idStr);
+                  } else {
+                    _selectedExpenseIds.remove(idStr);
+                  }
+                });
+              },
+            ),
+          ),
           Expanded(
             flex: 3,
             child: Row(
@@ -425,12 +486,18 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
             width: 100,
             child: Row(
               children: [
-                IconButton(onPressed: () {}, icon: const Icon(Icons.edit_outlined, size: 18, color: Colors.blue)),
+                IconButton(onPressed: () => _showEditExpenseDialog(e), icon: const Icon(Icons.edit_outlined, size: 18, color: Colors.blue)),
                 IconButton(onPressed: () async {
                    bool? confirm = await _showConfirmDelete();
                    if (confirm == true) {
-                      await ApiService.deleteExpenseV3(int.parse(e['id'].toString()));
-                      _loadDataForMode();
+                      final success = await ApiService.deleteExpenseV3(int.parse(e['id'].toString()));
+                      if (success) {
+                        _selectedExpenseIds.remove(idStr);
+                        _loadDataForMode();
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Expense deleted successfully!"), backgroundColor: Colors.green));
+                        }
+                      }
                    }
                 }, icon: const Icon(Icons.delete_outline, size: 18, color: Colors.redAccent)),
               ],
@@ -471,17 +538,30 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
                   subtitle: Text(vendor?['name'] ?? "Select Supplier", style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () async {
-                    // Reuse existing vendor picker logic if possible or just show a simple one here
                      final selected = await showModalBottomSheet<Map<String, dynamic>>(
                       context: context,
                       builder: (c) => Container(
                         padding: const EdgeInsets.all(24),
-                        child: ListView.builder(
-                          itemCount: _vendors.length,
-                          itemBuilder: (cc, i) => ListTile(
-                            title: Text(_vendors[i]['name'] ?? ''),
-                            onTap: () => Navigator.pop(c, _vendors[i]),
-                          ),
+                        constraints: const BoxConstraints(maxHeight: 320),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text("Select Supplier", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                            const SizedBox(height: 12),
+                            Expanded(
+                              child: _vendors.isEmpty 
+                                ? const Center(child: Text("No suppliers registered yet. Please add suppliers first."))
+                                : ListView.builder(
+                                    shrinkWrap: true,
+                                    itemCount: _vendors.length,
+                                    itemBuilder: (cc, i) => ListTile(
+                                      title: Text(_vendors[i]['name'] ?? ''),
+                                      onTap: () => Navigator.pop(c, _vendors[i]),
+                                    ),
+                                  ),
+                            ),
+                          ],
                         ),
                       ),
                     );
@@ -553,6 +633,65 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
               },
               style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF4C49ED)),
               child: const Text("LOG EXPENSE", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showEditExpenseDialog(Map<String, dynamic> e) {
+    final amountCtrl = TextEditingController(text: e['amount']?.toString() ?? '');
+    final noteCtrl = TextEditingController(text: e['note']?.toString() ?? '');
+    String category = e['category'] ?? 'COGS';
+    String payMode = e['payment_mode'] ?? 'Cash';
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          title: const Text("Edit Expense Transaction", style: TextStyle(fontWeight: FontWeight.bold)),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildTextField("Amount (NPR)", amountCtrl, hint: "0.00"),
+                const SizedBox(height: 16),
+                _buildFormDropdown("Category", category, _expenseCategories.map((c) => c['id'].toString()).toList(), (v) => setModalState(() => category = v!)),
+                const SizedBox(height: 16),
+                _buildFormDropdown("Payment Method", payMode, _paymentModes, (v) => setModalState(() => payMode = v!)),
+                const SizedBox(height: 16),
+                _buildTextField("Notes / Remarks", noteCtrl, hint: "Enter description..."),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("CANCEL", style: TextStyle(color: Colors.grey))),
+            ElevatedButton(
+              onPressed: () async {
+                final amt = double.tryParse(amountCtrl.text);
+                if (amt == null || amt <= 0) return;
+                
+                final tenant = TenantService().currentTenant.value;
+                final success = await ApiService.saveAdvancedExpense({
+                  "id": e['id'],
+                  "tenant_id": tenant?.id,
+                  "category": category,
+                  "amount": amt,
+                  "payment_mode": payMode,
+                  "note": noteCtrl.text,
+                  "date": e['date'] ?? DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now()),
+                });
+
+                if (success && context.mounted) {
+                  Navigator.pop(ctx);
+                  _loadDataForMode();
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Expense Updated Successfully!"), backgroundColor: Colors.green));
+                }
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF4C49ED)),
+              child: const Text("SAVE CHANGES", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             ),
           ],
         ),
@@ -634,7 +773,7 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
             children: [
               Expanded(flex: 2, child: _buildCategoryBreakoutCard()),
               const SizedBox(width: 24),
-              Expanded(flex: 1, child: _buildQuickActionCard()),
+              Expanded(flex: 1, child: _buildFinancialAnalyticsColumn()),
             ],
           ),
         ],
@@ -684,32 +823,152 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
     );
   }
 
-  Widget _buildQuickActionCard() {
-    return Container(
-      padding: const EdgeInsets.all(32),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(32), boxShadow: AdminTheme.softShadow),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text("Quick Actions", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 24),
-          _buildActionItem(Icons.group_add_outlined, "Manage Vendors", "Track supplier dues", () {}),
-          _buildActionItem(Icons.autorenew_outlined, "Recurring Setup", "Automate monthly bills", () {}),
-          _buildActionItem(Icons.verified_user_outlined, "Approval Queue", "Review manager entries", () {}),
-          _buildActionItem(Icons.cloud_upload_outlined, "Bulk Upload", "Import from CSV", () {}),
-        ],
-      ),
-    );
-  }
+  Widget _buildFinancialAnalyticsColumn() {
+    final double sales = double.tryParse(_dashboardData?['total_sales']?.toString() ?? '0') ?? 0;
+    final stats = _dashboardData?['stats'];
+    final double expenses = double.tryParse(stats?['total_expense']?.toString() ?? '0') ?? 0;
+    final double netProfit = sales - expenses;
+    final double profitMargin = sales > 0 ? (netProfit / sales).clamp(0.0, 1.0) : 0.0;
+    final double expenseRatio = sales > 0 ? (expenses / sales).clamp(0.0, 1.0) : 0.0;
 
-  Widget _buildActionItem(IconData icon, String title, String sub, VoidCallback onTap) {
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: CircleAvatar(backgroundColor: const Color(0xFFF1F4F9), child: Icon(icon, size: 20, color: const Color(0xFF4C49ED))),
-      title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-      subtitle: Text(sub, style: const TextStyle(fontSize: 11, color: Colors.grey)),
-      trailing: const Icon(Icons.chevron_right, size: 18),
-      onTap: onTap,
+    return Column(
+      children: [
+        // 1. Profit Margin Card
+        Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(28), boxShadow: AdminTheme.softShadow),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text("Profit Margin", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(color: const Color(0xFF00B69B).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
+                    child: Text("${(profitMargin * 100).toStringAsFixed(1)}% Margin", style: const TextStyle(color: Color(0xFF00B69B), fontWeight: FontWeight.bold, fontSize: 11)),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: LinearProgressIndicator(
+                  value: profitMargin,
+                  minHeight: 10,
+                  backgroundColor: Colors.grey[100],
+                  color: const Color(0xFF00B69B),
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text("Net profit relative to total gross revenue", style: TextStyle(color: Colors.grey, fontSize: 11)),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+
+        // 2. Sales vs Outflow Bar Ratio Card
+        Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(28), boxShadow: AdminTheme.softShadow),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text("Revenue vs Outflow", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text("Sales", style: TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 4),
+                        Text("NPR ${sales.toStringAsFixed(0)}", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: Color(0xFF5065F6))),
+                      ],
+                    ),
+                  ),
+                  Container(width: 1, height: 35, color: Colors.grey[200]),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text("Expenses", style: TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 4),
+                        Text("NPR ${expenses.toStringAsFixed(0)}", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: Color(0xFF8833FF))),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+
+        // 3. Expense Efficiency Card
+        Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(28), boxShadow: AdminTheme.softShadow),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text("Expense Ratio", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  Text("${(expenseRatio * 100).toStringAsFixed(1)}% of Sales", style: const TextStyle(color: Color(0xFF8833FF), fontWeight: FontWeight.bold, fontSize: 12)),
+                ],
+              ),
+              const SizedBox(height: 16),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: LinearProgressIndicator(
+                  value: expenseRatio,
+                  minHeight: 10,
+                  backgroundColor: Colors.grey[100],
+                  color: const Color(0xFF8833FF),
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text("Proportion of revenue consumed by expenses", style: TextStyle(color: Colors.grey, fontSize: 11)),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+
+        // 4. Financial Health Status Card
+        Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(colors: [Color(0xFF5065F6), Color(0xFF8833FF)]),
+            borderRadius: BorderRadius.circular(28),
+            boxShadow: AdminTheme.softShadow,
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), shape: BoxShape.circle),
+                child: const Icon(Icons.verified_rounded, color: Colors.white, size: 28),
+              ),
+              const SizedBox(width: 18),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text("Financial Health: Optimal", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                    SizedBox(height: 4),
+                    Text("Cash flow and profit margins are performing within healthy targets.", style: TextStyle(color: Colors.white70, fontSize: 11)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -850,8 +1109,11 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
   Widget _buildRecurringExpenseView() {
     double monthlyTotal = 0;
     int activeCount = 0;
+    int dueAlertCount = 0;
     for (var r in _recurring) {
-      if (r['is_active'] == 1) {
+      final val = r['is_active'];
+      final bool isActive = val == 1 || val == '1' || val == true || val == 'true';
+      if (isActive) {
         activeCount++;
         double amt = double.tryParse(r['amount']?.toString() ?? '0') ?? 0;
         if (r['frequency'] == 'Monthly') {
@@ -862,6 +1124,17 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
           monthlyTotal += (amt * 4);
         } else if (r['frequency'] == 'Yearly') {
           monthlyTotal += (amt / 12);
+        }
+
+        if (r['next_due_date'] != null) {
+          try {
+            final dueDate = DateFormat('yyyy-MM-dd').parse(r['next_due_date']);
+            if (dueDate.difference(DateTime.now()).inDays <= 2) {
+              dueAlertCount++;
+            }
+          } catch (e) {
+            // ignore
+          }
         }
       }
     }
@@ -877,7 +1150,22 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildHeaderTitle("Monthly Expense Planner"),
+                  Row(
+                    children: [
+                      _buildHeaderTitle("Monthly Expense Planner"),
+                      if (dueAlertCount > 0) ...[
+                        const SizedBox(width: 12),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(12)),
+                          child: Text(
+                            "$dueAlertCount Due",
+                            style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
                   const Text("Plan and track your upcoming restaurant commitments for the next cycle.", style: TextStyle(color: Colors.grey, fontSize: 13)),
                 ],
               ),
@@ -933,7 +1221,8 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
     final catId = r['category'];
     final color = _categoriesIconMap[catId]?['color'] ?? Colors.blue;
     final icon = _categoriesIconMap[catId]?['icon'] ?? Icons.autorenew;
-    final bool isActive = r['is_active'] == 1;
+    final val = r['is_active'];
+    final bool isActive = val == 1 || val == '1' || val == true || val == 'true';
     
     // Calculate days remaining
     int daysRemaining = 0;
@@ -972,7 +1261,20 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
                   ],
                 ),
               ),
-              Switch(value: isActive, activeTrackColor: color, onChanged: (v) {}),
+              Switch(
+                value: isActive,
+                activeTrackColor: color,
+                onChanged: (bool v) async {
+                  setState(() {
+                    r['is_active'] = v ? 1 : 0;
+                  });
+                  final id = int.tryParse(r['id']?.toString() ?? '0') ?? 0;
+                  if (id > 0) {
+                    await ApiService.toggleRecurringExpense(id, v ? 1 : 0);
+                    _loadDataForMode();
+                  }
+                },
+              ),
             ],
           ),
           const Spacer(),
@@ -1120,7 +1422,7 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
 
   Widget _buildEdukaCard(String title, String mainVal, String subLabel, String subVal, Color color, IconData icon) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: color, 
         borderRadius: BorderRadius.circular(24), 
@@ -1132,23 +1434,26 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 8),
-                  Text(mainVal, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900)),
-                ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    const SizedBox(height: 6),
+                    Text(mainVal, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  ],
+                ),
               ),
-              Icon(icon, color: Colors.white24, size: 48),
+              const SizedBox(width: 8),
+              Icon(icon, color: Colors.white24, size: 40),
             ],
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 18),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(subLabel, style: const TextStyle(color: Colors.white60, fontSize: 10, fontWeight: FontWeight.bold)),
-              Text(subVal, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+              Text(subLabel, style: const TextStyle(color: Colors.white60, fontSize: 10, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
+              Text(subVal, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
             ],
           ),
         ],

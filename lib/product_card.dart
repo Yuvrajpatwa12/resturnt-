@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'dart:convert';
 import 'models.dart';
 import 'cart_manager.dart';
 import 'product_details_page.dart';
@@ -68,10 +69,38 @@ class ProductCard extends StatelessWidget {
        print("DEBUG: Loading image from -> $displayImage");
     }
 
-    String displayPrice = item['price']?.toString() ?? 'N/A';
-    if (!displayPrice.contains('NPR') && displayPrice != 'N/A') {
+    String titleText = (item['title'] != null && item['title'].toString().trim().isNotEmpty) ? item['title'].toString() : 'Coming Soon Item';
+    String rawPrice = item['price']?.toString() ?? '';
+    String displayPrice = rawPrice.isNotEmpty && rawPrice != '0' && rawPrice != '0.00' ? rawPrice : 'Coming Soon';
+    if (!displayPrice.contains('NPR') && displayPrice != 'Coming Soon' && displayPrice != 'N/A') {
       displayPrice = "NPR $displayPrice";
     }
+
+    // Parse variants safely
+    List<Map<String, String>> parsedVariants = [];
+    if (item['variants'] != null) {
+      if (item['variants'] is String && (item['variants'] as String).isNotEmpty) {
+        try {
+          final List decoded = json.decode(item['variants']);
+          parsedVariants = decoded.map((v) => {
+            'name': v['name']?.toString() ?? '',
+            'price': v['price']?.toString() ?? '',
+          }).toList();
+        } catch (_) {}
+      } else if (item['variants'] is List) {
+        parsedVariants = (item['variants'] as List).map((v) => {
+          'name': v['name']?.toString() ?? '',
+          'price': v['price']?.toString() ?? '',
+        }).toList();
+      }
+    }
+
+    final bool hasVariants = (item['has_variants'] == true || item['has_variants'] == 1 || item['has_variants'] == '1') || parsedVariants.isNotEmpty;
+    final String? variantType = item['variant_type']?.toString();
+    final String? prepTime = item['prep_time']?.toString();
+
+    final bool itemIsAvailable = item['is_available'] == true || item['is_available'] == 1 || item['is_available'] == '1' || item['is_available'] == null || item['is_available'] == 'true';
+    final bool itemIsComingSoon = item['is_coming_soon'] == true || item['is_coming_soon'] == 1 || item['is_coming_soon'] == '1' || item['is_coming_soon'] == 'true';
 
     final product = Product(
       title: item['title'] ?? 'Product',
@@ -80,9 +109,15 @@ class ProductCard extends StatelessWidget {
       tag: item['tag'] ?? 'Popular',
       rating: item['rating'] ?? '4.9',
       discount: item['discount'] ?? '',
-      slogan: item['slogan'], // Added
+      slogan: item['slogan'],
       modelUrl: item['model_url'],
       iosModelUrl: item['ios_model_url'],
+      hasVariants: hasVariants,
+      variantType: variantType,
+      variants: parsedVariants,
+      prepTime: prepTime,
+      isAvailable: itemIsAvailable,
+      isComingSoon: itemIsComingSoon,
     );
 
     return Material(
@@ -148,6 +183,30 @@ class ProductCard extends StatelessWidget {
                         ),
                       ),
                     ),
+                    // Out of Stock Overlay
+                    if (!itemIsAvailable)
+                      Positioned.fill(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.45),
+                            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                          ),
+                          child: Center(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.redAccent,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Text(
+                                "OUT OF STOCK",
+                                style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 0.5),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+
                     // Tag Section
                     if (item['tag'] != null)
                       Positioned(
@@ -218,7 +277,7 @@ class ProductCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        item['title'] ?? 'Untitled',
+                        titleText,
                         style: TextStyle(
                           fontSize: isLarge ? 11 : 10, 
                           fontWeight: FontWeight.w600, 
@@ -233,13 +292,13 @@ class ProductCard extends StatelessWidget {
                         displayPrice, 
                         style: TextStyle(fontSize: isLarge ? 12 : 11, fontWeight: FontWeight.w900, color: const Color(0xFFFF5C00)),
                       ),
-                      if (product.slogan != null && product.slogan!.isNotEmpty)
+                      if ((product.slogan != null && product.slogan!.isNotEmpty) || (item['description'] != null && item['description'].toString().isNotEmpty))
                         Padding(
                           padding: const EdgeInsets.only(top: 2),
                           child: Text(
-                            product.slogan!,
+                            product.slogan?.isNotEmpty == true ? product.slogan! : item['description'].toString(),
                             style: TextStyle(fontSize: isLarge ? 10 : 9, color: Colors.grey[600], fontWeight: FontWeight.bold, fontStyle: FontStyle.italic),
-                            maxLines: 1,
+                            maxLines: 3,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -247,6 +306,45 @@ class ProductCard extends StatelessWidget {
                       ValueListenableBuilder<List<CartItem>>(
                         valueListenable: ShopManager.instance.items,
                         builder: (context, cartItems, child) {
+                          if (itemIsComingSoon) {
+                            return Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                GestureDetector(
+                                  onTap: () {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text("Coming Soon item! Tap card to view details & give feedback."),
+                                        backgroundColor: Colors.purple,
+                                        duration: Duration(seconds: 2),
+                                      ),
+                                    );
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.all(6),
+                                    decoration: BoxDecoration(
+                                      color: Colors.purple.shade50,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(color: Colors.purple.shade200),
+                                    ),
+                                    child: const Icon(Icons.info_outline, color: Colors.purple, size: 14),
+                                  ),
+                                ),
+                              ],
+                            );
+                          }
+                          if (!itemIsAvailable) {
+                            return Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(12)),
+                                  child: const Text("UNAVAILABLE", style: TextStyle(color: Colors.grey, fontSize: 8, fontWeight: FontWeight.bold)),
+                                ),
+                              ],
+                            );
+                          }
                           final qty = ShopManager.instance.getItemQuantity(product.title);
                           return Row(
                             mainAxisAlignment: MainAxisAlignment.end,

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'cart_manager.dart';
 import 'services/api_service.dart';
@@ -12,8 +13,167 @@ class MysteryBoxPage extends StatefulWidget {
 
 class _MysteryBoxPageState extends State<MysteryBoxPage> {
   bool _isProcessing = false;
+  bool _isLoadingClaims = true;
+  List<Map<String, dynamic>> _liveClaims = [];
   Map<String, dynamic>? _wonPrize;
   String? _claimCode;
+  Timer? _countdownTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRealClaims();
+    _startTimer();
+  }
+
+  @override
+  void dispose() {
+    _countdownTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startTimer() {
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (mounted && _liveClaims.isNotEmpty) {
+        setState(() {});
+      }
+    });
+  }
+
+  Future<void> _loadRealClaims() async {
+    await ShopManager.instance.ensureInitialized();
+
+    final tenant = TenantService().currentTenant.value;
+    final staff = TenantService().currentStaff.value;
+    final String currentUid = ShopManager.instance.currentUserId;
+    final String guestId = ShopManager.instance.guestId.value;
+    final String email = ShopManager.instance.customerEmail.value;
+
+    final String uid = staff != null ? staff.id.toString() : currentUid;
+
+    if (tenant == null || uid.isEmpty) {
+      if (mounted) {
+        setState(() {
+          _liveClaims = [];
+          _isLoadingClaims = false;
+        });
+      }
+      return;
+    }
+
+    setState(() => _isLoadingClaims = true);
+    final history = await ApiService.fetchClaimHistory(tenant.id, uid, guestId);
+    if (mounted) {
+      setState(() {
+        final String searchUid = uid.trim().toLowerCase();
+        final String searchGuest = guestId.trim().toLowerCase();
+        final String searchEmail = email.trim().toLowerCase();
+
+        List<Map<String, dynamic>> fetched = (history ?? []).where((c) {
+          final cUid = (c['user_id'] ?? '').toString().trim().toLowerCase();
+          if (cUid.isEmpty || cUid == 'guest') return false;
+          return cUid == searchUid || cUid == searchGuest || (searchEmail.isNotEmpty && cUid == searchEmail);
+        }).toList();
+
+        // Ensure newly won prize is preserved if not present in server response yet
+        if (_wonPrize != null) {
+          final String wCode = (_wonPrize!['claim_code'] ?? '').toString();
+          if (wCode.isNotEmpty && !fetched.any((c) => (c['claim_code'] ?? '').toString() == wCode)) {
+            fetched.insert(0, _wonPrize!);
+          }
+        }
+
+        _liveClaims = fetched;
+
+        // Auto-restore today's unboxed prize if user already claimed today
+        final DateTime now = DateTime.now();
+        Map<String, dynamic>? todayClaim;
+
+        for (var claim in fetched) {
+          final dateStr = (claim['created_at'] ?? '').toString();
+          if (dateStr.isNotEmpty) {
+            try {
+              final dt = DateTime.parse(dateStr);
+              if (dt.year == now.year && dt.month == now.month && dt.day == now.day) {
+                todayClaim = claim;
+                break;
+              }
+            } catch (_) {}
+          }
+        }
+
+        // Fallback: If no date match but user has a pending claim from today or recent
+        if (todayClaim == null && fetched.isNotEmpty) {
+          final first = fetched.first;
+          final String st = (first['status'] ?? '').toString().toLowerCase();
+          if (st == 'pending') {
+            todayClaim = first;
+          }
+        }
+
+        if (todayClaim != null) {
+          _wonPrize = todayClaim;
+          _claimCode = todayClaim['claim_code'];
+          ShopManager.instance.isMysteryBoxOpened.value = true;
+          final String st = (todayClaim['status'] ?? 'pending').toString().toLowerCase();
+          ShopManager.instance.isRewardClaimed.value =
+              (st == 'redeemed' || st == 'claimed' || st == 'claimed_by_staff');
+        } else {
+          if (_wonPrize == null) {
+            ShopManager.instance.isMysteryBoxOpened.value = false;
+            ShopManager.instance.isRewardClaimed.value = false;
+          }
+        }
+
+        _isLoadingClaims = false;
+      });
+    }
+  }
+
+  DateTime _parseServerDate(String dateStr) {
+    if (dateStr.isEmpty) return DateTime.now();
+    try {
+      String formatted = dateStr.replaceAll(' ', 'T');
+      DateTime parsed = DateTime.parse(formatted);
+      if (!formatted.contains('Z') && !formatted.contains('+')) {
+        final utcParsed = DateTime.utc(
+          parsed.year, parsed.month, parsed.day,
+          parsed.hour, parsed.minute, parsed.second,
+        );
+        final diffLocal = DateTime.now().difference(parsed).abs();
+        final diffUtc = DateTime.now().difference(utcParsed.toLocal()).abs();
+        if (diffUtc < diffLocal) {
+          return utcParsed.toLocal();
+        }
+      }
+      return parsed;
+    } catch (_) {
+      return DateTime.now();
+    }
+  }
+
+  // Calculate 6-hour expiration remaining duration
+  Duration _getRemainingExpiryTime(Map<String, dynamic> win) {
+    final dateStr = (win['created_at'] ?? '').toString();
+    if (dateStr.isEmpty) return const Duration(hours: 6);
+    try {
+      final createdAt = _parseServerDate(dateStr);
+      final expiryTime = createdAt.add(const Duration(hours: 6));
+      final remaining = expiryTime.difference(DateTime.now());
+      if (remaining.isNegative) return Duration.zero;
+      return remaining;
+    } catch (_) {
+      return const Duration(hours: 6);
+    }
+  }
+
+  String _formatDuration(Duration d) {
+    if (d <= Duration.zero) return "00h 00m 00s";
+    final hours = d.inHours.toString().padLeft(2, '0');
+    final minutes = (d.inMinutes % 60).toString().padLeft(2, '0');
+    final seconds = (d.inSeconds % 60).toString().padLeft(2, '0');
+    return "${hours}h ${minutes}m ${seconds}s";
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -83,7 +243,7 @@ class _MysteryBoxPageState extends State<MysteryBoxPage> {
               ),
             ),
 
-            const SizedBox(height: 60),
+            const SizedBox(height: 50),
 
             // --- 3. RECENT WINS / HISTORY ---
             const Padding(
@@ -91,7 +251,7 @@ class _MysteryBoxPageState extends State<MysteryBoxPage> {
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  "Previous Wins",
+                  "Previous Wins & Claims",
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
                 ),
               ),
@@ -179,74 +339,74 @@ class _MysteryBoxPageState extends State<MysteryBoxPage> {
     );
   }
 
+  // Completed State UI shown at the top after unboxing today
   Widget _buildOpenedStateUI() {
-    return ValueListenableBuilder<bool>(
-      valueListenable: ShopManager.instance.isRewardClaimed,
-      builder: (context, isClaimed, child) {
-        return Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(30),
-          decoration: BoxDecoration(
-            color: isClaimed ? Colors.grey[50] : Colors.white,
-            borderRadius: BorderRadius.circular(30),
-            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 20)],
-            border: Border.all(color: isClaimed ? Colors.grey[200]! : const Color(0xFFFF5C00).withValues(alpha: 0.2), width: 2),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(30),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(30),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 20)],
+        border: Border.all(color: Colors.grey.shade200, width: 2),
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.orange.shade50,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.check_circle_rounded,
+              color: const Color(0xFFFF5C00),
+              size: 60,
+            ),
           ),
-          child: Column(
-            children: [
-              Icon(
-                isClaimed ? Icons.check_circle : Icons.stars_rounded,
-                color: isClaimed ? Colors.grey : const Color(0xFFFF5C00),
-                size: 80,
-              ),
-              const SizedBox(height: 24),
-              Text(
-                isClaimed ? "REWARD CLAIMED" : (_wonPrize?['reward_name'] ?? "SURPRISE REWARD"),
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w900,
-                  color: isClaimed ? Colors.grey : Colors.black87,
-                  decoration: isClaimed ? TextDecoration.lineThrough : null,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                isClaimed ? "Redeemed successfully" : "Visit the counter with code: ${_claimCode ?? ''}",
-                style: const TextStyle(color: Colors.black54, fontSize: 14),
-              ),
-              const SizedBox(height: 30),
-              if (!isClaimed)
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: _showRewardSlip,
-                    icon: const Icon(Icons.qr_code_scanner, size: 18),
-                    label: const Text("VIEW REWARD SLIP"),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFFF5C00),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                    ),
-                  ),
-                )
-              else
-                const Text(
-                  "Enjoy your surprise gift!",
-                  style: TextStyle(color: Colors.grey, fontSize: 11, fontStyle: FontStyle.italic),
-                ),
-            ],
+          const SizedBox(height: 20),
+          const Text(
+            "Daily Limit Reached!",
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w900,
+              color: Colors.black87,
+            ),
           ),
-        );
-      },
+          const SizedBox(height: 8),
+          const Text(
+            "You have already opened today's Mystery Box.\nTap your reward below in 'Previous Wins' to view code & QR!",
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.black54, fontSize: 13, height: 1.4),
+          ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.orange.shade50,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.orange.shade200),
+            ),
+            child: const Text(
+              "Opens again tomorrow at 8:00 AM",
+              style: TextStyle(
+                color: Color(0xFFFF5C00),
+                fontWeight: FontWeight.bold,
+                fontSize: 11,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   Future<void> _handleOpenBox() async {
+    await ShopManager.instance.ensureInitialized();
     final tenant = TenantService().currentTenant.value;
     final staff = TenantService().currentStaff.value;
-    final uid = staff != null ? staff.id.toString() : ShopManager.instance.guestId.value;
+    final uid = staff != null ? staff.id.toString() : ShopManager.instance.currentUserId;
     if (tenant == null || uid.isEmpty) return;
 
     setState(() => _isProcessing = true);
@@ -266,19 +426,60 @@ class _MysteryBoxPageState extends State<MysteryBoxPage> {
       ),
     );
 
-    final res = await ApiService.openMysteryBox(tenant.id, uid);
+    final String userName = ShopManager.instance.customerName.value;
+    final res = await ApiService.openMysteryBox(tenant.id, uid, userName);
     
     if (!mounted) return;
     Navigator.pop(context); // Close unboxing dialog
 
     if (res != null && res['status'] == 'success') {
+      final Map<String, dynamic> rawWin = Map<String, dynamic>.from(res['data'] ?? {});
+      rawWin['status'] = 'pending';
+      rawWin['claim_code'] = res['claim_code'];
+      rawWin['user_id'] = uid;
+      rawWin['created_at'] = DateTime.now().toIso8601String();
+
       setState(() {
-        _wonPrize = res['data'];
+        _wonPrize = rawWin;
         _claimCode = res['claim_code'];
         ShopManager.instance.isMysteryBoxOpened.value = true;
-        ShopManager.instance.previousWins.value = List.from(ShopManager.instance.previousWins.value)..add(_wonPrize!);
+
+        bool exists = _liveClaims.any((c) => c['claim_code'] == res['claim_code']);
+        if (!exists) {
+          _liveClaims.insert(0, rawWin);
+        }
       });
+      _loadRealClaims();
       _showWinCelebration();
+    } else if (res != null && res['status'] == 'limit_reached') {
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Row(
+            children: [
+              Icon(Icons.access_time_filled_rounded, color: Colors.orange),
+              SizedBox(width: 10),
+              Text("Daily Limit Reached", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.black87)),
+            ],
+          ),
+          content: Text(
+            res['message'] ?? "You have already claimed today's Mystery Box! Come back tomorrow for a new surprise.",
+            style: const TextStyle(fontSize: 14),
+          ),
+          actions: [
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange.shade800,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text("GOT IT"),
+            ),
+          ],
+        ),
+      );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(res?['message'] ?? "Failed to open box.")));
     }
@@ -309,7 +510,7 @@ class _MysteryBoxPageState extends State<MysteryBoxPage> {
               const SizedBox(height: 15),
               Text(_wonPrize?['reward_name'] ?? "Surprise Item", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
               const SizedBox(height: 8),
-              const Text("Your reward is ready for pickup!", textAlign: TextAlign.center, style: TextStyle(fontSize: 13, color: Colors.grey)),
+              const Text("Your reward is added to Previous Wins below!", textAlign: TextAlign.center, style: TextStyle(fontSize: 13, color: Colors.grey)),
               const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,
@@ -320,7 +521,7 @@ class _MysteryBoxPageState extends State<MysteryBoxPage> {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
-                  child: const Text("AWESOME!", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  child: const Text("SEE MY REWARD", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                 ),
               ),
             ],
@@ -330,57 +531,99 @@ class _MysteryBoxPageState extends State<MysteryBoxPage> {
     );
   }
 
-  void _showRewardSlip() {
+  void _showRewardSlipModal(Map<String, dynamic> win) {
     showDialog(
       context: context,
       builder: (context) {
-        return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          child: Container(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text("CHIYABREAK SURPRISE SLIP", style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.5, color: Colors.grey, fontSize: 12)),
-                const Divider(height: 30),
-                Text(_wonPrize?['reward_name'] ?? "SURPRISE REWARD", style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFFFF5C00)), textAlign: TextAlign.center),
-                const SizedBox(height: 20),
-                Text("CODE: ${_claimCode ?? ''}", style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: 2)),
-                const SizedBox(height: 20),
-                Container(
-                  width: 150,
-                  height: 150,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    border: Border.all(color: Colors.black12),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(Icons.qr_code_2_rounded, size: 120),
-                ),
-                const SizedBox(height: 20),
-                const Text("Valid today at ChiyaBreak Hub", style: TextStyle(fontSize: 11, color: Colors.black54)),
-                const SizedBox(height: 30),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      setState(() {
-                        ShopManager.instance.isRewardClaimed.value = true;
-                      });
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Reward Claimed & Slip Expired.")));
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.black87,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
+        Timer? dialogTimer;
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            dialogTimer ??= Timer.periodic(const Duration(seconds: 1), (timer) {
+              if (context.mounted) {
+                setDialogState(() {});
+              } else {
+                timer.cancel();
+              }
+            });
+
+            final String title = win['reward_name'] ?? win['reward_title'] ?? win['title'] ?? 'Mystery Prize';
+            final String code = win['claim_code'] ?? '';
+            final String status = (win['status'] ?? 'pending').toString().toLowerCase();
+            final bool isRedeemed = status == 'redeemed' || status == 'claimed' || status == 'claimed_by_staff';
+            final remaining = _getRemainingExpiryTime(win);
+            final bool isExpired = !isRedeemed && remaining <= Duration.zero;
+
+            return Dialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text("CHIYABREAK SURPRISE SLIP", style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.5, color: Colors.grey, fontSize: 12)),
+                    const Divider(height: 30),
+                    Text(
+                      title,
+                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFFFF5C00)),
+                      textAlign: TextAlign.center,
                     ),
-                    child: const Text("DONE", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                  ),
+                    const SizedBox(height: 20),
+                    Text("CODE: $code", style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: 2)),
+                    const SizedBox(height: 20),
+                    Container(
+                      width: 150,
+                      height: 150,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        border: Border.all(color: Colors.black12),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        isExpired
+                            ? Icons.timer_off_rounded
+                            : (isRedeemed ? Icons.check_circle_outline_rounded : Icons.qr_code_2_rounded),
+                        size: 110,
+                        color: isExpired ? Colors.red : (isRedeemed ? Colors.green : Colors.black87),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    if (isRedeemed)
+                      const Text("✅ Verified & Redeemed by Waiter", style: TextStyle(fontSize: 12, color: Colors.green, fontWeight: FontWeight.bold))
+                    else if (isExpired)
+                      const Text("❌ Reward Expired (6 Hours Time Limit Exceeded)", style: TextStyle(fontSize: 12, color: Colors.red, fontWeight: FontWeight.bold))
+                    else
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.access_time_filled_rounded, size: 16, color: Color(0xFFFF5C00)),
+                          const SizedBox(width: 6),
+                          Text(
+                            "Expires in: ${_formatDuration(remaining)}",
+                            style: const TextStyle(fontSize: 14, color: Color(0xFFFF5C00), fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                    const SizedBox(height: 30),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          dialogTimer?.cancel();
+                          Navigator.pop(context);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.black87,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                        child: const Text("CLOSE SLIP", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         );
       },
     );
@@ -402,7 +645,7 @@ class _MysteryBoxPageState extends State<MysteryBoxPage> {
             SizedBox(height: 10),
             Text("2. Available once daily between 8 AM and 8 PM.", textAlign: TextAlign.center),
             SizedBox(height: 10),
-            Text("3. Reward slips must be claimed at the counter.", textAlign: TextAlign.center),
+            Text("3. Rewards expire 6 hours after unboxing if not claimed.", textAlign: TextAlign.center),
             SizedBox(height: 30),
           ],
         ),
@@ -411,65 +654,141 @@ class _MysteryBoxPageState extends State<MysteryBoxPage> {
   }
 
   Widget _buildPreviousWinsList() {
-    return ValueListenableBuilder<List<Map<String, dynamic>>>(
-      valueListenable: ShopManager.instance.previousWins,
-      builder: (context, wins, _) {
-        if (wins.isEmpty) {
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.grey[100]!),
-              ),
-              child: const Center(
-                child: Text(
-                  "No previous wins yet. Open mystery boxes to win rewards!",
-                  style: TextStyle(color: Colors.grey, fontSize: 12),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            ),
-          );
-        }
+    if (_isLoadingClaims) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 30),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
 
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Column(
-            children: wins.map((w) => _buildWinItem(w['reward_name'] ?? 'Mystery Prize', "Claimed recently")).toList(),
+    if (_liveClaims.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.grey[100]!),
           ),
-        );
-      },
+          child: const Center(
+            child: Text(
+              "No previous wins yet. Open mystery boxes to win rewards!",
+              style: TextStyle(color: Colors.grey, fontSize: 12),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Column(
+        children: _liveClaims.map((w) => _buildWinItem(w)).toList(),
+      ),
     );
   }
 
-  Widget _buildWinItem(String title, String date) {
+  Widget _buildWinItem(Map<String, dynamic> win) {
+    final String title = win['reward_name'] ?? win['reward_title'] ?? win['title'] ?? 'Mystery Prize';
+    final String status = (win['status'] ?? 'pending').toString().toLowerCase();
+    final bool isRedeemed = status == 'redeemed' || status == 'claimed' || status == 'claimed_by_staff';
+    final String code = win['claim_code'] ?? '';
+    final remaining = _getRemainingExpiryTime(win);
+    final bool isExpired = !isRedeemed && remaining <= Duration.zero;
+
+    Color badgeBg;
+    Color badgeText;
+    String badgeTitle;
+
+    if (isRedeemed) {
+      badgeBg = Colors.green.shade50;
+      badgeText = Colors.green.shade800;
+      badgeTitle = "Redeemed";
+    } else if (isExpired) {
+      badgeBg = Colors.red.shade50;
+      badgeText = Colors.red.shade800;
+      badgeTitle = "Expired";
+    } else {
+      badgeBg = Colors.orange.shade50;
+      badgeText = Colors.orange.shade900;
+      badgeTitle = "Pending";
+    }
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey[100]!),
+        border: Border.all(color: isExpired ? Colors.red.shade100 : Colors.grey[100]!),
       ),
-      child: Row(
-        children: [
-          const Icon(Icons.history, color: Colors.grey, size: 20),
-          const SizedBox(width: 15),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () => _showRewardSlipModal(win),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
               children: [
-                Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-                Text(date, style: const TextStyle(color: Colors.grey, fontSize: 11)),
+                Icon(
+                  isRedeemed
+                      ? Icons.check_circle_rounded
+                      : (isExpired ? Icons.highlight_off_rounded : Icons.pending_actions_rounded),
+                  color: isRedeemed ? Colors.green : (isExpired ? Colors.red : Colors.orange),
+                  size: 24,
+                ),
+                const SizedBox(width: 15),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                      const SizedBox(height: 3),
+                      Text(
+                        isRedeemed
+                            ? "Verified & Redeemed by Waiter"
+                            : (isExpired
+                                ? "Expired (6h Claim Limit Exceeded)"
+                                : (code.isNotEmpty
+                                    ? "Code: $code • Expires in ${_formatDuration(remaining)}"
+                                    : "Expires in ${_formatDuration(remaining)}")),
+                        style: TextStyle(
+                          color: isRedeemed
+                              ? Colors.grey[600]
+                              : (isExpired ? Colors.red.shade700 : Colors.orange.shade900),
+                          fontSize: 11,
+                          fontWeight: isRedeemed ? FontWeight.normal : FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: badgeBg,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    badgeTitle,
+                    style: TextStyle(
+                      color: badgeText,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 11,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 4),
+                const Icon(Icons.chevron_right_rounded, size: 18, color: Colors.grey),
               ],
             ),
           ),
-          const Text("Claimed", style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 11)),
-        ],
+        ),
       ),
     );
   }

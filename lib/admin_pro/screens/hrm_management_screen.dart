@@ -102,32 +102,43 @@ class _HRMManagementScreenState extends State<HRMManagementScreen> {
     
     final data = await ApiService.fetchStaff(tenant.id);
     
-    if (mounted) {
-      if (data != null) {
-        setState(() {
-          _staffList = data;
-        });
+    if (mounted && data != null) {
+      final month = "${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, '0')}";
+      for (var s in data) {
+        final uid = int.tryParse(s['id'].toString()) ?? 0;
+        if (uid > 0) {
+          final statsData = await ApiService.fetchEmployeeStats(uid, month);
+          if (statsData != null && statsData['status'] == 'success') {
+            s['present_days'] = statsData['stats']['present'] ?? 0;
+          } else {
+            s['present_days'] = 0;
+          }
+        }
+      }
+
+      setState(() {
+        _staffList = data;
+      });
+      
+      if (widget.mode.contains("Attendance")) {
+        final today = DateTime.now().toIso8601String().split('T')[0];
+        debugPrint("DEBUG UI: Syncing attendance state for date: $today");
         
-        if (widget.mode.contains("Attendance")) {
-          final today = DateTime.now().toIso8601String().split('T')[0];
-          debugPrint("DEBUG UI: Syncing attendance state for date: $today");
-          
-          final attData = await ApiService.fetchAttendance(tenant.id, today);
-          if (attData != null && mounted) {
-            setState(() {
-              _completedToday.clear(); // Re-clear before populate
-              for (var row in attData) {
-                final int uid = int.parse(row['user_id'].toString());
-                _attendanceMap[uid] = row['status'];
-                _completedToday.add(uid);
-                debugPrint("DEBUG UI: User $uid already marked today.");
-              }
-            });
-          }
-          
-          if (widget.mode == "Attendance Report") {
-            await _loadReport();
-          }
+        final attData = await ApiService.fetchAttendance(tenant.id, today);
+        if (attData != null && mounted) {
+          setState(() {
+            _completedToday.clear(); // Re-clear before populate
+            for (var row in attData) {
+              final int uid = int.parse(row['user_id'].toString());
+              _attendanceMap[uid] = row['status'];
+              _completedToday.add(uid);
+              debugPrint("DEBUG UI: User $uid already marked today.");
+            }
+          });
+        }
+        
+        if (widget.mode == "Attendance Report") {
+          await _loadReport();
         }
       }
       setState(() => _isLoading = false);
@@ -664,19 +675,73 @@ class _HRMManagementScreenState extends State<HRMManagementScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text("Team Directory", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-                Text("Total Team: ${_staffList.length} Members • ID: ${TenantService().currentTenant.value?.id}", 
-                  style: const TextStyle(fontSize: 10, color: Colors.blue, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
-              ],
+        // Modern Gradient Header Banner
+        Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [AdminTheme.darkNavy, AdminTheme.royalBlue],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
-            IconButton(onPressed: _loadStaff, icon: const Icon(Icons.refresh, color: AdminTheme.royalBlue)),
-          ],
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: AdminTheme.softShadow,
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const Icon(Icons.people_alt_rounded, color: Colors.white, size: 30),
+              ),
+              const SizedBox(width: 18),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "Team Directory",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            "Total Members: ${_staffList.length}",
+                            style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          "Tenant ID: ${TenantService().currentTenant.value?.id ?? 'N/A'}",
+                          style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                onPressed: _loadStaff,
+                icon: const Icon(Icons.refresh_rounded, color: Colors.white),
+                tooltip: "Refresh Directory",
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: 24),
         
@@ -684,33 +749,43 @@ class _HRMManagementScreenState extends State<HRMManagementScreen> {
         Container(
           decoration: BoxDecoration(
             color: Colors.white, borderRadius: BorderRadius.circular(16),
-            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))],
+            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 15, offset: const Offset(0, 5))],
           ),
           child: TextField(
             onChanged: (v) => setState(() => _searchQuery = v),
             decoration: InputDecoration(
               hintText: "Search by Name, Role or Email...",
-              hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
+              hintStyle: TextStyle(fontSize: 13, color: Colors.grey[400]),
               prefixIcon: const Icon(Icons.search_rounded, color: AdminTheme.royalBlue),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
               contentPadding: const EdgeInsets.symmetric(vertical: 16),
             ),
           ),
         ),
-        const SizedBox(height: 32),
+        const SizedBox(height: 24),
 
         if (_isLoading)
           const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator()))
         else if (_staffList.isEmpty)
-          const Center(child: Padding(padding: EdgeInsets.all(40), child: Text("No staff members found in database.")))
+          Container(
+            padding: const EdgeInsets.all(40),
+            alignment: Alignment.center,
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: AdminTheme.softShadow),
+            child: const Text("No staff members found in database.", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+          )
         else if (filteredList.isEmpty)
-          const Center(child: Padding(padding: EdgeInsets.all(40), child: Text("No members match your search.")))
+          Container(
+            padding: const EdgeInsets.all(40),
+            alignment: Alignment.center,
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: AdminTheme.softShadow),
+            child: const Text("No members match your search.", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+          )
         else
           ListView.separated(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: filteredList.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            separatorBuilder: (_, __) => const SizedBox(height: 14),
             itemBuilder: (context, index) {
               final s = filteredList[index];
               return _buildEmployeeRow(s);
@@ -721,6 +796,13 @@ class _HRMManagementScreenState extends State<HRMManagementScreen> {
   }
 
   Widget _buildEmployeeRow(Map<String, dynamic> s) {
+    final String name = s['name'] ?? 'Unknown';
+    final String role = s['role'] ?? 'Staff';
+    final String email = s['email'] ?? 'No email';
+    final String phone = s['phone_number'] ?? '';
+    final String salary = s['salary_amount']?.toString() ?? '0.00';
+    final String? picUrl = s['profile_pic_url'];
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -732,38 +814,92 @@ class _HRMManagementScreenState extends State<HRMManagementScreen> {
         },
         borderRadius: BorderRadius.circular(20),
         child: Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
             color: Colors.white, 
             borderRadius: BorderRadius.circular(20), 
             boxShadow: AdminTheme.softShadow,
-            border: Border.all(color: Colors.grey[100]!),
+            border: Border.all(color: Colors.grey.shade100),
           ),
           child: Row(
             children: [
-              CircleAvatar(
-                backgroundColor: AdminTheme.royalBlue.withValues(alpha: 0.1),
-                backgroundImage: (s['profile_pic_url'] != null && s['profile_pic_url'].isNotEmpty)
-                  ? NetworkImage(s['profile_pic_url'])
-                  : null,
-                child: (s['profile_pic_url'] == null || s['profile_pic_url'].isEmpty)
-                  ? Text(
-                      (s['name'] ?? 'U')[0].toUpperCase(), 
-                      style: const TextStyle(color: AdminTheme.royalBlue, fontWeight: FontWeight.bold)
-                    )
-                  : null,
+              Stack(
+                children: [
+                  CircleAvatar(
+                    radius: 26,
+                    backgroundColor: AdminTheme.royalBlue.withValues(alpha: 0.1),
+                    backgroundImage: (picUrl != null && picUrl.isNotEmpty) ? NetworkImage(picUrl) : null,
+                    child: (picUrl == null || picUrl.isEmpty)
+                      ? Text(name[0].toUpperCase(), style: const TextStyle(color: AdminTheme.royalBlue, fontWeight: FontWeight.bold, fontSize: 18))
+                      : null,
+                  ),
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: Container(
+                      width: 12,
+                      height: 12,
+                      decoration: BoxDecoration(
+                        color: AdminTheme.emeraldGreen,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 18),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(s['name'] ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                    Text("${s['role']} • ${s['email']}", style: const TextStyle(color: Colors.grey, fontSize: 11)),
+                    Row(
+                      children: [
+                        Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black87)),
+                        const SizedBox(width: 10),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: AdminTheme.royalBlue.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            role.toUpperCase(),
+                            style: const TextStyle(color: AdminTheme.royalBlue, fontSize: 10, fontWeight: FontWeight.w900),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(email, style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+                    if (phone.isNotEmpty || salary != '0.00') ...[
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          if (phone.isNotEmpty) ...[
+                            Icon(Icons.phone_outlined, size: 12, color: Colors.grey[400]),
+                            const SizedBox(width: 4),
+                            Text(phone, style: TextStyle(color: Colors.grey[600], fontSize: 11)),
+                            const SizedBox(width: 12),
+                          ],
+                          const Icon(Icons.payments_outlined, size: 12, color: AdminTheme.emeraldGreen),
+                          const SizedBox(width: 4),
+                          Text("NPR $salary / mo", style: const TextStyle(color: AdminTheme.emeraldGreen, fontWeight: FontWeight.bold, fontSize: 11)),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),
-              const Icon(Icons.arrow_forward_ios, size: 12, color: Colors.grey),
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: Colors.grey[50],
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.grey),
+              ),
             ],
           ),
         ),
@@ -1369,8 +1505,12 @@ class _HRMManagementScreenState extends State<HRMManagementScreen> {
           ],
         ),
         const SizedBox(height: 32),
-        if (_staffList.isEmpty) const Center(child: Text("No staff data found."))
-        else ListView.builder(
+        if (_isLoading)
+          const Center(child: Padding(padding: EdgeInsets.all(60), child: CircularProgressIndicator()))
+        else if (_staffList.isEmpty)
+          const Center(child: Padding(padding: EdgeInsets.all(40), child: Text("No staff data found.")))
+        else
+          ListView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           itemCount: _staffList.length,
@@ -1379,13 +1519,11 @@ class _HRMManagementScreenState extends State<HRMManagementScreen> {
             final double salary = double.tryParse(s['salary_amount']?.toString() ?? '0') ?? 0;
             final int cycle = int.tryParse(s['payment_cycle_days']?.toString() ?? '30') ?? 30;
             
-            // PAYROLL LOGIC
+            // PAYROLL LOGIC (Count actual present attendance days)
             DateTime joinDate = DateTime.tryParse(s['created_at']?.toString() ?? '') ?? DateTime.now();
-            final now = DateTime.now();
-            final daysSinceJoining = now.difference(joinDate).inDays;
-            final daysPassed = daysSinceJoining % cycle;
-            final daysRemaining = cycle - daysPassed;
-            final double progress = daysPassed / cycle;
+            final int daysPassed = int.tryParse(s['present_days']?.toString() ?? '0') ?? 0;
+            final int daysRemaining = (cycle > daysPassed) ? (cycle - daysPassed) : 0;
+            final double progress = cycle > 0 ? (daysPassed / cycle).clamp(0.0, 1.0) : 0.0;
 
             return Container(
               margin: const EdgeInsets.only(bottom: 20),
@@ -1434,7 +1572,7 @@ class _HRMManagementScreenState extends State<HRMManagementScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      _buildPayrollStat("DATE", "${now.day} ${_months[now.month-1]} ${now.year}"),
+                      _buildPayrollStat("DATE", "${joinDate.day} ${_months[joinDate.month-1]} ${joinDate.year}"),
                       _buildPayrollStat("STATUS", "Active Cycle", isStatus: true),
                       _buildPayrollStat("SALARY", "NPR ${salary.toStringAsFixed(0)}"),
                     ],

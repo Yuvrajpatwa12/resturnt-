@@ -79,10 +79,19 @@ class _MenuPageState extends State<MenuPage> {
     }
   }
 
-  List<Map<String, dynamic>> _getRecommendedItems(List<Map<String, dynamic>> dbProducts, String slot) {
-    if (dbProducts.isEmpty) return [];
+  List<Map<String, dynamic>> _getAvailableProducts(List<Map<String, dynamic>> dbProducts) {
+    return dbProducts.where((p) {
+      final avail = p['is_available'];
+      if (avail == false || avail == 0 || avail == '0' || avail == 'false') return false;
+      return true;
+    }).toList();
+  }
 
-    final matching = dbProducts.where((p) {
+  List<Map<String, dynamic>> _getRecommendedItems(List<Map<String, dynamic>> dbProducts, String slot) {
+    final available = _getAvailableProducts(dbProducts);
+    if (available.isEmpty) return [];
+
+    final matching = available.where((p) {
       final String? time = p['suitable_time']?.toString();
 
       // 1. If admin explicitly chose suitable_time during upload
@@ -116,7 +125,7 @@ class _MenuPageState extends State<MenuPage> {
   }
 
   List<Map<String, dynamic>> _getFiltered(List<Map<String, dynamic>> dbProducts) {
-    List<Map<String, dynamic>> items = List.from(dbProducts);
+    List<Map<String, dynamic>> items = _getAvailableProducts(dbProducts);
 
     // 1. Filter by Category
     if (_selectedCategory != 'All') {
@@ -396,7 +405,7 @@ class _MenuPageState extends State<MenuPage> {
 
   Widget _buildRecommendationSection(List<Map<String, dynamic>> dbProducts, Map<String, String> timeContext) {
     final slot = timeContext['slot'] ?? 'Morning';
-    final recommended = _getRecommendedItems(dbProducts, slot);
+    final recommended = _getRecommendedItems(_getAvailableProducts(dbProducts), slot);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

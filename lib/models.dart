@@ -9,6 +9,12 @@ class Product {
   final String? slogan; // Added
   final String? modelUrl;
   final String? iosModelUrl;
+  final bool hasVariants;
+  final String? variantType;
+  final List<Map<String, String>> variants;
+  final String? prepTime;
+  final bool isAvailable;
+  final bool isComingSoon;
 
   Product({
     required this.title,
@@ -21,6 +27,12 @@ class Product {
     this.slogan,
     this.modelUrl,
     this.iosModelUrl,
+    this.hasVariants = false,
+    this.variantType,
+    this.variants = const [],
+    this.prepTime,
+    this.isAvailable = true,
+    this.isComingSoon = false,
   });
 }
 

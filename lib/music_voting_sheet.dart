@@ -2,8 +2,20 @@ import 'package:flutter/material.dart';
 import 'cart_manager.dart';
 import 'jukebox_page.dart';
 
-class MusicVotingSheet extends StatelessWidget {
+class MusicVotingSheet extends StatefulWidget {
   const MusicVotingSheet({super.key});
+
+  @override
+  State<MusicVotingSheet> createState() => _MusicVotingSheetState();
+}
+
+class _MusicVotingSheetState extends State<MusicVotingSheet> {
+  @override
+  void initState() {
+    super.initState();
+    // Refresh live music queue when sheet opens
+    ShopManager.instance.refreshMusicStatus();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -64,7 +76,57 @@ class MusicVotingSheet extends StatelessWidget {
             ],
           ),
 
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
+
+          // Now Playing Banner
+          ValueListenableBuilder<Map<String, dynamic>>(
+            valueListenable: ShopManager.instance.currentSong,
+            builder: (context, song, _) {
+              final title = song['title'] ?? 'No Song Playing';
+              final artist = song['artist'] ?? '';
+              final image = song['image'] ?? '';
+
+              return Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFF5C00).withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFFF5C00).withValues(alpha: 0.2)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.graphic_eq_rounded, color: Color(0xFFFF5C00), size: 20),
+                    const SizedBox(width: 10),
+                    if (image.isNotEmpty)
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.network(
+                          image,
+                          width: 32,
+                          height: 32,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                        ),
+                      ),
+                    if (image.isNotEmpty) const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text("NOW PLAYING 🎵", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Color(0xFFFF5C00), letterSpacing: 1)),
+                          const SizedBox(height: 2),
+                          Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black), maxLines: 1, overflow: TextOverflow.ellipsis),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+
+          const SizedBox(height: 16),
 
           // Voting List
           const Text(
@@ -77,13 +139,37 @@ class MusicVotingSheet extends StatelessWidget {
             child: ValueListenableBuilder<List<Map<String, dynamic>>>(
               valueListenable: ShopManager.instance.musicQueue,
               builder: (context, queue, child) {
+                // Filter out deleted items & sort by votes count descending
+                final activeQueue = queue.where((item) {
+                  final st = (item['status'] ?? 'queued').toString().toLowerCase().trim();
+                  return st != 'deleted';
+                }).toList();
+
+                activeQueue.sort((a, b) {
+                  final int vA = int.tryParse(a['votes']?.toString() ?? '0') ?? 0;
+                  final int vB = int.tryParse(b['votes']?.toString() ?? '0') ?? 0;
+                  return vB.compareTo(vA);
+                });
+
+                if (activeQueue.isEmpty) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 24),
+                    child: Center(
+                      child: Text(
+                        "No song requests active. Tap 'Request a Song' below!",
+                        style: TextStyle(color: Colors.grey[500], fontSize: 13),
+                      ),
+                    ),
+                  );
+                }
+
                 return ListView.builder(
                   shrinkWrap: true,
                   padding: EdgeInsets.zero,
                   physics: const BouncingScrollPhysics(),
-                  itemCount: queue.length,
+                  itemCount: activeQueue.length,
                   itemBuilder: (context, index) {
-                    final item = queue[index];
+                    final item = activeQueue[index];
                     int songId = int.tryParse(item['id']?.toString() ?? '') ?? 0;
                     if (songId == 0) return const SizedBox.shrink(); // Hide invalid items
                     bool userLiked = item['user_liked'] == true;

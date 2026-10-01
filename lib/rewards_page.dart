@@ -30,16 +30,31 @@ class _RewardsPageState extends State<RewardsPage> {
 
     setState(() => _isLoading = true);
     
+    await ShopManager.instance.ensureInitialized();
     await ShopManager.instance.refreshUserPoints();
     _userPoints = ShopManager.instance.userPoints.value;
     
+    final String currentUid = ShopManager.instance.currentUserId;
+    final String guestId = ShopManager.instance.guestId.value;
+    final String email = ShopManager.instance.customerEmail.value;
+
     final List<dynamic> results = await Future.wait([
        ApiService.fetchRewards(tenant.id),
-       ApiService.fetchClaimHistory(tenant.id, ShopManager.instance.currentUserId)
+       ApiService.fetchClaimHistory(tenant.id, currentUid, guestId)
     ]);
 
     _rewards = List<Map<String, dynamic>>.from(results[0] ?? []);
-    _claimHistory = List<Map<String, dynamic>>.from(results[1] ?? []);
+    final rawClaims = List<Map<String, dynamic>>.from(results[1] ?? []);
+
+    final String searchUid = currentUid.trim().toLowerCase();
+    final String searchGuest = guestId.trim().toLowerCase();
+    final String searchEmail = email.trim().toLowerCase();
+
+    _claimHistory = rawClaims.where((c) {
+      final cUid = (c['user_id'] ?? '').toString().trim().toLowerCase();
+      if (cUid.isEmpty || cUid == 'guest') return false;
+      return cUid == searchUid || cUid == searchGuest || (searchEmail.isNotEmpty && cUid == searchEmail);
+    }).toList();
     
     if (mounted) setState(() => _isLoading = false);
   }

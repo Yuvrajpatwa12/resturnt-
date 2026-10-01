@@ -5,7 +5,12 @@ import 'services/api_service.dart';
 
 class MySearchDelegate extends SearchDelegate {
   final List<Map<String, dynamic>> products;
-  MySearchDelegate(this.products);
+  MySearchDelegate(List<Map<String, dynamic>> rawProducts)
+      : products = rawProducts.where((p) {
+          final avail = p['is_available'];
+          if (avail == false || avail == 0 || avail == '0' || avail == 'false') return false;
+          return true;
+        }).toList();
 
   String _resolveImageUrl(String raw) {
     if (raw.isEmpty) return '';

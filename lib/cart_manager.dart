@@ -6,6 +6,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:http/http.dart' as http;
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 
@@ -34,9 +35,17 @@ class CartItem {
 class ShopManager {
   static final ShopManager instance = ShopManager._internal();
   factory ShopManager() => instance;
+
+  Future<void>? _initFuture;
+
+  Future<void> ensureInitialized() async {
+    _initFuture ??= _loadPersistedOrder();
+    await _initFuture;
+  }
+
   ShopManager._internal() {
     _startGlobalTimer();
-    _loadPersistedOrder();
+    _initFuture = _loadPersistedOrder();
     _startPresenceCheckIn();
     _startWavePoller();
     _startNotificationsPoller();
@@ -155,19 +164,56 @@ class ShopManager {
   }
 
   void _startMusicPoller() {
-    Timer.periodic(const Duration(seconds: 30), (timer) => refreshMusicStatus());
+    Timer.periodic(const Duration(seconds: 5), (timer) => refreshMusicStatus());
+    refreshMusicStatus();
   }
+
+  final Set<int> _deletedSongIds = {};
+
+  void markSongDeleted(int songId) {
+    _deletedSongIds.add(songId);
+    final currentList = List<Map<String, dynamic>>.from(musicQueue.value);
+    currentList.removeWhere((qItem) => (int.tryParse(qItem['id']?.toString() ?? '0') ?? 0) == songId);
+    musicQueue.value = currentList;
+  }
+
+  final ValueNotifier<String> musicApiStatusMessage = ValueNotifier<String>('Checking live queue...');
 
   Future<void> refreshMusicStatus() async {
     final tenant = TenantService().currentTenant.value;
-    if (tenant == null) return;
+    final tenantId = (tenant != null && tenant.id.isNotEmpty) ? tenant.id : 'startups_main';
 
-    final data = await ApiService.fetchMusicStatus(tenant.id, userId: currentUserId);
+    final data = await ApiService.fetchMusicStatus(tenantId, userId: currentUserId);
+
     if (data != null && data['status'] == 'success') {
       if (data['now_playing'] != null) currentSong.value = Map<String, dynamic>.from(data['now_playing']);
-      if (data['queue'] != null) musicQueue.value = List<Map<String, dynamic>>.from(data['queue']);
-      if (data['active_poll'] != null) activePoll.value = Map<String, dynamic>.from(data['active_poll']);
-      else activePoll.value = null;
+      if (data['queue'] != null && data['queue'] is List) {
+        final serverQueue = List<Map<String, dynamic>>.from(data['queue']);
+        final filteredQueue = serverQueue.where((item) {
+          final id = int.tryParse(item['id']?.toString() ?? '0') ?? 0;
+          return !_deletedSongIds.contains(id);
+        }).toList();
+
+        musicQueue.value = filteredQueue;
+        musicApiStatusMessage.value = "Connected to tenant '$tenantId'. DB returned ${filteredQueue.length} song request(s).";
+        if (data['active_poll'] != null) activePoll.value = Map<String, dynamic>.from(data['active_poll']);
+        else activePoll.value = null;
+        return;
+      }
+    }
+
+    // Fallback for Localhost / CORS / Offline Dev Mode
+    musicApiStatusMessage.value = "Localhost Dev Mode (CORS / Offline Fallback Active)";
+    
+    // Default queue for Localhost dev testing
+    if (musicQueue.value.isEmpty) {
+      musicQueue.value = [
+        {'id': 1, 'tenant_id': tenantId, 'title': 'sd', 'artist': 'Requested', 'image': 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=500', 'dedication': '23', 'requested_by': 'guest_1788758734781', 'votes': 12, 'status': 'queued'},
+        {'id': 2, 'tenant_id': tenantId, 'title': 'new aong', 'artist': 'Requested', 'image': 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=500', 'dedication': null, 'requested_by': 'guest_1789468678124', 'votes': 4, 'status': 'queued'},
+        {'id': 3, 'tenant_id': tenantId, 'title': 'yuraj', 'artist': 'Requested', 'image': 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=500', 'dedication': '72', 'requested_by': 'guest_1790320894536', 'votes': 0, 'status': 'queued'},
+        {'id': 4, 'tenant_id': tenantId, 'title': 'jh', 'artist': 'Requested', 'image': 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=500', 'dedication': 'gh', 'requested_by': 'guest_1790330691637', 'votes': 1, 'status': 'queued'},
+        {'id': 5, 'tenant_id': tenantId, 'title': 'yyy', 'artist': 'Requested', 'image': 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=500', 'dedication': '12', 'requested_by': 'guest_1790330691637', 'votes': 1, 'status': 'queued'},
+      ].where((item) => !_deletedSongIds.contains(int.tryParse(item['id']?.toString() ?? '0') ?? 0)).toList();
     }
   }
 
@@ -301,8 +347,8 @@ class ShopManager {
     else Future.delayed(const Duration(seconds: 2), () => isEmailSynced.value = false);
 
     String? gId = prefs.getString('guest_id');
-    if (gId == null) {
-      gId = 'guest_${DateTime.now().millisecondsSinceEpoch}';
+    if (gId == null || gId.trim().isEmpty || gId.toLowerCase() == 'guest') {
+      gId = 'guest_${DateTime.now().millisecondsSinceEpoch}_${Random().nextInt(99999)}';
       await prefs.setString('guest_id', gId);
     }
     guestId.value = gId;
@@ -403,11 +449,20 @@ class ShopManager {
     await clearReviewFlag();
   }
 
+  String ensureGuestId() {
+    if (guestId.value.isEmpty || guestId.value.toLowerCase() == 'guest') {
+      final newGid = 'guest_${DateTime.now().millisecondsSinceEpoch}_${Random().nextInt(99999)}';
+      guestId.value = newGid;
+      SharedPreferences.getInstance().then((p) => p.setString('guest_id', newGid));
+    }
+    return guestId.value;
+  }
+
   String get currentUserId {
     final staff = TenantService().currentStaff.value;
     if (staff != null) return staff.id.toString();
     if (customerEmail.value.isNotEmpty) return customerEmail.value;
-    return guestId.value;
+    return ensureGuestId();
   }
   
   final ValueNotifier<List<int>> activeOrderIds = ValueNotifier<List<int>>([]);
@@ -593,17 +648,40 @@ class ShopManager {
 
   Future<Map<String, dynamic>> toggleMusicVote(int songId) async {
     final tenant = TenantService().currentTenant.value;
-    if (tenant == null) return {"success": false};
-    final result = await ApiService.voteSong(tenantId: tenant.id, userId: currentUserId, songId: songId);
-    if (result['status'] == 'success') { await refreshMusicStatus(); vibeScore.value = (vibeScore.value + 2).clamp(0, 100); return {"success": true}; }
+    final tenantId = (tenant != null && tenant.id.isNotEmpty) ? tenant.id : 'startups_main';
+
+    // Optimistically update local vote count for instant feedback
+    final currentList = List<Map<String, dynamic>>.from(musicQueue.value);
+    final index = currentList.indexWhere((item) => (int.tryParse(item['id']?.toString() ?? '0') ?? 0) == songId);
+    if (index != -1) {
+      final item = Map<String, dynamic>.from(currentList[index]);
+      final bool currentlyLiked = item['user_liked'] == true;
+      final int currentVotes = int.tryParse(item['votes']?.toString() ?? '0') ?? 0;
+
+      item['user_liked'] = !currentlyLiked;
+      item['votes'] = currentlyLiked ? (currentVotes - 1).clamp(0, 9999) : currentVotes + 1;
+      currentList[index] = item;
+      musicQueue.value = currentList;
+    }
+
+    final result = await ApiService.voteSong(tenantId: tenantId, userId: currentUserId, songId: songId);
+    if (result['status'] == 'success') {
+      await refreshMusicStatus();
+      vibeScore.value = (vibeScore.value + 2).clamp(0, 100);
+      return {"success": true};
+    }
     return {"success": false};
   }
 
   Future<Map<String, dynamic>> requestSong(String title, String artist, String? dedication) async {
     final tenant = TenantService().currentTenant.value;
-    if (tenant == null) return {"success": false};
-    final result = await ApiService.requestMusic({'tenant_id': tenant.id, 'title': title, 'artist': artist, 'dedication': dedication, 'user_id': currentUserId});
-    if (result['success'] == true) { await refreshMusicStatus(); vibeScore.value = (vibeScore.value + 5).clamp(0, 100); }
+    final tenantId = (tenant != null && tenant.id.isNotEmpty) ? tenant.id : 'startups_main';
+
+    final result = await ApiService.requestMusic({'tenant_id': tenantId, 'title': title, 'artist': artist, 'dedication': dedication, 'user_id': currentUserId});
+    if (result['success'] == true) {
+      await refreshMusicStatus();
+      vibeScore.value = (vibeScore.value + 5).clamp(0, 100);
+    }
     return result;
   }
 

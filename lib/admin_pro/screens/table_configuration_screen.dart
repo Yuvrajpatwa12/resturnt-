@@ -28,10 +28,10 @@ class _TableConfigurationScreenState extends State<TableConfigurationScreen> {
 
   Future<void> _loadTables() async {
     final tenant = TenantService().currentTenant.value;
-    if (tenant == null) return;
+    final tenantId = tenant?.id ?? 'startups_main';
 
     if (mounted) setState(() => _isLoading = true);
-    final data = await ApiService.fetchTables(tenant.id);
+    final data = await ApiService.fetchTables(tenantId);
     if (mounted) {
       if (data != null) {
         setState(() => _tables = data);
@@ -42,7 +42,7 @@ class _TableConfigurationScreenState extends State<TableConfigurationScreen> {
 
   Future<void> _addTable() async {
     final tenant = TenantService().currentTenant.value;
-    if (tenant == null) return;
+    final tenantId = tenant?.id ?? 'startups_main';
 
     final controller = TextEditingController();
     
@@ -85,7 +85,7 @@ class _TableConfigurationScreenState extends State<TableConfigurationScreen> {
                     setModalState(() => isSaving = true);
                     final num = int.tryParse(controller.text);
                     if (num != null) {
-                      final success = await ApiService.addTable(tenant.id, num);
+                      final success = await ApiService.addTable(tenantId, num);
                       if (ctx.mounted) Navigator.pop(ctx, success);
                     } else {
                       setModalState(() => isSaving = false);

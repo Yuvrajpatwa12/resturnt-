@@ -13,6 +13,7 @@ import 'profile_page.dart';
 import 'rewards_page.dart';
 import 'music_voting_sheet.dart';
 import 'services/tenant_service.dart';
+import 'services/api_service.dart';
 import 'notifications_page.dart';
 import 'activity_share_page.dart';
 import 'widgets/smart_auth_overlay.dart';
@@ -292,7 +293,12 @@ class _HomePageState extends State<HomePage> {
     return ValueListenableBuilder<List<Map<String, dynamic>>>(
       valueListenable: TenantService().products,
       builder: (context, dbProducts, child) {
-        final List<Map<String, dynamic>> sourceList = dbProducts.isNotEmpty ? dbProducts : List<Map<String, dynamic>>.from(AppData.popularPicks);
+        final List<Map<String, dynamic>> rawSource = dbProducts.isNotEmpty ? dbProducts : List<Map<String, dynamic>>.from(AppData.popularPicks);
+        final List<Map<String, dynamic>> sourceList = rawSource.where((p) {
+          final avail = p['is_available'];
+          if (avail == false || avail == 0 || avail == '0' || avail == 'false') return false;
+          return true;
+        }).toList();
 
         // Filter products based on featured_section
         final List<Map<String, dynamic>> gridTopItems = sourceList.where((p) => p['featured_section'] == 'just_for_you').toList();
@@ -607,13 +613,20 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  void _showTablePicker() {
+  void _showTablePicker() async {
+    final tenant = TenantService().currentTenant.value;
+    final tenantId = tenant?.id ?? 'startups_main';
+    final tables = await ApiService.fetchTables(tenantId);
+
+    if (!mounted) return;
+    final dialogContext = context;
+
     showModalBottomSheet(
-      context: context,
+      context: dialogContext,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (context) => Container(
-        padding: EdgeInsets.fromLTRB(24, 24, 24, MediaQuery.of(context).viewInsets.bottom + 24),
+      builder: (bottomSheetContext) => Container(
+        padding: EdgeInsets.fromLTRB(24, 24, 24, MediaQuery.of(bottomSheetContext).viewInsets.bottom + 24),
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -628,29 +641,49 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
               const SizedBox(height: 24),
-              GridView.count(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisCount: 5,
-                mainAxisSpacing: 12,
-                crossAxisSpacing: 12,
-                children: List.generate(20, (index) {
-                  int id = index + 1;
-                  return InkWell(
-                    onTap: () {
-                      ShopManager.instance.switchTable(id);
-                      Navigator.pop(context);
-                    },
-                    child: ValueListenableBuilder<int?>(
-                      valueListenable: ShopManager.instance.selectedTableId,
-                      builder: (context, currentId, child) => Container(
-                        decoration: BoxDecoration(color: currentId == id ? const Color(0xFFFF5C00) : Colors.grey[100], borderRadius: BorderRadius.circular(12)),
-                        child: Center(child: Text(id.toString().padLeft(2, '0'), style: TextStyle(color: currentId == id ? Colors.white : Colors.black87, fontWeight: FontWeight.bold))),
+              (tables == null || tables.isEmpty)
+                  ? const Padding(
+                      padding: EdgeInsets.all(24.0),
+                      child: Text("No tables available.", style: TextStyle(color: Colors.grey)),
+                    )
+                  : GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 5,
+                        mainAxisSpacing: 12,
+                        crossAxisSpacing: 12,
                       ),
+                      itemCount: tables.length,
+                      itemBuilder: (context, index) {
+                        final t = tables[index];
+                        int id = int.tryParse(t['table_number']?.toString() ?? '1') ?? 1;
+                        return InkWell(
+                          onTap: () {
+                            ShopManager.instance.switchTable(id);
+                            Navigator.pop(bottomSheetContext);
+                          },
+                          child: ValueListenableBuilder<int?>(
+                            valueListenable: ShopManager.instance.selectedTableId,
+                            builder: (context, currentId, child) => Container(
+                              decoration: BoxDecoration(
+                                color: currentId == id ? const Color(0xFFFF5C00) : Colors.grey[100],
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  id.toString().padLeft(2, '0'),
+                                  style: TextStyle(
+                                    color: currentId == id ? Colors.white : Colors.black87,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
                     ),
-                  );
-                }),
-              ),
             ],
           ),
         ),
@@ -883,11 +916,72 @@ class _HomePageState extends State<HomePage> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: GestureDetector(
-        onTap: () => showModalBottomSheet(context: context, backgroundColor: Colors.transparent, isScrollControlled: true, builder: (context) => const MusicVotingSheet()),
+        onTap: () => showModalBottomSheet(
+          context: context,
+          backgroundColor: Colors.transparent,
+          isScrollControlled: true,
+          builder: (context) => const MusicVotingSheet(),
+        ),
         child: Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10)]),
-          child: Row(children: [const Icon(Icons.equalizer_rounded, color: Color(0xFFFF5C00), size: 18), const SizedBox(width: 12), const Text("Now Playing...", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))]),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.03),
+                blurRadius: 10,
+              )
+            ],
+          ),
+          child: ValueListenableBuilder<Map<String, dynamic>>(
+            valueListenable: ShopManager.instance.currentSong,
+            builder: (context, song, _) {
+              final title = song['title'] ?? 'No Song Playing';
+              final artist = song['artist'] ?? '';
+              final image = song['image'] ?? '';
+
+              return Row(
+                children: [
+                  const Icon(Icons.equalizer_rounded, color: Color(0xFFFF5C00), size: 20),
+                  const SizedBox(width: 12),
+                  if (image.isNotEmpty)
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.network(
+                        image,
+                        width: 32,
+                        height: 32,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                      ),
+                    ),
+                  if (image.isNotEmpty) const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        if (artist.isNotEmpty && artist != '-' && artist != 'Select top voted song from queue')
+                          Text(
+                            artist,
+                            style: const TextStyle(color: Colors.grey, fontSize: 11),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                      ],
+                    ),
+                  ),
+                  const Icon(Icons.chevron_right_rounded, color: Colors.grey, size: 20),
+                ],
+              );
+            },
+          ),
         ),
       ),
     );

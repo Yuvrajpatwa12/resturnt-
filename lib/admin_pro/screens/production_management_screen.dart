@@ -1,159 +1,828 @@
 import 'package:flutter/material.dart';
+import 'dart:typed_data';
+import 'package:image_picker/image_picker.dart';
 import '../admin_theme.dart';
+import '../../services/tenant_service.dart';
+import '../../services/api_service.dart';
 
-class ProductionManagementScreen extends StatelessWidget {
+class ProductionManagementScreen extends StatefulWidget {
   final String mode;
   const ProductionManagementScreen({super.key, required this.mode});
 
   @override
+  State<ProductionManagementScreen> createState() => _ProductionManagementScreenState();
+}
+
+class _ProductionManagementScreenState extends State<ProductionManagementScreen> {
+  late String _selectedSection;
+  final TextEditingController _liveSearchCtrl = TextEditingController();
+  final TextEditingController _comingSearchCtrl = TextEditingController();
+
+  // Consistent color palette matching Image 2
+  static const Color accentBlue = Color(0xFF2563EB);
+  static const Color navyDark = Color(0xFF1E293B);
+  static const Color lightBlueBg = Color(0xFFEFF6FF);
+  static const Color lightOrangeBg = Color(0xFFFFF7ED);
+  static const Color orangeText = Color(0xFFEA580C);
+  static const Color lightGreenBg = Color(0xFFF0FDF4);
+  static const Color greenText = Color(0xFF16A34A);
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.mode == "Coming Product" || widget.mode == "Upcoming Production") {
+      _selectedSection = "Coming Products";
+    } else {
+      _selectedSection = "Live Products";
+    }
+  }
+
+  @override
+  void dispose() {
+    _liveSearchCtrl.dispose();
+    _comingSearchCtrl.dispose();
+    super.dispose();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Helper to format Image URLs (Handles relative paths & empty fallbacks)
+  // ---------------------------------------------------------------------------
+  String _getFormattedImageUrl(String? rawUrl, String fallbackCategory) {
+    if (rawUrl == null || rawUrl.trim().isEmpty) {
+      return _getCategoryImage(fallbackCategory);
+    }
+    String trimmed = rawUrl.trim();
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+      return trimmed;
+    }
+    if (trimmed.startsWith('/')) {
+      trimmed = trimmed.substring(1);
+    }
+    return '${ApiService.baseUrl}/$trimmed';
+  }
+
+  String _getCategoryImage(String category) {
+    final cat = category.toLowerCase();
+    if (cat.contains('pizza')) return 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=500';
+    if (cat.contains('burger')) return 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500';
+    if (cat.contains('tea') || cat.contains('lassi') || cat.contains('drink')) return 'https://images.unsplash.com/photo-1561336313-0bd5e0b27ec8?w=500';
+    if (cat.contains('momo') || cat.contains('dumpling')) return 'https://images.unsplash.com/photo-1534422298391-e4f8c170db06?w=500';
+    if (cat.contains('coffee')) return 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=500';
+    if (cat.contains('dessert') || cat.contains('icecream') || cat.contains('cake')) return 'https://images.unsplash.com/photo-1551024506-0bccd828d307?w=500';
+    if (cat.contains('roll') || cat.contains('chicken') || cat.contains('soup') || cat.contains('thupa')) return 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500';
+    return 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500';
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final mode = widget.mode;
+
+    if (mode == "Production Settings" || mode == "Production Setting") {
+      return SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: _buildSettingView(),
+      );
+    }
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (mode == "Add Production") _buildAddProductionForm()
-          else if (mode == "Set Production Unit") _buildSetUnitView()
-          else if (mode == "Production Setting") _buildSettingView()
-          else _buildProductionSetListView(),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProductionSetListView() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text("Production Batches", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            IconButton(onPressed: () {}, icon: const Icon(Icons.refresh, color: AdminTheme.royalBlue)),
-          ],
-        ),
-        const SizedBox(height: 16),
-        ...List.generate(3, (index) => _buildProductionBatchCard(index)),
-      ],
-    );
-  }
-
-  Widget _buildProductionBatchCard(int index) {
-    final List<String> items = ["Masala Tea Base", "Momo Dough", "Marinated Chicken"];
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: AdminTheme.softShadow,
-      ),
-      child: Row(
-        children: [
+          // Top Segmented Toggle Bar (Live Products vs Coming Products)
           Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: AdminTheme.royalBlue.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
-            child: const Icon(Icons.precision_manufacturing_outlined, color: AdminTheme.royalBlue, size: 24),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: Colors.grey[200],
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Text(items[index % items.length], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                Text("Batch #BT-00${index + 1} • Expected: 50 Units", style: const TextStyle(color: Colors.grey, fontSize: 11)),
+                _buildTabButton("Live Products", Icons.storefront_outlined),
+                const SizedBox(width: 4),
+                _buildTabButton("Coming Products", Icons.upcoming_outlined),
               ],
             ),
           ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              const Text("IN PROGRESS", style: TextStyle(color: Colors.orange, fontWeight: FontWeight.w900, fontSize: 10)),
-              const SizedBox(height: 4),
-              SizedBox(
-                width: 60,
-                child: LinearProgressIndicator(
-                  value: 0.6,
-                  backgroundColor: Colors.grey[100],
-                  color: Colors.orange,
-                  minHeight: 4,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-            ],
-          ),
+          const SizedBox(height: 24),
+
+          // Dynamic Content View
+          if (_selectedSection == "Coming Products")
+            _buildUpcomingProductionView(context)
+          else
+            _buildLiveProductsView(context),
         ],
       ),
     );
   }
 
-  Widget _buildAddProductionForm() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text("Start Production", style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
-        const SizedBox(height: 24),
-        _buildTextField("Target Item", "Select item to produce"),
-        const SizedBox(height: 16),
-        _buildTextField("Production Unit", "Kitchen Main / Bakery"),
-        const SizedBox(height: 16),
-        Row(
+  Widget _buildTabButton(String title, IconData icon) {
+    bool isSelected = _selectedSection == title;
+    return GestureDetector(
+      onTap: () => setState(() => _selectedSection = title),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        decoration: BoxDecoration(
+          color: isSelected ? accentBlue : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
           children: [
-            Expanded(child: _buildTextField("Target Quantity", "100")),
-            const SizedBox(width: 16),
-            Expanded(child: _buildTextField("Unit", "L/kg/Units")),
+            Icon(icon, size: 18, color: isSelected ? Colors.white : Colors.black87),
+            const SizedBox(width: 8),
+            Text(
+              title,
+              style: TextStyle(
+                color: isSelected ? Colors.white : Colors.black87,
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+              ),
+            ),
           ],
-        ),
-        const SizedBox(height: 16),
-        _buildTextField("Estimated Completion Time", "45 mins"),
-        const SizedBox(height: 32),
-        ElevatedButton(
-          onPressed: () {},
-          style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 54)),
-          child: const Text("START BATCH"),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSetUnitView() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text("Production Units", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 16),
-        _buildUnitCard("Kitchen Main", "Hot Food, Momos", "Active"),
-        _buildUnitCard("Bakery Station", "Bread, Desserts", "Active"),
-        _buildUnitCard("Drink Station", "Tea, Coffee, Shakes", "Active"),
-      ],
-    );
-  }
-
-  Widget _buildUnitCard(String name, String focus, String status) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: ListTile(
-        leading: const Icon(Icons.factory_outlined, color: AdminTheme.royalBlue),
-        title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Text(focus, style: const TextStyle(fontSize: 12)),
-        trailing: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(color: AdminTheme.emeraldGreen.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
-          child: Text(status, style: const TextStyle(color: AdminTheme.emeraldGreen, fontSize: 9, fontWeight: FontWeight.w900)),
         ),
       ),
     );
   }
 
+  // ---------------------------------------------------------------------------
+  // LIVE PRODUCTS VIEW (Matching Screenshot 2 exact design)
+  // ---------------------------------------------------------------------------
+  Widget _buildLiveProductsView(BuildContext context) {
+    return ValueListenableBuilder<List<Map<String, dynamic>>>(
+      valueListenable: TenantService().products,
+      builder: (context, products, child) {
+        final categoriesList = TenantService().categories.value;
+
+        final liveProducts = products.where((p) {
+          final val = p['is_coming_soon'];
+          final isComing = val == true || val == 1 || val == '1' || val == 'true';
+          if (isComing) return false;
+
+          final query = _liveSearchCtrl.text.trim().toLowerCase();
+          if (query.isNotEmpty) {
+            final title = (p['title'] ?? '').toString().toLowerCase();
+            final desc = (p['description'] ?? '').toString().toLowerCase();
+            return title.contains(query) || desc.contains(query);
+          }
+          return true;
+        }).toList();
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Section Header Title
+            const Text(
+              "Production List (Live Menu)",
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              "Manage active menu items currently available for customer orders",
+              style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+            ),
+            const SizedBox(height: 16),
+
+            // Controls Bar
+            Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      boxShadow: AdminTheme.softShadow,
+                    ),
+                    child: TextField(
+                      controller: _liveSearchCtrl,
+                      onChanged: (v) => setState(() {}),
+                      decoration: InputDecoration(
+                        hintText: "Search live products...",
+                        hintStyle: TextStyle(color: Colors.grey[400], fontSize: 13),
+                        prefixIcon: Icon(Icons.search_rounded, color: Colors.grey[500], size: 20),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Container(
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: AdminTheme.softShadow,
+                  ),
+                  child: IconButton(
+                    icon: const Icon(Icons.refresh_rounded, color: accentBlue),
+                    onPressed: () {
+                      final tenant = TenantService().currentTenant.value;
+                      if (tenant != null) {
+                        TenantService().fetchMenuData(tenant.id);
+                      }
+                    },
+                    tooltip: "Refresh List",
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 20),
+
+            if (liveProducts.isEmpty)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: AdminTheme.softShadow,
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.storefront_outlined, size: 48, color: Colors.grey[400]),
+                    const SizedBox(height: 16),
+                    const Text("No Live Products Found", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 6),
+                    Text("Products active in your menu will appear here.", style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+                  ],
+                ),
+              )
+            else
+              ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: liveProducts.length,
+                itemBuilder: (context, index) {
+                  final p = liveProducts[index];
+                  final title = p['title'] ?? 'Product';
+                  final desc = p['description']?.toString() ?? 'Delicious item on menu';
+                  final price = p['price']?.toString() ?? '0.00';
+                  final rawImg = p['image_url'] ?? p['image'] ?? '';
+                  final catId = p['category_id']?.toString() ?? '';
+
+                  final categoryObj = categoriesList.firstWhere(
+                    (c) => c['id']?.toString() == catId,
+                    orElse: () => {'title': title},
+                  );
+                  final categoryName = categoryObj['title'] ?? title;
+                  final imageUrl = _getFormattedImageUrl(rawImg, categoryName);
+
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 16),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: AdminTheme.softShadow,
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        // Image Container (90x90 rounded)
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(16),
+                          child: Container(
+                            width: 90,
+                            height: 90,
+                            color: Colors.grey[100],
+                            child: Image.network(
+                              imageUrl,
+                              fit: BoxFit.cover,
+                              errorBuilder: (c, e, s) => Center(
+                                child: Icon(Icons.fastfood_rounded, color: Colors.grey[400], size: 36),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 18),
+
+                        // Title, Badges & Price
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                title,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 17,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                desc,
+                                style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 8),
+
+                              // Tag Pills ("All Day", "Popular")
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: lightBlueBg,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: const Text(
+                                      "All Day",
+                                      style: TextStyle(
+                                        color: accentBlue,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: lightOrangeBg,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: const Text(
+                                      "Popular",
+                                      style: TextStyle(
+                                        color: orangeText,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 10),
+
+                              // Vibrant Blue Price Text
+                              Text(
+                                "NPR $price",
+                                style: const TextStyle(
+                                  color: accentBlue,
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 18,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        const SizedBox(width: 16),
+
+                        // Stock Status & Action Icon (Matching Screenshot 2)
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: lightGreenBg,
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: const Text(
+                                "In Stock : 40",
+                                style: TextStyle(
+                                  color: greenText,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+
+                            // Circular Navy Basket Button
+                            Container(
+                              width: 42,
+                              height: 42,
+                              decoration: const BoxDecoration(
+                                color: navyDark,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.shopping_bag_outlined,
+                                color: Colors.white,
+                                size: 20,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // COMING PRODUCTS VIEW
+  // ---------------------------------------------------------------------------
+  Widget _buildUpcomingProductionView(BuildContext context) {
+    return ValueListenableBuilder<List<Map<String, dynamic>>>(
+      valueListenable: TenantService().products,
+      builder: (context, products, child) {
+        final categoriesList = TenantService().categories.value;
+
+        final comingProducts = products.where((p) {
+          final val = p['is_coming_soon'];
+          final isComing = val == true || val == 1 || val == '1' || val == 'true';
+          if (!isComing) return false;
+
+          final query = _comingSearchCtrl.text.trim().toLowerCase();
+          if (query.isNotEmpty) {
+            final title = (p['title'] ?? '').toString().toLowerCase();
+            final desc = (p['description'] ?? '').toString().toLowerCase();
+            return title.contains(query) || desc.contains(query);
+          }
+          return true;
+        }).toList();
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Clean Header Bar (White Card styling matching Image 2 layout)
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: AdminTheme.softShadow,
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: lightBlueBg,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: const Icon(Icons.upcoming_rounded, color: accentBlue, size: 26),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Text(
+                              "Coming Products",
+                              style: TextStyle(
+                                color: Colors.black87,
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: lightBlueBg,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                "${comingProducts.length} ${comingProducts.length == 1 ? 'Item' : 'Items'}",
+                                style: const TextStyle(
+                                  color: accentBlue,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          "Showcase upcoming menu items and teaser dishes on the customer app",
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  ElevatedButton.icon(
+                    onPressed: () => _showAddComingProductDialog(context),
+                    icon: const Icon(Icons.add_rounded, size: 20),
+                    label: const Text("Add Coming Product"),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: accentBlue,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            // Search Bar
+            Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      boxShadow: AdminTheme.softShadow,
+                    ),
+                    child: TextField(
+                      controller: _comingSearchCtrl,
+                      onChanged: (v) => setState(() {}),
+                      decoration: InputDecoration(
+                        hintText: "Search coming products...",
+                        hintStyle: TextStyle(color: Colors.grey[400], fontSize: 13),
+                        prefixIcon: Icon(Icons.search_rounded, color: Colors.grey[500], size: 20),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Container(
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: AdminTheme.softShadow,
+                  ),
+                  child: IconButton(
+                    icon: const Icon(Icons.refresh_rounded, color: accentBlue),
+                    onPressed: () {
+                      final tenant = TenantService().currentTenant.value;
+                      if (tenant != null) {
+                        TenantService().fetchMenuData(tenant.id);
+                      }
+                    },
+                    tooltip: "Refresh List",
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 20),
+
+            // Product List / Empty State
+            if (comingProducts.isEmpty)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: AdminTheme.softShadow,
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: const BoxDecoration(
+                        color: lightBlueBg,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.upcoming_outlined, size: 48, color: accentBlue),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      "No Coming Products Uploaded",
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      "Add new upcoming teasers to build excitement among your customers.",
+                      style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 20),
+                    ElevatedButton.icon(
+                      onPressed: () => _showAddComingProductDialog(context),
+                      icon: const Icon(Icons.add, size: 18),
+                      label: const Text("Add Coming Product"),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: accentBlue,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else
+              ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: comingProducts.length,
+                itemBuilder: (context, index) {
+                  final p = comingProducts[index];
+                  final catId = p['category_id']?.toString() ?? '';
+                  final categoryObj = categoriesList.firstWhere(
+                    (c) => c['id']?.toString() == catId,
+                    orElse: () => {'title': 'Category $catId'},
+                  );
+                  final categoryName = categoryObj['title'] ?? 'General';
+                  final title = p['title'] ?? '';
+                  final price = p['price']?.toString() ?? '0.00';
+                  final desc = p['description']?.toString() ?? '';
+                  final rawImg = p['image_url'] ?? p['image'] ?? '';
+                  final imageUrl = _getFormattedImageUrl(rawImg, categoryName);
+
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 16),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: AdminTheme.softShadow,
+                    ),
+                    child: Row(
+                      children: [
+                        // Image Container (90x90 rounded)
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(16),
+                          child: Container(
+                            width: 90,
+                            height: 90,
+                            color: Colors.grey[100],
+                            child: Image.network(
+                              imageUrl,
+                              fit: BoxFit.cover,
+                              errorBuilder: (c, e, s) => Center(
+                                child: Icon(Icons.fastfood_rounded, color: Colors.grey[400], size: 36),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 18),
+
+                        // Details
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                title,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 17,
+                                  color: Colors.black87,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                desc.isNotEmpty ? desc : "Upcoming teaser product",
+                                style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 8),
+
+                              // Category Tag
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade100,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  categoryName,
+                                  style: TextStyle(
+                                    color: Colors.grey.shade700,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+
+                              // Price in Vibrant Blue
+                              Text(
+                                "NPR $price",
+                                style: const TextStyle(
+                                  color: accentBlue,
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 18,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        const SizedBox(width: 16),
+
+                        // Actions & Badge
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: lightGreenBg,
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: const Text(
+                                "COMING SOON",
+                                style: TextStyle(
+                                  color: greenText,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 11,
+                                  letterSpacing: 0.3,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                // Edit Button (Soft blue matching Image 2)
+                                Container(
+                                  height: 36,
+                                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                                  decoration: BoxDecoration(
+                                    color: lightBlueBg,
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: InkWell(
+                                    onTap: () => _showEditComingProductDialog(context, p),
+                                    borderRadius: BorderRadius.circular(10),
+                                    child: const Row(
+                                      children: [
+                                        Icon(Icons.edit_outlined, color: accentBlue, size: 16),
+                                        SizedBox(width: 4),
+                                        Text(
+                                          "Edit",
+                                          style: TextStyle(
+                                            color: accentBlue,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                // Delete Button
+                                Container(
+                                  height: 36,
+                                  width: 36,
+                                  decoration: BoxDecoration(
+                                    color: Colors.red.shade50,
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: IconButton(
+                                    icon: Icon(Icons.delete_outline_rounded, color: Colors.red.shade600, size: 18),
+                                    onPressed: () => _deleteComingProduct(context, p['id']?.toString() ?? ''),
+                                    tooltip: "Delete Product",
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // PRODUCTION SETTINGS VIEW
+  // ---------------------------------------------------------------------------
   Widget _buildSettingView() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text("Production Control", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         const SizedBox(height: 16),
-        _buildToggleCard("Auto-Update Inventory on Completion", true),
-        _buildToggleCard("Notify Chef for Low Stock Batches", true),
-        _buildToggleCard("Enable Waste Tracking", false),
+        _buildToggleCard("Add-on Inventory Control", true),
+        _buildToggleCard("Low Stock Alert", true),
       ],
     );
   }
@@ -170,22 +839,533 @@ class ProductionManagementScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTextField(String label, String hint) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey)),
-        const SizedBox(height: 8),
-        TextField(
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: const TextStyle(fontSize: 13),
-            filled: true,
-            fillColor: Colors.white,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+  // ---------------------------------------------------------------------------
+  // DIALOGS
+  // ---------------------------------------------------------------------------
+  void _showAddComingProductDialog(BuildContext context) {
+    final titleCtrl = TextEditingController();
+    final priceCtrl = TextEditingController();
+    final descCtrl = TextEditingController();
+    Uint8List? selectedImageBytes;
+    String? selectedImageName;
+    bool isSubmitting = false;
+
+    final categories = TenantService().categories.value;
+    String? selectedCategoryId = categories.isNotEmpty ? categories.first['id'].toString() : null;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) => Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Container(
+            width: 480,
+            padding: const EdgeInsets.all(24),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: const BoxDecoration(
+                              color: lightBlueBg,
+                              borderRadius: BorderRadius.all(Radius.circular(10)),
+                            ),
+                            child: const Icon(Icons.add_circle_outline, color: accentBlue, size: 20),
+                          ),
+                          const SizedBox(width: 12),
+                          const Text(
+                            "Add Coming Product",
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close_rounded),
+                        onPressed: () => Navigator.pop(ctx),
+                      ),
+                    ],
+                  ),
+                  const Divider(height: 24),
+
+                  // Form Fields
+                  TextField(
+                    controller: titleCtrl,
+                    decoration: InputDecoration(
+                      labelText: "Product Title *",
+                      hintText: "e.g. Special Mango Lassi",
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: priceCtrl,
+                          keyboardType: TextInputType.number,
+                          decoration: InputDecoration(
+                            labelText: "Price (NPR) *",
+                            hintText: "e.g. 150",
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          value: selectedCategoryId,
+                          decoration: InputDecoration(
+                            labelText: "Category *",
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          items: categories.map((c) => DropdownMenuItem(
+                            value: c['id'].toString(),
+                            child: Text(c['title'] ?? 'Category', overflow: TextOverflow.ellipsis),
+                          )).toList(),
+                          onChanged: (v) => setDialogState(() => selectedCategoryId = v),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+
+                  TextField(
+                    controller: descCtrl,
+                    maxLines: 2,
+                    decoration: InputDecoration(
+                      labelText: "Description *",
+                      hintText: "Brief teaser description for customers...",
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Image Upload Container
+                  const Text("Product Image *", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  const SizedBox(height: 8),
+                  InkWell(
+                    onTap: () async {
+                      final picker = ImagePicker();
+                      final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+                      if (pickedFile != null) {
+                        final bytes = await pickedFile.readAsBytes();
+                        setDialogState(() {
+                          selectedImageBytes = bytes;
+                          selectedImageName = pickedFile.name;
+                        });
+                      }
+                    },
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: selectedImageBytes != null ? lightGreenBg : Colors.grey.shade50,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: selectedImageBytes != null ? greenText : Colors.grey.shade300,
+                          style: BorderStyle.solid,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            selectedImageBytes != null ? Icons.check_circle_rounded : Icons.cloud_upload_outlined,
+                            color: selectedImageBytes != null ? greenText : accentBlue,
+                            size: 28,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  selectedImageBytes != null ? (selectedImageName ?? "Image Selected") : "Click to select image",
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                    color: selectedImageBytes != null ? greenText : Colors.black87,
+                                  ),
+                                ),
+                                Text(
+                                  selectedImageBytes != null ? "Tap to change image" : "JPG, PNG or WEBP from computer",
+                                  style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (selectedImageBytes != null)
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.memory(selectedImageBytes!, width: 44, height: 44, fit: BoxFit.cover),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: isSubmitting ? null : () => Navigator.pop(ctx),
+                        child: const Text("Cancel"),
+                      ),
+                      const SizedBox(width: 12),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: accentBlue,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        onPressed: isSubmitting ? null : () async {
+                          if (titleCtrl.text.trim().isEmpty ||
+                              priceCtrl.text.trim().isEmpty ||
+                              descCtrl.text.trim().isEmpty ||
+                              selectedCategoryId == null ||
+                              selectedImageBytes == null) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text("All fields and product image are compulsory!"), backgroundColor: Colors.red),
+                            );
+                            return;
+                          }
+
+                          setDialogState(() => isSubmitting = true);
+
+                          final tenant = TenantService().currentTenant.value;
+                          final tenantId = tenant != null ? tenant.id : 'startups_main';
+
+                          String imageUrl = "";
+                          final uploadedUrl = await ApiService.uploadProductImage(selectedImageBytes!, selectedImageName!);
+                          if (uploadedUrl != null) imageUrl = uploadedUrl;
+
+                          final res = await ApiService.addProduct({
+                            "tenant_id": tenantId,
+                            "category_id": int.tryParse(selectedCategoryId ?? '0') ?? 0,
+                            "title": titleCtrl.text.trim(),
+                            "price": priceCtrl.text.trim(),
+                            "description": descCtrl.text.trim(),
+                            "image_url": imageUrl,
+                            "tag": "Coming Soon",
+                            "is_coming_soon": 1,
+                          });
+
+                          if (ctx.mounted) Navigator.pop(ctx);
+                          if (res['success'] == true) {
+                            if (tenant != null) {
+                              TenantService().fetchMenuData(tenant.id);
+                            }
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text("Coming product added successfully!"), backgroundColor: accentBlue),
+                            );
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text("Error: ${res['message']}"), backgroundColor: Colors.red),
+                            );
+                          }
+                        },
+                        child: isSubmitting
+                            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                            : const Text("Upload Coming Product"),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
-      ],
+      ),
     );
+  }
+
+  void _showEditComingProductDialog(BuildContext context, Map<String, dynamic> product) {
+    final titleCtrl = TextEditingController(text: product['title']?.toString() ?? '');
+    final priceCtrl = TextEditingController(text: product['price']?.toString() ?? '');
+    final descCtrl = TextEditingController(text: product['description']?.toString() ?? '');
+    Uint8List? selectedImageBytes;
+    String? selectedImageName;
+    String existingImageUrl = product['image_url'] ?? product['image'] ?? '';
+    bool isSubmitting = false;
+
+    final categories = TenantService().categories.value;
+    String? selectedCategoryId = product['category_id']?.toString() ?? (categories.isNotEmpty ? categories.first['id'].toString() : null);
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) => Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Container(
+            width: 480,
+            padding: const EdgeInsets.all(24),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: const BoxDecoration(
+                              color: lightBlueBg,
+                              borderRadius: BorderRadius.all(Radius.circular(10)),
+                            ),
+                            child: const Icon(Icons.edit, color: accentBlue, size: 20),
+                          ),
+                          const SizedBox(width: 12),
+                          const Text(
+                            "Edit Coming Product",
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close_rounded),
+                        onPressed: () => Navigator.pop(ctx),
+                      ),
+                    ],
+                  ),
+                  const Divider(height: 24),
+
+                  // Form Fields
+                  TextField(
+                    controller: titleCtrl,
+                    decoration: InputDecoration(
+                      labelText: "Product Title *",
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: priceCtrl,
+                          keyboardType: TextInputType.number,
+                          decoration: InputDecoration(
+                            labelText: "Price (NPR) *",
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          value: selectedCategoryId,
+                          decoration: InputDecoration(
+                            labelText: "Category *",
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          items: categories.map((c) => DropdownMenuItem(
+                            value: c['id'].toString(),
+                            child: Text(c['title'] ?? 'Category', overflow: TextOverflow.ellipsis),
+                          )).toList(),
+                          onChanged: (v) => setDialogState(() => selectedCategoryId = v),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+
+                  TextField(
+                    controller: descCtrl,
+                    maxLines: 2,
+                    decoration: InputDecoration(
+                      labelText: "Description *",
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Image Container
+                  const Text("Change Image (Optional)", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  const SizedBox(height: 8),
+                  InkWell(
+                    onTap: () async {
+                      final picker = ImagePicker();
+                      final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+                      if (pickedFile != null) {
+                        final bytes = await pickedFile.readAsBytes();
+                        setDialogState(() {
+                          selectedImageBytes = bytes;
+                          selectedImageName = pickedFile.name;
+                        });
+                      }
+                    },
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade50,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey.shade300),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.cloud_upload_outlined, color: accentBlue, size: 28),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  selectedImageBytes != null ? (selectedImageName ?? "New Image Selected") : "Update Product Image",
+                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                ),
+                                Text(
+                                  selectedImageBytes != null ? "Tap to change image" : "Leave unchanged to keep current image",
+                                  style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (selectedImageBytes != null)
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.memory(selectedImageBytes!, width: 44, height: 44, fit: BoxFit.cover),
+                            )
+                          else if (existingImageUrl.isNotEmpty)
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.network(_getFormattedImageUrl(existingImageUrl, 'Food'), width: 44, height: 44, fit: BoxFit.cover, errorBuilder: (c, e, s) => const SizedBox()),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: isSubmitting ? null : () => Navigator.pop(ctx),
+                        child: const Text("Cancel"),
+                      ),
+                      const SizedBox(width: 12),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: accentBlue,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        onPressed: isSubmitting ? null : () async {
+                          if (titleCtrl.text.trim().isEmpty || priceCtrl.text.trim().isEmpty || descCtrl.text.trim().isEmpty || selectedCategoryId == null) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text("All text fields are compulsory!"), backgroundColor: Colors.red),
+                            );
+                            return;
+                          }
+
+                          setDialogState(() => isSubmitting = true);
+
+                          final tenant = TenantService().currentTenant.value;
+                          final tenantId = tenant != null ? tenant.id : 'startups_main';
+
+                          String imageUrl = existingImageUrl;
+                          if (selectedImageBytes != null && selectedImageName != null) {
+                            final uploadedUrl = await ApiService.uploadProductImage(selectedImageBytes!, selectedImageName!);
+                            if (uploadedUrl != null) imageUrl = uploadedUrl;
+                          }
+
+                          final res = await ApiService.updateProduct({
+                            "id": product['id'],
+                            "tenant_id": tenantId,
+                            "category_id": int.tryParse(selectedCategoryId ?? '0') ?? 0,
+                            "title": titleCtrl.text.trim(),
+                            "price": priceCtrl.text.trim(),
+                            "description": descCtrl.text.trim(),
+                            "image_url": imageUrl,
+                            "tag": "Coming Soon",
+                            "is_coming_soon": 1,
+                          });
+
+                          if (ctx.mounted) Navigator.pop(ctx);
+                          if (res['success'] == true) {
+                            if (tenant != null) {
+                              TenantService().fetchMenuData(tenant.id);
+                            }
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text("Coming product updated successfully!"), backgroundColor: Colors.green),
+                            );
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text("Error: ${res['message']}"), backgroundColor: Colors.red),
+                            );
+                          }
+                        },
+                        child: isSubmitting
+                            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                            : const Text("Save Changes"),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _deleteComingProduct(BuildContext context, String productId) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text("Delete Coming Product"),
+        content: const Text("Are you sure you want to delete this coming product? This action cannot be undone."),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("Cancel")),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text("Delete"),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true && productId.isNotEmpty) {
+      final tenant = TenantService().currentTenant.value;
+      final tenantId = tenant != null ? tenant.id : 'startups_main';
+
+      final success = await ApiService.deleteProduct(tenantId, productId);
+      if (success) {
+        if (tenant != null) {
+          TenantService().fetchMenuData(tenant.id);
+        }
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Coming product deleted successfully!"), backgroundColor: Colors.green),
+          );
+        }
+      } else {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Failed to delete coming product"), backgroundColor: Colors.red),
+          );
+        }
+      }
+    }
   }
 }

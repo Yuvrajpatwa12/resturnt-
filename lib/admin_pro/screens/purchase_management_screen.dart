@@ -29,6 +29,7 @@ class _PurchaseManagementScreenState extends State<PurchaseManagementScreen> {
   // Invoice Portal State
   String _searchQuery = "";
   String _selectedRange = "All"; // Today, 7D, 15D, 30D, 3M, 1Y, All
+  String _selectedSupplierFilter = "All";
 
   // Procurement State
   List<Map<String, dynamic>> _purchases = [];
@@ -420,30 +421,106 @@ class _PurchaseManagementScreenState extends State<PurchaseManagementScreen> {
   Widget _buildReturnInvoicePortal() {
     final groupedInvoices = _getGroupedInvoices();
 
+    // Summary Analytics Calculations
+    double totalRefund = 0;
+    int totalItemsCount = 0;
+    for (var group in groupedInvoices.values) {
+      for (var item in group) {
+        totalRefund += double.tryParse(item['return_amount']?.toString() ?? '0') ?? 0;
+        totalItemsCount++;
+      }
+    }
+
+    final List<String> supplierNames = ["All", ..._suppliers.map((s) => s['name']?.toString() ?? '').where((n) => n.isNotEmpty)];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text("Invoice Explorer", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: AdminTheme.darkNavy)),
-        const Text("Manage and search through procurement refund statements.", style: TextStyle(fontSize: 12, color: Colors.grey)),
-        const SizedBox(height: 32),
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 15, offset: const Offset(0, 5))],
-          ),
-          child: TextField(
-            onChanged: (v) => setState(() => _searchQuery = v),
-            decoration: InputDecoration(
-              hintText: "Search Invoice, Item, or Supplier...",
-              hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
-              prefixIcon: const Icon(Icons.search_rounded, color: AdminTheme.royalBlue),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
-              contentPadding: const EdgeInsets.symmetric(vertical: 20),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text("Invoice Explorer", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: AdminTheme.darkNavy)),
+                Text("Manage and search through procurement refund statements.", style: TextStyle(fontSize: 12, color: Colors.grey)),
+              ],
             ),
-          ),
+            IconButton(
+              onPressed: _refreshData,
+              icon: const Icon(Icons.sync_rounded, color: AdminTheme.royalBlue),
+              tooltip: "Sync Return Statements",
+            ),
+          ],
         ),
         const SizedBox(height: 24),
+
+        // Summary Analytics Stat Cards
+        Row(
+          children: [
+            Expanded(child: _buildPortalStatCard("TOTAL REFUND CREDIT", "NPR ${totalRefund.toStringAsFixed(0)}", Icons.account_balance_wallet_rounded, const Color(0xFF16A34A))),
+            const SizedBox(width: 12),
+            Expanded(child: _buildPortalStatCard("STATEMENTS", "${groupedInvoices.length} Statements", Icons.receipt_long_rounded, AdminTheme.royalBlue)),
+            const SizedBox(width: 12),
+            Expanded(child: _buildPortalStatCard("RETURNED ITEMS", "$totalItemsCount Items", Icons.inventory_2_rounded, Colors.purple)),
+          ],
+        ),
+        const SizedBox(height: 24),
+
+        // Search + Supplier Dropdown Filter
+        Row(
+          children: [
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 15, offset: const Offset(0, 5))],
+                ),
+                child: TextField(
+                  onChanged: (v) => setState(() => _searchQuery = v),
+                  decoration: InputDecoration(
+                    hintText: "Search Invoice, Item, Reason or Supplier...",
+                    hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
+                    prefixIcon: const Icon(Icons.search_rounded, color: AdminTheme.royalBlue),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 18),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 15, offset: const Offset(0, 5))],
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  value: supplierNames.contains(_selectedSupplierFilter) ? _selectedSupplierFilter : "All",
+                  icon: const Icon(Icons.filter_list_rounded, color: AdminTheme.royalBlue, size: 20),
+                  items: supplierNames.map((sName) {
+                    return DropdownMenuItem<String>(
+                      value: sName,
+                      child: Text(
+                        sName == "All" ? "All Suppliers" : sName,
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AdminTheme.darkNavy),
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (val) {
+                    if (val != null) setState(() => _selectedSupplierFilter = val);
+                  },
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 20),
+
+        // Date Range Filter Chips
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: Row(
@@ -465,11 +542,63 @@ class _PurchaseManagementScreenState extends State<PurchaseManagementScreen> {
             }).toList(),
           ),
         ),
-        const SizedBox(height: 32),
-        if (_isLoading) const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator()))
-        else if (groupedInvoices.isEmpty) const Center(child: Padding(padding: EdgeInsets.all(60), child: Text("No statement history found for this range.")))
-        else ...groupedInvoices.entries.map((e) => _buildMasterInvoiceCard(e.key, e.value)),
+        const SizedBox(height: 28),
+
+        if (_isLoading)
+          const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator()))
+        else if (groupedInvoices.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(40),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10)],
+            ),
+            child: const Column(
+              children: [
+                Icon(Icons.assignment_return_outlined, size: 48, color: Colors.grey),
+                SizedBox(height: 12),
+                Text("No statement history found.", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+                SizedBox(height: 4),
+                Text("Try adjusting date range, supplier filter or search term.", style: TextStyle(fontSize: 11, color: Colors.grey)),
+              ],
+            ),
+          )
+        else
+          ...groupedInvoices.entries.map((e) => _buildMasterInvoiceCard(e.key, e.value)),
       ],
+    );
+  }
+
+  Widget _buildPortalStatCard(String label, String value, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10)],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
+            child: Icon(icon, color: color, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 0.5)),
+                const SizedBox(height: 2),
+                Text(value, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: color), maxLines: 1, overflow: TextOverflow.ellipsis),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -493,12 +622,18 @@ class _PurchaseManagementScreenState extends State<PurchaseManagementScreen> {
 
       if (!inRange) continue;
 
+      if (_selectedSupplierFilter != "All") {
+        final supp = r['supplier_name']?.toString().toLowerCase().trim() ?? "";
+        if (supp != _selectedSupplierFilter.toLowerCase().trim()) continue;
+      }
+
       if (_searchQuery.isNotEmpty) {
         final q = _searchQuery.toLowerCase();
         final name = r['ingredient_name']?.toString().toLowerCase() ?? "";
         final supplier = r['supplier_name']?.toString().toLowerCase() ?? "";
+        final reason = r['reason']?.toString().toLowerCase() ?? "";
         final id = "STMT-${date.year}${date.month}${date.day}".toLowerCase();
-        if (!name.contains(q) && !supplier.contains(q) && !id.contains(q)) continue;
+        if (!name.contains(q) && !supplier.contains(q) && !reason.contains(q) && !id.contains(q)) continue;
       }
 
       final key = "${date.year}-${date.month}-${date.day}";
@@ -515,6 +650,17 @@ class _PurchaseManagementScreenState extends State<PurchaseManagementScreen> {
     final dateParts = dateKey.split('-');
     final displayDate = "${dateParts[2]}/${dateParts[1]}/${dateParts[0]}";
     final statementId = "STMT-${dateParts[0]}${dateParts[1].padLeft(2, '0')}${dateParts[2].padLeft(2, '0')}";
+
+    // Item titles & suppliers
+    final List<String> itemTitles = items.map((i) => i['ingredient_name']?.toString() ?? 'Item').where((n) => n.isNotEmpty).toSet().toList();
+    final String cardMainTitle = itemTitles.isEmpty 
+        ? statementId 
+        : (itemTitles.length == 1 
+            ? itemTitles.first 
+            : (itemTitles.length <= 2 ? itemTitles.join(", ") : "${itemTitles.first} + ${itemTitles.length - 1} more"));
+
+    final Set<String> suppliers = items.map((i) => i['supplier_name']?.toString() ?? 'Supplier').where((s) => s.isNotEmpty).toSet();
+    final String suppText = suppliers.length == 1 ? suppliers.first : "${suppliers.length} Suppliers";
 
     return Container(
       margin: const EdgeInsets.only(bottom: 24),
@@ -545,8 +691,26 @@ class _PurchaseManagementScreenState extends State<PurchaseManagementScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(statementId, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: AdminTheme.darkNavy)),
-                          Text("Date: $displayDate", style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.bold)),
+                          Text(
+                            cardMainTitle,
+                            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: AdminTheme.darkNavy),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 2),
+                          Row(
+                            children: [
+                              Text(statementId, style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.bold)),
+                              const SizedBox(width: 6),
+                              Text("• $displayDate", style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(color: AdminTheme.royalBlue.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
+                                child: Text(suppText, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: AdminTheme.royalBlue)),
+                              ),
+                            ],
+                          ),
                         ],
                       ),
                     ),
@@ -715,88 +879,367 @@ class _PurchaseManagementScreenState extends State<PurchaseManagementScreen> {
     final String dateStr = "${selectedDate.day}/${selectedDate.month}/${selectedDate.year}";
     final String transId = "STMT-${selectedDate.year}${selectedDate.month.toString().padLeft(2, '0')}${selectedDate.day.toString().padLeft(2, '0')}";
     final tenant = TenantService().currentTenant.value;
-    double grandTotal = 0;
-    for (var item in items) { grandTotal += double.tryParse(item['return_amount'].toString()) ?? 0; }
 
     showModalBottomSheet(
-      context: context, isScrollControlled: true, backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        height: MediaQuery.of(context).size.height * 0.85,
-        decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(32))),
-        child: Column(
-          children: [
-            const SizedBox(height: 12),
-            Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2))),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(32),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (modalContext, setModalState) {
+          double grandTotal = 0;
+          for (var item in items) {
+            grandTotal += double.tryParse(item['return_amount']?.toString() ?? '0') ?? 0;
+          }
+
+          return Container(
+            height: MediaQuery.of(context).size.height * 0.88,
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+            ),
+            child: Column(
+              children: [
+                const SizedBox(height: 12),
+                Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2))),
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(32),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          Text("VIP PROCUREMENT", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: AdminTheme.royalBlue, letterSpacing: 2)),
-                          Text("DAILY STATEMENT", style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: AdminTheme.darkNavy)),
-                        ]),
-                        Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: AdminTheme.royalBlue.withValues(alpha: 0.1), shape: BoxShape.circle), child: const Icon(Icons.summarize_rounded, color: AdminTheme.royalBlue, size: 28)),
+                        // Header
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text("PROCUREMENT REFUND STATEMENT", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: AdminTheme.royalBlue, letterSpacing: 2)),
+                                Text("DAILY STATEMENT", style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: AdminTheme.darkNavy)),
+                              ],
+                            ),
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(color: AdminTheme.royalBlue.withValues(alpha: 0.1), shape: BoxShape.circle),
+                              child: const Icon(Icons.summarize_rounded, color: AdminTheme.royalBlue, size: 28),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 32),
+
+                        // Statement Info Grid
+                        Row(
+                          children: [
+                            Expanded(child: _buildInvoiceInfoCol("ISSUED TO (TENANT)", tenant?.name ?? "ChiyaBreak Partner", subtitle: tenant?.domain ?? "saas.platform")),
+                            Expanded(child: _buildInvoiceInfoCol("STATEMENT DATE", dateStr, subtitle: "Full Day Cycle")),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+                        Row(
+                          children: [
+                            Expanded(child: _buildInvoiceInfoCol("REFERENCE ID", transId, subtitle: "Digital Log Active")),
+                            Expanded(child: _buildInvoiceInfoCol("TOTAL ITEMS", "${items.length} Returns", subtitle: "Verified Records")),
+                          ],
+                        ),
+                        const Padding(padding: EdgeInsets.symmetric(vertical: 24), child: Divider(height: 1, thickness: 1, color: Color(0xFFF1F5F9))),
+
+                        // Item Table Header
+                        const Text("CONSOLIDATED RETURN LIST", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1)),
+                        const SizedBox(height: 16),
+
+                        // Item List Container
+                        Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF8FAFC),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                          ),
+                          child: Column(
+                            children: [
+                              _buildEnhancedInvoiceItemRow("Item / Supplier", "Qty & Reason", "Amount", "Action", isHeader: true),
+                              const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Divider(height: 1)),
+                              if (items.isEmpty)
+                                const Padding(
+                                  padding: EdgeInsets.all(20),
+                                  child: Center(child: Text("All items removed from statement.", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold))),
+                                )
+                              else
+                                ...items.map((item) {
+                                  final rId = item['id']?.toString() ?? '';
+                                  final title = item['ingredient_name'] ?? 'Item';
+                                  final supplier = item['supplier_name'] ?? 'General Supplier';
+                                  final qty = "${item['quantity']} ${item['unit']}";
+                                  final reason = item['reason']?.toString() ?? 'Damaged/Defective';
+                                  final amount = "NPR ${item['return_amount']}";
+
+                                  return Padding(
+                                    padding: const EdgeInsets.only(bottom: 12.0),
+                                    child: Row(
+                                      children: [
+                                        Expanded(
+                                          flex: 3,
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AdminTheme.darkNavy)),
+                                              Text(supplier, style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                                            ],
+                                          ),
+                                        ),
+                                        Expanded(
+                                          flex: 3,
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(qty, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AdminTheme.darkNavy)),
+                                              const SizedBox(height: 2),
+                                              Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.redAccent.withValues(alpha: 0.1),
+                                                  borderRadius: BorderRadius.circular(6),
+                                                ),
+                                                child: Text(reason, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.redAccent)),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        Expanded(
+                                          flex: 2,
+                                          child: Text(amount, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF16A34A)), textAlign: TextAlign.right),
+                                        ),
+                                        IconButton(
+                                          icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 18),
+                                          tooltip: "Remove from statement",
+                                          onPressed: () async {
+                                            if (rId.isNotEmpty) {
+                                              await _deleteReturn(rId);
+                                              setModalState(() {
+                                                items.removeWhere((i) => i['id']?.toString() == rId);
+                                              });
+                                            }
+                                          },
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                }),
+                              const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Divider(height: 1, thickness: 2, color: Colors.white)),
+                              _buildEnhancedInvoiceItemRow("Grand Total", "", "NPR ${grandTotal.toStringAsFixed(2)}", "", isHeader: true),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 32),
+
+                        // Total Credit & Authorized Stamp
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text("TOTAL REFUND CREDIT", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
+                                Text("NPR ${grandTotal.toStringAsFixed(2)}", style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: Color(0xFF16A34A))),
+                              ],
+                            ),
+                            Transform.rotate(
+                              angle: -0.1,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                decoration: BoxDecoration(border: Border.all(color: const Color(0xFF16A34A), width: 3), borderRadius: BorderRadius.circular(8)),
+                                child: const Column(
+                                  children: [
+                                    Text("CREDIT", style: TextStyle(color: Color(0xFF16A34A), fontWeight: FontWeight.w900, fontSize: 16)),
+                                    Text("AUTHORIZED", style: TextStyle(color: Color(0xFF16A34A), fontWeight: FontWeight.w900, fontSize: 10)),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 40),
+
+                        // Print Master Invoice Button
+                        Center(
+                          child: Column(
+                            children: [
+                              const Icon(Icons.verified_rounded, size: 60, color: Color(0xFFE2E8F0)),
+                              const SizedBox(height: 8),
+                              const Text("END OF DAILY STATEMENT", style: TextStyle(fontSize: 8, color: Colors.grey, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                              const SizedBox(height: 30),
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton.icon(
+                                  onPressed: () {
+                                    Navigator.pop(ctx);
+                                    _showPrintableInvoiceDialog(items, selectedDate, grandTotal);
+                                  },
+                                  icon: const Icon(Icons.print_rounded, size: 18),
+                                  label: const Text("PRINT MASTER INVOICE"),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AdminTheme.darkNavy,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(vertical: 16),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ],
                     ),
-                    const SizedBox(height: 32),
-                    Row(children: [
-                      Expanded(child: _buildInvoiceInfoCol("ISSUED TO (TENANT)", tenant?.name ?? "ChiyaBreak Partner", subtitle: tenant?.domain ?? "saas.platform")),
-                      Expanded(child: _buildInvoiceInfoCol("STATEMENT DATE", dateStr, subtitle: "Full Day Cycle")),
-                    ]),
-                    const SizedBox(height: 24),
-                    Row(children: [
-                      Expanded(child: _buildInvoiceInfoCol("REFERENCE ID", transId, subtitle: "Digital Log Active")),
-                      Expanded(child: _buildInvoiceInfoCol("TOTAL ITEMS", "${items.length} Returns", subtitle: "Verified Records")),
-                    ]),
-                    const Padding(padding: EdgeInsets.symmetric(vertical: 32), child: Divider(height: 1, thickness: 1, color: Color(0xFFF1F5F9))),
-                    const Text("CONSOLIDATED RETURN LIST", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1)),
-                    const SizedBox(height: 16),
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFE2E8F0))),
-                      child: Column(children: [
-                        _buildInvoiceItemRow("Item/Ingredient", "Qty", "Amount", isHeader: true),
-                        const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Divider(height: 1)),
-                        ...items.map((item) => Padding(
-                          padding: const EdgeInsets.only(bottom: 12.0),
-                          child: _buildInvoiceItemRow(item['ingredient_name'] ?? 'Item', "${item['quantity']} ${item['unit']}", "NPR ${item['return_amount']}"),
-                        )),
-                        const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Divider(height: 1, thickness: 2, color: Colors.white)),
-                        _buildInvoiceItemRow("Grand Total", "", "NPR ${grandTotal.toStringAsFixed(2)}", isHeader: true),
-                      ]),
-                    ),
-                    const SizedBox(height: 40),
-                    Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                      Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        const Text("TOTAL REFUND CREDIT", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
-                        Text("NPR ${grandTotal.toStringAsFixed(2)}", style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: Color(0xFF16A34A))),
-                      ]),
-                      Transform.rotate(angle: -0.1, child: Container(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8), decoration: BoxDecoration(border: Border.all(color: const Color(0xFF16A34A), width: 3), borderRadius: BorderRadius.circular(8)), child: const Column(children: [
-                        Text("CREDIT", style: TextStyle(color: Color(0xFF16A34A), fontWeight: FontWeight.w900, fontSize: 16)),
-                        Text("AUTHORIZED", style: TextStyle(color: Color(0xFF16A34A), fontWeight: FontWeight.w900, fontSize: 10)),
-                      ]))),
-                    ]),
-                    const SizedBox(height: 60),
-                    Center(child: Column(children: [
-                      const Icon(Icons.verified_rounded, size: 80, color: Color(0xFFE2E8F0)),
-                      const SizedBox(height: 12),
-                      const Text("END OF DAILY STATEMENT", style: TextStyle(fontSize: 8, color: Colors.grey, fontWeight: FontWeight.bold, letterSpacing: 1)),
-                      const SizedBox(height: 40),
-                      SizedBox(width: double.infinity, child: ElevatedButton.icon(onPressed: () => Navigator.pop(ctx), icon: const Icon(Icons.print_rounded, size: 18), label: const Text("PRINT MASTER INVOICE"), style: ElevatedButton.styleFrom(backgroundColor: AdminTheme.darkNavy))),
-                    ])),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  void _showPrintableInvoiceDialog(List<Map<String, dynamic>> items, DateTime selectedDate, double grandTotal) {
+    final String dateStr = "${selectedDate.day}/${selectedDate.month}/${selectedDate.year}";
+    final String transId = "STMT-${selectedDate.year}${selectedDate.month.toString().padLeft(2, '0')}${selectedDate.day.toString().padLeft(2, '0')}";
+    final tenant = TenantService().currentTenant.value;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        child: Container(
+          width: 550,
+          padding: const EdgeInsets.all(28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(tenant?.name.toUpperCase() ?? "CHIYABREAK PARTNER", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: AdminTheme.darkNavy)),
+                      Text(tenant?.domain ?? "saas.platform", style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                    ],
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(color: const Color(0xFF16A34A).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+                    child: const Text("OFFICIAL REFUND STATEMENT", style: TextStyle(color: Color(0xFF16A34A), fontWeight: FontWeight.w900, fontSize: 10)),
+                  ),
+                ],
+              ),
+              const Divider(height: 24),
+
+              // Summary
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text("STATEMENT ID: $transId", style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AdminTheme.darkNavy)),
+                  Text("DATE: $dateStr", style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.bold)),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              // Printable Table
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFE2E8F0))),
+                child: Column(
+                  children: [
+                    _buildInvoiceItemRow("Item / Supplier", "Qty", "Refund", isHeader: true),
+                    const Divider(height: 12),
+                    ...items.map((i) => Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: _buildInvoiceItemRow(
+                        "${i['ingredient_name']} (${i['supplier_name'] ?? 'Supplier'})",
+                        "${i['quantity']} ${i['unit']}",
+                        "NPR ${i['return_amount']}",
+                      ),
+                    )),
+                    const Divider(height: 12),
+                    _buildInvoiceItemRow("GRAND TOTAL REFUND", "", "NPR ${grandTotal.toStringAsFixed(2)}", isHeader: true),
                   ],
                 ),
               ),
-            ),
-          ],
+              const SizedBox(height: 20),
+
+              // Stamp & Timestamp
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text("ISSUED BY: CHIYABREAK SAAS SYSTEM", style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.grey)),
+                      Text("TIME: ${DateTime.now().toString().substring(11, 16)}", style: const TextStyle(fontSize: 9, color: Colors.grey)),
+                    ],
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(border: Border.all(color: const Color(0xFF16A34A), width: 2), borderRadius: BorderRadius.circular(6)),
+                    child: const Text("CREDIT AUTHORIZED", style: TextStyle(color: Color(0xFF16A34A), fontWeight: FontWeight.w900, fontSize: 10)),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+
+              // Action Buttons
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Statement link copied to clipboard!"), backgroundColor: AdminTheme.royalBlue),
+                        );
+                      },
+                      icon: const Icon(Icons.share_rounded, size: 16),
+                      label: const Text("SHARE"),
+                      style: OutlinedButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Master Return Invoice sent to printer! 🖨️"), backgroundColor: Color(0xFF16A34A)),
+                        );
+                      },
+                      icon: const Icon(Icons.print_rounded, size: 16),
+                      label: const Text("PRINT INVOICE"),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AdminTheme.darkNavy,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
+  }
+
+  Widget _buildEnhancedInvoiceItemRow(String c1, String c2, String c3, String c4, {bool isHeader = false}) {
+    final style = TextStyle(fontSize: isHeader ? 11 : 13, fontWeight: isHeader ? FontWeight.w900 : FontWeight.w600, color: isHeader ? Colors.grey : AdminTheme.darkNavy);
+    return Row(children: [
+      Expanded(flex: 3, child: Text(c1, style: style)),
+      Expanded(flex: 3, child: Text(c2, style: style)),
+      Expanded(flex: 2, child: Text(c3, style: style, textAlign: TextAlign.right)),
+      if (isHeader) const SizedBox(width: 48),
+    ]);
   }
 
   Widget _buildInvoiceInfoCol(String label, String value, {required String subtitle}) {

@@ -5,7 +5,6 @@ import '../services/api_service.dart';
 import '../services/language_service.dart';
 import 'admin_theme.dart';
 import 'screens/dashboard_screen.dart';
-import 'screens/placeholder_screen.dart';
 import 'screens/pos_invoice_screen.dart';
 import 'screens/order_management_screen.dart';
 import 'screens/production_dashboard_screen.dart';
@@ -18,8 +17,15 @@ import 'screens/food_catalog_screen.dart';
 import 'screens/addons_management_screen.dart';
 import 'screens/reservation_management_screen.dart';
 import 'screens/room_maintenance_screen.dart';
-import 'screens/production_management_screen.dart';
+import 'screens/coming_product_screen.dart';
+import 'screens/production_list_screen.dart';
 import 'screens/hrm_management_screen.dart';
+import 'screens/hrm/designation_screen.dart';
+import 'screens/hrm/add_employee_screen.dart';
+import 'screens/hrm/manage_employee_screen.dart';
+import 'screens/hrm/employee_salary_screen.dart';
+import 'screens/hrm/attendance_form_screen.dart';
+import 'screens/hrm/attendance_report_screen.dart';
 import 'screens/report_management_screen.dart';
 import 'screens/table_configuration_screen.dart';
 import 'screens/customer_management_screen.dart';
@@ -28,6 +34,7 @@ import 'screens/system_configuration_screen.dart';
 import 'screens/expense_management_screen.dart';
 import 'screens/reward_management_screen.dart';
 import 'screens/hr_policy_screen.dart';
+import 'screens/counter_management_screen.dart';
 import 'screens/department_management_screen.dart';
 import 'screens/support_ticket_screen.dart';
 import 'screens/subscription_status_screen.dart';
@@ -77,13 +84,13 @@ class _AdminHubState extends State<AdminHub> {
   final List<Widget> _screens = [
     const DashboardScreen(), // 0
     const POSInvoiceScreen(), // 1
-    const OrderManagementScreen(initialStatus: "All"), // 2
-    const OrderManagementScreen(initialStatus: "Pending"), // 3
-    const OrderManagementScreen(initialStatus: "Complete"), // 4
-    const OrderManagementScreen(initialStatus: "Cancel"), // 5
+    const OrderManagementScreen(key: ValueKey("order_all"), initialStatus: "All"), // 2
+    const OrderManagementScreen(key: ValueKey("order_pending"), initialStatus: "Pending"), // 3
+    const OrderManagementScreen(key: ValueKey("order_completed"), initialStatus: "Completed"), // 4
+    const OrderManagementScreen(key: ValueKey("order_cancelled"), initialStatus: "Cancelled"), // 5
     const ProductionDashboardScreen(title: "Kitchen Dashboard"), // 6
-    const ProductionDashboardScreen(title: "Counter Dashboard"), // 7
-    const AdminPlaceholderScreen(title: "Counter List"), // 8
+    const CounterManagementScreen(), // 7
+    const CounterManagementScreen(), // 8
     const AdminSettingsScreen(section: "POS Setting"), // 9
     const AdminSettingsScreen(section: "Sound Setting"), // 10
     const PurchaseManagementScreen(mode: "Purchase Item"), // 11
@@ -108,16 +115,16 @@ class _AdminHubState extends State<AdminHub> {
     const AddonsManagementScreen(mode: "Add Add-ons"), // 30
     const AddonsManagementScreen(mode: "Add-ons List"), // 31
     const AddonsManagementScreen(mode: "Add-ons Assign List"), // 32
-    const ProductionManagementScreen(mode: "Production Units"), // 33
-    const ProductionManagementScreen(mode: "Production List"), // 34
-    const ProductionManagementScreen(mode: "Add Production"), // 35
-    const ProductionManagementScreen(mode: "Production Settings"), // 36
-    const HRMManagementScreen(mode: "Designation"), // 37
-    const HRMManagementScreen(mode: "Add Employee"), // 38
-    const HRMManagementScreen(mode: "Manage Employee"), // 39
-    const HRMManagementScreen(mode: "Manage Employee Salary"), // 40
-    const HRMManagementScreen(mode: "Attendance Form"), // 41
-    const HRMManagementScreen(mode: "Attendance Report"), // 42
+    const ComingProductScreen(), // 33
+    const ProductionListScreen(), // 34
+    const ProductionListScreen(), // 35
+    const ProductionListScreen(), // 36
+    const DesignationScreen(), // 37
+    const AddEmployeeScreen(), // 38
+    const ManageEmployeeScreen(), // 39
+    const EmployeeSalaryScreen(), // 40
+    const AttendanceFormScreen(), // 41
+    const AttendanceReportScreen(), // 42
     const ExpenseManagementScreen(mode: "Add Expense Item"), // 43
     const ExpenseManagementScreen(mode: "Manage Expense Item"), // 44
     const ExpenseManagementScreen(mode: "Add Expense"), // 45
@@ -474,10 +481,8 @@ class _AdminHubState extends State<AdminHub> {
                     title: "Production",
                     isFixed: isFixed,
                     children: [
-                      _buildSubDrawerItem(33, "Set Production Unit", isFixed),
+                      _buildSubDrawerItem(33, "Coming Product", isFixed),
                       _buildSubDrawerItem(34, "Production List", isFixed),
-                      _buildSubDrawerItem(35, "Add Production", isFixed),
-                      _buildSubDrawerItem(36, "Production Settings", isFixed),
                     ],
                   ),
 
@@ -491,7 +496,7 @@ class _AdminHubState extends State<AdminHub> {
                         children: [
                           _buildSubDrawerItem(38, "Add Employee", isFixed, isDoubleNested: true),
                           _buildSubDrawerItem(39, "Manage Employee", isFixed, isDoubleNested: true),
-                          _buildSubDrawerItem(40, "Manage Employee Salary", isFixed, isDoubleNested: true),
+                          _buildSubDrawerItem(40, "Employee Salary", isFixed, isDoubleNested: true),
                         ],
                       ),
                       _buildNestedExpandableItem(
@@ -505,7 +510,6 @@ class _AdminHubState extends State<AdminHub> {
                         title: "Expense",
                         children: [
                           _buildSubDrawerItem(43, "Add Expense Item", isFixed, isDoubleNested: true),
-                          _buildSubDrawerItem(45, "Add Expense", isFixed, isDoubleNested: true),
                           _buildSubDrawerItem(46, "Manage Expense", isFixed, isDoubleNested: true),
                           _buildSubDrawerItem(47, "Expense Statement", isFixed, isDoubleNested: true),
                         ],

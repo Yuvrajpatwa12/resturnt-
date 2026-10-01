@@ -94,6 +94,7 @@ class _MyAppState extends State<MyApp> {
 
       await TenantService().initialize(domain);
       await ShopManager.instance.fetchLoyaltySettings();
+      await ShopManager.instance.refreshMusicStatus();
     } catch (e) {
       setState(() {
         _errorMessage = e.toString();
