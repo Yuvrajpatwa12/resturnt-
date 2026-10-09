@@ -86,42 +86,44 @@ class TenantService extends ChangeNotifier {
   Future<void> initialize(String domain, {bool showLoading = true}) async {
     if (showLoading) isLoading.value = true;
     
-    // DEBUG BYPASS FOR LOCALHOST TESTING
+    // Auto-map primary domain or localhost to startups_main
     String domainToFetch = domain;
-    if (domain == "localhost" || domain == "127.0.0.1") {
-      domainToFetch = "startups_main"; // Match your actual tenant_id in DB
+    if (domain == "localhost" || domain == "127.0.0.1" || domain == "startupsgo.tech" || domain.isEmpty) {
+      domainToFetch = "startups_main"; // Match main restaurant tenant_id in DB
     }
 
     debugPrint("TENANT: Loading data for $domainToFetch...");
-    final data = await ApiService.initTenant(domainToFetch);
+    Map<String, dynamic>? data = await ApiService.initTenant(domainToFetch);
+    
+    // If not found, fallback to startups_main
+    if (data == null && domainToFetch != "startups_main") {
+      debugPrint("TENANT: Domain not found directly, falling back to startups_main...");
+      data = await ApiService.initTenant("startups_main");
+    }
     
     if (data != null) {
       final parsedTenant = Tenant.fromMap(data);
-      // ALWAYS use the data from the database, even on localhost
       currentTenant.value = parsedTenant;
       
       debugPrint("TENANT: Loaded ${currentTenant.value!.name} (ID: ${currentTenant.value!.id})");
-      // Fetch Menu instantly for this tenant
       await fetchMenuData(currentTenant.value!.id);
     } else {
-      debugPrint("TENANT: ERROR - Domain '$domainToFetch' not found in database.");
-      if (domain == "localhost" || domain == "127.0.0.1") {
-        currentTenant.value = Tenant(
-          id: "startups_main",
-          name: "Dev Mode Restaurant",
-          logo: "",
-          color: "#FF5C00",
-          domain: "startupsgo.tech",
-          isActive: true,
-          plan: "Premium",
-          isPremiumEnabled: true,
-          googleMapsLink: "https://maps.google.com",
-          instagramLink: "https://instagram.com",
-          facebookLink: "https://facebook.com",
-          tiktokLink: "https://tiktok.com",
-        );
-        await fetchMenuData("startups_main");
-      }
+      debugPrint("TENANT: ERROR - Tenant data could not be fetched. Using Default Active Tenant.");
+      currentTenant.value = Tenant(
+        id: "startups_main",
+        name: "ChiyaBreak Restaurant",
+        logo: "",
+        color: "#FF5C00",
+        domain: "startupsgo.tech",
+        isActive: true,
+        plan: "Premium",
+        isPremiumEnabled: true,
+        googleMapsLink: "https://maps.google.com",
+        instagramLink: "https://instagram.com",
+        facebookLink: "https://facebook.com",
+        tiktokLink: "https://tiktok.com",
+      );
+      await fetchMenuData("startups_main");
     }
     if (showLoading) isLoading.value = false;
     notifyListeners();

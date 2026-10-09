@@ -13,6 +13,7 @@ import 'profile_page.dart';
 import 'rewards_page.dart';
 import 'music_voting_sheet.dart';
 import 'services/tenant_service.dart';
+import 'widgets/smart_auth_overlay.dart';
 import 'services/api_service.dart';
 import 'notifications_page.dart';
 import 'activity_share_page.dart';
@@ -616,7 +617,7 @@ class _HomePageState extends State<HomePage> {
   void _showTablePicker() async {
     final tenant = TenantService().currentTenant.value;
     final tenantId = tenant?.id ?? 'startups_main';
-    final tables = await ApiService.fetchTables(tenantId);
+    final tables = await ApiService.fetchTables(tenantId, onlyActive: true);
 
     if (!mounted) return;
     final dialogContext = context;
@@ -855,10 +856,14 @@ class _HomePageState extends State<HomePage> {
   Widget _buildRewardsCard() {
     return InkWell(
       onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const RewardsPage()),
-        );
+        if (ShopManager.instance.isEmailSynced.value) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const RewardsPage()),
+          );
+        } else {
+          SmartAuthOverlay.show(context);
+        }
       },
       borderRadius: BorderRadius.circular(20),
       child: Container(

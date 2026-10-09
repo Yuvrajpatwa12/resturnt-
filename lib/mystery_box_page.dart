@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'cart_manager.dart';
 import 'services/api_service.dart';
 import 'services/tenant_service.dart';
+import 'widgets/smart_auth_overlay.dart';
 
 class MysteryBoxPage extends StatefulWidget {
   const MysteryBoxPage({super.key});
@@ -116,8 +117,9 @@ class _MysteryBoxPageState extends State<MysteryBoxPage> {
           _claimCode = todayClaim['claim_code'];
           ShopManager.instance.isMysteryBoxOpened.value = true;
           final String st = (todayClaim['status'] ?? 'pending').toString().toLowerCase();
+          final String redAt = (todayClaim['redeemed_at'] ?? '').toString().trim();
           ShopManager.instance.isRewardClaimed.value =
-              (st == 'redeemed' || st == 'claimed' || st == 'claimed_by_staff');
+              (st == 'redeemed' || st == 'claimed' || st == 'claimed_by_staff' || st == 'verified' || (redAt.isNotEmpty && redAt != 'null'));
         } else {
           if (_wonPrize == null) {
             ShopManager.instance.isMysteryBoxOpened.value = false;
@@ -285,10 +287,56 @@ class _MysteryBoxPageState extends State<MysteryBoxPage> {
   }
 
   Widget _buildLockedStateUI(bool isUnlocked) {
+    final bool isSynced = ShopManager.instance.isEmailSynced.value;
+    final bool canUnbox = isUnlocked && isSynced;
+
     return Column(
       children: [
+        if (!isSynced) ...[
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            margin: const EdgeInsets.only(bottom: 20),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFF5C00).withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: const Color(0xFFFF5C00).withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.lock_rounded, color: Color(0xFFFF5C00), size: 24),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text("Gmail Sync Required", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF0F172A))),
+                      Text("Sync your Google Email to unlock today's Mystery Box.", style: TextStyle(color: Color(0xFF64748B), fontSize: 11)),
+                    ],
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: () => SmartAuthOverlay.show(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFFF5C00),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  child: const Text("SYNC NOW", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                ),
+              ],
+            ),
+          ),
+        ],
+
         GestureDetector(
-          onTap: isUnlocked ? _handleOpenBox : null,
+          onTap: () {
+            if (!isSynced) {
+              SmartAuthOverlay.show(context);
+            } else if (isUnlocked) {
+              _handleOpenBox();
+            }
+          },
           child: Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 60),
@@ -297,13 +345,13 @@ class _MysteryBoxPageState extends State<MysteryBoxPage> {
               borderRadius: BorderRadius.circular(30),
               boxShadow: [
                 BoxShadow(
-                  color: isUnlocked ? Colors.amber.withValues(alpha: 0.3) : Colors.black.withValues(alpha: 0.05),
+                  color: canUnbox ? Colors.amber.withValues(alpha: 0.3) : Colors.black.withValues(alpha: 0.05),
                   blurRadius: 30,
                   spreadRadius: 5,
                 )
               ],
               border: Border.all(
-                color: isUnlocked ? Colors.amber.withValues(alpha: 0.5) : Colors.grey[200]!,
+                color: canUnbox ? Colors.amber.withValues(alpha: 0.5) : Colors.grey[200]!,
                 width: 2,
               ),
             ),
@@ -312,22 +360,24 @@ class _MysteryBoxPageState extends State<MysteryBoxPage> {
                 Icon(
                   Icons.card_giftcard_rounded,
                   size: 120,
-                  color: isUnlocked ? Colors.amber : Colors.grey[300],
+                  color: canUnbox ? Colors.amber : Colors.grey[300],
                 ),
                 const SizedBox(height: 30),
                 Text(
-                  isUnlocked ? "Tap to Unbox!" : "Locked",
+                  canUnbox ? "Tap to Unbox!" : (!isSynced ? "Sync Gmail to Unlock" : "Locked"),
                   style: TextStyle(
-                    fontSize: 24,
+                    fontSize: 22,
                     fontWeight: FontWeight.w900,
-                    color: isUnlocked ? const Color(0xFFFF5C00) : Colors.grey,
+                    color: canUnbox ? const Color(0xFFFF5C00) : Colors.grey,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  isUnlocked 
-                    ? "Your surprise reward is waiting inside." 
-                    : "Connect to ChiyaBreak's WiFi between 8am-8pm to unlock.",
+                  !isSynced 
+                    ? "Tap here or 'SYNC NOW' to connect your Gmail."
+                    : (isUnlocked 
+                        ? "Your surprise reward is waiting inside." 
+                        : "Connect to ChiyaBreak's WiFi between 8am-8pm to unlock."),
                   textAlign: TextAlign.center,
                   style: const TextStyle(color: Colors.black54, fontSize: 13),
                 ),
@@ -403,6 +453,10 @@ class _MysteryBoxPageState extends State<MysteryBoxPage> {
   }
 
   Future<void> _handleOpenBox() async {
+    if (!ShopManager.instance.isEmailSynced.value) {
+      SmartAuthOverlay.show(context);
+      return;
+    }
     await ShopManager.instance.ensureInitialized();
     final tenant = TenantService().currentTenant.value;
     final staff = TenantService().currentStaff.value;
@@ -549,7 +603,8 @@ class _MysteryBoxPageState extends State<MysteryBoxPage> {
             final String title = win['reward_name'] ?? win['reward_title'] ?? win['title'] ?? 'Mystery Prize';
             final String code = win['claim_code'] ?? '';
             final String status = (win['status'] ?? 'pending').toString().toLowerCase();
-            final bool isRedeemed = status == 'redeemed' || status == 'claimed' || status == 'claimed_by_staff';
+            final String redAt = (win['redeemed_at'] ?? '').toString().trim();
+            final bool isRedeemed = status == 'redeemed' || status == 'claimed' || status == 'claimed_by_staff' || status == 'verified' || (redAt.isNotEmpty && redAt != 'null');
             final remaining = _getRemainingExpiryTime(win);
             final bool isExpired = !isRedeemed && remaining <= Duration.zero;
 
@@ -694,7 +749,8 @@ class _MysteryBoxPageState extends State<MysteryBoxPage> {
   Widget _buildWinItem(Map<String, dynamic> win) {
     final String title = win['reward_name'] ?? win['reward_title'] ?? win['title'] ?? 'Mystery Prize';
     final String status = (win['status'] ?? 'pending').toString().toLowerCase();
-    final bool isRedeemed = status == 'redeemed' || status == 'claimed' || status == 'claimed_by_staff';
+    final String redAt = (win['redeemed_at'] ?? '').toString().trim();
+    final bool isRedeemed = status == 'redeemed' || status == 'claimed' || status == 'claimed_by_staff' || status == 'verified' || (redAt.isNotEmpty && redAt != 'null');
     final String code = win['claim_code'] ?? '';
     final remaining = _getRemainingExpiryTime(win);
     final bool isExpired = !isRedeemed && remaining <= Duration.zero;

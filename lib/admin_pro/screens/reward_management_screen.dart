@@ -30,10 +30,49 @@ class _RewardManagementScreenState extends State<RewardManagementScreen> {
   final TextEditingController _codeVerifyCtrl = TextEditingController();
   bool _mboxEnabled = true;
 
+  Map<String, dynamic>? _searchedClaimData;
+  bool _isSearchingCode = false;
+  String? _searchCodeError;
+
   @override
   void initState() {
     super.initState();
     _loadData();
+  }
+
+  Future<void> _lookupClaimCode() async {
+    final queryCode = _codeVerifyCtrl.text.trim().toLowerCase();
+    if (queryCode.isEmpty) {
+      setState(() {
+        _searchedClaimData = null;
+        _searchCodeError = "Please enter a claim code first!";
+      });
+      return;
+    }
+
+    final tenant = TenantService().currentTenant.value;
+    if (tenant == null) return;
+
+    setState(() {
+      _isSearchingCode = true;
+      _searchedClaimData = null;
+      _searchCodeError = null;
+    });
+
+    final res = await ApiService.verifyClaimCode(tenant.id, queryCode);
+
+    if (mounted) {
+      setState(() {
+        _isSearchingCode = false;
+        if (res['status'] == 'success' && res['data'] != null) {
+          _searchedClaimData = Map<String, dynamic>.from(res['data']);
+          _searchCodeError = null;
+        } else {
+          _searchedClaimData = null;
+          _searchCodeError = res['message'] ?? "Invalid or non-existent claim code!";
+        }
+      });
+    }
   }
 
   @override
@@ -68,7 +107,8 @@ class _RewardManagementScreenState extends State<RewardManagementScreen> {
       for (var c in fetched) {
         final code = (c['claim_code'] ?? '').toString().trim().toLowerCase();
         final id = (c['id'] ?? '').toString().trim();
-        if (_locallyRedeemedCodes.contains(code) || _locallyRedeemedIds.contains(id)) {
+        final redeemedAt = (c['redeemed_at'] ?? '').toString().trim();
+        if ((redeemedAt.isNotEmpty && redeemedAt != 'null') || _locallyRedeemedCodes.contains(code) || _locallyRedeemedIds.contains(id)) {
           c['status'] = 'redeemed';
         }
       }
@@ -202,36 +242,271 @@ class _RewardManagementScreenState extends State<RewardManagementScreen> {
   }
 
   Widget _buildRewardsListView() {
-    return Padding(
-      padding: const EdgeInsets.all(40),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(32),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text("Redeemable Items", style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900)),
+              const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("Redeemable Items", style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900)),
+                  SizedBox(height: 4),
+                  Text("Manage customer redeemable rewards and verify claim codes.", style: TextStyle(color: Colors.grey, fontSize: 13)),
+                ],
+              ),
               ElevatedButton.icon(
                 onPressed: _showAddRewardDialog, 
                 icon: const Icon(Icons.add), 
                 label: const Text("ADD REWARD"),
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF4C49ED), padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF4C49ED),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 32),
-          _rewards.isEmpty 
-            ? const Center(child: Text("No rewards configured. Add one to start!"))
-            : Expanded(
-                child: GridView.builder(
-                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(maxCrossAxisExtent: 300, mainAxisSpacing: 20, crossAxisSpacing: 20, childAspectRatio: 0.8),
-                  itemCount: _rewards.length,
-                  itemBuilder: (context, index) {
-                    final r = _rewards[index];
-                    return _buildRewardCard(r);
-                  },
-                ),
+          const SizedBox(height: 24),
+
+          // QUICK CODE VERIFIER BAR WITH LIVE MEMBER PREVIEW
+          Container(
+            padding: const EdgeInsets.all(22),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: AdminTheme.softShadow,
+              border: Border.all(
+                color: _searchCodeError != null
+                    ? Colors.red.shade300
+                    : (_searchedClaimData != null ? Colors.green.shade300 : const Color(0xFF4C49ED).withValues(alpha: 0.2)),
+                width: 1.5,
               ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Wrap(
+                  spacing: 16,
+                  runSpacing: 12,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  alignment: WrapAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF4C49ED).withValues(alpha: 0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.qr_code_scanner_rounded, color: Color(0xFF4C49ED), size: 24),
+                        ),
+                        const SizedBox(width: 16),
+                        const Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text("Quick Code Verifier & Redemption", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                            SizedBox(height: 2),
+                            Text("Type claim code (e.g. 55391 or MYS-A2BAF) to preview member & confirm redemption.", style: TextStyle(color: Colors.grey, fontSize: 12)),
+                          ],
+                        ),
+                      ],
+                    ),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SizedBox(
+                          width: 240,
+                          height: 46,
+                          child: TextField(
+                            controller: _codeVerifyCtrl,
+                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                            onSubmitted: (_) => _lookupClaimCode(),
+                            decoration: InputDecoration(
+                              hintText: "Enter Code (e.g. 55391)...",
+                              filled: true,
+                              fillColor: const Color(0xFFF8FAFC),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(color: Color(0xFF4C49ED), width: 2),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        ElevatedButton.icon(
+                          onPressed: _isSearchingCode ? null : _lookupClaimCode,
+                          icon: _isSearchingCode
+                              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                              : const Icon(Icons.search_rounded, size: 18),
+                          label: const Text("SEARCH CODE", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF4C49ED),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+
+                // LIVE PREVIEW CARD IF SEARCH MATCHES A CLAIM
+                if (_searchedClaimData != null) ...[
+                  const SizedBox(height: 20),
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.green.shade200, width: 1.5),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.verified_user_rounded, color: Colors.green, size: 20),
+                            const SizedBox(width: 8),
+                            const Text("MATCHED CLAIM RECORD FOUND", style: TextStyle(fontWeight: FontWeight.w900, color: Colors.green, fontSize: 12, letterSpacing: 0.5)),
+                            const Spacer(),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: (_searchedClaimData!['status'] ?? '').toString().toLowerCase() == 'redeemed' ? Colors.green.shade100 : Colors.orange.shade100,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                ((_searchedClaimData!['status'] ?? '').toString().toUpperCase()),
+                                style: TextStyle(
+                                  color: (_searchedClaimData!['status'] ?? '').toString().toLowerCase() == 'redeemed' ? Colors.green.shade800 : Colors.orange.shade900,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const Divider(height: 24),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text("CLAIM MEMBER", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)),
+                                  const SizedBox(height: 2),
+                                  Text(_formatUserName(_searchedClaimData!['user_name'], _searchedClaimData!['user_id']), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF1E293B))),
+                                  Text("Email: ${_searchedClaimData!['user_email'] ?? _searchedClaimData!['user_id'] ?? 'N/A'}", style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                                ],
+                              ),
+                            ),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text("REWARD ITEM", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)),
+                                  const SizedBox(height: 2),
+                                  Text(_searchedClaimData!['reward_title'] ?? _searchedClaimData!['reward_name'] ?? 'Mystery Prize', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF4C49ED))),
+                                  Text("Code: ${_searchedClaimData!['claim_code']}", style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                                ],
+                              ),
+                            ),
+                            ElevatedButton.icon(
+                              onPressed: () async {
+                                final tenant = TenantService().currentTenant.value;
+                                if (tenant == null) return;
+                                final code = _searchedClaimData!['claim_code']?.toString() ?? '';
+                                final res = await ApiService.redeemClaimCode(tenant.id, code);
+                                if (res['status'] == 'success') {
+                                  setState(() {
+                                    _searchedClaimData = null;
+                                    _codeVerifyCtrl.clear();
+                                  });
+                                  _loadData();
+                                  if (mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text(res['message'] ?? "Reward code $code REDEEMED successfully!"), backgroundColor: Colors.green),
+                                    );
+                                  }
+                                } else {
+                                  if (mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text(res['message'] ?? "Failed to redeem code!"), backgroundColor: Colors.red),
+                                    );
+                                  }
+                                }
+                              },
+                              icon: const Icon(Icons.check_circle_rounded, size: 18),
+                              label: const Text("CONFIRM & REDEEM REWARD", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.green,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+
+                // ERROR DISPLAY IF CODE NOT FOUND
+                if (_searchCodeError != null) ...[
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.red.shade200),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 20),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(_searchCodeError!, style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 13)),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          _rewards.isEmpty 
+            ? const Center(child: Padding(padding: EdgeInsets.all(40), child: Text("No rewards configured. Tap '+ ADD REWARD' to start!")))
+            : GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                  maxCrossAxisExtent: 280, 
+                  mainAxisSpacing: 20, 
+                  crossAxisSpacing: 20, 
+                  childAspectRatio: 0.78,
+                ),
+                itemCount: _rewards.length,
+                itemBuilder: (context, index) {
+                  final r = _rewards[index];
+                  return _buildRewardCard(r);
+                },
+              ),
+          const SizedBox(height: 60),
         ],
       ),
     );
@@ -518,7 +793,9 @@ class _RewardManagementScreenState extends State<RewardManagementScreen> {
                     separatorBuilder: (_, __) => const Divider(height: 1),
                     itemBuilder: (ctx, i) {
                       final c = filteredClaims[i];
-                      final isRedeemed = (c['status'] ?? '').toString().toLowerCase() == 'redeemed' || (c['status'] ?? '').toString().toLowerCase() == 'claimed';
+                      final st = (c['status'] ?? '').toString().toLowerCase();
+                      final redeemedAt = (c['redeemed_at'] ?? '').toString().trim();
+                      final isRedeemed = st == 'redeemed' || st == 'claimed' || st == 'verified' || st == 'claimed_by_staff' || (redeemedAt.isNotEmpty && redeemedAt != 'null');
                       return ListTile(
                         contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                         leading: CircleAvatar(
@@ -663,7 +940,17 @@ class _RewardManagementScreenState extends State<RewardManagementScreen> {
     );
   }
 
+  String _formatImageUrl(String? rawUrl) {
+    if (rawUrl == null || rawUrl.trim().isEmpty) return "";
+    final trimmed = rawUrl.trim();
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('data:image')) {
+      return trimmed;
+    }
+    return "${ApiService.baseUrl}/${trimmed.replaceFirst(RegExp(r'^\/'), '')}";
+  }
+
   Widget _buildRewardCard(Map<String, dynamic> r) {
+    final String formattedImg = _formatImageUrl(r['image_url']);
     return Container(
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: AdminTheme.softShadow),
       child: Column(
@@ -673,31 +960,84 @@ class _RewardManagementScreenState extends State<RewardManagementScreen> {
               children: [
                 ClipRRect(
                   borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-                  child: Image.network(
-                    r['image_url'] ?? '', 
-                    width: double.infinity, height: double.infinity, fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(color: Colors.grey[200], child: const Icon(Icons.image, size: 40, color: Colors.grey)),
-                  ),
+                  child: formattedImg.isNotEmpty
+                      ? Image.network(
+                          formattedImg,
+                          width: double.infinity,
+                          height: double.infinity,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Container(
+                            color: const Color(0xFFF8FAFC),
+                            child: const Center(
+                              child: Icon(Icons.fastfood_rounded, size: 44, color: Color(0xFFFF5C00)),
+                            ),
+                          ),
+                        )
+                      : Container(
+                          color: const Color(0xFFF8FAFC),
+                          child: const Center(
+                            child: Icon(Icons.fastfood_rounded, size: 44, color: Color(0xFFFF5C00)),
+                          ),
+                        ),
                 ),
                 Positioned(
-                  top: 10, right: 10,
-                  child: CircleAvatar(
-                    backgroundColor: Colors.white.withValues(alpha: 0.9),
-                    child: IconButton(icon: const Icon(Icons.delete, color: Colors.red, size: 18), onPressed: () async {
-                       await ApiService.deleteReward(int.parse(r['id'].toString()));
-                       _loadData();
-                    }),
+                  top: 8,
+                  right: 8,
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 16,
+                        backgroundColor: Colors.white.withValues(alpha: 0.95),
+                        child: IconButton(
+                          icon: const Icon(Icons.edit, color: Color(0xFF4C49ED), size: 16),
+                          padding: EdgeInsets.zero,
+                          tooltip: "Edit Reward",
+                          onPressed: () => _showEditRewardDialog(r),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      CircleAvatar(
+                        radius: 16,
+                        backgroundColor: Colors.white.withValues(alpha: 0.95),
+                        child: IconButton(
+                          icon: const Icon(Icons.delete, color: Colors.red, size: 16),
+                          padding: EdgeInsets.zero,
+                          tooltip: "Delete Reward",
+                          onPressed: () async {
+                            await ApiService.deleteReward(int.parse(r['id'].toString()));
+                            _loadData();
+                          },
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
           ),
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(14),
             child: Column(
               children: [
-                Text(r['title'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis),
-                Text("${r['points_required']} Pts", style: const TextStyle(color: Color(0xFF4C49ED), fontWeight: FontWeight.bold, fontSize: 12)),
+                Text(
+                  r['title'] ?? '',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF4C49ED).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    "${r['points_required']} Pts Required",
+                    style: const TextStyle(color: Color(0xFF4C49ED), fontWeight: FontWeight.bold, fontSize: 12),
+                  ),
+                ),
               ],
             ),
           ),
@@ -709,6 +1049,7 @@ class _RewardManagementScreenState extends State<RewardManagementScreen> {
   void _showAddRewardDialog() {
     final titleCtrl = TextEditingController();
     final pointsCtrl = TextEditingController();
+    final imageUrlCtrl = TextEditingController();
     Uint8List? selectedImageBytes;
     String? selectedImageName;
     bool isUploading = false;
@@ -730,7 +1071,7 @@ class _RewardManagementScreenState extends State<RewardManagementScreen> {
                 const SizedBox(height: 16),
 
                 // Image File Picker Button
-                const Text("Reward Image *", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                const Text("Reward Image (Pick from PC/Phone) *", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                 const SizedBox(height: 8),
                 InkWell(
                   onTap: () async {
@@ -779,6 +1120,10 @@ class _RewardManagementScreenState extends State<RewardManagementScreen> {
                     ),
                   ),
                 ),
+                const SizedBox(height: 12),
+                const Center(child: Text("— OR PASTE IMAGE URL —", style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold))),
+                const SizedBox(height: 8),
+                _buildDialogField("Direct Image URL (Optional)", imageUrlCtrl, "https://..."),
               ],
             ),
           ),
@@ -791,10 +1136,10 @@ class _RewardManagementScreenState extends State<RewardManagementScreen> {
 
                 setModalState(() => isUploading = true);
 
-                String imageUrl = "";
+                String imageUrl = imageUrlCtrl.text.trim();
                 if (selectedImageBytes != null && selectedImageName != null) {
                   final uploadedUrl = await ApiService.uploadProductImage(selectedImageBytes!, selectedImageName!);
-                  if (uploadedUrl != null) imageUrl = uploadedUrl;
+                  if (uploadedUrl != null && uploadedUrl.isNotEmpty) imageUrl = uploadedUrl;
                 }
 
                 await ApiService.addReward({
@@ -807,10 +1152,128 @@ class _RewardManagementScreenState extends State<RewardManagementScreen> {
                 if (ctx.mounted) Navigator.pop(ctx);
                 _loadData();
               },
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF4C49ED)),
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF4C49ED), foregroundColor: Colors.white),
               child: isUploading
                   ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
                   : const Text("ADD ITEM"),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showEditRewardDialog(Map<String, dynamic> r) {
+    final titleCtrl = TextEditingController(text: r['title'] ?? '');
+    final pointsCtrl = TextEditingController(text: r['points_required']?.toString() ?? '100');
+    final imageUrlCtrl = TextEditingController(text: r['image_url'] ?? '');
+    Uint8List? selectedImageBytes;
+    String? selectedImageName;
+    bool isUploading = false;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          title: const Text("Edit Redeemable Reward", style: TextStyle(fontWeight: FontWeight.bold)),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildDialogField("Item Name *", titleCtrl, "e.g. Free Burger"),
+                const SizedBox(height: 16),
+                _buildDialogField("Points Required *", pointsCtrl, "e.g. 500"),
+                const SizedBox(height: 16),
+
+                // Image File Picker Button
+                const Text("Reward Image (Pick from PC/Phone)", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                const SizedBox(height: 8),
+                InkWell(
+                  onTap: () async {
+                    final picker = ImagePicker();
+                    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+                    if (pickedFile != null) {
+                      final bytes = await pickedFile.readAsBytes();
+                      setModalState(() {
+                        selectedImageBytes = bytes;
+                        selectedImageName = pickedFile.name;
+                      });
+                    }
+                  },
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: selectedImageBytes != null ? Colors.green.shade50 : const Color(0xFFF1F4F9),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: selectedImageBytes != null ? Colors.green : Colors.black12),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          selectedImageBytes != null ? Icons.check_circle_rounded : Icons.cloud_upload_outlined,
+                          color: selectedImageBytes != null ? Colors.green : const Color(0xFF4C49ED),
+                          size: 24,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            selectedImageBytes != null ? (selectedImageName ?? "New Image Selected") : "Replace Image from PC/Phone",
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                              color: selectedImageBytes != null ? Colors.green.shade800 : Colors.black87,
+                            ),
+                          ),
+                        ),
+                        if (selectedImageBytes != null)
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.memory(selectedImageBytes!, width: 36, height: 36, fit: BoxFit.cover),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                const Center(child: Text("— OR UPDATE IMAGE URL —", style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold))),
+                const SizedBox(height: 8),
+                _buildDialogField("Direct Image URL", imageUrlCtrl, "https://..."),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: isUploading ? null : () => Navigator.pop(ctx), child: const Text("CANCEL")),
+            ElevatedButton(
+              onPressed: isUploading ? null : () async {
+                final tenant = TenantService().currentTenant.value;
+                if (tenant == null || titleCtrl.text.trim().isEmpty) return;
+
+                setModalState(() => isUploading = true);
+
+                String imageUrl = imageUrlCtrl.text.trim();
+                if (selectedImageBytes != null && selectedImageName != null) {
+                  final uploadedUrl = await ApiService.uploadProductImage(selectedImageBytes!, selectedImageName!);
+                  if (uploadedUrl != null && uploadedUrl.isNotEmpty) imageUrl = uploadedUrl;
+                }
+
+                await ApiService.updateReward({
+                  "id": int.parse(r['id'].toString()),
+                  "tenant_id": tenant.id,
+                  "title": titleCtrl.text.trim(),
+                  "points_required": int.tryParse(pointsCtrl.text.trim()) ?? 100,
+                  "image_url": imageUrl,
+                });
+
+                if (ctx.mounted) Navigator.pop(ctx);
+                _loadData();
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF4C49ED), foregroundColor: Colors.white),
+              child: isUploading
+                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                  : const Text("SAVE CHANGES"),
             ),
           ],
         ),

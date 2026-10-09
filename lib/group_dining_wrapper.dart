@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:chiyabreak/host_hub_screen.dart';
-import 'package:chiyabreak/guest_tracker_screen.dart';
-import 'package:chiyabreak/smart_split_screen.dart';
-import 'package:chiyabreak/group_chat_page.dart';
-import 'package:chiyabreak/services/tenant_service.dart';
-import 'package:chiyabreak/cart_manager.dart';
-import 'package:chiyabreak/services/api_service.dart';
+import 'host_hub_screen.dart';
+import 'guest_tracker_screen.dart';
+import 'smart_split_screen.dart';
+import 'group_chat_page.dart';
+import 'services/tenant_service.dart';
+import 'cart_manager.dart';
+import 'services/api_service.dart';
 
 class DineWrapper extends StatefulWidget {
   const DineWrapper({super.key});

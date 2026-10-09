@@ -1,6 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:chiyabreak/cart_manager.dart';
+import 'cart_manager.dart';
 import 'widgets/waiter_assistance_modal.dart';
 
 class GuestTrackerScreen extends StatefulWidget {

@@ -1,4 +1,4 @@
-import 'package:chiyabreak/staff/staff_hub.dart';
+import 'staff/staff_hub.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'cart_manager.dart';
@@ -20,6 +20,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'dart:math';
 import 'widgets/review_loading_dialog.dart';
 import 'widgets/waiter_assistance_modal.dart';
+import 'widgets/smart_auth_overlay.dart';
 import 'app_data.dart';
 
 
@@ -231,46 +232,56 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
                         Positioned(
                           bottom: -2,
                           right: -8,
-                          child: ValueListenableBuilder<int>(
-                            valueListenable: ShopManager.instance.userPoints,
-                            builder: (context, points, _) {
-                              return GestureDetector(
-                                onTap: () {
-                                  Navigator.push(context, MaterialPageRoute(builder: (context) => const RewardsPage()));
+                          child: ValueListenableBuilder<bool>(
+                            valueListenable: ShopManager.instance.isEmailSynced,
+                            builder: (context, synced, _) {
+                              return ValueListenableBuilder<int>(
+                                valueListenable: ShopManager.instance.userPoints,
+                                builder: (context, points, _) {
+                                  final displayPoints = synced ? points : 0;
+                                  return GestureDetector(
+                                    onTap: () {
+                                      if (synced) {
+                                        Navigator.push(context, MaterialPageRoute(builder: (context) => const RewardsPage()));
+                                      } else {
+                                        SmartAuthOverlay.show(context);
+                                      }
+                                    },
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFFEF3C7), // Elegant Cream Color
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(color: Colors.white, width: 2),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withValues(alpha: 0.15),
+                                            blurRadius: 6,
+                                            offset: const Offset(0, 3),
+                                          ),
+                                        ],
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                            "$displayPoints",
+                                            style: const TextStyle(
+                                              color: Color(0xFF78350F), // Premium dark amber for perfect contrast
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w900,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 3),
+                                          const Text(
+                                            "🪙",
+                                            style: TextStyle(fontSize: 12),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  );
                                 },
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFFEF3C7), // Elegant Cream Color
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(color: Colors.white, width: 2),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withValues(alpha: 0.15),
-                                        blurRadius: 6,
-                                        offset: const Offset(0, 3),
-                                      ),
-                                    ],
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Text(
-                                        "$points",
-                                        style: const TextStyle(
-                                          color: Color(0xFF78350F), // Premium dark amber for perfect contrast
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w900,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 3),
-                                      const Text(
-                                        "🪙",
-                                        style: TextStyle(fontSize: 12),
-                                      ),
-                                    ],
-                                  ),
-                                ),
                               );
                             },
                           ),
@@ -280,12 +291,17 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
                   ],
                 ),
                 const SizedBox(height: 2), // Tighter gap
-                ValueListenableBuilder<String>(
-                  valueListenable: ShopManager.instance.customerName,
-                  builder: (context, name, _) => Text(
-                    name.isNotEmpty ? name : "Diner Profile",
-                    style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
-                  ),
+                ValueListenableBuilder<bool>(
+                  valueListenable: ShopManager.instance.isEmailSynced,
+                  builder: (context, synced, _) {
+                    return ValueListenableBuilder<String>(
+                      valueListenable: ShopManager.instance.customerName,
+                      builder: (context, name, _) => Text(
+                        (synced && name.isNotEmpty) ? name : "Guest Diner",
+                        style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                      ),
+                    );
+                  },
                 ),
                 const Text(
                   "Nearby & Active",
@@ -548,14 +564,18 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
             }),
           if (isPremium)
             _buildMenuItem(Icons.auto_awesome, "Surprise Mystery Box", "Win free items while in-house", Colors.purple, () {
-              Navigator.push(context, MaterialPageRoute(builder: (context) => MysteryBoxPage()));
+              if (ShopManager.instance.isEmailSynced.value) {
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const MysteryBoxPage()));
+              } else {
+                SmartAuthOverlay.show(context);
+              }
             }),
           if (isPremium)
             _buildMenuItem(Icons.card_giftcard, "Redeem Rewards", "Spend your loyalty points", Colors.green, () {
               if (ShopManager.instance.isEmailSynced.value) {
-                Navigator.push(context, MaterialPageRoute(builder: (context) => RewardsPage()));
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const RewardsPage()));
               } else {
-                _showAuthRequiredDialog(context, "Redeem Rewards");
+                SmartAuthOverlay.show(context);
               }
             }),
 
@@ -1410,10 +1430,13 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
     return SizedBox(
       width: double.infinity,
       child: TextButton.icon(
-        onPressed: () {
-          ShopManager.instance.resetSession();
+        onPressed: () async {
+          await (ShopManager.instance as dynamic).logoutCustomer();
+          (ShopManager.instance as dynamic).resetSession();
           TenantService().logout();
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Logged out successfully.")));
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Logged out successfully.")));
+          }
           ShopManager.instance.currentTabIndex.value = 0; // Go Home
         },
         icon: const Icon(Icons.logout_rounded, color: Colors.redAccent, size: 18),
@@ -1427,36 +1450,11 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
   }
 
   void _showManualSyncDialog(BuildContext context) {
-    final TextEditingController emailCtrl = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Sync Profile"),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text("Enter your Google Email to sync your coins and orders across devices."),
-            const SizedBox(height: 16),
-            TextField(
-              controller: emailCtrl,
-              decoration: const InputDecoration(labelText: "Google Email", border: OutlineInputBorder()),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
-          ElevatedButton(
-            onPressed: () {
-              if (emailCtrl.text.contains('@')) {
-                ShopManager.instance.syncCustomerIdentity(emailCtrl.text, name: emailCtrl.text.split('@').first);
-                Navigator.pop(context);
-              }
-            },
-            child: const Text("Sync Now"),
-          ),
-        ],
-      ),
-    );
+    SmartAuthOverlay.show(context);
+  }
+
+  void _showSyncDialog(BuildContext context) {
+    SmartAuthOverlay.show(context);
   }
 }
 

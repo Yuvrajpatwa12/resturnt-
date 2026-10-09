@@ -1,4 +1,4 @@
-import 'package:chiyabreak/super_admin/super_admin_dashboard.dart';
+import 'super_admin/super_admin_dashboard.dart';
 import 'package:flutter/material.dart';
 import 'waiter_pro/theme.dart';
 import 'homepage.dart';

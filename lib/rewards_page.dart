@@ -224,11 +224,20 @@ class _RewardsPageState extends State<RewardsPage> {
     );
   }
 
+  String _formatImageUrl(String? rawUrl) {
+    if (rawUrl == null || rawUrl.trim().isEmpty) return "";
+    final trimmed = rawUrl.trim();
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('data:image')) {
+      return trimmed;
+    }
+    return "${ApiService.baseUrl}/${trimmed.replaceFirst(RegExp(r'^\/'), '')}";
+  }
+
   Widget _buildRewardCard(Map<String, dynamic> r) {
     final int pointsReq = int.tryParse(r['points_required']?.toString() ?? '0') ?? 0;
     final bool canClaim = _userPoints >= pointsReq;
     final String title = r['title'] ?? 'Reward';
-    final String img = r['image_url'] ?? "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=500";
+    final String formattedImg = _formatImageUrl(r['image_url']);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -255,11 +264,13 @@ class _RewardsPageState extends State<RewardsPage> {
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(16),
-              child: Image.network(
-                img, 
-                fit: BoxFit.cover,
-                errorBuilder: (c,e,s) => const Icon(Icons.fastfood, color: Colors.grey),
-              ),
+              child: formattedImg.isNotEmpty
+                  ? Image.network(
+                      formattedImg, 
+                      fit: BoxFit.cover,
+                      errorBuilder: (c,e,s) => const Center(child: Icon(Icons.fastfood_rounded, color: Color(0xFFFF5C00), size: 32)),
+                    )
+                  : const Center(child: Icon(Icons.fastfood_rounded, color: Color(0xFFFF5C00), size: 32)),
             ),
           ),
           const SizedBox(width: 16),
@@ -382,7 +393,9 @@ class _RewardsPageState extends State<RewardsPage> {
     final String title = c['reward_title'] ?? 'Mystery Prize';
     final String dateStr = c['created_at'] ?? '';
     final String pts = "-${c['points_required'] ?? 0}";
-    final bool isClaimed = c['status'] == 'Claimed';
+    final String statusStr = (c['status'] ?? '').toString().toLowerCase();
+    final String redAt = (c['redeemed_at'] ?? '').toString().trim();
+    final bool isClaimed = statusStr == 'claimed' || statusStr == 'redeemed' || statusStr == 'verified' || statusStr == 'claimed_by_staff' || (redAt.isNotEmpty && redAt != 'null');
 
     DateTime date;
     try { date = DateTime.parse(dateStr); } catch (e) { date = DateTime.now(); }

@@ -15,6 +15,7 @@ class POSInvoiceScreen extends StatefulWidget {
 class _POSInvoiceScreenState extends State<POSInvoiceScreen> {
   List<Map<String, dynamic>> _tables = [];
   List<Map<String, dynamic>> _activeOrders = [];
+  List<Map<String, dynamic>> _activePaymentMethods = [];
   bool _isLoading = true;
   String? _selectedTableNumber;
   String _paymentMethod = "Cash";
@@ -50,6 +51,7 @@ class _POSInvoiceScreenState extends State<POSInvoiceScreen> {
 
     final tablesData = await ApiService.fetchTables(tenantId);
     final ordersData = await ApiService.fetchActiveOrders(tenantId);
+    final paymentMethodsData = await ApiService.fetchActivePaymentMethods(tenantId);
 
     debugPrint("POS DEBUG: Loaded ${tablesData?.length ?? 0} tables and ${ordersData?.length ?? 0} active orders.");
     if (ordersData != null) {
@@ -62,6 +64,13 @@ class _POSInvoiceScreenState extends State<POSInvoiceScreen> {
       setState(() {
         _tables = tablesData ?? [];
         _activeOrders = ordersData ?? [];
+        if (paymentMethodsData.isNotEmpty) {
+          _activePaymentMethods = paymentMethodsData;
+          final activeNames = _activePaymentMethods.map((m) => (m['name'] ?? m['method_id'] ?? 'Cash').toString()).toList();
+          if (!activeNames.contains(_paymentMethod) && activeNames.isNotEmpty) {
+            _paymentMethod = activeNames.first;
+          }
+        }
 
         if (_activeOrders.isNotEmpty && _selectedTableNumber == null) {
           final firstOrdTable = _activeOrders.first['table_number']?.toString();
@@ -309,7 +318,7 @@ class _POSInvoiceScreenState extends State<POSInvoiceScreen> {
                         for (var order in orders) {
                           final orderId = int.tryParse(order['id'].toString()) ?? 0;
                           if (orderId > 0) {
-                            await ApiService.updateOrderStatus(orderId, 'Completed');
+                            await ApiService.updateOrderStatus(orderId, 'Completed', paymentMethod: _paymentMethod);
                           }
                         }
                         setState(() => _isProcessing = false);
@@ -641,38 +650,100 @@ class _POSInvoiceScreenState extends State<POSInvoiceScreen> {
   }
 
   Widget _buildPaymentSelection() {
+    final activeItems = _activePaymentMethods.isNotEmpty ? _activePaymentMethods : [
+      {'name': 'Cash Payment', 'account_holder_name': 'Counter Cash Drawer', 'account_number': '0000'},
+      {'name': 'eSewa QR', 'account_holder_name': 'Ram Sharma', 'account_number': '9841234567'},
+      {'name': 'Fonepay QR', 'account_holder_name': 'Restro Main Account', 'account_number': '9801987654'},
+    ];
+
+    Map<String, dynamic>? selectedObj;
+    for (var m in activeItems) {
+      final name = (m['name'] ?? m['method_id'] ?? '').toString();
+      final holder = (m['account_holder_name'] ?? '').toString();
+      final displayName = (holder.isNotEmpty && holder != 'Main Account' && !name.contains(holder)) ? "$name ($holder)" : name;
+      if (_paymentMethod == displayName || _paymentMethod == name) {
+        selectedObj = m;
+        break;
+      }
+    }
+    selectedObj ??= activeItems.first;
+    final currentHolder = (selectedObj['account_holder_name'] ?? 'Main Account').toString();
+    final currentNum = (selectedObj['account_number'] ?? '').toString();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(t('pos.payment_method'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 12),
         Row(
-          children: ["Cash", "Fonepay", "Card"].map((method) {
-            bool isSelected = _paymentMethod == method;
-            return Expanded(
-              child: GestureDetector(
-                onTap: () => setState(() => _paymentMethod = method),
-                child: Container(
-                  margin: EdgeInsets.only(right: method == "Card" ? 0 : 12),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  decoration: BoxDecoration(
-                    color: isSelected ? AdminTheme.royalBlue : Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: isSelected ? AdminTheme.royalBlue : Colors.grey.withValues(alpha: 0.2)),
-                  ),
-                  child: Center(
-                    child: Text(
-                      method,
-                      style: TextStyle(
-                        color: isSelected ? Colors.white : AdminTheme.darkNavy,
-                        fontWeight: FontWeight.bold,
-                      ),
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(t('pos.payment_method'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: AdminTheme.royalBlue.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                "Account: $currentHolder ${currentNum.isNotEmpty ? '• $currentNum' : ''}",
+                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AdminTheme.royalBlue),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: activeItems.map((item) {
+              final name = (item['name'] ?? item['method_id'] ?? 'Cash').toString();
+              final holder = (item['account_holder_name'] ?? '').toString();
+              final displayName = (holder.isNotEmpty && holder != 'Main Account' && !name.contains(holder))
+                  ? "$name ($holder)"
+                  : name;
+
+              bool isSelected = _paymentMethod == displayName || _paymentMethod == name;
+
+              return Container(
+                margin: const EdgeInsets.only(right: 12),
+                child: GestureDetector(
+                  onTap: () => setState(() => _paymentMethod = displayName),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                    decoration: BoxDecoration(
+                      color: isSelected ? AdminTheme.royalBlue : Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: isSelected ? AdminTheme.royalBlue : Colors.grey.withValues(alpha: 0.2)),
+                      boxShadow: isSelected ? [BoxShadow(color: AdminTheme.royalBlue.withValues(alpha: 0.2), blurRadius: 8, offset: const Offset(0, 4))] : [],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          displayName,
+                          style: TextStyle(
+                            color: isSelected ? Colors.white : AdminTheme.darkNavy,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
+                        if (holder.isNotEmpty) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            "Credit to: $holder",
+                            style: TextStyle(
+                              color: isSelected ? Colors.white70 : Colors.grey,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ),
                 ),
-              ),
-            );
-          }).toList(),
+              );
+            }).toList(),
+          ),
         ),
       ],
     );

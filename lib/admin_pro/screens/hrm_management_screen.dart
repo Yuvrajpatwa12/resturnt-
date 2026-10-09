@@ -5,7 +5,12 @@ import 'dart:typed_data';
 import 'dart:async';
 import '../../services/api_service.dart';
 import '../../services/tenant_service.dart';
+import '../../cart_manager.dart';
+import '../../widgets/signature_canvas_widget.dart';
 import '../admin_theme.dart';
+import 'payroll/salary_type_setup_screen.dart';
+import 'payroll/salary_setup_screen.dart';
+import 'payroll/salary_generate_screen.dart';
 
 class HRMManagementScreen extends StatefulWidget {
   final String mode;
@@ -30,6 +35,7 @@ class _HRMManagementScreenState extends State<HRMManagementScreen> {
   final _documentController = TextEditingController();
 
   String _selectedRole = 'Waiter';
+  String _selectedDepartment = 'Kitchen';
   bool _isSubmitting = false;
   bool _isLoading = true;
   List<Map<String, dynamic>> _staffList = [];
@@ -99,8 +105,12 @@ class _HRMManagementScreenState extends State<HRMManagementScreen> {
     _completedToday.clear();
     _pendingSaves.clear();
     _successSaves.clear();
+
+    ShopManager.instance.fetchCentralDepartments(tenant.id);
     
     final data = await ApiService.fetchStaff(tenant.id);
+    final salarySetups = await ApiService.fetchSalarySetups(tenant.id);
+    final allPayouts = await ApiService.fetchSalaryPayoutHistory(tenant.id);
     
     if (mounted && data != null) {
       final month = "${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, '0')}";
@@ -114,6 +124,40 @@ class _HRMManagementScreenState extends State<HRMManagementScreen> {
             s['present_days'] = 0;
           }
         }
+
+        if (salarySetups != null) {
+          final setup = salarySetups.firstWhere(
+            (st) => int.tryParse(st['user_id']?.toString() ?? '0') == uid,
+            orElse: () => <String, dynamic>{},
+          );
+          if (setup.isNotEmpty) {
+            if (setup['salary_amount'] != null) s['salary_amount'] = setup['salary_amount'];
+            if (setup['salary_start_date'] != null) s['salary_start_date'] = setup['salary_start_date'];
+            if (setup['payment_cycle_days'] != null) s['payment_cycle_days'] = setup['payment_cycle_days'];
+            if (setup['salary_type'] != null) s['salary_type'] = setup['salary_type'];
+            if (setup['department'] != null) s['department'] = setup['department'];
+          }
+        }
+
+        // Calculate total paid and remaining unpaid balance
+        double totalPaid = 0.0;
+        if (allPayouts != null) {
+          final userPayouts = allPayouts.where((p) => (int.tryParse(p['user_id']?.toString() ?? '0') ?? 0) == uid);
+          for (var p in userPayouts) {
+            totalPaid += double.tryParse(p['payout_amount']?.toString() ?? '0') ?? 0.0;
+          }
+        }
+        s['total_paid'] = totalPaid;
+
+        final double baseSalary = double.tryParse(s['salary_amount']?.toString() ?? '0') ?? 0;
+        final int cycle = int.tryParse(s['payment_cycle_days']?.toString() ?? '30') ?? 30;
+        final int daysPassed = int.tryParse(s['present_days']?.toString() ?? '0') ?? 0;
+        final double dailyRate = cycle > 0 ? baseSalary / cycle : 0;
+        final double totalEarned = daysPassed * dailyRate > 0 ? daysPassed * dailyRate : baseSalary;
+        s['total_earned'] = totalEarned;
+
+        final double remainingUnpaid = totalEarned > totalPaid ? (totalEarned - totalPaid) : 0.0;
+        s['remaining_unpaid'] = remainingUnpaid;
       }
 
       setState(() {
@@ -267,6 +311,7 @@ class _HRMManagementScreenState extends State<HRMManagementScreen> {
         'user_id': _selectedStaff!['id'],
         'name': _nameController.text.trim(),
         'role': _selectedRole,
+        'department': _selectedDepartment,
         'pin': _pinController.text.trim(),
         'salary_amount': _salaryController.text.trim(),
         'payment_cycle_days': _cycleController.text.trim(),
@@ -285,6 +330,7 @@ class _HRMManagementScreenState extends State<HRMManagementScreen> {
         'name': _nameController.text.trim(),
         'email': _emailController.text.trim(),
         'role': _selectedRole,
+        'department': _selectedDepartment,
         'pin': _pinController.text.trim(),
         'salary_amount': _salaryController.text.trim(),
         'payment_cycle_days': _cycleController.text.trim(),
@@ -370,6 +416,10 @@ class _HRMManagementScreenState extends State<HRMManagementScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.mode == "Salary Type Setup") return const SalaryTypeSetupScreen();
+    if (widget.mode == "Salary Setup") return const SalarySetupScreen();
+    if (widget.mode == "Salary Generate") return const SalaryGenerateScreen();
+
     // If a staff is selected, show details or edit form
     if (_selectedStaff != null) {
       return _isEditing ? _buildEditForm() : _buildStaffDetails();
@@ -384,7 +434,6 @@ class _HRMManagementScreenState extends State<HRMManagementScreen> {
           else if (widget.mode == "Manage Employee") _buildManageEmployeeView()
           else if (widget.mode == "Attendance Form") _buildAttendanceForm()
           else if (widget.mode == "Attendance Report") _buildAttendanceReport()
-          else if (widget.mode.contains("Salary")) _buildPayrollView()
           else _buildGenericEmployeeView(),
         ],
       ),
@@ -596,7 +645,7 @@ class _HRMManagementScreenState extends State<HRMManagementScreen> {
                     const Text("System Role", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey)),
                     const SizedBox(height: 8),
                     DropdownButtonFormField<String>(
-                      initialValue: _selectedRole,
+                      value: _selectedRole,
                       decoration: InputDecoration(
                         filled: true, fillColor: const Color(0xFFF8FAFC),
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
@@ -608,9 +657,41 @@ class _HRMManagementScreenState extends State<HRMManagementScreen> {
                 ),
               ),
               const SizedBox(width: 16),
-              Expanded(child: _buildTextField("Login PIN (Numeric)", _pinController, hint: "4-6 digits")),
+              Expanded(
+                child: ValueListenableBuilder<List<Map<String, dynamic>>>(
+                  valueListenable: ShopManager.instance.departmentsList,
+                  builder: (context, depts, _) {
+                    final List<String> deptNames = depts.isNotEmpty
+                        ? depts.map((d) => (d['name'] ?? '').toString()).where((n) => n.isNotEmpty).toList()
+                        : ['Kitchen', 'Front of House', 'Bar & Beverage', 'Inventory & Procurement', 'Management & Admin'];
+
+                    if (!deptNames.contains(_selectedDepartment) && deptNames.isNotEmpty) {
+                      _selectedDepartment = deptNames.first;
+                    }
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text("Department *", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey)),
+                        const SizedBox(height: 8),
+                        DropdownButtonFormField<String>(
+                          value: _selectedDepartment,
+                          decoration: InputDecoration(
+                            filled: true, fillColor: const Color(0xFFF8FAFC),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                          ),
+                          items: deptNames.map((d) => DropdownMenuItem(value: d, child: Text(d))).toList(),
+                          onChanged: (v) => setState(() => _selectedDepartment = v!),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ),
             ],
           ),
+          const SizedBox(height: 16),
+          _buildTextField("Login PIN (Numeric)", _pinController, hint: "4-6 digits"),
           
           const SizedBox(height: 40),
           // --- SECTION 2: FINANCE ---
@@ -1487,6 +1568,737 @@ class _HRMManagementScreenState extends State<HRMManagementScreen> {
     );
   }
 
+  void _showSalaryClearanceModal(Map<String, dynamic> s) {
+    final GlobalKey<SignatureCanvasWidgetState> sigKey = GlobalKey<SignatureCanvasWidgetState>();
+    final notesCtrl = TextEditingController(text: "Salary payout cleared for ${s['name']}");
+    String paymentMethod = "Cash";
+    final List<String> methods = ["Cash", "Bank Transfer", "eSewa", "Khalti", "Cheque"];
+    bool isSaving = false;
+
+    final double baseSalary = double.tryParse(s['salary_amount']?.toString() ?? '0') ?? 0;
+    final int cycle = int.tryParse(s['payment_cycle_days']?.toString() ?? '30') ?? 30;
+    final int daysPassed = int.tryParse(s['present_days']?.toString() ?? '0') ?? 0;
+    final double dailyRate = cycle > 0 ? baseSalary / cycle : 0;
+    final double totalEarned = s['total_earned'] != null ? (double.tryParse(s['total_earned'].toString()) ?? 0.0) : (daysPassed * dailyRate > 0 ? daysPassed * dailyRate : baseSalary);
+    final double totalPaid = s['total_paid'] != null ? (double.tryParse(s['total_paid'].toString()) ?? 0.0) : 0.0;
+    final double remainingUnpaid = s['remaining_unpaid'] != null ? (double.tryParse(s['remaining_unpaid'].toString()) ?? 0.0) : (totalEarned > totalPaid ? totalEarned - totalPaid : 0.0);
+
+    final String monthStr = "${_months[DateTime.now().month - 1]} ${DateTime.now().year}";
+
+    final payoutAmountCtrl = TextEditingController(
+      text: remainingUnpaid > 0 ? remainingUnpaid.toStringAsFixed(2) : "0.00",
+    );
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          backgroundColor: Colors.white,
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.green.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.verified_user_rounded, color: Colors.green, size: 26),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text("Salary Payout & Clearance", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Color(0xFF1F2937))),
+                    Text("Clearance for ${s['name']} (${s['role'] ?? 'Staff'})", style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: SizedBox(
+              width: 480,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text("Total Earned: NPR ${totalEarned.toStringAsFixed(2)}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF1F2937))),
+                            Text("Already Paid: NPR ${totalPaid.toStringAsFixed(2)}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.blue)),
+                          ],
+                        ),
+                        const Divider(height: 16),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text("UNPAID REMAINING BALANCE", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)),
+                            Text("NPR ${remainingUnpaid.toStringAsFixed(2)}", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: Colors.green)),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  const Text("PAYOUT AMOUNT TO CLEAR (NPR) *", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Color(0xFF6B7280))),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: payoutAmountCtrl,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF1F2937)),
+                    decoration: InputDecoration(
+                      hintText: "Enter amount to pay...",
+                      suffixText: remainingUnpaid > 0 ? "Max Cap: NPR ${remainingUnpaid.toStringAsFixed(2)}" : null,
+                      suffixStyle: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.bold),
+                      filled: true,
+                      fillColor: const Color(0xFFF8FAFC),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF2563EB), width: 1.5)),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  const Text("PAYMENT METHOD *", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Color(0xFF6B7280))),
+                  const SizedBox(height: 6),
+                  DropdownButtonFormField<String>(
+                    initialValue: paymentMethod,
+                    items: methods.map((m) => DropdownMenuItem(value: m, child: Text(m, style: const TextStyle(fontSize: 13)))).toList(),
+                    onChanged: (v) => setModalState(() => paymentMethod = v!),
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: const Color(0xFFF8FAFC),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  const Text("PAYMENT NOTES / REMARKS", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Color(0xFF6B7280))),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: notesCtrl,
+                    style: const TextStyle(fontSize: 13),
+                    decoration: InputDecoration(
+                      hintText: "e.g. Salary paid in cash for Oct 2026",
+                      filled: true,
+                      fillColor: const Color(0xFFF8FAFC),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  const Text("EMPLOYEE DIGITAL SIGNATURE *", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Color(0xFF6B7280))),
+                  const SizedBox(height: 8),
+                  SignatureCanvasWidget(
+                    key: sigKey,
+                    height: 160,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            OutlinedButton(
+              onPressed: isSaving ? null : () => Navigator.pop(ctx),
+              style: OutlinedButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+              child: const Text("Cancel", style: TextStyle(color: Color(0xFF6B7280))),
+            ),
+            ElevatedButton.icon(
+              onPressed: isSaving
+                  ? null
+                  : () async {
+                      final double enteredPayout = double.tryParse(payoutAmountCtrl.text.trim()) ?? 0.0;
+                      if (enteredPayout <= 0) {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please enter a valid payout amount!"), backgroundColor: Colors.orange));
+                        return;
+                      }
+                      if (remainingUnpaid > 0 && enteredPayout > (remainingUnpaid + 0.01)) {
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Payout amount cannot exceed remaining unpaid balance (NPR ${remainingUnpaid.toStringAsFixed(2)})!"), backgroundColor: Colors.red));
+                        return;
+                      }
+
+                      final sigState = sigKey.currentState;
+                      if (sigState == null || !sigState.hasSignature) {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please draw employee digital signature before clearing!"), backgroundColor: Colors.orange));
+                        return;
+                      }
+
+                      final tenant = TenantService().currentTenant.value;
+                      final tenantId = (tenant != null && tenant.id.isNotEmpty) ? tenant.id : 'startups_main';
+                      final userId = int.tryParse(s['id']?.toString() ?? '') ?? int.tryParse(s['user_id']?.toString() ?? '') ?? 0;
+
+                      if (userId <= 0) {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Cannot save payout: Invalid employee ID"), backgroundColor: Colors.red));
+                        return;
+                      }
+
+                      setModalState(() => isSaving = true);
+
+                      final sigStrokesStr = sigState.exportStrokesData();
+
+                      final res = await ApiService.saveSalaryPayout({
+                        'tenant_id': tenantId,
+                        'user_id': userId,
+                        'payout_month': monthStr,
+                        'payout_amount': enteredPayout,
+                        'payment_method': paymentMethod,
+                        'payment_notes': notesCtrl.text.trim(),
+                        'signature_data': sigStrokesStr,
+                        'paid_by': 'Admin',
+                      });
+
+                      if (ctx.mounted) Navigator.pop(ctx);
+                      await _loadStaff();
+
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(res['status'] == 'success' ? "Salary payout cleared & signature saved!" : "Failed to save payout receipt"),
+                            backgroundColor: res['status'] == 'success' ? Colors.green : Colors.red,
+                          ),
+                        );
+                      }
+                    },
+              icon: const Icon(Icons.check_circle_rounded, size: 18),
+              label: isSaving
+                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                  : const Text("CONFIRM PAYOUT & SAVE RECEIPT", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showPayoutHistoryModal(Map<String, dynamic> s) {
+    final tenant = TenantService().currentTenant.value;
+    final tenantId = (tenant != null && tenant.id.isNotEmpty) ? tenant.id : 'startups_main';
+    final userId = int.tryParse(s['id']?.toString() ?? '') ?? int.tryParse(s['user_id']?.toString() ?? '') ?? 0;
+    bool showAll = false;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) => FutureBuilder<List<Map<String, dynamic>>?>(
+          future: ApiService.fetchSalaryPayoutHistory(tenantId, userId: showAll ? null : userId),
+          builder: (context, snapshot) {
+            final history = snapshot.data ?? [];
+            return AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              backgroundColor: Colors.white,
+              title: Row(
+                children: [
+                  const Icon(Icons.history_edu_rounded, color: Color(0xFF2563EB), size: 26),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text("Salary Payout Receipts & History", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Color(0xFF1F2937))),
+                        Text(showAll ? "All Restaurant Receipts" : "Receipts for ${s['name']}", style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              content: SizedBox(
+                width: 500,
+                height: 420,
+                child: snapshot.connectionState == ConnectionState.waiting
+                    ? const Center(child: CircularProgressIndicator(color: Color(0xFF2563EB)))
+                    : (history.isEmpty
+                        ? Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.receipt_long_outlined, size: 48, color: Colors.grey),
+                              const SizedBox(height: 12),
+                              Text("No payout receipts found for ${s['name']}.", style: const TextStyle(color: Colors.grey, fontSize: 13)),
+                              const SizedBox(height: 16),
+                              OutlinedButton.icon(
+                                onPressed: () => setModalState(() => showAll = true),
+                                icon: const Icon(Icons.list_alt_rounded, size: 16),
+                                label: const Text("View All Restaurant Receipts"),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: const Color(0xFF2563EB),
+                                  side: const BorderSide(color: Color(0xFF2563EB)),
+                                ),
+                              ),
+                            ],
+                          )
+                        : ListView.builder(
+                            itemCount: history.length,
+                            itemBuilder: (context, index) {
+                              final h = history[index];
+                              final DateTime paidAt = DateTime.tryParse(h['paid_at']?.toString() ?? '') ?? DateTime.now();
+                              final String sigStr = h['signature_data']?.toString() ?? '';
+                              final String empName = (h['user_name'] != null && h['user_name'].toString().isNotEmpty)
+                                  ? h['user_name']
+                                  : (s['name'] ?? 'Employee');
+
+                              return Container(
+                                margin: const EdgeInsets.only(bottom: 16),
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF8FAFC),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text("Staff: $empName", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF1F2937))),
+                                        Text("NPR ${(double.tryParse(h['payout_amount']?.toString() ?? '0') ?? 0).toStringAsFixed(2)}", style: const TextStyle(fontWeight: FontWeight.w900, color: Colors.green, fontSize: 16)),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text("Cycle: ${h['payout_month'] ?? 'N/A'} • Paid on: ${paidAt.day} ${_months[paidAt.month - 1]} ${paidAt.year} (${h['payment_method'] ?? 'Cash'})", style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                                    if ((h['payment_notes'] ?? '').toString().isNotEmpty) ...[
+                                      const SizedBox(height: 6),
+                                      Text("Notes: ${h['payment_notes']}", style: const TextStyle(fontSize: 12, color: Color(0xFF475569))),
+                                    ],
+                                    const SizedBox(height: 12),
+                                    const Text("SAVED DIGITAL SIGNATURE:", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)),
+                                    const SizedBox(height: 6),
+                                    SavedSignatureViewer(
+                                      strokesData: sigStr,
+                                      height: 80,
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          )),
+              ),
+              actions: [
+                if (!showAll)
+                  TextButton(
+                    onPressed: () => setModalState(() => showAll = true),
+                    child: const Text("View All Receipts"),
+                  )
+                else
+                  TextButton(
+                    onPressed: () => setModalState(() => showAll = false),
+                    child: Text("Filter for ${s['name']}"),
+                  ),
+                TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Close")),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  void _showEditSalaryDialog(Map<String, dynamic> s) {
+    final salaryCtrl = TextEditingController(text: (s['salary_amount'] ?? '0.00').toString());
+    final cycleCtrl = TextEditingController(text: (s['payment_cycle_days'] ?? '30').toString());
+
+    DateTime selectedStartDate = DateTime.tryParse(s['salary_start_date']?.toString() ?? '') ??
+        DateTime.tryParse(s['created_at']?.toString() ?? s['joining_date']?.toString() ?? '') ??
+        DateTime.now();
+
+    String selectedSalaryType = s['salary_type']?.toString() ?? 'Fixed Monthly';
+    final List<String> salaryTypes = ['Fixed Monthly', 'Hourly', 'Base + Incentive', 'Commission'];
+    if (!salaryTypes.contains(selectedSalaryType)) selectedSalaryType = 'Fixed Monthly';
+
+    String selectedDept = s['department']?.toString() ?? 'Kitchen';
+    bool isSubmitting = false;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) {
+          final depts = ShopManager.instance.departmentsList.value;
+          final List<String> deptNames = depts.isNotEmpty
+              ? depts.map((d) => (d['name'] ?? '').toString()).where((n) => n.isNotEmpty).toList()
+              : ['Kitchen', 'Front of House', 'Bar & Beverage', 'Inventory & Procurement', 'Management & Admin'];
+          if (!deptNames.contains(selectedDept) && deptNames.isNotEmpty) {
+            selectedDept = deptNames.first;
+          }
+
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            backgroundColor: Colors.white,
+            title: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF2563EB).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.payments_rounded, color: Color(0xFF2563EB), size: 24),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text("Edit Salary Setup", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Color(0xFF1F2937))),
+                      Text("Staff: ${s['name']}", style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            content: SingleChildScrollView(
+              child: SizedBox(
+                width: 420,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text("MONTHLY BASE SALARY (NPR) *", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Color(0xFF6B7280))),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: salaryCtrl,
+                      keyboardType: TextInputType.number,
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF1F2937)),
+                      decoration: InputDecoration(
+                        hintText: "e.g. 25000",
+                        filled: true,
+                        fillColor: const Color(0xFFF8FAFC),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
+                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF2563EB), width: 1.5)),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    const Text("SALARY START DATE *", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Color(0xFF6B7280))),
+                    const SizedBox(height: 6),
+                    InkWell(
+                      onTap: () async {
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate: selectedStartDate,
+                          firstDate: DateTime(2020),
+                          lastDate: DateTime(2030),
+                        );
+                        if (picked != null) {
+                          setModalState(() => selectedStartDate = picked);
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFE5E7EB)),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              "${selectedStartDate.year}-${selectedStartDate.month.toString().padLeft(2, '0')}-${selectedStartDate.day.toString().padLeft(2, '0')}",
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF1F2937)),
+                            ),
+                            const Icon(Icons.calendar_today_rounded, color: Color(0xFF2563EB), size: 18),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text("SALARY TYPE", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Color(0xFF6B7280))),
+                              const SizedBox(height: 6),
+                              DropdownButtonFormField<String>(
+                                initialValue: selectedSalaryType,
+                                items: salaryTypes.map((t) => DropdownMenuItem(value: t, child: Text(t, style: const TextStyle(fontSize: 13)))).toList(),
+                                onChanged: (v) => setModalState(() => selectedSalaryType = v!),
+                                decoration: InputDecoration(
+                                  filled: true,
+                                  fillColor: const Color(0xFFF8FAFC),
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text("PAYMENT CYCLE (DAYS)", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Color(0xFF6B7280))),
+                              const SizedBox(height: 6),
+                              TextField(
+                                controller: cycleCtrl,
+                                keyboardType: TextInputType.number,
+                                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF1F2937)),
+                                decoration: InputDecoration(
+                                  hintText: "30",
+                                  filled: true,
+                                  fillColor: const Color(0xFFF8FAFC),
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    const Text("DEPARTMENT", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Color(0xFF6B7280))),
+                    const SizedBox(height: 6),
+                    DropdownButtonFormField<String>(
+                      initialValue: selectedDept,
+                      items: deptNames.map((d) => DropdownMenuItem(value: d, child: Text(d, style: const TextStyle(fontSize: 13)))).toList(),
+                      onChanged: (v) => setModalState(() => selectedDept = v!),
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: const Color(0xFFF8FAFC),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(onPressed: isSubmitting ? null : () => Navigator.pop(ctx), child: const Text("Cancel")),
+              ElevatedButton(
+                onPressed: isSubmitting
+                    ? null
+                    : () async {
+                        final tenant = TenantService().currentTenant.value;
+                        final tenantId = (tenant != null && tenant.id.isNotEmpty) ? tenant.id : 'startups_main';
+                        final userId = int.tryParse(s['id']?.toString() ?? s['user_id']?.toString() ?? '0') ?? 0;
+
+                        if (userId <= 0) return;
+
+                        setModalState(() => isSubmitting = true);
+
+                        final dateStr = "${selectedStartDate.year}-${selectedStartDate.month.toString().padLeft(2, '0')}-${selectedStartDate.day.toString().padLeft(2, '0')}";
+
+                        final success = await ApiService.updateSalarySetup({
+                          'tenant_id': tenantId,
+                          'user_id': userId,
+                          'salary_amount': double.tryParse(salaryCtrl.text.trim()) ?? 0.0,
+                          'salary_start_date': dateStr,
+                          'payment_cycle_days': int.tryParse(cycleCtrl.text.trim()) ?? 30,
+                          'salary_type': selectedSalaryType,
+                          'department': selectedDept,
+                        });
+
+                        if (ctx.mounted) Navigator.pop(ctx);
+                        await _loadStaff();
+
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(success ? "Salary setup updated successfully!" : "Failed to update salary"),
+                              backgroundColor: success ? Colors.green : Colors.red,
+                            ),
+                          );
+                        }
+                      },
+                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2563EB), foregroundColor: Colors.white),
+                child: isSubmitting
+                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    : const Text("SAVE CHANGES"),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  void _showEmployeeSalaryDetailModal(Map<String, dynamic> s) {
+    DateTime joinDate = DateTime.tryParse(s['created_at']?.toString() ?? s['joining_date']?.toString() ?? '') ?? DateTime.now();
+    DateTime startDate = DateTime.tryParse(s['salary_start_date']?.toString() ?? '') ?? joinDate;
+
+    final double baseSalary = double.tryParse(s['salary_amount']?.toString() ?? '0') ?? 0;
+    final int cycle = int.tryParse(s['payment_cycle_days']?.toString() ?? '30') ?? 30;
+    final String salaryType = s['salary_type']?.toString() ?? 'Fixed Monthly';
+    final String dept = s['department']?.toString() ?? 'Kitchen';
+
+    final int daysPassed = int.tryParse(s['present_days']?.toString() ?? '0') ?? 0;
+    final double dailyRate = cycle > 0 ? baseSalary / cycle : 0;
+    final double earnedPayout = daysPassed * dailyRate;
+    final double progress = cycle > 0 ? (daysPassed / cycle).clamp(0.0, 1.0) : 0.0;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        backgroundColor: Colors.white,
+        title: Row(
+          children: [
+            CircleAvatar(
+              radius: 22,
+              backgroundColor: const Color(0xFF2563EB).withValues(alpha: 0.1),
+              backgroundImage: (s['profile_pic_url'] != null && s['profile_pic_url'].isNotEmpty)
+                  ? NetworkImage(s['profile_pic_url'])
+                  : null,
+              child: (s['profile_pic_url'] == null || s['profile_pic_url'].isEmpty)
+                  ? Text((s['name'] ?? 'E')[0].toUpperCase(), style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF2563EB)))
+                  : null,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(s['name'] ?? 'Employee', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Color(0xFF1F2937))),
+                  Text("${s['role'] ?? 'Staff'} • $dept", style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(color: const Color(0xFF2563EB).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+              child: Text(salaryType, style: const TextStyle(color: Color(0xFF2563EB), fontWeight: FontWeight.bold, fontSize: 11)),
+            ),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: SizedBox(
+            width: 440,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Divider(height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text("DATE JOINED", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)),
+                        const SizedBox(height: 2),
+                        Text("${joinDate.day} ${_months[joinDate.month - 1]} ${joinDate.year}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF1F2937))),
+                      ],
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text("SALARY START DATE", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)),
+                        const SizedBox(height: 2),
+                        Text("${startDate.day} ${_months[startDate.month - 1]} ${startDate.year}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF2563EB))),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFFE5E7EB)),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text("Base Monthly Salary", style: TextStyle(color: Color(0xFF6B7280), fontSize: 13)),
+                          Text("NPR ${baseSalary.toStringAsFixed(0)}", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFF1F2937))),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text("Payment Cycle", style: TextStyle(color: Color(0xFF6B7280), fontSize: 13)),
+                          Text("$cycle Days", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF1F2937))),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text("Days Attended", style: TextStyle(color: Color(0xFF6B7280), fontSize: 13)),
+                          Text("$daysPassed Days", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.green)),
+                        ],
+                      ),
+                      const Divider(height: 20),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text("Estimated Earned Payout", style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1F2937), fontSize: 13)),
+                          Text("NPR ${earnedPayout.toStringAsFixed(2)}", style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF2563EB), fontSize: 18)),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        SizedBox(
+                          height: 54, width: 54,
+                          child: CircularProgressIndicator(
+                            value: progress,
+                            strokeWidth: 5,
+                            backgroundColor: Colors.grey[100],
+                            color: const Color(0xFF2563EB),
+                          ),
+                        ),
+                        Text("${(progress * 100).toInt()}%", style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text("Cycle Progress: Day $daysPassed of $cycle", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                          const SizedBox(height: 2),
+                          Text("${(cycle > daysPassed) ? (cycle - daysPassed) : 0} days until next payout", style: const TextStyle(color: Colors.grey, fontSize: 11)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Close")),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _showEditSalaryDialog(s);
+            },
+            icon: const Icon(Icons.edit_rounded, size: 16),
+            label: const Text("EDIT SALARY SETUP"),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2563EB), foregroundColor: Colors.white),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildPayrollView() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1498,128 +2310,168 @@ class _HRMManagementScreenState extends State<HRMManagementScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text("Payroll & Salary Hub", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-                Text("Live cycle tracking and payment estimations.", style: TextStyle(color: Colors.grey, fontSize: 11)),
+                Text("Click an employee card to view full salary breakdown, start dates, and edit setup.", style: TextStyle(color: Colors.grey, fontSize: 11)),
               ],
             ),
             IconButton(onPressed: _loadStaff, icon: const Icon(Icons.refresh, color: AdminTheme.royalBlue)),
           ],
         ),
-        const SizedBox(height: 32),
+        const SizedBox(height: 28),
         if (_isLoading)
           const Center(child: Padding(padding: EdgeInsets.all(60), child: CircularProgressIndicator()))
         else if (_staffList.isEmpty)
           const Center(child: Padding(padding: EdgeInsets.all(40), child: Text("No staff data found.")))
         else
           ListView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: _staffList.length,
-          itemBuilder: (context, index) {
-            final s = _staffList[index];
-            final double salary = double.tryParse(s['salary_amount']?.toString() ?? '0') ?? 0;
-            final int cycle = int.tryParse(s['payment_cycle_days']?.toString() ?? '30') ?? 30;
-            
-            // PAYROLL LOGIC (Count actual present attendance days)
-            DateTime joinDate = DateTime.tryParse(s['created_at']?.toString() ?? '') ?? DateTime.now();
-            final int daysPassed = int.tryParse(s['present_days']?.toString() ?? '0') ?? 0;
-            final int daysRemaining = (cycle > daysPassed) ? (cycle - daysPassed) : 0;
-            final double progress = cycle > 0 ? (daysPassed / cycle).clamp(0.0, 1.0) : 0.0;
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: _staffList.length,
+            itemBuilder: (context, index) {
+              final s = _staffList[index];
+              final double salary = double.tryParse(s['salary_amount']?.toString() ?? '0') ?? 0;
+              final int cycle = int.tryParse(s['payment_cycle_days']?.toString() ?? '30') ?? 30;
+              final String salaryType = s['salary_type']?.toString() ?? 'Fixed Monthly';
+              final String dept = s['department']?.toString() ?? 'Kitchen';
 
-            return Container(
-              margin: const EdgeInsets.only(bottom: 20),
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.white, 
-                borderRadius: BorderRadius.circular(24), 
-                boxShadow: AdminTheme.softShadow,
-                border: Border.all(color: Colors.grey[100]!),
-              ),
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 24,
-                        backgroundColor: AdminTheme.royalBlue.withValues(alpha: 0.1),
-                        backgroundImage: (s['profile_pic_url'] != null && s['profile_pic_url'].isNotEmpty) 
-                          ? NetworkImage(s['profile_pic_url']) 
-                          : null,
-                        child: (s['profile_pic_url'] == null || s['profile_pic_url'].isEmpty) 
-                          ? Text(s['name'][0].toUpperCase(), style: const TextStyle(fontWeight: FontWeight.bold, color: AdminTheme.royalBlue))
-                          : null,
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(s['name'] ?? 'Staff', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                            Text(s['role'] ?? 'Employee', style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
-                          ],
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(color: Colors.green.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
-                        child: const Text("P", style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 10)),
-                      ),
-                    ],
+              DateTime joinDate = DateTime.tryParse(s['created_at']?.toString() ?? s['joining_date']?.toString() ?? '') ?? DateTime.now();
+              DateTime startDate = DateTime.tryParse(s['salary_start_date']?.toString() ?? '') ?? joinDate;
+
+              final int daysPassed = int.tryParse(s['present_days']?.toString() ?? '0') ?? 0;
+
+              final double totalEarned = s['total_earned'] != null ? (double.tryParse(s['total_earned'].toString()) ?? 0.0) : salary;
+              final double totalPaid = s['total_paid'] != null ? (double.tryParse(s['total_paid'].toString()) ?? 0.0) : 0.0;
+              final double remainingUnpaid = s['remaining_unpaid'] != null ? (double.tryParse(s['remaining_unpaid'].toString()) ?? 0.0) : (totalEarned > totalPaid ? totalEarned - totalPaid : 0.0);
+
+              return InkWell(
+                onTap: () => _showEmployeeSalaryDetailModal(s),
+                borderRadius: BorderRadius.circular(20),
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: AdminTheme.softShadow,
+                    border: Border.all(color: Colors.grey.shade200),
                   ),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 20),
-                    child: Divider(height: 1),
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  child: Column(
                     children: [
-                      _buildPayrollStat("DATE", "${joinDate.day} ${_months[joinDate.month-1]} ${joinDate.year}"),
-                      _buildPayrollStat("STATUS", "Active Cycle", isStatus: true),
-                      _buildPayrollStat("SALARY", "NPR ${salary.toStringAsFixed(0)}"),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-                  Row(
-                    children: [
-                      Stack(
-                        alignment: Alignment.center,
+                      Row(
                         children: [
-                          SizedBox(
-                            height: 60, width: 60,
-                            child: CircularProgressIndicator(
-                              value: progress,
-                              strokeWidth: 6,
-                              backgroundColor: Colors.grey[100],
-                              color: AdminTheme.royalBlue,
+                          CircleAvatar(
+                            radius: 22,
+                            backgroundColor: AdminTheme.royalBlue.withValues(alpha: 0.1),
+                            backgroundImage: (s['profile_pic_url'] != null && s['profile_pic_url'].isNotEmpty)
+                                ? NetworkImage(s['profile_pic_url'])
+                                : null,
+                            child: (s['profile_pic_url'] == null || s['profile_pic_url'].isEmpty)
+                                ? Text((s['name'] ?? 'E')[0].toUpperCase(), style: const TextStyle(fontWeight: FontWeight.bold, color: AdminTheme.royalBlue))
+                                : null,
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Text(s['name'] ?? 'Staff', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF1F2937))),
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                      decoration: BoxDecoration(color: const Color(0xFF2563EB).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
+                                      child: Text(dept, style: const TextStyle(fontSize: 10, color: Color(0xFF2563EB), fontWeight: FontWeight.bold)),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 2),
+                                Text("${s['role'] ?? 'Employee'} • Joined: ${joinDate.day} ${_months[joinDate.month - 1]} ${joinDate.year}", style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                              ],
                             ),
                           ),
-                          Text("${(progress * 100).toInt()}%", style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: remainingUnpaid > 0 ? Colors.orange.shade50 : Colors.green.shade50,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: remainingUnpaid > 0 ? Colors.orange.shade300 : Colors.green.shade300),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  "Unpaid: NPR ${remainingUnpaid.toStringAsFixed(0)}",
+                                  style: TextStyle(color: remainingUnpaid > 0 ? Colors.orange.shade900 : Colors.green.shade800, fontWeight: FontWeight.w900, fontSize: 13),
+                                ),
+                                Text(
+                                  "Paid: NPR ${totalPaid.toStringAsFixed(0)}",
+                                  style: const TextStyle(color: Colors.grey, fontSize: 10, fontWeight: FontWeight.bold),
+                                ),
+                              ],
+                            ),
+                          ),
                         ],
                       ),
-                      const SizedBox(width: 20),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text("Day $daysPassed of $cycle", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                            const SizedBox(height: 4),
-                            Text("$daysRemaining days until next payment", style: const TextStyle(color: Colors.grey, fontSize: 11)),
-                          ],
-                        ),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 14),
+                        child: Divider(height: 1),
                       ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text("EST. PAYOUT", style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: Colors.grey)),
-                          Text("NPR ${salary.toStringAsFixed(0)}", style: const TextStyle(fontWeight: FontWeight.w900, color: AdminTheme.royalBlue, fontSize: 18)),
+                          Row(
+                            children: [
+                              const Icon(Icons.calendar_month_rounded, size: 16, color: Color(0xFF2563EB)),
+                              const SizedBox(width: 6),
+                              Text("Start: ${startDate.day} ${_months[startDate.month - 1]} ${startDate.year}", style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF374151))),
+                            ],
+                          ),
+                          Row(
+                            children: [
+                              const Icon(Icons.category_rounded, size: 16, color: Colors.grey),
+                              const SizedBox(width: 6),
+                              Text(salaryType, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF4B5563))),
+                            ],
+                          ),
+                          Row(
+                            children: [
+                              ElevatedButton.icon(
+                                onPressed: () => _showSalaryClearanceModal(s),
+                                icon: const Icon(Icons.check_circle_rounded, size: 14),
+                                label: const Text("PAY SALARY", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.green,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              IconButton(
+                                icon: const Icon(Icons.history_edu_rounded, color: Color(0xFF2563EB), size: 18),
+                                tooltip: "View Paid Receipts & Signatures",
+                                onPressed: () => _showPayoutHistoryModal(s),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.visibility_rounded, color: Color(0xFF2563EB), size: 18),
+                                tooltip: "View Full Details",
+                                onPressed: () => _showEmployeeSalaryDetailModal(s),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.edit_rounded, color: Color(0xFF2563EB), size: 18),
+                                tooltip: "Edit Salary Setup",
+                                onPressed: () => _showEditSalaryDialog(s),
+                              ),
+                            ],
+                          ),
                         ],
                       ),
                     ],
                   ),
-                ],
-              ),
-            );
-          },
-        ),
+                ),
+              );
+            },
+          ),
       ],
     );
   }

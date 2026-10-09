@@ -11,14 +11,14 @@ class ApiService {
   static const Duration _timeout = Duration(seconds: 15);
 
   // --- HELPER METHODS FOR STABILITY ---
-  static Future<http.Response> _get(Uri url) async {
-    return await http.get(url).timeout(_timeout, onTimeout: () {
+  static Future<http.Response> _get(Uri uri) async {
+    return await http.get(uri).timeout(_timeout, onTimeout: () {
       throw TimeoutException("Server is taking too long to respond. Please check your connection.");
     });
   }
 
-  static Future<http.Response> _post(Uri url, {Map<String, String>? headers, Object? body}) async {
-    return await http.post(url, headers: headers, body: body).timeout(_timeout, onTimeout: () {
+  static Future<http.Response> _post(Uri uri, {Map<String, String>? headers, Object? body}) async {
+    return await http.post(uri, headers: headers, body: body).timeout(_timeout, onTimeout: () {
       throw TimeoutException("Server is taking too long to respond. Please check your connection.");
     });
   }
@@ -759,6 +759,318 @@ class ApiService {
     } catch (e) { return false; }
   }
 
+  // --- DEPARTMENT & DIVISION METHODS ---
+
+  static Future<List<Map<String, dynamic>>?> fetchDepartments(String tenantId) async {
+    try {
+      final tid = (tenantId.isNotEmpty && tenantId != 'null') ? tenantId : 'startups_main';
+      final response = await _get(Uri.parse("$baseUrl/department_api.php?action=get_departments&tenant_id=$tid"));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['status'] == 'success') return List<Map<String, dynamic>>.from(data['data']);
+      }
+      return null;
+    } catch (e) { return null; }
+  }
+
+  static Future<bool> addDepartment(Map<String, dynamic> deptData) async {
+    try {
+      final response = await _post(
+        Uri.parse("$baseUrl/department_api.php?action=add_department"),
+        headers: {"Content-Type": "application/json"},
+        body: json.encode(deptData),
+      );
+      return json.decode(response.body)['status'] == 'success';
+    } catch (e) { return false; }
+  }
+
+  static Future<bool> updateDepartment(Map<String, dynamic> deptData) async {
+    try {
+      final response = await _post(
+        Uri.parse("$baseUrl/department_api.php?action=update_department"),
+        headers: {"Content-Type": "application/json"},
+        body: json.encode(deptData),
+      );
+      return json.decode(response.body)['status'] == 'success';
+    } catch (e) { return false; }
+  }
+
+  static Future<bool> deleteDepartment(int id) async {
+    try {
+      final response = await _get(Uri.parse("$baseUrl/department_api.php?action=delete_department&id=$id"));
+      return json.decode(response.body)['status'] == 'success';
+    } catch (e) { return false; }
+  }
+
+  // --- SALARY & PAYROLL METHODS ---
+
+  static Future<List<Map<String, dynamic>>?> fetchSalarySetups(String tenantId) async {
+    try {
+      final tid = (tenantId.isNotEmpty && tenantId != 'null') ? tenantId : 'startups_main';
+      final response = await _get(Uri.parse("$baseUrl/salary_api.php?action=get_salary_setups&tenant_id=$tid"));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['status'] == 'success') return List<Map<String, dynamic>>.from(data['data']);
+      }
+      return null;
+    } catch (e) { return null; }
+  }
+
+  static Future<bool> updateSalarySetup(Map<String, dynamic> salaryData) async {
+    try {
+      final response = await _post(
+        Uri.parse("$baseUrl/salary_api.php?action=update_salary_setup"),
+        headers: {"Content-Type": "application/json"},
+        body: json.encode(salaryData),
+      );
+      return json.decode(response.body)['status'] == 'success';
+    } catch (e) { return false; }
+  }
+
+  static Future<bool> deleteSalarySetup(int userId, String tenantId) async {
+    try {
+      final response = await _post(
+        Uri.parse("$baseUrl/salary_api.php?action=delete_salary_setup"),
+        headers: {"Content-Type": "application/json"},
+        body: json.encode({"user_id": userId, "tenant_id": tenantId}),
+      );
+      return json.decode(response.body)['status'] == 'success';
+    } catch (e) { return false; }
+  }
+
+  static Future<Map<String, dynamic>> saveSalaryPayout(Map<String, dynamic> payoutData) async {
+    try {
+      final response = await _post(
+        Uri.parse("$baseUrl/salary_payout_api.php?action=save_salary_payout"),
+        headers: {"Content-Type": "application/json"},
+        body: json.encode(payoutData),
+      );
+      return json.decode(response.body);
+    } catch (e) { return {"status": "error", "message": "Connection error"}; }
+  }
+
+  static Future<List<Map<String, dynamic>>?> fetchSalaryPayoutHistory(String tenantId, {int? userId}) async {
+    try {
+      final tid = (tenantId.isNotEmpty && tenantId != 'null') ? tenantId : 'startups_main';
+      String payoutEndpoint = "$baseUrl/salary_payout_api.php?action=get_payout_history&tenant_id=$tid";
+      if (userId != null && userId > 0) payoutEndpoint += "&user_id=$userId";
+
+      final response = await _get(Uri.parse(payoutEndpoint));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['status'] == 'success') return List<Map<String, dynamic>>.from(data['data']);
+      }
+      return null;
+    } catch (e) { return null; }
+  }
+
+  // --- PAYMENT METHODS MANAGEMENT APIs ---
+  static final List<Map<String, dynamic>> _localPaymentMethods = [];
+
+  static Future<void> _ensureLocalPaymentMethodsLoaded() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonStr = prefs.getString('saved_local_payment_methods');
+      if (jsonStr != null && jsonStr.isNotEmpty) {
+        final List<dynamic> decoded = json.decode(jsonStr);
+        for (var d in decoded) {
+          final mId = (d['method_id'] ?? d['id'] ?? '').toString();
+          if (mId.isNotEmpty && !_localPaymentMethods.any((x) => (x['method_id'] ?? x['id']).toString() == mId)) {
+            _localPaymentMethods.add(Map<String, dynamic>.from(d));
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint("Error loading saved local payment methods: $e");
+    }
+  }
+
+  static Future<void> _persistLocalPaymentMethods() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('saved_local_payment_methods', json.encode(_localPaymentMethods));
+    } catch (e) {
+      debugPrint("Error persisting local payment methods: $e");
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>> fetchPaymentMethods(String tenantId) async {
+    await _ensureLocalPaymentMethodsLoaded();
+    final tid = (tenantId.isNotEmpty && tenantId != 'null') ? tenantId : 'startups_main';
+    List<Map<String, dynamic>> serverMethods = [];
+    try {
+      final response = await _get(Uri.parse("$baseUrl/payment_methods_api.php?action=get_payment_methods&tenant_id=$tid"));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['status'] == 'success' && data['data'] != null && data['data'] is List) {
+          serverMethods = List<Map<String, dynamic>>.from(data['data']);
+        }
+      }
+    } catch (e) {
+      debugPrint("API Error fetching payment methods: $e");
+    }
+
+    final Map<String, Map<String, dynamic>> map = {};
+    for (var m in serverMethods) {
+      final mId = (m['method_id'] ?? m['id'] ?? '').toString();
+      if (mId.isNotEmpty) map[mId] = Map<String, dynamic>.from(m);
+    }
+    for (var m in _localPaymentMethods) {
+      final mId = (m['method_id'] ?? m['id'] ?? '').toString();
+      if (mId.isNotEmpty) map[mId] = Map<String, dynamic>.from(m);
+    }
+
+    return map.values.toList();
+  }
+
+  static Future<List<Map<String, dynamic>>> fetchActivePaymentMethods(String tenantId) async {
+    final all = await fetchPaymentMethods(tenantId);
+    return all.where((m) => m['is_active'] == true || m['is_active'] == 1 || m['is_active'] == '1').toList();
+  }
+
+  static Future<bool> togglePaymentMethodStatus(String tenantId, String methodId, bool isActive) async {
+    await _ensureLocalPaymentMethodsLoaded();
+    final tid = (tenantId.isNotEmpty && tenantId != 'null') ? tenantId : 'startups_main';
+
+    for (var m in _localPaymentMethods) {
+      if ((m['method_id'] ?? m['id']).toString() == methodId) {
+        m['is_active'] = isActive ? 1 : 0;
+      }
+    }
+    await _persistLocalPaymentMethods();
+
+    try {
+      final response = await _post(
+        Uri.parse("$baseUrl/payment_methods_api.php?action=toggle_payment_method"),
+        headers: {"Content-Type": "application/json"},
+        body: json.encode({
+          "tenant_id": tid,
+          "method_id": methodId,
+          "is_active": isActive,
+        }),
+      );
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data['status'] == 'success';
+      }
+    } catch (e) {
+      debugPrint("API Error toggling payment method: $e");
+    }
+    return true;
+  }
+
+  static Future<bool> savePaymentMethod(String tenantId, Map<String, dynamic> methodData) async {
+    await _ensureLocalPaymentMethodsLoaded();
+    final tid = (tenantId.isNotEmpty && tenantId != 'null') ? tenantId : 'startups_main';
+    final payload = Map<String, dynamic>.from(methodData);
+    payload['tenant_id'] = tid;
+
+    final mId = (payload['method_id'] ?? payload['id'] ?? '').toString();
+    final idx = _localPaymentMethods.indexWhere((m) => (m['method_id'] ?? m['id']).toString() == mId);
+    if (idx >= 0) {
+      _localPaymentMethods[idx] = payload;
+    } else {
+      _localPaymentMethods.add(payload);
+    }
+    await _persistLocalPaymentMethods();
+
+    try {
+      final response = await _post(
+        Uri.parse("$baseUrl/payment_methods_api.php?action=save_payment_method"),
+        headers: {"Content-Type": "application/json"},
+        body: json.encode(payload),
+      );
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        debugPrint("savePaymentMethod response: ${response.body}");
+        return data['status'] == 'success';
+      }
+    } catch (e) {
+      debugPrint("API Error saving payment method: $e");
+    }
+    return true;
+  }
+
+  static Future<bool> deletePaymentMethod(String tenantId, String methodId) async {
+    await _ensureLocalPaymentMethodsLoaded();
+    final tid = (tenantId.isNotEmpty && tenantId != 'null') ? tenantId : 'startups_main';
+    _localPaymentMethods.removeWhere((m) => (m['method_id'] ?? m['id']).toString() == methodId);
+    await _persistLocalPaymentMethods();
+
+    try {
+      final response = await _post(
+        Uri.parse("$baseUrl/payment_methods_api.php?action=delete_payment_method"),
+        headers: {"Content-Type": "application/json"},
+        body: json.encode({
+          "tenant_id": tid,
+          "method_id": methodId,
+        }),
+      );
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data['status'] == 'success';
+      }
+    } catch (e) {
+      debugPrint("API Error deleting payment method: $e");
+    }
+    return true;
+  }
+
+  static Future<List<Map<String, dynamic>>?> fetchDivisions(String tenantId) async {
+    try {
+      final response = await _get(Uri.parse("$baseUrl/department_api.php?action=get_divisions&tenant_id=$tenantId"));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['status'] == 'success') return List<Map<String, dynamic>>.from(data['data']);
+      }
+      return null;
+    } catch (e) { return null; }
+  }
+
+  static Future<bool> addDivision(Map<String, dynamic> divData) async {
+    try {
+      final response = await _post(
+        Uri.parse("$baseUrl/department_api.php?action=add_division"),
+        headers: {"Content-Type": "application/json"},
+        body: json.encode(divData),
+      );
+      return json.decode(response.body)['status'] == 'success';
+    } catch (e) { return false; }
+  }
+
+  static Future<bool> assignDivisionStaff(int divisionId, int staffCount, List<String> assignedStaff) async {
+    try {
+      final response = await _post(
+        Uri.parse("$baseUrl/department_api.php?action=assign_division_staff"),
+        headers: {"Content-Type": "application/json"},
+        body: json.encode({
+          "id": divisionId,
+          "staff_count": staffCount,
+          "assigned_staff": assignedStaff,
+        }),
+      );
+      return json.decode(response.body)['status'] == 'success';
+    } catch (e) { return false; }
+  }
+
+  static Future<bool> updateDivision(Map<String, dynamic> divData) async {
+    try {
+      final response = await _post(
+        Uri.parse("$baseUrl/department_api.php?action=update_division"),
+        headers: {"Content-Type": "application/json"},
+        body: json.encode(divData),
+      );
+      return json.decode(response.body)['status'] == 'success';
+    } catch (e) { return false; }
+  }
+
+  static Future<bool> deleteDivision(int id) async {
+    try {
+      final response = await _get(Uri.parse("$baseUrl/department_api.php?action=delete_division&id=$id"));
+      return json.decode(response.body)['status'] == 'success';
+    } catch (e) { return false; }
+  }
+
   static Future<bool> markAttendance(List<Map<String, dynamic>> attendanceData) async {
     try {
       final response = await _post(Uri.parse("$baseUrl/mark_attendance.php"), headers: {"Content-Type": "application/json"}, body: json.encode({"attendance": attendanceData}));
@@ -887,10 +1199,14 @@ class ApiService {
     return {"status": "success", "order_id": newOrderId};
   }
 
-  static Future<Map<String, dynamic>> updateOrderStatus(int orderId, String status) async {
+  static Future<Map<String, dynamic>> updateOrderStatus(int orderId, String status, {String? paymentMethod}) async {
     for (var o in _localActiveOrders) {
       if (int.tryParse(o['id'].toString()) == orderId) {
         o['status'] = status;
+        if (paymentMethod != null && paymentMethod.isNotEmpty) {
+          o['payment_method'] = paymentMethod;
+          o['method'] = paymentMethod;
+        }
         if (status.toLowerCase() == 'completed' || status.toLowerCase() == 'ready') {
           if (o['items'] is List) {
             for (var item in (o['items'] as List)) {
@@ -907,10 +1223,14 @@ class ApiService {
     }
 
     try {
+      final payload = <String, dynamic>{"order_id": orderId, "new_status": status};
+      if (paymentMethod != null && paymentMethod.isNotEmpty) {
+        payload['payment_method'] = paymentMethod;
+      }
       final response = await _post(
         Uri.parse("$baseUrl/update_order_status.php"), 
         headers: {"Content-Type": "application/json"}, 
-        body: json.encode({"order_id": orderId, "new_status": status})
+        body: json.encode(payload)
       );
       
       final result = json.decode(response.body);
@@ -1211,7 +1531,7 @@ class ApiService {
     return true;
   }
 
-  static Future<List<Map<String, dynamic>>?> fetchTables(String tenantId) async {
+  static Future<List<Map<String, dynamic>>?> fetchTables(String tenantId, {bool onlyActive = false}) async {
     await _ensureLocalTablesLoaded(tenantId);
     List<Map<String, dynamic>> serverTables = [];
     
@@ -1243,14 +1563,23 @@ class ApiService {
       }
     }
 
+    List<Map<String, dynamic>> resultTables = serverTables.isNotEmpty ? serverTables : _localTables;
+
     if (serverTables.isNotEmpty) {
       _localTables.clear();
       _localTables.addAll(serverTables);
       await _persistLocalTables(tenantId);
-      return serverTables;
     }
 
-    return _localTables;
+    if (onlyActive) {
+      resultTables = resultTables.where((t) {
+        bool isEnabled = t['is_enabled'] ?? t['is_active'] ?? true;
+        if (isEnabled.toString() == '0' || isEnabled.toString() == 'false') isEnabled = false;
+        return isEnabled;
+      }).toList();
+    }
+
+    return resultTables;
   }
 
   static Future<bool> deleteTable(dynamic tableId) async {
@@ -1277,6 +1606,60 @@ class ApiService {
       debugPrint("Server delete table notice: $e");
     }
     return true;
+  }
+
+  static Future<bool> updateTableStatus(dynamic tableId, bool isEnabled) async {
+    final tidStr = tableId.toString();
+    for (var t in _localTables) {
+      if (t['id'].toString() == tidStr || t['table_number'].toString() == tidStr) {
+        t['is_enabled'] = isEnabled;
+        final tenantId = t['tenant_id']?.toString() ?? 'startups_main';
+        await _persistLocalTables(tenantId);
+        break;
+      }
+    }
+    try {
+      final response = await _post(
+        Uri.parse("$baseUrl/update_table_status.php"),
+        headers: {"Content-Type": "application/json"},
+        body: json.encode({"table_id": tableId, "is_enabled": isEnabled ? 1 : 0}),
+      );
+      if (response.statusCode == 200) {
+        return true;
+      }
+    } catch (e) {
+      debugPrint("Server update table status notice: $e");
+    }
+    return true;
+  }
+
+  static Future<Map<String, dynamic>> fetchCustomersPaged(String tenantId, {int page = 1, int limit = 40}) async {
+    try {
+      final response = await _get(Uri.parse("$baseUrl/get_customers.php?tenant_id=$tenantId&page=$page&limit=$limit"));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['status'] == 'success' && data['data'] != null) {
+          return {
+            'data': List<Map<String, dynamic>>.from(data['data']),
+            'totalPages': int.tryParse(data['total_pages']?.toString() ?? '1') ?? 1,
+            'totalCount': int.tryParse(data['total_count']?.toString() ?? '0') ?? 0,
+          };
+        }
+      }
+    } catch (e) {
+      debugPrint("Error fetching paged customers from server: $e");
+    }
+
+    return {
+      'data': <Map<String, dynamic>>[],
+      'totalPages': 1,
+      'totalCount': 0,
+    };
+  }
+
+  static Future<List<Map<String, dynamic>>?> fetchCustomers(String tenantId) async {
+    final res = await fetchCustomersPaged(tenantId, page: 1, limit: 100);
+    return res['data'] as List<Map<String, dynamic>>;
   }
 
   // --- STOCK & INVENTORY ---
@@ -1472,6 +1855,13 @@ class ApiService {
     } catch (e) { return false; }
   }
 
+  static Future<bool> updateReward(Map<String, dynamic> data) async {
+    try {
+      final response = await _post(Uri.parse("$baseUrl/loyalty_api.php?action=update_reward"), headers: {"Content-Type": "application/json"}, body: json.encode(data));
+      return json.decode(response.body)['status'] == 'success';
+    } catch (e) { return false; }
+  }
+
   static Future<bool> deleteReward(int id) async {
     try {
       final response = await _get(Uri.parse("$baseUrl/loyalty_api.php?action=delete_reward&id=$id"));
@@ -1615,12 +2005,25 @@ class ApiService {
     } catch (e) { return null; }
   }
 
-  static Future<Map<String, dynamic>> redeemClaimCode(String tenantId, String code) async {
+  static Future<Map<String, dynamic>> verifyClaimCode(String tenantId, String code) async {
+    try {
+      final response = await _get(Uri.parse("$baseUrl/loyalty_api.php?action=verify_claim_code&tenant_id=$tenantId&claim_code=${Uri.encodeComponent(code)}"));
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      }
+      return {"status": "error", "message": "Server error"};
+    } catch (e) { return {"status": "error", "message": "Connection error"}; }
+  }
+
+  static Future<Map<String, dynamic>> redeemClaimCode(String tenantId, String code, {String status = 'redeemed'}) async {
     try {
       final response = await _post(
         Uri.parse("$baseUrl/loyalty_api.php?action=redeem_claim&tenant_id=$tenantId"),
         headers: {"Content-Type": "application/json"},
-        body: json.encode({"claim_code": code}),
+        body: json.encode({
+          "claim_code": code,
+          "status": status,
+        }),
       );
       return json.decode(response.body);
     } catch (e) { return {"status": "error", "message": "Connection error"}; }
@@ -2361,5 +2764,248 @@ class ApiService {
       );
       return json.decode(response.body)['status'] == 'success';
     } catch (e) { return false; }
+  }
+
+  // --- UNITS & INGREDIENT INVENTORY (100% REAL DATABASE BACKEND) ---
+  // --- UNITS & INGREDIENT INVENTORY (DB + LOCAL PERSISTENCE) ---
+  static final List<Map<String, dynamic>> _localUnits = [];
+  static final List<Map<String, dynamic>> _localIngredients = [];
+
+  static Future<void> _ensureLocalUnitsLoaded(String tenantId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonStr = prefs.getString('saved_units_$tenantId') ?? prefs.getString('saved_units_global');
+      if (jsonStr != null && jsonStr.isNotEmpty) {
+        final List<dynamic> decoded = json.decode(jsonStr);
+        _localUnits.clear();
+        _localUnits.addAll(decoded.map((x) => Map<String, dynamic>.from(x)));
+      }
+    } catch (e) {}
+  }
+
+  static Future<void> _persistLocalUnits(String tenantId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('saved_units_$tenantId', json.encode(_localUnits));
+      await prefs.setString('saved_units_global', json.encode(_localUnits));
+    } catch (e) {}
+  }
+
+  static Future<List<Map<String, dynamic>>> fetchUnits(String tenantId) async {
+    await _ensureLocalUnitsLoaded(tenantId);
+    try {
+      final response = await _get(Uri.parse("$baseUrl/units_api.php?action=fetch&tenant_id=$tenantId"));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['status'] == 'success' && data['data'] != null) {
+          final serverUnits = List<Map<String, dynamic>>.from(data['data']);
+          if (serverUnits.isNotEmpty) {
+            _localUnits.clear();
+            _localUnits.addAll(serverUnits);
+            await _persistLocalUnits(tenantId);
+            return serverUnits;
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint("Error fetching units from server: $e");
+    }
+    return _localUnits;
+  }
+
+  static Future<bool> saveUnit(Map<String, dynamic> unit) async {
+    final tenant = TenantService().currentTenant.value;
+    final tenantId = tenant?.id ?? 'startups_main';
+    await _ensureLocalUnitsLoaded(tenantId);
+
+    if (unit['id'] == null || unit['id'].toString().isEmpty) {
+      unit['id'] = DateTime.now().millisecondsSinceEpoch.toString();
+      _localUnits.insert(0, unit);
+    } else {
+      final idx = _localUnits.indexWhere((u) => u['id'].toString() == unit['id'].toString());
+      if (idx != -1) {
+        _localUnits[idx] = unit;
+      } else {
+        _localUnits.insert(0, unit);
+      }
+    }
+    await _persistLocalUnits(tenantId);
+
+    try {
+      final payload = {...unit, 'tenant_id': tenantId};
+      final response = await _post(
+        Uri.parse("$baseUrl/units_api.php?action=save"),
+        headers: {"Content-Type": "application/json"},
+        body: json.encode(payload),
+      );
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data['status'] == 'success';
+      }
+    } catch (e) {
+      debugPrint("Error saving unit to server: $e");
+    }
+    return true; // Local storage fallback succeeded
+  }
+
+  static Future<bool> deleteUnit(dynamic id) async {
+    final tenant = TenantService().currentTenant.value;
+    final tenantId = tenant?.id ?? 'startups_main';
+    await _ensureLocalUnitsLoaded(tenantId);
+
+    final tidStr = id.toString();
+    _localUnits.removeWhere((u) => u['id'].toString() == tidStr);
+    await _persistLocalUnits(tenantId);
+
+    try {
+      final response = await _post(
+        Uri.parse("$baseUrl/units_api.php?action=delete"),
+        headers: {"Content-Type": "application/json"},
+        body: json.encode({"id": id}),
+      );
+      if (response.statusCode == 200) {
+        return json.decode(response.body)['status'] == 'success';
+      }
+    } catch (e) {
+      debugPrint("Error deleting unit from server: $e");
+    }
+    return true;
+  }
+
+  static Future<void> _ensureLocalIngredientsLoaded(String tenantId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonStr = prefs.getString('saved_ingredients_$tenantId') ?? prefs.getString('saved_ingredients_global');
+      if (jsonStr != null && jsonStr.isNotEmpty) {
+        final List<dynamic> decoded = json.decode(jsonStr);
+        _localIngredients.clear();
+        _localIngredients.addAll(decoded.map((x) => Map<String, dynamic>.from(x)));
+      }
+    } catch (e) {}
+  }
+
+  static Future<void> _persistLocalIngredients(String tenantId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('saved_ingredients_$tenantId', json.encode(_localIngredients));
+      await prefs.setString('saved_ingredients_global', json.encode(_localIngredients));
+    } catch (e) {}
+  }
+
+  static Future<List<Map<String, dynamic>>> fetchIngredients(String tenantId) async {
+    await _ensureLocalIngredientsLoaded(tenantId);
+    try {
+      final response = await _get(Uri.parse("$baseUrl/ingredients_api.php?action=fetch&tenant_id=$tenantId"));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['status'] == 'success' && data['data'] != null) {
+          final serverIngredients = List<Map<String, dynamic>>.from(data['data']);
+          if (serverIngredients.isNotEmpty) {
+            _localIngredients.clear();
+            _localIngredients.addAll(serverIngredients);
+            await _persistLocalIngredients(tenantId);
+            return serverIngredients;
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint("Error fetching ingredients from server: $e");
+    }
+    return _localIngredients;
+  }
+
+  static Future<bool> saveIngredient(Map<String, dynamic> ingredient) async {
+    final tenant = TenantService().currentTenant.value;
+    final tenantId = tenant?.id ?? 'startups_main';
+    await _ensureLocalIngredientsLoaded(tenantId);
+
+    double total = double.tryParse(ingredient['total_stock']?.toString() ?? '0') ?? 0;
+    double consumed = double.tryParse(ingredient['consumed_today']?.toString() ?? '0') ?? 0;
+    ingredient['remaining_stock'] = total - consumed;
+
+    if (ingredient['id'] == null || ingredient['id'].toString().isEmpty) {
+      ingredient['id'] = DateTime.now().millisecondsSinceEpoch.toString();
+      _localIngredients.insert(0, ingredient);
+    } else {
+      final index = _localIngredients.indexWhere((i) => i['id'].toString() == ingredient['id'].toString());
+      if (index != -1) {
+        _localIngredients[index] = ingredient;
+      } else {
+        _localIngredients.insert(0, ingredient);
+      }
+    }
+    await _persistLocalIngredients(tenantId);
+
+    try {
+      final payload = {...ingredient, 'tenant_id': tenantId};
+      final response = await _post(
+        Uri.parse("$baseUrl/ingredients_api.php?action=save"),
+        headers: {"Content-Type": "application/json"},
+        body: json.encode(payload),
+      );
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data['status'] == 'success';
+      }
+    } catch (e) {
+      debugPrint("Error saving ingredient to server: $e");
+    }
+    return true;
+  }
+
+  static Future<bool> logIngredientConsumption(dynamic id, double consumedToday) async {
+    final tenant = TenantService().currentTenant.value;
+    final tenantId = tenant?.id ?? 'startups_main';
+    await _ensureLocalIngredientsLoaded(tenantId);
+
+    final idx = _localIngredients.indexWhere((i) => i['id'].toString() == id.toString());
+    if (idx != -1) {
+      double total = double.tryParse(_localIngredients[idx]['total_stock']?.toString() ?? '0') ?? 0;
+      double prevConsumed = double.tryParse(_localIngredients[idx]['consumed_today']?.toString() ?? '0') ?? 0;
+      double newConsumed = prevConsumed + consumedToday;
+      _localIngredients[idx]['consumed_today'] = newConsumed;
+      _localIngredients[idx]['remaining_stock'] = total - newConsumed;
+      await _persistLocalIngredients(tenantId);
+    }
+
+    try {
+      final response = await _post(
+        Uri.parse("$baseUrl/ingredients_api.php?action=log_consumption"),
+        headers: {"Content-Type": "application/json"},
+        body: json.encode({"id": id, "consumed_today": consumedToday}),
+      );
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data['status'] == 'success';
+      }
+    } catch (e) {
+      debugPrint("Error logging consumption to server: $e");
+    }
+    return true;
+  }
+
+  static Future<bool> deleteIngredient(dynamic id) async {
+    final tenant = TenantService().currentTenant.value;
+    final tenantId = tenant?.id ?? 'startups_main';
+    await _ensureLocalIngredientsLoaded(tenantId);
+
+    final tidStr = id.toString();
+    _localIngredients.removeWhere((i) => i['id'].toString() == tidStr);
+    await _persistLocalIngredients(tenantId);
+
+    try {
+      final response = await _post(
+        Uri.parse("$baseUrl/ingredients_api.php?action=delete"),
+        headers: {"Content-Type": "application/json"},
+        body: json.encode({"id": id}),
+      );
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data['status'] == 'success';
+      }
+    } catch (e) {
+      debugPrint("Error deleting ingredient from server: $e");
+    }
+    return true;
   }
 }

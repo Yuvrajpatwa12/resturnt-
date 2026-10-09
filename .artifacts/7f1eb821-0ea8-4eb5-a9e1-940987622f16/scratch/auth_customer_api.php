@@ -31,41 +31,49 @@ try {
                 exit;
             }
 
-            $email = $data->email;
-            $name = $data->name ?? 'Diner';
+            $email = strtolower(trim($data->email));
+            $name = trim($data->name ?? 'Diner');
+            if (empty($name)) $name = 'Diner';
 
-            // Check if customer exists
-            $stmt = $conn->prepare("SELECT * FROM customers WHERE email = ? AND tenant_id = ?");
+            // Check if customer exists in this shop
+            $stmt = $conn->prepare("SELECT * FROM customers WHERE LOWER(email) = LOWER(?) AND tenant_id = ?");
             $stmt->bind_param("ss", $email, $tenant_id);
             $stmt->execute();
             $res = $stmt->get_result();
 
             if ($res->num_rows > 0) {
                 $user = $res->fetch_assoc();
+                $hasPin = !empty($user['pin']) && trim($user['pin']) !== '';
                 echo json_encode([
                     "status" => "success",
                     "exists" => true,
+                    "is_registered" => true,
                     "is_new_to_shop" => false,
-                    "needs_pin" => empty($user['pin']),
+                    "has_pin" => $hasPin,
+                    "needs_pin" => !$hasPin,
                     "user" => $user
                 ]);
             } else {
-                // Not in this shop. Let's see if they exist in the SYSTEM (any other shop)
-                $global_stmt = $conn->prepare("SELECT name, pin FROM customers WHERE email = ? LIMIT 1");
+                // Not in this shop. Check if exists globally across any branch
+                $global_stmt = $conn->prepare("SELECT name, pin FROM customers WHERE LOWER(email) = LOWER(?) AND pin IS NOT NULL AND pin != '' LIMIT 1");
                 $global_stmt->bind_param("s", $email);
                 $global_stmt->execute();
                 $global_res = $global_stmt->get_result();
 
                 $final_name = $name;
                 $stored_pin = null;
+                $isRegisteredGlobal = false;
 
                 if ($global_res->num_rows > 0) {
                     $global_user = $global_res->fetch_assoc();
-                    $final_name = $global_user['name'];
+                    $final_name = !empty($global_user['name']) ? $global_user['name'] : $name;
                     $stored_pin = $global_user['pin'];
+                    $isRegisteredGlobal = true;
                 }
 
-                // Auto-create new customer entry for THIS shop
+                $hasPin = !empty($stored_pin) && trim($stored_pin) !== '';
+
+                // Auto-create customer entry for THIS shop
                 $ins = $conn->prepare("INSERT INTO customers (email, tenant_id, name, pin) VALUES (?, ?, ?, ?)");
                 $ins->bind_param("ssss", $email, $tenant_id, $final_name, $stored_pin);
                 $ins->execute();
@@ -73,8 +81,10 @@ try {
                 echo json_encode([
                     "status" => "success",
                     "exists" => true,
+                    "is_registered" => $isRegisteredGlobal || $hasPin,
                     "is_new_to_shop" => true,
-                    "needs_pin" => empty($stored_pin),
+                    "has_pin" => $hasPin,
+                    "needs_pin" => !$hasPin,
                     "user" => ["email" => $email, "name" => $final_name, "points" => 0, "order_count" => 0]
                 ]);
             }
@@ -82,11 +92,17 @@ try {
 
         case 'save_pin':
             $data = json_decode(file_get_contents('php://input'));
-            $email = $data->email;
-            $pin = $data->pin;
+            $email = strtolower(trim($data->email ?? ''));
+            $pin = trim($data->pin ?? '');
 
-            $stmt = $conn->prepare("UPDATE customers SET pin = ? WHERE email = ? AND tenant_id = ?");
-            $stmt->bind_param("sss", $pin, $email, $tenant_id);
+            if (empty($email) || empty($pin)) {
+                echo json_encode(["status" => "error", "message" => "Missing email or PIN"]);
+                break;
+            }
+
+            // Sync PIN globally for this customer email across all tenants
+            $stmt = $conn->prepare("UPDATE customers SET pin = ? WHERE LOWER(email) = LOWER(?)");
+            $stmt->bind_param("ss", $pin, $email);
             if ($stmt->execute()) {
                 echo json_encode(["status" => "success"]);
             } else {
@@ -96,11 +112,16 @@ try {
 
         case 'verify_pin':
             $data = json_decode(file_get_contents('php://input'));
-            $email = $data->email;
-            $pin = $data->pin;
+            $email = strtolower(trim($data->email ?? ''));
+            $pin = trim($data->pin ?? '');
 
-            $stmt = $conn->prepare("SELECT email FROM customers WHERE email = ? AND tenant_id = ? AND pin = ?");
-            $stmt->bind_param("sss", $email, $tenant_id, $pin);
+            if (empty($email) || empty($pin)) {
+                echo json_encode(["status" => "error", "message" => "Missing email or PIN"]);
+                break;
+            }
+
+            $stmt = $conn->prepare("SELECT email FROM customers WHERE LOWER(email) = LOWER(?) AND pin = ?");
+            $stmt->bind_param("ss", $email, $pin);
             $stmt->execute();
             if ($stmt->get_result()->num_rows > 0) {
                 echo json_encode(["status" => "success"]);

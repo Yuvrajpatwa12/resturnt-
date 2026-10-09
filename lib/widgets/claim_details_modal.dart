@@ -12,7 +12,9 @@ class ClaimDetailsModal extends StatelessWidget {
     final String code = claim['claim_code'] ?? 'ERR-000';
     final String title = claim['reward_title'] ?? 'Mystery Prize';
     final String dateStr = claim['created_at'] ?? DateTime.now().toString();
-    final bool isClaimed = claim['status'] == 'Claimed';
+    final String statusStr = (claim['status'] ?? '').toString().toLowerCase();
+    final String redAt = (claim['redeemed_at'] ?? '').toString().trim();
+    final bool isClaimed = statusStr == 'claimed' || statusStr == 'redeemed' || statusStr == 'verified' || statusStr == 'claimed_by_staff' || (redAt.isNotEmpty && redAt != 'null');
     
     DateTime date;
     try { date = DateTime.parse(dateStr); } catch (e) { date = DateTime.now(); }

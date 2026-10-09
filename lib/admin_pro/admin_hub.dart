@@ -12,12 +12,26 @@ import 'screens/admin_settings_screen.dart';
 import 'screens/purchase_management_screen.dart';
 import 'screens/supplier_management_screen.dart';
 import 'screens/ingredient_stock_screen.dart';
+import 'screens/unit_measurement_screen.dart';
+import 'screens/ingredient_inventory_screen.dart';
 import 'screens/category_management_screen.dart';
 import 'screens/food_catalog_screen.dart';
 import 'screens/addons_management_screen.dart';
 import 'screens/reservation_management_screen.dart';
 import 'screens/room_maintenance_screen.dart';
 import 'screens/coming_product_screen.dart';
+import 'screens/reports/stock_food_report_screen.dart';
+import 'screens/reports/stock_kitchen_report_screen.dart';
+import 'screens/reports/sales_report_screen.dart';
+import 'screens/reports/items_sales_report_screen.dart';
+import 'screens/reports/waiters_sales_report_screen.dart';
+import 'screens/reports/delivery_sales_report_screen.dart';
+import 'screens/reports/order_source_report_screen.dart';
+import 'screens/reports/cash_register_report_screen.dart';
+import 'screens/reports/sale_by_table_report_screen.dart';
+import 'screens/payment_method_list_screen.dart';
+import 'screens/payment_setup_screen.dart';
+import 'screens/payment_account_filter_screen.dart';
 import 'screens/production_list_screen.dart';
 import 'screens/hrm_management_screen.dart';
 import 'screens/hrm/designation_screen.dart';
@@ -81,7 +95,11 @@ class _AdminHubState extends State<AdminHub> {
     }
   }
 
-  final List<Widget> _screens = [
+  void _onNavigateIndex(int idx) {
+    setState(() => _selectedIndex = idx);
+  }
+
+  List<Widget> get _screens => [
     const DashboardScreen(), // 0
     const POSInvoiceScreen(), // 1
     const OrderManagementScreen(key: ValueKey("order_all"), initialStatus: "All"), // 2
@@ -136,9 +154,9 @@ class _AdminHubState extends State<AdminHub> {
     const HRMManagementScreen(mode: "Candidate Shortlist"), // 51
     const HRMManagementScreen(mode: "Interview"), // 52
     const HRMManagementScreen(mode: "Candidate Selection"), // 53
-    const DepartmentManagementScreen(mode: "Department List"), // 54
-    const DepartmentManagementScreen(mode: "Add Division"), // 55
-    const DepartmentManagementScreen(mode: "Manage Division"), // 56
+    DepartmentManagementScreen(mode: "Department List", onNavigateIndex: _onNavigateIndex), // 54
+    DepartmentManagementScreen(mode: "Add Division", onNavigateIndex: _onNavigateIndex), // 55
+    DepartmentManagementScreen(mode: "Manage Division", onNavigateIndex: _onNavigateIndex), // 56
     const HRPolicyScreen(mode: "Weekly Holiday"), // 57
     const HRPolicyScreen(mode: "Holiday List"), // 58
     const HRPolicyScreen(mode: "Add Leave Type"), // 59
@@ -150,56 +168,51 @@ class _AdminHubState extends State<AdminHub> {
     const HRMManagementScreen(mode: "Salary Setup"), // 65
     const HRMManagementScreen(mode: "Salary Generate"), // 66
     const PurchaseReportScreen(), // 67
-    const ReportManagementScreen(mode: "Stock Report (Food Items)"), // 68
-    const ReportManagementScreen(mode: "Stock Report (Kitchen)"), // 69
-    const ReportManagementScreen(mode: "Sales Report"), // 70
-    const ReportManagementScreen(mode: "Items Sales Report"), // 71
-    const ReportManagementScreen(mode: "Waiters Sales Report"), // 72
-    const ReportManagementScreen(mode: "Delivery Type Sales Report"), // 73
-    const ReportManagementScreen(mode: "Order Source Report"), // 74
-    const ReportManagementScreen(mode: "Cash Register Report"), // 75
-    const ReportManagementScreen(mode: "Sale By Table"), // 76
-    const SystemConfigurationScreen(mode: "Payment Method List"), // 77
-    const SystemConfigurationScreen(mode: "Payment Setup"), // 78
-    const SystemConfigurationScreen(mode: "Shipping Method Setting"), // 79
+    const StockFoodReportScreen(), // 68
+    const StockKitchenReportScreen(), // 69
+    const SalesReportScreen(), // 70
+    const ItemsSalesReportScreen(), // 71
+    const WaitersSalesReportScreen(), // 72
+    const DeliverySalesReportScreen(), // 73
+    const OrderSourceReportScreen(), // 74
+    const CashRegisterReportScreen(), // 75
+    const SaleByTableReportScreen(), // 76
+    const PaymentMethodListScreen(), // 77
+    const PaymentSetupScreen(), // 78
+    const PaymentAccountFilterScreen(), // 79
     const TableConfigurationScreen(mode: "Table List"), // 80
     const TableConfigurationScreen(mode: "Table Setting"), // 81
     const CustomerManagementScreen(mode: "Customer List"), // 82
     const CustomerManagementScreen(mode: "Customer Type List"), // 83
-    const CustomerManagementScreen(mode: "Third-Party Customers"), // 84
-    const CustomerManagementScreen(mode: "Card Terminal List"), // 85
-    const KitchenManagementScreen(mode: "Kitchen List"), // 86
-    const KitchenManagementScreen(mode: "Kitchen Assign"), // 87
-    const KitchenManagementScreen(mode: "Kitchen Dashboard Setting"), // 88
-    const SystemConfigurationScreen(mode: "Unit Measurement List"), // 89
-    const SystemConfigurationScreen(mode: "Ingredient List"), // 90
-    const SystemConfigurationScreen(mode: "SMS Configuration"), // 91
-    const SystemConfigurationScreen(mode: "SMS Template"), // 92
-    const SystemConfigurationScreen(mode: "Bank List"), // 93
-    const SystemConfigurationScreen(mode: "Bank Transaction"), // 94
-    const SystemConfigurationScreen(mode: "Language"), // 95
-    const SystemConfigurationScreen(mode: "Application Setting"), // 96
-    const SystemConfigurationScreen(mode: "App Setting"), // 97
-    const SystemConfigurationScreen(mode: "Factory Reset"), // 98
-    const SystemConfigurationScreen(mode: "Currency"), // 99
-    const SystemConfigurationScreen(mode: "Country"), // 100
-    const SystemConfigurationScreen(mode: "State"), // 101
-    const SystemConfigurationScreen(mode: "City"), // 102
-    const SystemConfigurationScreen(mode: "Commission"), // 103
-    const HRMManagementScreen(mode: "User Management"), // 104
-    const AdminSettingsScreen(section: "Modules"), // 105
-    const ThemeManagementScreen(), // 106
-    const SupportTicketScreen(), // 107
-    const SubscriptionStatusScreen(), // 108
-    const RewardManagementScreen(mode: "Rewards Config"), // 109
-    const RewardManagementScreen(mode: "Redeem Items"), // 110
-    const RewardManagementScreen(mode: "Mystery Box"), // 111
-    const RewardManagementScreen(mode: "Claim History"), // 112
-    const RewardManagementScreen(mode: "Marketing Banners"), // 113
-    const MusicManagementScreen(), // 114
-    const TableConfigurationScreen(mode: "Room List"), // 115
-    const TableConfigurationScreen(mode: "Room Setting"), // 116
-    const SocialMediaManagementScreen(), // 117
+    const UnitMeasurementScreen(), // 84
+    const IngredientInventoryScreen(), // 85
+    const SystemConfigurationScreen(mode: "SMS Configuration"), // 86
+    const SystemConfigurationScreen(mode: "SMS Template"), // 87
+    const SystemConfigurationScreen(mode: "Bank List"), // 88
+    const SystemConfigurationScreen(mode: "Bank Transaction"), // 89
+    const SystemConfigurationScreen(mode: "Language"), // 90
+    const SystemConfigurationScreen(mode: "Application Setting"), // 91
+    const SystemConfigurationScreen(mode: "App Setting"), // 92
+    const SystemConfigurationScreen(mode: "Factory Reset"), // 93
+    const SystemConfigurationScreen(mode: "Currency"), // 94
+    const SystemConfigurationScreen(mode: "Country"), // 95
+    const SystemConfigurationScreen(mode: "State"), // 96
+    const SystemConfigurationScreen(mode: "City"), // 97
+    const SystemConfigurationScreen(mode: "Commission"), // 98
+    const HRMManagementScreen(mode: "User Management"), // 99
+    const AdminSettingsScreen(section: "Modules"), // 100
+    const ThemeManagementScreen(), // 101
+    const SupportTicketScreen(), // 102
+    const SubscriptionStatusScreen(), // 103
+    const RewardManagementScreen(mode: "Rewards Config"), // 104
+    const RewardManagementScreen(mode: "Redeem Items"), // 105
+    const RewardManagementScreen(mode: "Mystery Box"), // 106
+    const RewardManagementScreen(mode: "Claim History"), // 107
+    const RewardManagementScreen(mode: "Marketing Banners"), // 108
+    const MusicManagementScreen(), // 109
+    const TableConfigurationScreen(mode: "Room List"), // 110
+    const TableConfigurationScreen(mode: "Room Setting"), // 111
+    const SocialMediaManagementScreen(), // 112
   ];
 
   @override
@@ -518,7 +531,6 @@ class _AdminHubState extends State<AdminHub> {
                         title: "Loyalty & Rewards",
                         children: [
                           _buildSubDrawerItem(109, "Rewards Config", isFixed, isDoubleNested: true),
-                          _buildSubDrawerItem(110, "Redeem Items", isFixed, isDoubleNested: true),
                           _buildSubDrawerItem(111, "Mystery Box", isFixed, isDoubleNested: true),
                           _buildSubDrawerItem(112, "Claim History", isFixed, isDoubleNested: true),
                           _buildSubDrawerItem(113, "Marketing Banners", isFixed, isDoubleNested: true),
@@ -527,17 +539,7 @@ class _AdminHubState extends State<AdminHub> {
                       _buildNestedExpandableItem(
                         title: "Award",
                         children: [
-                          _buildSubDrawerItem(48, "New Award", isFixed, isDoubleNested: true),
-                        ],
-                      ),
-                      _buildNestedExpandableItem(
-                        title: "Recruitment",
-                        children: [
-                          _buildSubDrawerItem(49, "Add New Candidate", isFixed, isDoubleNested: true),
-                          _buildSubDrawerItem(50, "Manage Candidate", isFixed, isDoubleNested: true),
-                          _buildSubDrawerItem(51, "Candidate Shortlist", isFixed, isDoubleNested: true),
-                          _buildSubDrawerItem(52, "Interview", isFixed, isDoubleNested: true),
-                          _buildSubDrawerItem(53, "Candidate Selection", isFixed, isDoubleNested: true),
+                          _buildSubDrawerItem(110, "Redeem Items", isFixed, isDoubleNested: true),
                         ],
                       ),
                       _buildNestedExpandableItem(
@@ -546,23 +548,6 @@ class _AdminHubState extends State<AdminHub> {
                           _buildSubDrawerItem(54, "Department", isFixed, isDoubleNested: true),
                           _buildSubDrawerItem(55, "Add Division", isFixed, isDoubleNested: true),
                           _buildSubDrawerItem(56, "Manage Division", isFixed, isDoubleNested: true),
-                        ],
-                      ),
-                      _buildNestedExpandableItem(
-                        title: "Leave",
-                        children: [
-                          _buildSubDrawerItem(57, "Weekly Holiday", isFixed, isDoubleNested: true),
-                          _buildSubDrawerItem(58, "Holiday", isFixed, isDoubleNested: true),
-                          _buildSubDrawerItem(59, "Add Leave Type", isFixed, isDoubleNested: true),
-                          _buildSubDrawerItem(60, "Leave Application", isFixed, isDoubleNested: true),
-                        ],
-                      ),
-                      _buildNestedExpandableItem(
-                        title: "Loan",
-                        children: [
-                          _buildSubDrawerItem(61, "Grant Loan", isFixed, isDoubleNested: true),
-                          _buildSubDrawerItem(62, "Loan Installment", isFixed, isDoubleNested: true),
-                          _buildSubDrawerItem(63, "Loan Report", isFixed, isDoubleNested: true),
                         ],
                       ),
                       _buildNestedExpandableItem(
@@ -609,7 +594,7 @@ class _AdminHubState extends State<AdminHub> {
                         children: [
                           _buildSubDrawerItem(77, "Payment Method List", isFixed, isDoubleNested: true),
                           _buildSubDrawerItem(78, "Payment Setup", isFixed, isDoubleNested: true),
-                          _buildSubDrawerItem(79, "Shipping Method Setting", isFixed, isDoubleNested: true),
+                          _buildSubDrawerItem(79, "Payment Account Filter", isFixed, isDoubleNested: true),
                         ],
                       ),
                       _buildSubDrawerItem(117, "Social Media", isFixed),
@@ -625,57 +610,47 @@ class _AdminHubState extends State<AdminHub> {
                         children: [
                           _buildSubDrawerItem(82, "Customer List", isFixed, isDoubleNested: true),
                           _buildSubDrawerItem(83, "Customer Type List", isFixed, isDoubleNested: true),
-                          _buildSubDrawerItem(84, "Third-Party Customers", isFixed, isDoubleNested: true),
-                          _buildSubDrawerItem(85, "Card Terminal List", isFixed, isDoubleNested: true),
-                        ],
-                      ),
-                      _buildNestedExpandableItem(
-                        title: "kitchen Setting",
-                        children: [
-                          _buildSubDrawerItem(86, "Kitchen List", isFixed, isDoubleNested: true),
-                          _buildSubDrawerItem(87, "Kitchen Assign", isFixed, isDoubleNested: true),
-                          _buildSubDrawerItem(88, "Kitchen Dashboard Setting", isFixed, isDoubleNested: true),
                         ],
                       ),
                       _buildNestedExpandableItem(
                         title: "Unit Measurement",
                         children: [
-                          _buildSubDrawerItem(89, "Unit Measurement List", isFixed, isDoubleNested: true),
-                          _buildSubDrawerItem(90, "Ingredient List", isFixed, isDoubleNested: true),
+                          _buildSubDrawerItem(84, "Unit Measurement List", isFixed, isDoubleNested: true),
+                          _buildSubDrawerItem(85, "Ingredient List", isFixed, isDoubleNested: true),
                         ],
                       ),
                       _buildNestedExpandableItem(
                         title: "SMS Setting",
                         children: [
-                          _buildSubDrawerItem(91, "SMS Configuration", isFixed, isDoubleNested: true),
-                          _buildSubDrawerItem(92, "SMS Template", isFixed, isDoubleNested: true),
+                          _buildSubDrawerItem(86, "SMS Configuration", isFixed, isDoubleNested: true),
+                          _buildSubDrawerItem(87, "SMS Template", isFixed, isDoubleNested: true),
                         ],
                       ),
                       _buildNestedExpandableItem(
                         title: "Bank",
                         children: [
-                          _buildSubDrawerItem(93, "Bank List", isFixed, isDoubleNested: true),
-                          _buildSubDrawerItem(94, "Bank Transaction", isFixed, isDoubleNested: true),
+                          _buildSubDrawerItem(88, "Bank List", isFixed, isDoubleNested: true),
+                          _buildSubDrawerItem(89, "Bank Transaction", isFixed, isDoubleNested: true),
                         ],
                       ),
-                      _buildSubDrawerItem(95, "Language", isFixed),
-                      _buildSubDrawerItem(96, "Application Setting", isFixed),
-                      _buildSubDrawerItem(97, "App Setting", isFixed),
-                      _buildSubDrawerItem(98, "Factory Reset", isFixed),
-                      _buildSubDrawerItem(99, "Currency", isFixed),
-                      _buildSubDrawerItem(100, "Country", isFixed),
-                      _buildSubDrawerItem(101, "State", isFixed),
-                      _buildSubDrawerItem(102, "City", isFixed),
-                      _buildSubDrawerItem(103, "Commission", isFixed),
+                      _buildSubDrawerItem(90, "Language", isFixed),
+                      _buildSubDrawerItem(91, "Application Setting", isFixed),
+                      _buildSubDrawerItem(92, "App Setting", isFixed),
+                      _buildSubDrawerItem(93, "Factory Reset", isFixed),
+                      _buildSubDrawerItem(94, "Currency", isFixed),
+                      _buildSubDrawerItem(95, "Country", isFixed),
+                      _buildSubDrawerItem(96, "State", isFixed),
+                      _buildSubDrawerItem(97, "City", isFixed),
+                      _buildSubDrawerItem(98, "Commission", isFixed),
                     ],
                   ),
 
                   const Divider(color: Colors.white10, height: 40),
-                  _buildDrawerItem(108, Icons.card_membership_rounded, "Subscription Status", isFixed),
-                  _buildDrawerItem(107, Icons.help_outline_rounded, "Support & Help", isFixed),
-                  _buildDrawerItem(104, Icons.security_outlined, "User Management", isFixed),
-                  _buildDrawerItem(105, Icons.grid_view_rounded, "Modules", isFixed, hasAddon: true),
-                  _buildDrawerItem(106, Icons.palette_outlined, "Themes", isFixed),
+                  _buildDrawerItem(103, Icons.card_membership_rounded, "Subscription Status", isFixed),
+                  _buildDrawerItem(102, Icons.help_outline_rounded, "Support & Help", isFixed),
+                  _buildDrawerItem(99, Icons.security_outlined, "User Management", isFixed),
+                  _buildDrawerItem(100, Icons.grid_view_rounded, "Modules", isFixed, hasAddon: true),
+                  _buildDrawerItem(101, Icons.palette_outlined, "Themes", isFixed),
                   
                   const SizedBox(height: 20),
                   const Center(

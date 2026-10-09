@@ -99,6 +99,22 @@ class _TablesTabState extends State<TablesTab> {
     String displayId = (id % 100).toString().padLeft(2, '0');
     String floorName = id < 200 ? "1F" : "2F";
 
+    Color cardColor = Colors.white;
+    Color borderColor = Colors.grey.shade200;
+    if (isNewOrder) {
+      cardColor = const Color(0xFFFFFAEB);
+      borderColor = Colors.orange.shade300;
+    } else if (isReady) {
+      cardColor = const Color(0xFFF0FDF4);
+      borderColor = Colors.green.shade400;
+    } else if (isBilled) {
+      cardColor = const Color(0xFFECFDF5);
+      borderColor = Colors.teal.shade700;
+    } else if (isOccupied) {
+      cardColor = const Color(0xFFFFFBEB);
+      borderColor = const Color(0xFFFF5C00);
+    }
+
     return GestureDetector(
       onTap: () {
         if (isOccupied || isBilled || needsHelp) {
@@ -112,51 +128,68 @@ class _TablesTabState extends State<TablesTab> {
         valueListenable: ShopManager.instance.tableCountdownTimers,
         builder: (context, timers, child) {
           return Container(
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: isNewOrder ? const Color(0xFFFFF7ED) : Colors.white,
-              borderRadius: BorderRadius.circular(15),
-              border: Border.all(
-                color: isReady || isBilled ? Colors.green : (isOccupied ? (isNewOrder ? Colors.orange : const Color(0xFFFF5C00)) : Colors.grey[100]!),
-                width: 2,
-              ),
+              color: cardColor,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: borderColor, width: 2),
               boxShadow: [
-                if (isOccupied || isBilled)
-                  BoxShadow(
-                    color: (isReady || isBilled ? Colors.green : Colors.orange).withValues(alpha: 0.1),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  )
+                BoxShadow(
+                  color: borderColor.withValues(alpha: 0.15),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                )
               ],
             ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(
-                  "$floorName - $displayId", 
-                  style: TextStyle(
-                    fontWeight: FontWeight.w900, 
-                    fontSize: 10, 
-                    color: (isOccupied || isBilled) ? Colors.black87 : Colors.grey[300]
-                  )
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.table_restaurant_rounded,
+                      size: 14,
+                      color: isOccupied || isBilled ? const Color(0xFFFF5C00) : Colors.grey.shade400,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      "$floorName - $displayId", 
+                      style: TextStyle(
+                        fontWeight: FontWeight.w900, 
+                        fontSize: 11, 
+                        color: (isOccupied || isBilled) ? Colors.black87 : Colors.grey.shade600
+                      ),
+                    ),
+                  ],
                 ),
+                const SizedBox(height: 8),
                 if (isOccupied) ...[
-                  const SizedBox(height: 4),
                   if (isNewOrder)
-                    _buildStatusBadge("NEW ORDER", Colors.orange)
+                    _buildStatusBadge("NEW ORDER", Colors.orange.shade700)
                   else if (isReady)
-                    _buildStatusBadge("READY", Colors.green)
+                    _buildStatusBadge("READY", Colors.green.shade700)
                   else
-                    const Icon(Icons.restaurant, color: Color(0xFFFF5C00), size: 16),
-                  
+                    _buildStatusBadge("DINING", const Color(0xFFFF5C00)),
                   const SizedBox(height: 4),
                   const Text(
-                    "VIEW",
-                    style: TextStyle(fontSize: 6, fontWeight: FontWeight.w900, color: Colors.blue, letterSpacing: 0.5),
+                    "TAP TO VIEW",
+                    style: TextStyle(fontSize: 7, fontWeight: FontWeight.w900, color: Colors.blueAccent, letterSpacing: 0.5),
                   ),
                 ] else if (isBilled)
-                  _buildStatusBadge("BILLED", Colors.green)
+                  _buildStatusBadge("BILLED", Colors.teal)
                 else
-                  const Icon(Icons.crop_square, color: Colors.grey, size: 18),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      "AVAILABLE",
+                      style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: Colors.grey.shade600),
+                    ),
+                  ),
               ],
             ),
           );
@@ -169,7 +202,7 @@ class _TablesTabState extends State<TablesTab> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(6)),
-      child: Text(label, style: const TextStyle(color: Colors.white, fontSize: 7, fontWeight: FontWeight.bold)),
+      child: Text(label, style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
     );
   }
 }

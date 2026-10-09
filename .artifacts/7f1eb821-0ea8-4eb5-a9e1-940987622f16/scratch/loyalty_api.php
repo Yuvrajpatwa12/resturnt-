@@ -74,15 +74,22 @@ try {
 
         // --- 2. POINTS & STAMPS ---
         case 'get_points':
-            $uid = $_GET['user_id'] ?? '';
-            $tid = $_GET['tenant_id'] ?? $tenant_id;
+            $uid = strtolower(trim($_GET['user_id'] ?? ''));
+            $tid = trim($_GET['tenant_id'] ?? $tenant_id);
 
-            $stmt = $conn->prepare("SELECT points, order_count FROM customers WHERE email = ? AND tenant_id = ?");
+            // Block guests and unauthenticated IDs from fetching global loyalty points
+            if (empty($uid) || $uid === 'guest' || strpos($uid, 'guest_') === 0) {
+                echo json_encode(["status" => "success", "user_id" => $uid, "points" => 0, "order_count" => 0]);
+                break;
+            }
+
+            $stmt = $conn->prepare("SELECT points, order_count FROM customers WHERE LOWER(email) = LOWER(?) AND tenant_id = ?");
             $stmt->bind_param("ss", $uid, $tid);
             $stmt->execute();
             $row = $stmt->get_result()->fetch_assoc();
             echo json_encode([
                 "status" => "success",
+                "user_id" => $uid,
                 "points" => (int)($row['points'] ?? 0),
                 "order_count" => (int)($row['order_count'] ?? 0)
             ]);
@@ -95,8 +102,15 @@ try {
                 exit;
             }
 
-            $uid = (string)$data->user_id;
-            $tid = (string)$data->tenant_id;
+            $uid = strtolower(trim((string)$data->user_id));
+            $tid = trim((string)$data->tenant_id);
+
+            // Block guests from accumulating global loyalty points
+            if (empty($uid) || $uid === 'guest' || strpos($uid, 'guest_') === 0) {
+                echo json_encode(["status" => "error", "message" => "Guest user cannot accumulate global loyalty points. Please sync email first."]);
+                exit;
+            }
+
             $order_amount = isset($data->order_amount) ? (float)$data->order_amount : 0;
             $inc_stamps = isset($data->increment_stamps) ? (int)$data->increment_stamps : 1;
 
@@ -136,12 +150,101 @@ try {
             echo json_encode(["status" => "success", "data" => $res ? $res->fetch_all(MYSQLI_ASSOC) : []]);
             break;
 
+        case 'claim_reward':
+            $json = file_get_contents('php://input');
+            $data = !empty($json) ? json_decode($json) : null;
+            $tid = trim($data->tenant_id ?? $_GET['tenant_id'] ?? $tenant_id);
+            $uid = trim($data->user_id ?? $_GET['user_id'] ?? '');
+            $rid = (int)($data->reward_id ?? $_GET['reward_id'] ?? 0);
+
+            if (empty($tid) || empty($uid) || $rid <= 0) {
+                echo json_encode(["status" => "error", "message" => "Invalid tenant, user or reward ID"]);
+                break;
+            }
+
+            // Check reward details
+            $r_stmt = $conn->prepare("SELECT * FROM redeemable_rewards WHERE id = ? AND tenant_id = ?");
+            if ($r_stmt) {
+                $r_stmt->bind_param("is", $rid, $tid);
+                $r_stmt->execute();
+                $reward = $r_stmt->get_result()->fetch_assoc();
+                $r_stmt->close();
+            }
+
+            if (empty($reward)) {
+                echo json_encode(["status" => "error", "message" => "Reward not found"]);
+                break;
+            }
+
+            $ptsReq = (int)($reward['points_required'] ?? 0);
+
+            // Check user points
+            $u_stmt = $conn->prepare("SELECT points FROM customers WHERE LOWER(email) = LOWER(?) AND tenant_id = ?");
+            $userPts = 0;
+            if ($u_stmt) {
+                $u_stmt->bind_param("ss", $uid, $tid);
+                $u_stmt->execute();
+                $u_res = $u_stmt->get_result()->fetch_assoc();
+                $userPts = (int)($u_res['points'] ?? 0);
+                $u_stmt->close();
+            }
+
+            if ($userPts < $ptsReq) {
+                echo json_encode(["status" => "error", "message" => "Insufficient points ($userPts / $ptsReq required)"]);
+                break;
+            }
+
+            // Deduct points safely using standard ANSI SQL
+            $deduct_stmt = $conn->prepare("UPDATE customers SET points = CASE WHEN points >= ? THEN points - ? ELSE 0 END WHERE LOWER(email) = LOWER(?) AND tenant_id = ?");
+            if ($deduct_stmt) {
+                $deduct_stmt->bind_param("iiss", $ptsReq, $ptsReq, $uid, $tid);
+                $deduct_stmt->execute();
+                $deduct_stmt->close();
+            }
+
+            // Generate claim code
+            $code = (string)mt_rand(10000, 99999);
+
+            // Insert into reward_claims
+            $claim_stmt = $conn->prepare("INSERT INTO reward_claims (tenant_id, user_id, reward_id, claim_code, status) VALUES (?, ?, ?, ?, 'Pending')");
+            if ($claim_stmt) {
+                $claim_stmt->bind_param("ssis", $tid, $uid, $rid, $code);
+                $claim_stmt->execute();
+                $claim_stmt->close();
+            }
+
+            echo json_encode([
+                "status" => "success",
+                "message" => "Reward claimed successfully!",
+                "claim_code" => $code
+            ]);
+            break;
+
         case 'add_reward':
             $data = json_decode(file_get_contents('php://input'));
             $stmt = $conn->prepare("INSERT INTO redeemable_rewards (tenant_id, title, points_required, image_url, description) VALUES (?, ?, ?, ?, ?)");
             $stmt->bind_param("ssiss", $data->tenant_id, $data->title, $data->points_required, $data->image_url, $data->description);
             $stmt->execute();
             echo json_encode(["status" => "success"]);
+            break;
+
+        case 'update_reward':
+        case 'edit_reward':
+            $data = json_decode(file_get_contents('php://input'));
+            $id = (int)($data->id ?? $_GET['id'] ?? 0);
+            $title = $data->title ?? '';
+            $pts = (int)($data->points_required ?? 100);
+            $img = $data->image_url ?? '';
+
+            if ($id > 0 && !empty($title)) {
+                $stmt = $conn->prepare("UPDATE redeemable_rewards SET title = ?, points_required = ?, image_url = ? WHERE id = ?");
+                $stmt->bind_param("sisi", $title, $pts, $img, $id);
+                $stmt->execute();
+                $stmt->close();
+                echo json_encode(["status" => "success", "message" => "Reward updated"]);
+            } else {
+                echo json_encode(["status" => "error", "message" => "Missing reward ID or title"]);
+            }
             break;
 
         case 'delete_reward':
@@ -295,7 +398,15 @@ try {
                 $stmt->bind_param("s", $tenant_id);
                 $stmt->execute();
                 $res = $stmt->get_result();
-                echo json_encode(["status" => "success", "data" => $res ? $res->fetch_all(MYSQLI_ASSOC) : []]);
+                $rows = $res ? $res->fetch_all(MYSQLI_ASSOC) : [];
+                foreach ($rows as &$r) {
+                    $st = strtolower(trim($r['status'] ?? ''));
+                    $red = trim($r['redeemed_at'] ?? '');
+                    if (empty($st) || $st === 'null') {
+                        $r['status'] = (!empty($red) && $red !== 'null') ? 'redeemed' : 'Pending';
+                    }
+                }
+                echo json_encode(["status" => "success", "data" => $rows]);
             } else {
                 echo json_encode(["status" => "success", "data" => []]);
             }
@@ -324,7 +435,15 @@ try {
                     $stmt->bind_param("sss", $tenant_id, $uidFilter, $guestFilter);
                     $stmt->execute();
                     $res = $stmt->get_result();
-                    echo json_encode(["status" => "success", "data" => $res ? $res->fetch_all(MYSQLI_ASSOC) : []]);
+                    $rows = $res ? $res->fetch_all(MYSQLI_ASSOC) : [];
+                    foreach ($rows as &$r) {
+                        $st = strtolower(trim($r['status'] ?? ''));
+                        $red = trim($r['redeemed_at'] ?? '');
+                        if (empty($st) || $st === 'null') {
+                            $r['status'] = (!empty($red) && $red !== 'null') ? 'redeemed' : 'Pending';
+                        }
+                    }
+                    echo json_encode(["status" => "success", "data" => $rows]);
                 } else {
                     echo json_encode(["status" => "success", "data" => []]);
                 }
@@ -335,52 +454,122 @@ try {
                     $stmt->bind_param("ss", $tenant_id, $targetId);
                     $stmt->execute();
                     $res = $stmt->get_result();
-                    echo json_encode(["status" => "success", "data" => $res ? $res->fetch_all(MYSQLI_ASSOC) : []]);
+                    $rows = $res ? $res->fetch_all(MYSQLI_ASSOC) : [];
+                    foreach ($rows as &$r) {
+                        $st = strtolower(trim($r['status'] ?? ''));
+                        $red = trim($r['redeemed_at'] ?? '');
+                        if (empty($st) || $st === 'null') {
+                            $r['status'] = (!empty($red) && $red !== 'null') ? 'redeemed' : 'Pending';
+                        }
+                    }
+                    echo json_encode(["status" => "success", "data" => $rows]);
                 } else {
                     echo json_encode(["status" => "success", "data" => []]);
                 }
             }
             break;
 
+        case 'verify_claim_code':
+        case 'lookup_claim':
+            $claimCode = trim($_GET['claim_code'] ?? $_POST['claim_code'] ?? '');
+            if (empty($claimCode)) {
+                $rawInput = file_get_contents('php://input');
+                $data = !empty($rawInput) ? json_decode($rawInput) : null;
+                $claimCode = trim($data->claim_code ?? '');
+            }
+
+            if (empty($claimCode)) {
+                echo json_encode(["status" => "error", "message" => "Please enter a claim code"]);
+                break;
+            }
+
+            $cleanCode = trim($claimCode);
+            $mysCode = "MYS-" . ltrim($cleanCode, 'MYS-');
+            $rawCode = str_replace("MYS-", "", $cleanCode);
+
+            $sql = "SELECT c.*,
+                    COALESCE(m.reward_name, r.title, 'Mystery Prize') AS reward_title,
+                    COALESCE(m.reward_name, r.title, 'Mystery Prize') AS reward_name,
+                    COALESCE(cust.name, cust.email, c.user_id) AS user_name,
+                    cust.email AS user_email
+                    FROM reward_claims c
+                    LEFT JOIN mystery_box_config m ON c.reward_id = m.id
+                    LEFT JOIN redeemable_rewards r ON c.reward_id = r.id
+                    LEFT JOIN customers cust ON (c.user_id = cust.email OR c.user_id = cust.name) AND c.tenant_id = cust.tenant_id
+                    WHERE (LOWER(c.claim_code) = LOWER(?) OR LOWER(c.claim_code) = LOWER(?) OR LOWER(c.claim_code) = LOWER(?) OR c.id = ?)
+                    AND c.tenant_id = ?
+                    ORDER BY c.id DESC LIMIT 1";
+
+            $targetId = is_numeric($cleanCode) ? (int)$cleanCode : 0;
+            $stmt = $conn->prepare($sql);
+            if ($stmt) {
+                $stmt->bind_param("sssis", $cleanCode, $mysCode, $rawCode, $targetId, $tenant_id);
+                $stmt->execute();
+                $claim = $stmt->get_result()->fetch_assoc();
+                $stmt->close();
+
+                if ($claim) {
+                    $st = strtolower(trim($claim['status'] ?? ''));
+                    $red = trim($claim['redeemed_at'] ?? '');
+                    if (empty($st) || $st === 'null') {
+                        $claim['status'] = (!empty($red) && $red !== 'null') ? 'redeemed' : 'Pending';
+                    }
+                    echo json_encode(["status" => "success", "data" => $claim]);
+                } else {
+                    echo json_encode(["status" => "error", "message" => "Invalid or non-existent claim code '$claimCode'!"]);
+                }
+            } else {
+                echo json_encode(["status" => "error", "message" => "SQL prepare error"]);
+            }
+            break;
+
         case 'redeem_claim':
         case 'update_claim_status':
-            $json = file_get_contents('php://input');
-            $data = json_decode($json);
+            $rawInput = file_get_contents('php://input');
+            $data = !empty($rawInput) ? json_decode($rawInput) : null;
 
             $claimCode = trim($data->claim_code ?? $_GET['claim_code'] ?? '');
             $cid = (int)($data->id ?? $_GET['id'] ?? 0);
             $newStatus = trim($data->status ?? $_GET['status'] ?? 'redeemed');
-
-            if (!empty($claimCode)) {
-                $cleanCode = trim($claimCode);
-                $mysCode = "MYS-" . $cleanCode;
-                $rawCode = str_replace("MYS-", "", $cleanCode);
-
-                $stmt = $conn->prepare("UPDATE reward_claims SET status = ? WHERE (claim_code = ? OR claim_code = ? OR claim_code = ? OR id = ?)");
-                if ($stmt) {
-                    $stmt->bind_param("ssssi", $newStatus, $cleanCode, $mysCode, $rawCode, $cleanCode);
-                    $stmt->execute();
-                    $stmt->close();
-                    echo json_encode(["status" => "success", "message" => "Reward claim redeemed successfully"]);
-                    break;
-                }
+            if (empty($newStatus)) {
+                $newStatus = 'redeemed';
             }
 
-            if ($cid > 0) {
-                $stmt = $conn->prepare("UPDATE reward_claims SET status = ? WHERE id = ?");
-                if ($stmt) {
-                    $stmt->bind_param("si", $newStatus, $cid);
-                    $stmt->execute();
-                    $stmt->close();
-                    echo json_encode(["status" => "success", "message" => "Reward claim updated"]);
-                    break;
-                }
+            if (empty($claimCode) && $cid <= 0) {
+                echo json_encode(["status" => "error", "message" => "Missing claim_code or ID"]);
+                break;
             }
 
-            echo json_encode(["status" => "error", "message" => "Missing or invalid claim_code or ID"]);
-            break;
+            $cleanCode = trim($claimCode);
+            $mysCode = "MYS-" . ltrim($cleanCode, 'MYS-');
+            $rawCode = str_replace("MYS-", "", $cleanCode);
 
-            echo json_encode(["status" => "error", "message" => "Missing or invalid claim_code or ID"]);
+            // First verify if the claim record exists for this tenant
+            $checkSql = "SELECT id, claim_code, status FROM reward_claims WHERE (LOWER(claim_code) = LOWER(?) OR LOWER(claim_code) = LOWER(?) OR LOWER(claim_code) = LOWER(?) OR id = ?) AND tenant_id = ? LIMIT 1";
+            $checkStmt = $conn->prepare($checkSql);
+            $existingClaim = null;
+            if ($checkStmt) {
+                $checkStmt->bind_param("sssis", $cleanCode, $mysCode, $rawCode, $cid, $tenant_id);
+                $checkStmt->execute();
+                $existingClaim = $checkStmt->get_result()->fetch_assoc();
+                $checkStmt->close();
+            }
+
+            if (!$existingClaim) {
+                echo json_encode(["status" => "error", "message" => "Invalid or non-existent claim code '$claimCode'!"]);
+                break;
+            }
+
+            $targetId = (int)$existingClaim['id'];
+            $updateStmt = $conn->prepare("UPDATE reward_claims SET status = ?, redeemed_at = NOW() WHERE id = ?");
+            if ($updateStmt) {
+                $updateStmt->bind_param("si", $newStatus, $targetId);
+                $updateStmt->execute();
+                $updateStmt->close();
+                echo json_encode(["status" => "success", "message" => "Reward claim code '$cleanCode' REDEEMED successfully!"]);
+            } else {
+                echo json_encode(["status" => "error", "message" => "Failed to update claim status"]);
+            }
             break;
 
         default:

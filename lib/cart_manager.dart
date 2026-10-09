@@ -10,9 +10,9 @@ import 'dart:math';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 
-import 'package:chiyabreak/models.dart';
-import 'package:chiyabreak/services/tenant_service.dart';
-import 'package:chiyabreak/services/api_service.dart';
+import 'models.dart';
+import 'services/tenant_service.dart';
+import 'services/api_service.dart';
 
 enum OrderStatus { pending, approved, preparing, ready }
 
@@ -342,9 +342,42 @@ class ShopManager {
       startSessionPolling(sid, isHost, pin: pin);
     }
 
+    // AUTO-RESTORE CUSTOMER SESSION (5-MINUTE TIMEOUT RULE)
     String? savedEmail = prefs.getString('customer_email');
-    if (savedEmail != null) await syncCustomerIdentity(savedEmail);
-    else Future.delayed(const Duration(seconds: 2), () => isEmailSynced.value = false);
+    bool isAuth = prefs.getBool('customer_authenticated') ?? false;
+    int lastActive = prefs.getInt('last_active_time') ?? 0;
+    int now = DateTime.now().millisecondsSinceEpoch;
+    int elapsedMs = now - lastActive;
+    const int fiveMinutesMs = 5 * 60 * 1000; // 5 minutes in milliseconds
+
+    if (savedEmail != null && savedEmail.isNotEmpty && isAuth && elapsedMs < fiveMinutesMs) {
+      // User refreshed page within 5 minutes -> Auto restore session!
+      customerEmail.value = savedEmail;
+      isEmailSynced.value = true;
+      needsPin.value = false;
+      await prefs.setInt('last_active_time', now);
+
+      // Fetch user profile & refresh exact points from database
+      final res = await syncCustomerIdentity(savedEmail);
+      if (res != null && res['user'] != null) {
+        customerName.value = res['user']['name'] ?? 'Guest';
+        userPoints.value = int.tryParse(res['user']['points']?.toString() ?? '0') ?? 0;
+        orderStampCount.value = int.tryParse(res['user']['order_count']?.toString() ?? '0') ?? 0;
+      }
+      await refreshUserPoints();
+    } else if (savedEmail != null && savedEmail.isNotEmpty) {
+      // Session expired (> 5 minutes) or unauthenticated
+      customerEmail.value = savedEmail;
+      isEmailSynced.value = false;
+      needsPin.value = false;
+      userPoints.value = 0;
+      orderStampCount.value = 0;
+    } else {
+      isEmailSynced.value = false;
+      needsPin.value = false;
+      userPoints.value = 0;
+      orderStampCount.value = 0;
+    }
 
     String? gId = prefs.getString('guest_id');
     if (gId == null || gId.trim().isEmpty || gId.toLowerCase() == 'guest') {
@@ -629,13 +662,26 @@ class ShopManager {
 
   Future<void> refreshUserPoints() async {
     final tenant = TenantService().currentTenant.value;
-    if (tenant == null || currentUserId.isEmpty) return;
-    final response = await http.get(Uri.parse("${ApiService.baseUrl}/loyalty_api.php?action=get_points&user_id=$currentUserId&tenant_id=${tenant.id}"));
+    if (tenant == null) return;
+
+    // Strict Unauthenticated Guard: Guest profiles cannot query global points
+    if (!isEmailSynced.value || customerEmail.value.isEmpty) {
+      userPoints.value = 0;
+      orderStampCount.value = 0;
+      return;
+    }
+
+    final uid = customerEmail.value.trim().toLowerCase();
+
+    final response = await http.get(Uri.parse("${ApiService.baseUrl}/loyalty_api.php?action=get_points&user_id=${Uri.encodeComponent(uid)}&tenant_id=${tenant.id}"));
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
       if (data is Map<String, dynamic>) {
-        userPoints.value = data['points'] ?? 0;
-        orderStampCount.value = data['order_count'] ?? 0;
+        final String respUid = (data['user_id'] ?? '').toString().trim().toLowerCase();
+        if (respUid.isEmpty || respUid == uid) {
+          userPoints.value = int.tryParse(data['points']?.toString() ?? '0') ?? 0;
+          orderStampCount.value = int.tryParse(data['order_count']?.toString() ?? '0') ?? 0;
+        }
       }
     }
   }
@@ -737,20 +783,103 @@ class ShopManager {
   void clearWaiterNotification(int id) => tableReadyNotifications.value = Map.from(tableReadyNotifications.value)..remove(id);
 
   // --- IDENTITY ---
-  Future<void> syncCustomerIdentity(String email, {String? name}) async {
-    final tenant = TenantService().currentTenant.value; if (tenant == null) return;
+  Future<Map<String, dynamic>?> syncCustomerIdentity(String email, {String? name}) async {
+    final tenant = TenantService().currentTenant.value; if (tenant == null) return null;
     final res = await ApiService.syncCustomerProfile(tenantId: tenant.id, email: email, name: name);
     if (res != null && res['status'] == 'success') {
-      customerEmail.value = email; customerName.value = res['user']?['name'] ?? 'Guest'; needsPin.value = res['needs_pin'] == true; isNewToShop.value = res['is_new_to_shop'] == true; isEmailSynced.value = true; userPoints.value = res['user']?['points'] ?? 0; orderStampCount.value = res['user']?['order_count'] ?? 0;
-      isProfileVisible.value = (res['user']?['is_public'] == 1 || res['user']?['is_public'] == true); isWaveEnabled.value = (res['user']?['allow_waves'] == 1 || res['user']?['allow_waves'] == true);
-      final prefs = await SharedPreferences.getInstance(); await prefs.setString('customer_email', email);
+      final bool hasPin = (res['has_pin'] == true) || (res['needs_pin'] == false);
+      if (!hasPin) {
+        isNewToShop.value = res['is_new_to_shop'] == true;
+        needsPin.value = true;
+      }
+      return res;
     }
+    return null;
+  }
+
+  Future<bool> verifyAndLoginPin(String email, String pin, Map<String, dynamic> userMap) async {
+    final tenant = TenantService().currentTenant.value; if (tenant == null) return false;
+    final res = await ApiService.verifyCustomerPin(tenantId: tenant.id, email: email, pin: pin);
+    if (res['status'] == 'success') {
+      // Clear previous user points immediately before switching to avoid coin leakage
+      userPoints.value = 0;
+      orderStampCount.value = 0;
+
+      customerEmail.value = email;
+      customerName.value = userMap['name'] ?? 'Guest';
+      needsPin.value = false;
+      isEmailSynced.value = true;
+      userPoints.value = userMap['points'] ?? 0;
+      orderStampCount.value = userMap['order_count'] ?? 0;
+      isProfileVisible.value = (userMap['is_public'] == 1 || userMap['is_public'] == true);
+      isWaveEnabled.value = (userMap['allow_waves'] == 1 || userMap['allow_waves'] == true);
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('customer_email', email);
+      await prefs.setBool('customer_authenticated', true);
+      await prefs.setInt('last_active_time', DateTime.now().millisecondsSinceEpoch);
+      await refreshUserPoints();
+      await fetchSocialLists();
+      return true;
+    }
+    return false;
+  }
+
+  Future<bool> registerAndSetPin(String email, String pin, Map<String, dynamic> userMap) async {
+    final tenant = TenantService().currentTenant.value; if (tenant == null) return false;
+    if (await ApiService.saveCustomerPin(tenantId: tenant.id, email: email, pin: pin)) {
+      // Clear previous user points immediately before setting new user
+      userPoints.value = 0;
+      orderStampCount.value = 0;
+
+      customerEmail.value = email;
+      customerName.value = userMap['name'] ?? 'Guest';
+      needsPin.value = false;
+      isEmailSynced.value = true;
+      userPoints.value = userMap['points'] ?? 0;
+      orderStampCount.value = userMap['order_count'] ?? 0;
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('customer_email', email);
+      await prefs.setBool('customer_authenticated', true);
+      await prefs.setInt('last_active_time', DateTime.now().millisecondsSinceEpoch);
+      await refreshUserPoints();
+      await fetchSocialLists();
+      return true;
+    }
+    return false;
   }
 
   Future<bool> finalizeSecurityPin(String pin) async {
     final tenant = TenantService().currentTenant.value; if (tenant == null || customerEmail.value.isEmpty) return false;
-    if (await ApiService.saveCustomerPin(tenantId: tenant.id, email: customerEmail.value, pin: pin)) { needsPin.value = false; await fetchSocialLists(); return true; }
+    if (await ApiService.saveCustomerPin(tenantId: tenant.id, email: customerEmail.value, pin: pin)) {
+      needsPin.value = false;
+      isEmailSynced.value = true;
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('customer_authenticated', true);
+      await prefs.setInt('last_active_time', DateTime.now().millisecondsSinceEpoch);
+      await fetchSocialLists();
+      return true;
+    }
     return false;
+  }
+
+  Future<void> touchUserSession() async {
+    if (customerEmail.value.isNotEmpty && isEmailSynced.value) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt('last_active_time', DateTime.now().millisecondsSinceEpoch);
+    }
+  }
+
+  Future<void> logoutCustomer() async {
+    customerEmail.value = '';
+    customerName.value = 'Guest';
+    isEmailSynced.value = false;
+    needsPin.value = false;
+    userPoints.value = 0;
+    orderStampCount.value = 0;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('customer_email');
+    await prefs.remove('customer_authenticated');
+    await prefs.remove('last_active_time');
   }
 
   Future<bool> updateProfile({required String name, required String gender, bool isAnon = false}) async {
@@ -812,11 +941,20 @@ class ShopManager {
   final ValueNotifier<List<Map<String, dynamic>>> allHistoricalBills = ValueNotifier([]);
   final ValueNotifier<Map<String, dynamic>> inventoryStock = ValueNotifier({});
   final ValueNotifier<List<Map<String, dynamic>>> staffDirectory = ValueNotifier([]);
-  final ValueNotifier<int> waiterTabIndex = ValueNotifier(0);
+  final ValueNotifier<List<Map<String, dynamic>>> departmentsList = ValueNotifier([]);
+
+  Future<void> fetchCentralDepartments([String? tid]) async {
+    final tenant = TenantService().currentTenant.value;
+    final id = tid ?? tenant?.id ?? 'startups_main';
+    final data = await ApiService.fetchDepartments(id);
+    if (data != null) departmentsList.value = List<Map<String, dynamic>>.from(data);
+  }
+  ValueNotifier<int> get waiterTabIndex => waiterTabIndexNotifier;
   final ValueNotifier<Map<int, Map<String, CartItem>>> pendingTableOrders = ValueNotifier({});
-  final ValueNotifier<int?> activeStaffTableId = ValueNotifier(null);
-  final ValueNotifier<bool> isMysteryBoxOpened = ValueNotifier(false);
-  final ValueNotifier<bool> isRewardClaimed = ValueNotifier(false);
+  ValueNotifier<int?> get activeStaffTableId => activeStaffTableIdNotifier;
+  
+  ValueNotifier<bool> get isMysteryBoxOpened => isMysteryBoxOpenedNotifier;
+  ValueNotifier<bool> get isRewardClaimed => isRewardClaimedNotifier;
   final ValueNotifier<List<Map<String, dynamic>>> previousWins = ValueNotifier([]);
 
   void setPendingItem(int tableId, Map<String, dynamic> p, int qty) {
@@ -1008,3 +1146,7 @@ class ShopManager {
 }
 
 final storeManager = ShopManager();
+final ValueNotifier<bool> isMysteryBoxOpenedNotifier = ValueNotifier(false);
+final ValueNotifier<bool> isRewardClaimedNotifier = ValueNotifier(false);
+final ValueNotifier<int> waiterTabIndexNotifier = ValueNotifier(0);
+final ValueNotifier<int?> activeStaffTableIdNotifier = ValueNotifier(null);

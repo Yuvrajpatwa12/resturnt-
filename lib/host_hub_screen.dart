@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:chiyabreak/cart_manager.dart';
+import 'cart_manager.dart';
 import 'services/api_service.dart';
 import 'services/tenant_service.dart';
 

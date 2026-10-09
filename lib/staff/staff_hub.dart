@@ -26,7 +26,7 @@ class _StaffHubState extends State<StaffHub> {
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<int>(
-      valueListenable: ShopManager.instance.waiterTabIndex,
+      valueListenable: waiterTabIndexNotifier,
       builder: (context, selectedIndex, child) {
         return Scaffold(
           backgroundColor: const Color(0xFFF7F8FA),
@@ -42,7 +42,7 @@ class _StaffHubState extends State<StaffHub> {
                       children: [
                         const TablesTab(),
                         ValueListenableBuilder<int?>(
-                          valueListenable: ShopManager.instance.activeStaffTableId,
+                          valueListenable: activeStaffTableIdNotifier,
                           builder: (context, activeTableId, child) {
                             return MenusTab(tableId: activeTableId ?? 0);
                           },
@@ -82,53 +82,196 @@ class _StaffHubState extends State<StaffHub> {
   void _showRedemptionModal() {
     final codeCtrl = TextEditingController();
     bool isProcessing = false;
+    bool isLookingUp = false;
+    Map<String, dynamic>? matchedClaim;
+    String? lookupError;
 
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setModalState) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          title: const Text("Redeem Reward", style: TextStyle(fontWeight: FontWeight.bold)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
+          title: Row(
             children: [
-              const Text("Scan user's QR code or enter the 8-digit claim code manually.", style: TextStyle(fontSize: 12, color: Colors.grey)),
-              const SizedBox(height: 24),
-              TextField(
-                controller: codeCtrl,
-                autofocus: true,
-                style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 2, fontSize: 18),
-                decoration: InputDecoration(
-                  labelText: "CLAIM CODE",
-                  hintText: "E.G. B16335FC",
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFF5C00).withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
                 ),
+                child: const Icon(Icons.verified_rounded, color: Color(0xFFFF5C00), size: 24),
               ),
+              const SizedBox(width: 12),
+              const Text("Verify Customer Code", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
             ],
           ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text("Enter customer claim code (e.g. 55391 or MYS-A2BAF) to preview member & serve reward.", style: TextStyle(fontSize: 12, color: Colors.grey)),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: codeCtrl,
+                        autofocus: true,
+                        style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1, fontSize: 16),
+                        decoration: InputDecoration(
+                          hintText: "E.G. 55391 or MYS-A2BAF",
+                          filled: true,
+                          fillColor: const Color(0xFFF8FAFC),
+                          prefixIcon: const Icon(Icons.qr_code_2_rounded, color: Color(0xFFFF5C00)),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: const BorderSide(color: Color(0xFFFF5C00), width: 2),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    ElevatedButton(
+                      onPressed: isLookingUp ? null : () async {
+                        final code = codeCtrl.text.trim().toLowerCase();
+                        if (code.isEmpty) return;
+                        setModalState(() {
+                          isLookingUp = true;
+                          matchedClaim = null;
+                          lookupError = null;
+                        });
+                        final tenant = TenantService().currentTenant.value;
+                        if (tenant == null) return;
+                        final res = await ApiService.verifyClaimCode(tenant.id, code);
+                        setModalState(() {
+                          isLookingUp = false;
+                          if (res['status'] == 'success' && res['data'] != null) {
+                            matchedClaim = Map<String, dynamic>.from(res['data']);
+                            lookupError = null;
+                          } else {
+                            matchedClaim = null;
+                            lookupError = res['message'] ?? "Invalid or non-existent claim code!";
+                          }
+                        });
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFFF5C00),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: isLookingUp
+                          ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                          : const Text("LOOKUP", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                    ),
+                  ],
+                ),
+
+                if (matchedClaim != null) ...[
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.green.shade300, width: 1.5),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.check_circle_rounded, color: Colors.green, size: 18),
+                            const SizedBox(width: 8),
+                            const Text("MATCHED MEMBER RECORD", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green, fontSize: 11)),
+                            const Spacer(),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: (matchedClaim!['status'] ?? '').toString().toLowerCase() == 'redeemed' ? Colors.green.shade100 : Colors.orange.shade100,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                (matchedClaim!['status'] ?? '').toString().toUpperCase(),
+                                style: TextStyle(
+                                  color: (matchedClaim!['status'] ?? '').toString().toLowerCase() == 'redeemed' ? Colors.green.shade800 : Colors.orange.shade900,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 10,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        Text("Member: ${matchedClaim!['user_name'] ?? matchedClaim!['user_id']}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87)),
+                        Text("Email: ${matchedClaim!['user_email'] ?? matchedClaim!['user_id']}", style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                        const SizedBox(height: 6),
+                        Text("Item: ${matchedClaim!['reward_title'] ?? matchedClaim!['reward_name'] ?? 'Mystery Prize'}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFFFF5C00))),
+                      ],
+                    ),
+                  ),
+                ],
+
+                if (lookupError != null) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.red.shade200),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 18),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(lookupError!, style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 12)),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text("CANCEL")),
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text("CANCEL", style: TextStyle(color: Colors.grey))),
             ElevatedButton(
               onPressed: isProcessing ? null : () async {
-                if (codeCtrl.text.isEmpty) return;
+                final code = matchedClaim != null ? (matchedClaim!['claim_code']?.toString() ?? '') : codeCtrl.text.trim().toLowerCase();
+                if (code.isEmpty) return;
                 setModalState(() => isProcessing = true);
                 
                 final tenant = TenantService().currentTenant.value;
                 if (tenant == null) return;
                 
-                final res = await ApiService.redeemClaimCode(tenant.id, codeCtrl.text.trim());
+                final res = await ApiService.redeemClaimCode(tenant.id, code);
                 
                 if (!context.mounted) return;
                 
                 if (res['status'] == 'success') {
                    Navigator.pop(context);
-                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("REWARD SERVED SUCCESSFULLY!"), backgroundColor: Colors.green));
+                   ScaffoldMessenger.of(context).showSnackBar(
+                     SnackBar(content: Text(res['message'] ?? "REWARD VERIFIED & SERVED SUCCESSFULLY!"), backgroundColor: Colors.green),
+                   );
                 } else {
                    setModalState(() => isProcessing = false);
-                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(res['message'] ?? "Error"), backgroundColor: Colors.red));
+                   ScaffoldMessenger.of(context).showSnackBar(
+                     SnackBar(content: Text(res['message'] ?? "Invalid or non-existent claim code!"), backgroundColor: Colors.red),
+                   );
                 }
               },
-              child: isProcessing ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Text("REDEEM"),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFFF5C00),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: isProcessing
+                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                  : const Text("CONFIRM & SERVE REWARD", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
             ),
           ],
         ),
