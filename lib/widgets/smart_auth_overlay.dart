@@ -7,11 +7,7 @@ class SmartAuthOverlay extends StatefulWidget {
   final bool forceShow;
   final VoidCallback? onClose;
 
-  const SmartAuthOverlay({
-    super.key,
-    this.forceShow = false,
-    this.onClose,
-  });
+  const SmartAuthOverlay({super.key, this.forceShow = false, this.onClose});
 
   static Future<void> show(BuildContext context) async {
     await showDialog(
@@ -26,7 +22,8 @@ class SmartAuthOverlay extends StatefulWidget {
   State<SmartAuthOverlay> createState() => _SmartAuthOverlayState();
 }
 
-class _SmartAuthOverlayState extends State<SmartAuthOverlay> with TickerProviderStateMixin {
+class _SmartAuthOverlayState extends State<SmartAuthOverlay>
+    with TickerProviderStateMixin {
   AuthCardStep _step = AuthCardStep.emailInput;
   final TextEditingController _emailCtrl = TextEditingController();
   final TextEditingController _pinCtrl = TextEditingController();
@@ -48,9 +45,10 @@ class _SmartAuthOverlayState extends State<SmartAuthOverlay> with TickerProvider
       duration: const Duration(milliseconds: 1200),
     )..repeat(reverse: true);
 
-    _pulseAnimation = Tween<double>(begin: 0.92, end: 1.08).animate(
-      CurvedAnimation(parent: _badgeAnimCtrl, curve: Curves.easeInOut),
-    );
+    _pulseAnimation = Tween<double>(
+      begin: 0.92,
+      end: 1.08,
+    ).animate(CurvedAnimation(parent: _badgeAnimCtrl, curve: Curves.easeInOut));
 
     // Pre-fill existing email if available
     final currentEmail = ShopManager.instance.customerEmail.value;
@@ -80,7 +78,10 @@ class _SmartAuthOverlayState extends State<SmartAuthOverlay> with TickerProvider
     });
 
     final String derivedName = email.split('@').first;
-    final res = await ShopManager.instance.syncCustomerIdentity(email, name: derivedName);
+    final res = await ShopManager.instance.syncCustomerIdentity(
+      email,
+      name: derivedName,
+    );
 
     if (!mounted) return;
 
@@ -91,7 +92,8 @@ class _SmartAuthOverlayState extends State<SmartAuthOverlay> with TickerProvider
         _displayName = derivedName;
       }
 
-      final bool hasPin = (res['has_pin'] == true) || (res['needs_pin'] == false);
+      final bool hasPin =
+          (res['has_pin'] == true) || (res['needs_pin'] == false);
 
       setState(() {
         _isCheckingEmail = false;
@@ -101,7 +103,8 @@ class _SmartAuthOverlayState extends State<SmartAuthOverlay> with TickerProvider
     } else {
       setState(() {
         _isCheckingEmail = false;
-        _errorMessage = res?['message'] ?? "Connection error. Please try again.";
+        _errorMessage =
+            res?['message'] ?? "Connection error. Please try again.";
       });
     }
   }
@@ -122,16 +125,26 @@ class _SmartAuthOverlayState extends State<SmartAuthOverlay> with TickerProvider
     bool success = false;
 
     if (_step == AuthCardStep.welcomeBack) {
-      success = await ShopManager.instance.verifyAndLoginPin(email, pin, _userMap);
+      final result = await ShopManager.instance.verifyAndLoginPin(
+        email,
+        pin,
+        _userMap,
+      );
+      success = result['status'] == 'success';
       if (!success) {
         setState(() {
           _isSubmittingPin = false;
-          _errorMessage = "Incorrect Security PIN. Please try again.";
+          _errorMessage =
+              result['message']?.toString() ?? "Could not verify your PIN.";
         });
         return;
       }
     } else {
-      success = await ShopManager.instance.registerAndSetPin(email, pin, _userMap);
+      success = await ShopManager.instance.registerAndSetPin(
+        email,
+        pin,
+        _userMap,
+      );
       if (!success) {
         setState(() {
           _isSubmittingPin = false;
@@ -210,10 +223,7 @@ class _SmartAuthOverlayState extends State<SmartAuthOverlay> with TickerProvider
                       child: SlideTransition(position: slide, child: child),
                     );
                   },
-                  child: KeyedSubtree(
-                    key: ValueKey(_step),
-                    child: child,
-                  ),
+                  child: KeyedSubtree(key: ValueKey(_step), child: child),
                 ),
               ),
             ),
@@ -245,12 +255,21 @@ class _SmartAuthOverlayState extends State<SmartAuthOverlay> with TickerProvider
             color: const Color(0xFFFF5C00).withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
-          child: const Icon(Icons.mark_email_read_rounded, size: 48, color: Color(0xFFFF5C00)),
+          child: const Icon(
+            Icons.mark_email_read_rounded,
+            size: 48,
+            color: Color(0xFFFF5C00),
+          ),
         ),
         const SizedBox(height: 20),
         const Text(
           "Sync Customer Profile",
-          style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: -0.5, color: Color(0xFF1E293B)),
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w900,
+            letterSpacing: -0.5,
+            color: Color(0xFF1E293B),
+          ),
         ),
         const SizedBox(height: 8),
         const Text(
@@ -262,14 +281,24 @@ class _SmartAuthOverlayState extends State<SmartAuthOverlay> with TickerProvider
         TextField(
           controller: _emailCtrl,
           keyboardType: TextInputType.emailAddress,
-          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF0F172A)),
+          style: const TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF0F172A),
+          ),
           decoration: InputDecoration(
-            prefixIcon: const Icon(Icons.email_outlined, color: Color(0xFFFF5C00)),
+            prefixIcon: const Icon(
+              Icons.email_outlined,
+              color: Color(0xFFFF5C00),
+            ),
             hintText: "your.name@gmail.com",
             labelText: "Google Email",
             filled: true,
             fillColor: const Color(0xFFF8FAFC),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide.none,
+            ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
               borderSide: BorderSide(color: Colors.grey.shade200),
@@ -282,7 +311,14 @@ class _SmartAuthOverlayState extends State<SmartAuthOverlay> with TickerProvider
         ),
         if (_errorMessage != null) ...[
           const SizedBox(height: 12),
-          Text(_errorMessage!, style: const TextStyle(color: Colors.redAccent, fontSize: 12, fontWeight: FontWeight.bold)),
+          Text(
+            _errorMessage!,
+            style: const TextStyle(
+              color: Colors.redAccent,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         ],
         const SizedBox(height: 28),
         SizedBox(
@@ -295,14 +331,30 @@ class _SmartAuthOverlayState extends State<SmartAuthOverlay> with TickerProvider
               foregroundColor: Colors.white,
               elevation: 4,
               shadowColor: const Color(0xFFFF5C00).withValues(alpha: 0.4),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
             ),
             child: _isCheckingEmail
-                ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
+                ? const SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2.5,
+                    ),
+                  )
                 : const Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text("CONTINUE", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, letterSpacing: 0.5)),
+                      Text(
+                        "CONTINUE",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
                       SizedBox(width: 8),
                       Icon(Icons.arrow_forward_rounded, size: 20),
                     ],
@@ -313,7 +365,10 @@ class _SmartAuthOverlayState extends State<SmartAuthOverlay> with TickerProvider
           const SizedBox(height: 12),
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text("Cancel", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w600)),
+            child: const Text(
+              "Cancel",
+              style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w600),
+            ),
           ),
         ],
       ],
@@ -337,17 +392,30 @@ class _SmartAuthOverlayState extends State<SmartAuthOverlay> with TickerProvider
               ),
               shape: BoxShape.circle,
               boxShadow: [
-                BoxShadow(color: const Color(0xFF10B981).withValues(alpha: 0.35), blurRadius: 20, spreadRadius: 4),
+                BoxShadow(
+                  color: const Color(0xFF10B981).withValues(alpha: 0.35),
+                  blurRadius: 20,
+                  spreadRadius: 4,
+                ),
               ],
             ),
-            child: const Icon(Icons.waving_hand_rounded, size: 48, color: Colors.white),
+            child: const Icon(
+              Icons.waving_hand_rounded,
+              size: 48,
+              color: Colors.white,
+            ),
           ),
         ),
         const SizedBox(height: 20),
         Text(
           "Welcome Back, $_displayName!",
           textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF0F172A), letterSpacing: -0.5),
+          style: const TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w900,
+            color: Color(0xFF0F172A),
+            letterSpacing: -0.5,
+          ),
         ),
         const SizedBox(height: 6),
         Container(
@@ -358,7 +426,11 @@ class _SmartAuthOverlayState extends State<SmartAuthOverlay> with TickerProvider
           ),
           child: Text(
             _emailCtrl.text.trim(),
-            style: const TextStyle(color: Color(0xFF047857), fontWeight: FontWeight.bold, fontSize: 12),
+            style: const TextStyle(
+              color: Color(0xFF047857),
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+            ),
           ),
         ),
         const SizedBox(height: 16),
@@ -374,14 +446,25 @@ class _SmartAuthOverlayState extends State<SmartAuthOverlay> with TickerProvider
           maxLength: 4,
           obscureText: true,
           textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w900, letterSpacing: 22, color: Color(0xFF0F172A)),
+          style: const TextStyle(
+            fontSize: 32,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 22,
+            color: Color(0xFF0F172A),
+          ),
           decoration: InputDecoration(
             counterText: "",
             hintText: "••••",
-            hintStyle: TextStyle(color: Colors.grey.shade300, letterSpacing: 16),
+            hintStyle: TextStyle(
+              color: Colors.grey.shade300,
+              letterSpacing: 16,
+            ),
             filled: true,
             fillColor: const Color(0xFFF8FAFC),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(20),
+              borderSide: BorderSide.none,
+            ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(20),
               borderSide: const BorderSide(color: Color(0xFF10B981), width: 2),
@@ -390,7 +473,14 @@ class _SmartAuthOverlayState extends State<SmartAuthOverlay> with TickerProvider
         ),
         if (_errorMessage != null) ...[
           const SizedBox(height: 12),
-          Text(_errorMessage!, style: const TextStyle(color: Colors.redAccent, fontSize: 12, fontWeight: FontWeight.bold)),
+          Text(
+            _errorMessage!,
+            style: const TextStyle(
+              color: Colors.redAccent,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         ],
         const SizedBox(height: 28),
         SizedBox(
@@ -403,16 +493,32 @@ class _SmartAuthOverlayState extends State<SmartAuthOverlay> with TickerProvider
               foregroundColor: Colors.white,
               elevation: 4,
               shadowColor: const Color(0xFF10B981).withValues(alpha: 0.4),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
             ),
             child: _isSubmittingPin
-                ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
+                ? const SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2.5,
+                    ),
+                  )
                 : const Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(Icons.lock_open_rounded, size: 20),
                       SizedBox(width: 8),
-                      Text("UNLOCK & SYNC", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, letterSpacing: 0.5)),
+                      Text(
+                        "UNLOCK & SYNC",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
                     ],
                   ),
           ),
@@ -420,7 +526,14 @@ class _SmartAuthOverlayState extends State<SmartAuthOverlay> with TickerProvider
         const SizedBox(height: 12),
         TextButton(
           onPressed: _resetToEmailStep,
-          child: const Text("Use Different Email", style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w600, fontSize: 13)),
+          child: const Text(
+            "Use Different Email",
+            style: TextStyle(
+              color: Color(0xFF64748B),
+              fontWeight: FontWeight.w600,
+              fontSize: 13,
+            ),
+          ),
         ),
       ],
     );
@@ -443,17 +556,30 @@ class _SmartAuthOverlayState extends State<SmartAuthOverlay> with TickerProvider
               ),
               shape: BoxShape.circle,
               boxShadow: [
-                BoxShadow(color: const Color(0xFFFF5C00).withValues(alpha: 0.35), blurRadius: 20, spreadRadius: 4),
+                BoxShadow(
+                  color: const Color(0xFFFF5C00).withValues(alpha: 0.35),
+                  blurRadius: 20,
+                  spreadRadius: 4,
+                ),
               ],
             ),
-            child: const Icon(Icons.celebration_rounded, size: 48, color: Colors.white),
+            child: const Icon(
+              Icons.celebration_rounded,
+              size: 48,
+              color: Colors.white,
+            ),
           ),
         ),
         const SizedBox(height: 20),
         Text(
           "Thanks for Registering, $_displayName!",
           textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w900, color: Color(0xFF0F172A), letterSpacing: -0.5),
+          style: const TextStyle(
+            fontSize: 21,
+            fontWeight: FontWeight.w900,
+            color: Color(0xFF0F172A),
+            letterSpacing: -0.5,
+          ),
         ),
         const SizedBox(height: 6),
         Container(
@@ -464,7 +590,11 @@ class _SmartAuthOverlayState extends State<SmartAuthOverlay> with TickerProvider
           ),
           child: Text(
             _emailCtrl.text.trim(),
-            style: const TextStyle(color: Color(0xFFFF5C00), fontWeight: FontWeight.bold, fontSize: 12),
+            style: const TextStyle(
+              color: Color(0xFFFF5C00),
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+            ),
           ),
         ),
         const SizedBox(height: 16),
@@ -480,14 +610,25 @@ class _SmartAuthOverlayState extends State<SmartAuthOverlay> with TickerProvider
           maxLength: 4,
           obscureText: true,
           textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w900, letterSpacing: 22, color: Color(0xFF0F172A)),
+          style: const TextStyle(
+            fontSize: 32,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 22,
+            color: Color(0xFF0F172A),
+          ),
           decoration: InputDecoration(
             counterText: "",
             hintText: "••••",
-            hintStyle: TextStyle(color: Colors.grey.shade300, letterSpacing: 16),
+            hintStyle: TextStyle(
+              color: Colors.grey.shade300,
+              letterSpacing: 16,
+            ),
             filled: true,
             fillColor: const Color(0xFFF8FAFC),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(20),
+              borderSide: BorderSide.none,
+            ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(20),
               borderSide: const BorderSide(color: Color(0xFFFF5C00), width: 2),
@@ -496,7 +637,14 @@ class _SmartAuthOverlayState extends State<SmartAuthOverlay> with TickerProvider
         ),
         if (_errorMessage != null) ...[
           const SizedBox(height: 12),
-          Text(_errorMessage!, style: const TextStyle(color: Colors.redAccent, fontSize: 12, fontWeight: FontWeight.bold)),
+          Text(
+            _errorMessage!,
+            style: const TextStyle(
+              color: Colors.redAccent,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         ],
         const SizedBox(height: 28),
         SizedBox(
@@ -509,16 +657,32 @@ class _SmartAuthOverlayState extends State<SmartAuthOverlay> with TickerProvider
               foregroundColor: Colors.white,
               elevation: 4,
               shadowColor: const Color(0xFFFF5C00).withValues(alpha: 0.4),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
             ),
             child: _isSubmittingPin
-                ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
+                ? const SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2.5,
+                    ),
+                  )
                 : const Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(Icons.shield_rounded, size: 20),
                       SizedBox(width: 8),
-                      Text("CREATE PIN & ACTIVATE", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, letterSpacing: 0.5)),
+                      Text(
+                        "CREATE PIN & ACTIVATE",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
                     ],
                   ),
           ),
@@ -526,7 +690,14 @@ class _SmartAuthOverlayState extends State<SmartAuthOverlay> with TickerProvider
         const SizedBox(height: 12),
         TextButton(
           onPressed: _resetToEmailStep,
-          child: const Text("Use Different Email", style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w600, fontSize: 13)),
+          child: const Text(
+            "Use Different Email",
+            style: TextStyle(
+              color: Color(0xFF64748B),
+              fontWeight: FontWeight.w600,
+              fontSize: 13,
+            ),
+          ),
         ),
       ],
     );

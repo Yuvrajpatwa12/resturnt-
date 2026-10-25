@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'api_service.dart';
+import 'currency_service.dart';
 
 class Tenant {
   final String id;
@@ -9,6 +10,10 @@ class Tenant {
   final String domain; // Added domain field
   final bool isActive;
   final String plan;
+  final String currencyCode;
+  final String currencySymbol;
+  final String country;
+  final String state;
   final String? expiry;
   final String? startDate;
   final String? storage;
@@ -28,6 +33,10 @@ class Tenant {
     required this.domain,
     required this.isActive,
     required this.plan,
+    this.currencyCode = 'NPR',
+    this.currencySymbol = 'Rs.',
+    this.country = 'Nepal',
+    this.state = 'Bagmati Province',
     this.expiry,
     this.startDate,
     this.storage,
@@ -49,6 +58,10 @@ class Tenant {
       domain: map['domain'] ?? map['custom_domain'] ?? '', 
       isActive: (map['is_active'] == 1 || map['is_active'] == true),
       plan: map['plan'] ?? 'Basic',
+      currencyCode: map['currency_code'] ?? map['currency'] ?? 'NPR',
+      currencySymbol: map['currency_symbol'] ?? 'Rs.',
+      country: map['country'] ?? 'Nepal',
+      state: map['state'] ?? map['province'] ?? 'Bagmati Province',
       expiry: map['expiry_date'] ?? map['expiry'],
       startDate: map['start_date'] ?? map['created_at'],
       storage: map['storage_used'] ?? map['storage'] ?? '0.0 GB',
@@ -104,6 +117,7 @@ class TenantService extends ChangeNotifier {
     if (data != null) {
       final parsedTenant = Tenant.fromMap(data);
       currentTenant.value = parsedTenant;
+      CurrencyService().applyTenantCurrency(parsedTenant.currencyCode, parsedTenant.currencySymbol);
       
       debugPrint("TENANT: Loaded ${currentTenant.value!.name} (ID: ${currentTenant.value!.id})");
       await fetchMenuData(currentTenant.value!.id);

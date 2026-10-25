@@ -9,12 +9,21 @@ import 'super_admin_module/master_hub.dart';
 
 import 'services/staff_gateway.dart';
 import 'services/language_service.dart';
+import 'services/currency_service.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
 import 'package:web/web.dart' as web; // Import for SessionStorage access
 import 'splash_screen.dart';
+import 'widgets/global_notification_overlay.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'firebase_options.dart';
 import 'dart:js' as js; // Add for JavaScript Handshake
+
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  debugPrint("Handling a background message: ${message.messageId}");
+}
 
 void main() async {
   // 1. Notify JS that Dart has started
@@ -29,13 +38,15 @@ void main() async {
   
   WidgetsFlutterBinding.ensureInitialized();
 
-  // 3. Initialize Language Service
+  // 3. Initialize Services
   await LanguageService().initialize();
+  await CurrencyService().initialize();
 
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   } catch (e) {
     debugPrint("FIREBASE INIT FAILED: $e");
   }
@@ -163,8 +174,6 @@ class _MyAppState extends State<MyApp> {
     final themeColor = (tenant != null && !isBypass) 
         ? _parseColor(tenant.color) 
         : const Color(0xFFFF5C00);
-    
-
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
@@ -176,6 +185,14 @@ class _MyAppState extends State<MyApp> {
       ),
       // Set SplashScreen as the initial entry point
       home: const SplashScreen(),
+      builder: (context, child) {
+        return Stack(
+          children: [
+            if (child != null) child,
+            const GlobalNotificationBannerOverlay(),
+          ],
+        );
+      },
       routes: {
         '/customer': (context) => const HomePage(),
         '/super-admin': (context) => const SuperAdminMasterHub(),

@@ -152,8 +152,11 @@ class LanguageService extends ChangeNotifier {
   }
 
   String translate(String key) {
+    if (key.trim().isEmpty) return key;
+    
     final trans = translations.value.firstWhere(
-      (t) => t.key == key, 
+      (t) => t.key.toLowerCase() == key.toLowerCase() || 
+             (t.translations['en'] != null && t.translations['en']!.toLowerCase() == key.toLowerCase()), 
       orElse: () => AppTranslation(id: '', key: key, category: '', translations: {})
     );
 
@@ -258,7 +261,7 @@ class LanguageService extends ChangeNotifier {
 
   List<AppTranslation> _getDefaultTranslations() {
     return [
-      // Navigation
+      // Navigation & Bottom Bar
       AppTranslation(id: '1', key: 'nav.dashboard', category: 'Navigation', translations: {'en': 'Dashboard', 'ne': 'ड्यासबोर्ड', 'hi': 'डैशबोर्ड'}),
       AppTranslation(id: '2', key: 'nav.kitchen', category: 'Navigation', translations: {'en': 'Kitchen', 'ne': 'भान्सा', 'hi': 'रसोई'}),
       AppTranslation(id: '3', key: 'nav.inventory', category: 'Navigation', translations: {'en': 'Inventory', 'ne': 'सूची', 'hi': 'वस्तु-सूची'}),
@@ -266,6 +269,38 @@ class LanguageService extends ChangeNotifier {
       AppTranslation(id: '5', key: 'nav.reports', category: 'Navigation', translations: {'en': 'Reports', 'ne': 'रिपोर्टहरू', 'hi': 'रिपोर्ट'}),
       AppTranslation(id: '6', key: 'nav.settings', category: 'Navigation', translations: {'en': 'Settings', 'ne': 'सेटिङहरू', 'hi': 'सेटिंग्स'}),
       AppTranslation(id: '7', key: 'nav.employees', category: 'Navigation', translations: {'en': 'Employees', 'ne': 'कर्मचारीहरू', 'hi': 'कर्मचारी'}),
+
+      // Customer App Navigation
+      AppTranslation(id: '10', key: 'Home', category: 'Customer', translations: {'en': 'Home', 'ne': 'गृहपृष्ठ', 'hi': 'होम'}),
+      AppTranslation(id: '11', key: 'Menu', category: 'Customer', translations: {'en': 'Menu', 'ne': 'मेनु', 'hi': 'मेन्यू'}),
+      AppTranslation(id: '12', key: 'Nearby', category: 'Customer', translations: {'en': 'Nearby', 'ne': 'नजिकै', 'hi': 'पास में'}),
+      AppTranslation(id: '13', key: 'Cart', category: 'Customer', translations: {'en': 'Cart', 'ne': 'झोला', 'hi': 'कार्ट'}),
+      AppTranslation(id: '14', key: 'Profile', category: 'Customer', translations: {'en': 'Profile', 'ne': 'प्रोफाइल', 'hi': 'प्रोफ़ाइल'}),
+      AppTranslation(id: '15', key: 'Rewards', category: 'Customer', translations: {'en': 'Rewards', 'ne': 'पुरस्कारहरू', 'hi': 'पुरस्कार'}),
+      AppTranslation(id: '16', key: 'Explore Menu', category: 'Customer', translations: {'en': 'Explore Menu', 'ne': 'मेनु हेर्नुहोस्', 'hi': 'मेन्यू देखें'}),
+      AppTranslation(id: '17', key: 'Popular Foods', category: 'Customer', translations: {'en': 'Popular Foods', 'ne': 'लोकप्रिय व्यञ्जनहरू', 'hi': 'लोकप्रिय व्यंजन'}),
+      AppTranslation(id: '18', key: 'Just For You', category: 'Customer', translations: {'en': 'Just For You', 'ne': 'तपाईंको लागि मात्र', 'hi': 'केवल आपके लिए'}),
+      AppTranslation(id: '19', key: 'Trending', category: 'Customer', translations: {'en': 'Trending', 'ne': 'चर्चित व्यञ्जनहरू', 'hi': 'ट्रेंडिंग'}),
+      AppTranslation(id: '20', key: 'My Orders', category: 'Customer', translations: {'en': 'My Orders', 'ne': 'मेरो अर्डरहरू', 'hi': 'मेरे ऑर्डर'}),
+      AppTranslation(id: '21', key: 'Table', category: 'Customer', translations: {'en': 'Table', 'ne': 'टेबल', 'hi': 'टेबल'}),
+      AppTranslation(id: '22', key: 'Total Amount', category: 'Customer', translations: {'en': 'Total Amount', 'ne': 'कुल रकम', 'hi': 'कुल राशि'}),
+      AppTranslation(id: '23', key: 'Checkout', category: 'Customer', translations: {'en': 'Checkout', 'ne': 'भुक्तानी', 'hi': 'चेकआउट'}),
+      AppTranslation(id: '24', key: 'Add to Cart', category: 'Customer', translations: {'en': 'Add to Cart', 'ne': 'झोलामा राख्नुहोस्', 'hi': 'कार्ट में जोड़ें'}),
+      AppTranslation(id: '25', key: 'Notifications', category: 'Customer', translations: {'en': 'Notifications', 'ne': 'अधिसूचनाहरू', 'hi': 'सूचनाएं'}),
+      AppTranslation(id: '26', key: 'SELECT TABLE NUMBER', category: 'Customer', translations: {'en': 'SELECT TABLE NUMBER', 'ne': 'टेबल नम्बर छान्नुहोस्', 'hi': 'टेबल नंबर चुनें'}),
+      AppTranslation(id: '27', key: 'TAP TO CHOOSE', category: 'Customer', translations: {'en': 'TAP TO CHOOSE', 'ne': 'थिचेर छान्नुहोस्', 'hi': 'चुनने के लिए टैप करें'}),
+      AppTranslation(id: '28', key: 'Hot Deals', category: 'Customer', translations: {'en': 'Hot Deals', 'ne': 'हट डिलहरू', 'hi': 'हॉट डील्स'}),
+      AppTranslation(id: '29', key: 'Delicious Fast Food', category: 'Customer', translations: {'en': 'Delicious Fast Food', 'ne': 'स्वादिष्ट फास्ट फूड', 'hi': 'स्वादिष्ट फास्ट फूड'}),
+      AppTranslation(id: '30', key: 'Craving deliciousness? Enjoy hot, fresh & flavorful meals delivered fast right to your door!', category: 'Customer', translations: {'en': 'Craving deliciousness? Enjoy hot, fresh & flavorful meals delivered fast right to your door!', 'ne': 'मीठो खाने मन छ? तातो, ताजा र स्वादिष्ट खाना सिधै ढोकासम्म!', 'hi': 'स्वादिष्ट खाने की इच्छा? गर्म और ताजा खाना सीधे आपके दरवाजे पर!'}),
+      AppTranslation(id: '31', key: 'Order Now', category: 'Customer', translations: {'en': 'Order Now', 'ne': 'अहिले अर्डर गर्नुहोस्', 'hi': 'अभी ऑर्डर करें'}),
+      AppTranslation(id: '32', key: 'No Song Playing', category: 'Customer', translations: {'en': 'No Song Playing', 'ne': 'कुनै गीत बजेको छैन', 'hi': 'कोई गाना नहीं बज रहा है'}),
+      AppTranslation(id: '33', key: 'Popular Picks', category: 'Customer', translations: {'en': 'Popular Picks', 'ne': 'लोकप्रिय रोजाइहरू', 'hi': 'लोकप्रिय विकल्प'}),
+      AppTranslation(id: '34', key: 'Trending Scroll', category: 'Customer', translations: {'en': 'Trending Scroll', 'ne': 'चर्चित व्यञ्जनहरू', 'hi': 'ट्रेंडिंग व्यंजन'}),
+      AppTranslation(id: '35', key: 'All Products', category: 'Customer', translations: {'en': 'All Products', 'ne': 'सबै व्यञ्जनहरू', 'hi': 'सभी उत्पाद'}),
+      AppTranslation(id: '36', key: 'View All →', category: 'Customer', translations: {'en': 'View All →', 'ne': 'सबै हेर्नुहोस् →', 'hi': 'सभी देखें →'}),
+      AppTranslation(id: '37', key: 'Explore →', category: 'Customer', translations: {'en': 'Explore →', 'ne': 'हेर्नुहोस् →', 'hi': 'खोजें →'}),
+      AppTranslation(id: '38', key: 'More →', category: 'Customer', translations: {'en': 'More →', 'ne': 'थप →', 'hi': 'और देखें →'}),
+      AppTranslation(id: '39', key: 'Explore More →', category: 'Customer', translations: {'en': 'Explore More →', 'ne': 'थप हेर्नुहोस् →', 'hi': 'और खोजें →'}),
       
       // Common Buttons
       AppTranslation(id: '100', key: 'common.add_new', category: 'Common', translations: {'en': 'Add New', 'ne': 'नयाँ थप्नुहोस्', 'hi': 'नया जोड़ें'}),

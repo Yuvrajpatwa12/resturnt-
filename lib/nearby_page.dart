@@ -29,8 +29,9 @@ class _NearbyPageState extends State<NearbyPage> {
     // Refresh every 15 seconds for real-time feel
     _refreshTimer = Timer.periodic(const Duration(seconds: 15), (_) => _fetchGuests());
     
-    // Auto check-in when opening this tab
+    // Auto check-in and check notification permission
     ShopManager.instance.updatePresenceOnServer();
+    ShopManager.instance.checkOrRequestNotificationOnAction();
   }
 
   @override
@@ -343,8 +344,12 @@ class _NearbyPageState extends State<NearbyPage> {
                     _buildSocialIcon(Icons.back_hand_rounded, Colors.amber, () async {
                        final tenant = TenantService().currentTenant.value;
                        if (tenant != null && myId.isNotEmpty) {
-                         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Waving at $displayName..."), duration: const Duration(milliseconds: 500)));
-                         await ApiService.sendWave(tenantId: tenant.id, myId: myId, targetId: targetId);
+                         final sent = await ApiService.sendWave(tenantId: tenant.id, myId: myId, targetId: targetId);
+                         if (!mounted) return;
+                         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                           content: Text(sent ? "Wave sent to $displayName." : "Could not send wave. Please try again."),
+                           duration: const Duration(seconds: 2),
+                         ));
                        }
                     }),
 
@@ -363,7 +368,13 @@ class _NearbyPageState extends State<NearbyPage> {
                           _optimisticFollows[targetId] = !isFollowing;
                           _loadingFollowIds.add(targetId);
                         });
-                        await ShopManager.instance.toggleFollow(targetId);
+                        final followed = await ShopManager.instance.toggleFollow(targetId);
+                        if (!followed && mounted) {
+                          setState(() => _optimisticFollows[targetId] = isFollowing);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text("Could not update follow. Please try again.")),
+                          );
+                        }
                         await _fetchGuests();
                         if (mounted) setState(() => _loadingFollowIds.remove(targetId));
                       },

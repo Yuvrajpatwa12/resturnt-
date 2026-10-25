@@ -77,11 +77,16 @@ class _UnitMeasurementScreenState extends State<UnitMeasurementScreen> {
                 'name': nameController.text.trim(),
                 'symbol': symbolController.text.trim(),
               };
-              await ApiService.saveUnit(newUnit);
+              final success = await ApiService.saveUnit(newUnit);
               Navigator.pop(ctx);
               _loadUnits();
               if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Unit saved successfully!"), backgroundColor: AdminTheme.emeraldGreen));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(success ? "Unit saved to database successfully!" : "Failed to save unit to database."),
+                    backgroundColor: success ? AdminTheme.emeraldGreen : Colors.redAccent,
+                  ),
+                );
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: AdminTheme.royalBlue),

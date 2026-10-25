@@ -13,13 +13,14 @@ import 'profile_page.dart';
 import 'rewards_page.dart';
 import 'music_voting_sheet.dart';
 import 'services/tenant_service.dart';
-import 'widgets/smart_auth_overlay.dart';
+import 'services/language_service.dart';
 import 'services/api_service.dart';
 import 'notifications_page.dart';
 import 'activity_share_page.dart';
 import 'widgets/smart_auth_overlay.dart';
 import 'widgets/onboarding_modal.dart';
 import 'widgets/notification_prompt.dart';
+import 'widgets/ios_pwa_prompt.dart';
 import 'widgets/proximity_offer_dialog.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -227,6 +228,7 @@ class _HomePageState extends State<HomePage> {
                   );
                 },
               ),
+              const IosPwaPrompt(),
               ValueListenableBuilder<bool>(
                 valueListenable: ShopManager.instance.isNearbyOfferVisible,
                 builder: (context, visible, _) {
@@ -567,11 +569,11 @@ class _HomePageState extends State<HomePage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text("SELECT TABLE NUMBER", style: TextStyle(fontSize: 9, color: Color(0xFFFF5C00), fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+                        Text(LanguageService().translate("SELECT TABLE NUMBER"), style: const TextStyle(fontSize: 9, color: Color(0xFFFF5C00), fontWeight: FontWeight.w900, letterSpacing: 0.5)),
                         ValueListenableBuilder<int?>(
                           valueListenable: ShopManager.instance.selectedTableId,
                           builder: (context, tableId, child) => Text(
-                            tableId != null ? "TABLE ${tableId.toString().padLeft(2, '0')}" : "TAP TO CHOOSE", 
+                            tableId != null ? "${LanguageService().translate('TABLE')} ${tableId.toString().padLeft(2, '0')}" : LanguageService().translate("TAP TO CHOOSE"), 
                             style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: tableId != null ? Colors.black87 : const Color(0xFFFF5C00)),
                           ),
                         ),
@@ -822,8 +824,8 @@ class _HomePageState extends State<HomePage> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-          InkWell(onTap: onTap, child: Text(action, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFFFF5C00)))),
+          Text(LanguageService().translate(title), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          InkWell(onTap: onTap, child: Text(LanguageService().translate(action), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFFFF5C00)))),
         ],
       ),
     );
@@ -1044,7 +1046,7 @@ class _HomePageState extends State<HomePage> {
                 ],
               ),
               const SizedBox(height: 4),
-              Text(label, style: TextStyle(fontSize: 10, color: isSelected ? const Color(0xFFFF5C00) : Colors.grey, fontWeight: FontWeight.w600)),
+              Text(LanguageService().translate(label), style: TextStyle(fontSize: 10, color: isSelected ? const Color(0xFFFF5C00) : Colors.grey, fontWeight: FontWeight.w600)),
             ],
           ),
         ),
@@ -1054,7 +1056,7 @@ class _HomePageState extends State<HomePage> {
 }
 
 class _PromoBannerCarousel extends StatefulWidget {
-  const _PromoBannerCarousel();
+  const _PromoBannerCarousel({super.key});
 
   @override
   State<_PromoBannerCarousel> createState() => _PromoBannerCarouselState();
@@ -1154,17 +1156,17 @@ class _PromoBannerCarouselState extends State<_PromoBannerCarousel> {
                           ),
                         ],
                       ),
-                      child: const Row(
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text(
+                          const Text(
                             '🔥',
                             style: TextStyle(fontSize: 11),
                           ),
-                          SizedBox(width: 4),
+                          const SizedBox(width: 4),
                           Text(
-                            'Hot Deals',
-                            style: TextStyle(
+                            LanguageService().translate('Hot Deals'),
+                            style: const TextStyle(
                               color: Color(0xFFD8521D),
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
@@ -1175,11 +1177,11 @@ class _PromoBannerCarouselState extends State<_PromoBannerCarousel> {
                     ),
 
                     // Main Title - Single Line
-                    const Text(
-                      'Delicious Fast Food',
+                    Text(
+                      LanguageService().translate('Delicious Fast Food'),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: Color(0xFF3B1E13),
                         fontSize: 16,
                         fontWeight: FontWeight.w900,
@@ -1188,11 +1190,11 @@ class _PromoBannerCarouselState extends State<_PromoBannerCarousel> {
                     ),
 
                     // Subtitle / Slogan - Fills space nicely
-                    const Text(
-                      'Craving deliciousness? Enjoy hot, fresh & flavorful meals delivered fast right to your door!',
+                    Text(
+                      LanguageService().translate('Craving deliciousness? Enjoy hot, fresh & flavorful meals delivered fast right to your door!'),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: Color(0xFF7A5C50),
                         fontSize: 10,
                         fontWeight: FontWeight.w500,
@@ -1234,9 +1236,9 @@ class _PromoBannerCarouselState extends State<_PromoBannerCarousel> {
                               ),
                             ),
                             const SizedBox(width: 8),
-                            const Text(
-                              'Order Now',
-                              style: TextStyle(
+                            Text(
+                              LanguageService().translate('Order Now'),
+                              style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,

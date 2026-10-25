@@ -8,6 +8,7 @@ import 'ar_view_page.dart';
 import 'product_voice_assistant_page.dart';
 import 'services/tenant_service.dart';
 import 'services/api_service.dart';
+import 'services/currency_service.dart';
 
 class ProductCard extends StatelessWidget {
   final Map<String, dynamic> item;
@@ -72,8 +73,8 @@ class ProductCard extends StatelessWidget {
     String titleText = (item['title'] != null && item['title'].toString().trim().isNotEmpty) ? item['title'].toString() : 'Coming Soon Item';
     String rawPrice = item['price']?.toString() ?? '';
     String displayPrice = rawPrice.isNotEmpty && rawPrice != '0' && rawPrice != '0.00' ? rawPrice : 'Coming Soon';
-    if (!displayPrice.contains('NPR') && displayPrice != 'Coming Soon' && displayPrice != 'N/A') {
-      displayPrice = "NPR $displayPrice";
+    if (displayPrice != 'Coming Soon' && displayPrice != 'N/A') {
+      displayPrice = CurrencyService().formatPrice(displayPrice);
     }
 
     // Parse variants safely

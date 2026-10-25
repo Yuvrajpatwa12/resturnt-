@@ -33,6 +33,7 @@ import 'screens/payment_method_list_screen.dart';
 import 'screens/payment_setup_screen.dart';
 import 'screens/payment_account_filter_screen.dart';
 import 'screens/production_list_screen.dart';
+import '../screens/settings/app_settings_screen.dart';
 import 'screens/hrm_management_screen.dart';
 import 'screens/hrm/designation_screen.dart';
 import 'screens/hrm/add_employee_screen.dart';
@@ -186,33 +187,31 @@ class _AdminHubState extends State<AdminHub> {
     const CustomerManagementScreen(mode: "Customer Type List"), // 83
     const UnitMeasurementScreen(), // 84
     const IngredientInventoryScreen(), // 85
-    const SystemConfigurationScreen(mode: "SMS Configuration"), // 86
-    const SystemConfigurationScreen(mode: "SMS Template"), // 87
-    const SystemConfigurationScreen(mode: "Bank List"), // 88
-    const SystemConfigurationScreen(mode: "Bank Transaction"), // 89
-    const SystemConfigurationScreen(mode: "Language"), // 90
-    const SystemConfigurationScreen(mode: "Application Setting"), // 91
-    const SystemConfigurationScreen(mode: "App Setting"), // 92
-    const SystemConfigurationScreen(mode: "Factory Reset"), // 93
-    const SystemConfigurationScreen(mode: "Currency"), // 94
-    const SystemConfigurationScreen(mode: "Country"), // 95
-    const SystemConfigurationScreen(mode: "State"), // 96
-    const SystemConfigurationScreen(mode: "City"), // 97
-    const SystemConfigurationScreen(mode: "Commission"), // 98
-    const HRMManagementScreen(mode: "User Management"), // 99
-    const AdminSettingsScreen(section: "Modules"), // 100
-    const ThemeManagementScreen(), // 101
-    const SupportTicketScreen(), // 102
-    const SubscriptionStatusScreen(), // 103
-    const RewardManagementScreen(mode: "Rewards Config"), // 104
-    const RewardManagementScreen(mode: "Redeem Items"), // 105
-    const RewardManagementScreen(mode: "Mystery Box"), // 106
-    const RewardManagementScreen(mode: "Claim History"), // 107
-    const RewardManagementScreen(mode: "Marketing Banners"), // 108
-    const MusicManagementScreen(), // 109
-    const TableConfigurationScreen(mode: "Room List"), // 110
-    const TableConfigurationScreen(mode: "Room Setting"), // 111
-    const SocialMediaManagementScreen(), // 112
+    const SystemConfigurationScreen(mode: "Bank List"), // 86
+    const SystemConfigurationScreen(mode: "Bank Transaction"), // 87
+    const SystemConfigurationScreen(mode: "Language"), // 88
+    const SystemConfigurationScreen(mode: "Application Setting"), // 89
+    const AppSettingsScreen(), // 90
+    const SystemConfigurationScreen(mode: "Factory Reset"), // 91
+    const SystemConfigurationScreen(mode: "Currency"), // 92
+    const SystemConfigurationScreen(mode: "Country"), // 93
+    const SystemConfigurationScreen(mode: "State"), // 94
+    const SystemConfigurationScreen(mode: "City"), // 95
+    const SystemConfigurationScreen(mode: "Commission"), // 96
+    const HRMManagementScreen(mode: "User Management"), // 97
+    const AdminSettingsScreen(section: "Modules"), // 98
+    const ThemeManagementScreen(), // 99
+    const SupportTicketScreen(), // 100
+    const SubscriptionStatusScreen(), // 101
+    const RewardManagementScreen(mode: "Rewards Config"), // 102
+    const RewardManagementScreen(mode: "Redeem Items"), // 103
+    const RewardManagementScreen(mode: "Mystery Box"), // 104
+    const RewardManagementScreen(mode: "Claim History"), // 105
+    const RewardManagementScreen(mode: "Marketing Banners"), // 106
+    const MusicManagementScreen(), // 107
+    const TableConfigurationScreen(mode: "Room List"), // 108
+    const TableConfigurationScreen(mode: "Room Setting"), // 109
+    const SocialMediaManagementScreen(), // 110
   ];
 
   @override
@@ -619,38 +618,16 @@ class _AdminHubState extends State<AdminHub> {
                           _buildSubDrawerItem(85, "Ingredient List", isFixed, isDoubleNested: true),
                         ],
                       ),
-                      _buildNestedExpandableItem(
-                        title: "SMS Setting",
-                        children: [
-                          _buildSubDrawerItem(86, "SMS Configuration", isFixed, isDoubleNested: true),
-                          _buildSubDrawerItem(87, "SMS Template", isFixed, isDoubleNested: true),
-                        ],
-                      ),
-                      _buildNestedExpandableItem(
-                        title: "Bank",
-                        children: [
-                          _buildSubDrawerItem(88, "Bank List", isFixed, isDoubleNested: true),
-                          _buildSubDrawerItem(89, "Bank Transaction", isFixed, isDoubleNested: true),
-                        ],
-                      ),
-                      _buildSubDrawerItem(90, "Language", isFixed),
-                      _buildSubDrawerItem(91, "Application Setting", isFixed),
-                      _buildSubDrawerItem(92, "App Setting", isFixed),
-                      _buildSubDrawerItem(93, "Factory Reset", isFixed),
-                      _buildSubDrawerItem(94, "Currency", isFixed),
-                      _buildSubDrawerItem(95, "Country", isFixed),
-                      _buildSubDrawerItem(96, "State", isFixed),
-                      _buildSubDrawerItem(97, "City", isFixed),
-                      _buildSubDrawerItem(98, "Commission", isFixed),
+                      _buildSubDrawerItem(90, "App Settings", isFixed),
                     ],
                   ),
 
                   const Divider(color: Colors.white10, height: 40),
-                  _buildDrawerItem(103, Icons.card_membership_rounded, "Subscription Status", isFixed),
-                  _buildDrawerItem(102, Icons.help_outline_rounded, "Support & Help", isFixed),
-                  _buildDrawerItem(99, Icons.security_outlined, "User Management", isFixed),
-                  _buildDrawerItem(100, Icons.grid_view_rounded, "Modules", isFixed, hasAddon: true),
-                  _buildDrawerItem(101, Icons.palette_outlined, "Themes", isFixed),
+                  _buildDrawerItem(101, Icons.card_membership_rounded, "Subscription Status", isFixed),
+                  _buildDrawerItem(100, Icons.help_outline_rounded, "Support & Help", isFixed),
+                  _buildDrawerItem(97, Icons.security_outlined, "User Management", isFixed),
+                  _buildDrawerItem(98, Icons.grid_view_rounded, "Modules", isFixed, hasAddon: true),
+                  _buildDrawerItem(99, Icons.palette_outlined, "Themes", isFixed),
                   
                   const SizedBox(height: 20),
                   const Center(

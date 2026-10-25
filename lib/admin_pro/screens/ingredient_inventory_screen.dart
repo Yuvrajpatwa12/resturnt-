@@ -118,11 +118,16 @@ class _IngredientInventoryScreenState extends State<IngredientInventoryScreen> {
                 'consumed_today': double.tryParse(consumedController.text) ?? 0.0,
                 'cost_per_unit': double.tryParse(costController.text) ?? 0.0,
               };
-              await ApiService.saveIngredient(item);
+              final success = await ApiService.saveIngredient(item);
               Navigator.pop(ctx);
               _loadIngredients();
               if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Ingredient saved successfully!"), backgroundColor: AdminTheme.emeraldGreen));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(success ? "Ingredient saved to database successfully!" : "Failed to save ingredient to database."),
+                    backgroundColor: success ? AdminTheme.emeraldGreen : Colors.redAccent,
+                  ),
+                );
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: AdminTheme.royalBlue),
@@ -190,8 +195,15 @@ class _IngredientInventoryScreenState extends State<IngredientInventoryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    double totalStockVal = _ingredients.fold(0.0, (sum, i) => sum + ((i['remaining_stock'] as double) * (i['cost_per_unit'] as double)));
-    double totalConsumedToday = _ingredients.fold(0.0, (sum, i) => sum + (i['consumed_today'] as double));
+    double totalStockVal = _ingredients.fold(0.0, (sum, i) {
+      double rem = double.tryParse(i['remaining_stock']?.toString() ?? '0') ?? 0.0;
+      double cost = double.tryParse(i['cost_per_unit']?.toString() ?? '0') ?? 0.0;
+      return sum + (rem * cost);
+    });
+    double totalConsumedToday = _ingredients.fold(0.0, (sum, i) {
+      double cons = double.tryParse(i['consumed_today']?.toString() ?? '0') ?? 0.0;
+      return sum + cons;
+    });
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(28),

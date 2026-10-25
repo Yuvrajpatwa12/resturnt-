@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'cart_manager.dart';
 import 'user_profile_view_page.dart';
+import 'my_orders_page.dart';
+import 'rewards_page.dart';
+import 'nearby_page.dart';
+import 'services/tenant_service.dart';
+import 'services/api_service.dart';
 
 
 class NotificationsPage extends StatefulWidget {
@@ -12,7 +17,6 @@ class NotificationsPage extends StatefulWidget {
 
 class _NotificationsPageState extends State<NotificationsPage> with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  bool _isRefreshing = false;
 
   @override
   void initState() {
@@ -35,10 +39,37 @@ class _NotificationsPageState extends State<NotificationsPage> with SingleTicker
         ),
         title: const Text("Your notifications", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 22)),
         actions: [
+          ElevatedButton.icon(
+            onPressed: () async {
+              await ShopManager.instance.checkOrRequestNotificationOnAction();
+              final tenant = TenantService().currentTenant.value;
+              if (tenant != null && ShopManager.instance.currentUserId.isNotEmpty) {
+                final success = await ApiService.sendTestOfferNotification(tenant.id, ShopManager.instance.currentUserId);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(success ? "🎉 Test offer push sent to your device!" : "⚠️ Failed to send test push"),
+                      backgroundColor: success ? Colors.green : Colors.red,
+                    ),
+                  );
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFFF5C00),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              elevation: 0,
+            ),
+            icon: const Icon(Icons.local_offer_rounded, size: 16),
+            label: const Text("Test Offer", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+          ),
+          const SizedBox(width: 6),
           TextButton.icon(
             onPressed: () => ShopManager.instance.clearNotificationBadge(),
             icon: const Icon(Icons.done_all, size: 18),
-            label: const Text("Mark all as read", style: TextStyle(fontWeight: FontWeight.bold)),
+            label: const Text("Read All", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
           ),
           const SizedBox(width: 8),
         ],
@@ -76,7 +107,10 @@ class _NotificationsPageState extends State<NotificationsPage> with SingleTicker
   Widget _buildList(List<Map<String, dynamic>> all, String filter) {
     final filtered = filter == "all" 
         ? all 
-        : all.where((n) => n['type'] == filter).toList();
+        : all.where((n) {
+            final type = n['type'];
+            return type == filter || (filter == 'follow' && type == 'follow_back');
+          }).toList();
 
     if (filtered.isEmpty) {
       return Center(
@@ -93,9 +127,7 @@ class _NotificationsPageState extends State<NotificationsPage> with SingleTicker
 
     return RefreshIndicator(
       onRefresh: () async {
-        setState(() => _isRefreshing = true);
         await ShopManager.instance.refreshNotifications();
-        setState(() => _isRefreshing = false);
       },
       child: ListView.separated(
         padding: const EdgeInsets.all(20),
@@ -104,11 +136,58 @@ class _NotificationsPageState extends State<NotificationsPage> with SingleTicker
         itemBuilder: (context, index) {
           final n = filtered[index];
           return InkWell(
-            onTap: () {
-              if (n['sender_id'] != null) {
+            onTap: () async {
+              final notificationId =
+                  int.tryParse(n['id']?.toString() ?? '');
+              if (notificationId != null) {
+                await ShopManager.instance.acknowledgeNotification(
+                  notificationId,
+                );
+                if (!context.mounted) return;
+              }
+              final senderId = n['sender_id']?.toString().trim();
+              final type = n['type']?.toString();
+              final message = n['message']?.toString() ?? '';
+
+              // 1. Direct match by sender_id if valid
+              if (senderId != null && senderId.isNotEmpty && senderId != 'null') {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => UserProfileViewPage(userId: n['sender_id'])),
+                  MaterialPageRoute(builder: (context) => UserProfileViewPage(userId: senderId)),
+                );
+                return;
+              }
+
+              // 2. Fallback: Extract @username from message text if sender_id was null in old database rows
+              if (message.contains('@')) {
+                final match = RegExp(r'@([a-zA-Z0-9_\.\-]+)').firstMatch(message);
+                if (match != null) {
+                  final extractedHandle = match.group(1);
+                  if (extractedHandle != null && extractedHandle.isNotEmpty) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => UserProfileViewPage(userId: extractedHandle)),
+                    );
+                    return;
+                  }
+                }
+              }
+
+              // 3. Fallback by notification type
+              if (type == 'follow' || type == 'follow_back' || type == 'wave') {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const NearbyPage()),
+                );
+              } else if (type == 'order') {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const MyOrdersPage()),
+                );
+              } else if (type == 'points') {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const RewardsPage()),
                 );
               }
             },
@@ -124,7 +203,7 @@ class _NotificationsPageState extends State<NotificationsPage> with SingleTicker
     IconData icon = Icons.notifications;
     Color color = Colors.blue;
 
-    if (n['type'] == 'follow') { icon = Icons.person_add; color = Colors.orange; }
+    if (n['type'] == 'follow' || n['type'] == 'follow_back') { icon = Icons.person_add; color = Colors.orange; }
     if (n['type'] == 'wave') { icon = Icons.back_hand; color = Colors.amber; }
     if (n['type'] == 'points') { icon = Icons.monetization_on; color = Colors.green; }
     if (n['type'] == 'message') { icon = Icons.chat_bubble; color = Colors.purple; }

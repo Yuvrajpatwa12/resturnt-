@@ -2,8 +2,19 @@ import 'package:flutter/material.dart';
 import 'cart_manager.dart';
 import 'order_success_page.dart';
 
-class CheckoutProcessPage extends StatelessWidget {
+class CheckoutProcessPage extends StatefulWidget {
   const CheckoutProcessPage({super.key});
+
+  @override
+  State<CheckoutProcessPage> createState() => _CheckoutProcessPageState();
+}
+
+class _CheckoutProcessPageState extends State<CheckoutProcessPage> {
+  @override
+  void initState() {
+    super.initState();
+    ShopManager.instance.checkOrRequestNotificationOnAction();
+  }
 
   @override
   Widget build(BuildContext context) {

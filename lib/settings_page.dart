@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'cart_manager.dart';
 import 'services/tenant_service.dart';
+import 'services/api_service.dart';
 import 'package:geolocator/geolocator.dart';
 import 'account_settings_page.dart';
 import 'staff/staff_hub.dart';
@@ -106,6 +107,10 @@ class _SettingsPageState extends State<SettingsPage> {
             ]),
 
             const SizedBox(height: 32),
+            _buildSectionHeader("Email notifications"),
+            const _EmailNotificationSettings(),
+
+            const SizedBox(height: 32),
             _buildSectionHeader("Account Management"),
             _buildSettingsGroup([
               _buildSettingRow(
@@ -196,7 +201,9 @@ class _SettingsPageState extends State<SettingsPage> {
     return SizedBox(
       width: double.infinity,
       child: TextButton.icon(
-        onPressed: () {
+        onPressed: () async {
+          await ShopManager.instance.logoutCustomer();
+          if (!mounted) return;
           TenantService().logout();
           Navigator.pop(context);
         },
@@ -217,5 +224,182 @@ class _SettingsPageState extends State<SettingsPage> {
         SnackBar(content: Text("Location permission: ${permission.name}")),
       );
     }
+  }
+}
+
+class _EmailNotificationSettings extends StatefulWidget {
+  const _EmailNotificationSettings();
+
+  @override
+  State<_EmailNotificationSettings> createState() =>
+      _EmailNotificationSettingsState();
+}
+
+class _EmailNotificationSettingsState extends State<_EmailNotificationSettings> {
+  bool _loading = true;
+  bool _saving = false;
+  final Map<String, bool> _preferences = {
+    'email_enabled': false,
+    'email_follow': true,
+    'email_wave': true,
+    'email_message': true,
+  };
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final tenant = TenantService().currentTenant.value;
+    final manager = ShopManager.instance;
+    if (tenant == null ||
+        !manager.isEmailSynced.value ||
+        manager.customerSessionToken.isEmpty) {
+      if (mounted) setState(() => _loading = false);
+      return;
+    }
+    final saved = await ApiService.fetchEmailNotificationPreferences(
+      tenantId: tenant.id,
+      sessionToken: manager.customerSessionToken,
+    );
+    if (!mounted) return;
+    if (saved != null) {
+      for (final key in _preferences.keys) {
+        _preferences[key] =
+            saved[key] == true || saved[key]?.toString() == '1';
+      }
+    }
+    setState(() => _loading = false);
+  }
+
+  Future<void> _update(String key, bool value) async {
+    final tenant = TenantService().currentTenant.value;
+    final manager = ShopManager.instance;
+    if (tenant == null || manager.customerSessionToken.isEmpty || _saving) {
+      return;
+    }
+    final previous = Map<String, bool>.from(_preferences);
+    setState(() {
+      _preferences[key] = value;
+      _saving = true;
+    });
+    final saved = await ApiService.saveEmailNotificationPreferences(
+      tenantId: tenant.id,
+      sessionToken: manager.customerSessionToken,
+      preferences: _preferences,
+    );
+    if (!mounted) return;
+    setState(() {
+      _saving = false;
+      if (!saved) {
+        _preferences
+          ..clear()
+          ..addAll(previous);
+      }
+    });
+    if (!saved) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not save email alert settings.')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final manager = ShopManager.instance;
+    if (!manager.isEmailSynced.value ||
+        manager.customerSessionToken.isEmpty) {
+      return _settingsCard(
+        const Padding(
+          padding: EdgeInsets.all(16),
+          child: Text(
+            'Sign in with your email and PIN to manage email notifications.',
+            style: TextStyle(color: Colors.grey, fontSize: 13),
+          ),
+        ),
+      );
+    }
+    if (_loading) {
+      return _settingsCard(
+        const Padding(
+          padding: EdgeInsets.all(20),
+          child: Center(
+            child: SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+          ),
+        ),
+      );
+    }
+    return _settingsCard(
+      Column(
+        children: [
+          _emailSwitch(
+            icon: Icons.alternate_email_rounded,
+            title: 'Email me about app alerts',
+            subtitle: 'Message emails send after 1 minute if not read or answered.',
+            keyName: 'email_enabled',
+          ),
+          if (_preferences['email_enabled'] == true) ...[
+            const Divider(height: 1, indent: 56),
+            _emailSwitch(
+              icon: Icons.person_add_alt_1_rounded,
+              title: 'Follows and follow-backs',
+              keyName: 'email_follow',
+            ),
+            _emailSwitch(
+              icon: Icons.waving_hand_outlined,
+              title: 'Waves',
+              keyName: 'email_wave',
+            ),
+            _emailSwitch(
+              icon: Icons.chat_bubble_outline_rounded,
+              title: 'New messages',
+              subtitle: 'Email will not include private message text.',
+              keyName: 'email_message',
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _emailSwitch({
+    required IconData icon,
+    required String title,
+    required String keyName,
+    String? subtitle,
+  }) {
+    return SwitchListTile(
+      value: _preferences[keyName] ?? false,
+      onChanged: _saving ? null : (value) => _update(keyName, value),
+      secondary: Icon(icon, color: const Color(0xFFFF5C00), size: 20),
+      title: Text(title, style: const TextStyle(fontSize: 13)),
+      subtitle: subtitle == null
+          ? null
+          : Text(subtitle, style: const TextStyle(fontSize: 11)),
+      activeThumbColor: const Color(0xFFFF5C00),
+    );
+  }
+
+  Widget _settingsCard(Widget child) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: child,
+    );
   }
 }
