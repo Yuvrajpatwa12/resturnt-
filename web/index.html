@@ -32,6 +32,56 @@
   </style>
 
   <script>
+    const notificationSoundFiles = {
+      notification: "notification.wav",
+      order_success: "order_success.wav",
+      sendwaves: "sendwaves.wav"
+    };
+    const notificationAudio = new Map();
+
+    function getNotificationAudio(sound) {
+      const file = notificationSoundFiles[sound];
+      if (!file) {
+        console.error("Unknown notification sound:", sound);
+        return null;
+      }
+
+      if (!notificationAudio.has(sound)) {
+        const audio = new Audio(
+          new URL("sounds/" + file + "?v=20261026-2", document.baseURI)
+        );
+        audio.preload = "auto";
+        notificationAudio.set(sound, audio);
+      }
+      return notificationAudio.get(sound);
+    }
+
+    window.addEventListener("pointerdown", () => {
+      for (const sound of Object.keys(notificationSoundFiles)) {
+        const audio = getNotificationAudio(sound);
+        if (!audio) continue;
+
+        audio.muted = true;
+        audio.play().then(() => {
+          audio.pause();
+          audio.currentTime = 0;
+          audio.muted = false;
+        }).catch((error) => {
+          audio.muted = false;
+          console.warn("Could not unlock notification sound:", error);
+        });
+      }
+    }, { once: true, capture: true });
+
+    window.playNotificationSound = function(sound = "notification") {
+      const audio = getNotificationAudio(sound);
+      if (!audio) return;
+      audio.currentTime = 0;
+      audio.play().catch((error) => {
+        console.warn("Could not play notification sound:", error);
+      });
+    };
+
     function log(msg, isError = false) {
       console.log("BOOT: " + msg);
     }

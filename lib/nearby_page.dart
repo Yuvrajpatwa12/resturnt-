@@ -4,6 +4,9 @@ import 'cart_manager.dart';
 import 'messages_list_page.dart';
 import 'user_profile_view_page.dart';
 import 'services/tenant_service.dart';
+import 'services/notification_sound_stub.dart'
+    if (dart.library.js_interop) 'services/notification_sound_web.dart'
+    as notification_sound;
 import 'services/api_service.dart';
 
 class NearbyPage extends StatefulWidget {
@@ -346,6 +349,9 @@ class _NearbyPageState extends State<NearbyPage> {
                        if (tenant != null && myId.isNotEmpty) {
                          final sent = await ApiService.sendWave(tenantId: tenant.id, myId: myId, targetId: targetId);
                          if (!mounted) return;
+                         if (sent) {
+                           notification_sound.playNotificationSound('sendwaves');
+                         }
                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                            content: Text(sent ? "Wave sent to $displayName." : "Could not send wave. Please try again."),
                            duration: const Duration(seconds: 2),

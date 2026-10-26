@@ -1740,47 +1740,39 @@ class ApiService {
   static Future<Map<String, dynamic>?> placeTableOrder(
     Map<String, dynamic> orderData,
   ) async {
-    final tenantId = (orderData['tenant_id'] ?? 'startups_main').toString();
-    await _ensureLocalOrdersLoaded(tenantId);
-
-    final newOrderId = DateTime.now().millisecondsSinceEpoch % 100000;
-    final localOrder = {
-      'id': newOrderId,
-      'tenant_id': tenantId,
-      'table_number': orderData['table_number'] ?? orderData['table_id'] ?? 1,
-      'status': 'Pending',
-      'created_at': DateTime.now().toString().split('.')[0],
-      'items': (orderData['items'] as List<dynamic>? ?? [])
-          .map(
-            (i) => {
-              'product_name': i['name'] ?? i['product_name'] ?? 'Item',
-              'quantity': i['quantity'] ?? 1,
-              'price_at_order': i['price'] ?? i['price_at_order'] ?? 0,
-              'status': 'Pending',
-            },
-          )
-          .toList(),
-    };
-
-    _localActiveOrders.insert(0, localOrder);
-    await _persistLocalOrders(tenantId);
-
     try {
       final response = await _post(
         Uri.parse("$baseUrl/place_order.php"),
         headers: {"Content-Type": "application/json"},
         body: json.encode(orderData),
       );
-      if (response.statusCode == 200) {
-        final decoded = json.decode(response.body);
-        if (decoded['status'] == 'success') {
-          return decoded;
-        }
+
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        debugPrint(
+          "Order request failed (HTTP ${response.statusCode}): ${response.body}",
+        );
+        return null;
       }
+
+      final decoded = json.decode(response.body);
+      if (decoded is! Map<String, dynamic> || decoded['status'] != 'success') {
+        debugPrint(
+          "Order request was not confirmed by the server: ${response.body}",
+        );
+        return null;
+      }
+
+      final orderId = int.tryParse(decoded['order_id']?.toString() ?? '');
+      if (orderId == null || orderId <= 0) {
+        debugPrint("Order response did not contain a valid database order ID.");
+        return null;
+      }
+
+      return {...decoded, 'order_id': orderId};
     } catch (e) {
-      debugPrint("Server place order notice: $e");
+      debugPrint("Order request failed: $e");
+      return null;
     }
-    return {"status": "success", "order_id": newOrderId};
   }
 
   static Future<Map<String, dynamic>> updateOrderStatus(
@@ -3189,8 +3181,22 @@ class ApiService {
           "receiver_id": targetId,
         }),
       );
-      return json.decode(response.body)['status'] == 'success';
-    } catch (e) {
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        debugPrint(
+          "Wave request failed (HTTP ${response.statusCode}): ${response.body}",
+        );
+        return false;
+      }
+
+      final decoded = json.decode(response.body);
+      if (decoded is! Map<String, dynamic> || decoded['status'] != 'success') {
+        debugPrint("Wave request was rejected by the server: ${response.body}");
+        return false;
+      }
+      return true;
+    } catch (e, stackTrace) {
+      debugPrint("Wave request failed: $e");
+      debugPrintStack(stackTrace: stackTrace);
       return false;
     }
   }
@@ -3326,9 +3332,9 @@ class ApiService {
 
   static Future<Map<String, dynamic>?> fetchNotifications(
     String tenantId,
-    String userId,
-    {String? sessionToken}
-  ) async {
+    String userId, {
+    String? sessionToken,
+  }) async {
     try {
       final headers = <String, String>{};
       if (sessionToken != null && sessionToken.isNotEmpty) {
@@ -3411,9 +3417,9 @@ class ApiService {
 
   static Future<bool> markNotificationsRead(
     String tenantId,
-    String userId,
-    {String? sessionToken}
-  ) async {
+    String userId, {
+    String? sessionToken,
+  }) async {
     try {
       final headers = sessionToken == null || sessionToken.isEmpty
           ? null

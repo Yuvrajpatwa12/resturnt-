@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'cart_manager.dart';
+import 'services/notification_sound_stub.dart'
+    if (dart.library.js_interop) 'services/notification_sound_web.dart'
+    as notification_sound;
 
 import 'live_order_tracking_screen.dart';
 
@@ -10,11 +13,13 @@ class OrderSuccessPage extends StatefulWidget {
   State<OrderSuccessPage> createState() => _OrderSuccessPageState();
 }
 
-class _OrderSuccessPageState extends State<OrderSuccessPage> with SingleTickerProviderStateMixin {
+class _OrderSuccessPageState extends State<OrderSuccessPage>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
 
-  String _message = "We've started preparing your meal.\nSit back and relax!";
+  String _message = "Please wait while we save your order.";
+  bool _isLoading = true;
   bool _isError = false;
 
   @override
@@ -30,28 +35,37 @@ class _OrderSuccessPageState extends State<OrderSuccessPage> with SingleTickerPr
     );
     _controller.forward();
 
-    // After animation, place order and navigate automatically
-    Future.delayed(const Duration(milliseconds: 1500), () async {
-      if (!mounted) return;
+    _saveOrderAndContinue();
+  }
 
-      await ShopManager.instance.placeOrder(); 
-      final int? orderId = ShopManager.instance.activeOrderId.value;
-      
-      if (mounted) {
-        if (orderId != null) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => LiveOrderTrackingScreen(orderId: orderId)),
-          );
-        } else {
-          // If ID is null, order failed to save in DB
-          setState(() {
-            _isError = true;
-            _message = "Database Error: Could not save order.\nPlease contact staff or try again.";
-          });
-        }
-      }
+  Future<void> _saveOrderAndContinue() async {
+    await ShopManager.instance.placeOrder();
+    final int? orderId = ShopManager.instance.activeOrderId.value;
+    if (!mounted) return;
+
+    if (orderId == null) {
+      setState(() {
+        _isLoading = false;
+        _isError = true;
+        _message =
+            "Could not confirm that your order was saved.\nPlease try again or contact staff.";
+      });
+      return;
+    }
+
+    notification_sound.playNotificationSound('order_success');
+    setState(() {
+      _isLoading = false;
+      _message = "Your order was saved successfully.";
     });
+    await Future.delayed(const Duration(milliseconds: 800));
+    if (!mounted) return;
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => LiveOrderTrackingScreen(orderId: orderId),
+      ),
+    );
   }
 
   @override
@@ -77,19 +91,35 @@ class _OrderSuccessPageState extends State<OrderSuccessPage> with SingleTickerPr
                 width: 100,
                 height: 100,
                 decoration: BoxDecoration(
-                  color: _isError ? Colors.red : const Color(0xFF00B365),
+                  color: _isLoading
+                      ? Colors.orange
+                      : _isError
+                      ? Colors.red
+                      : const Color(0xFF00B365),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(
-                  _isError ? Icons.error_outline : Icons.check,
-                  color: Colors.white,
-                  size: 60,
-                ),
+                child: _isLoading
+                    ? const Padding(
+                        padding: EdgeInsets.all(24),
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 3,
+                        ),
+                      )
+                    : Icon(
+                        _isError ? Icons.error_outline : Icons.check,
+                        color: Colors.white,
+                        size: 60,
+                      ),
               ),
             ),
             const SizedBox(height: 32),
             Text(
-              _isError ? "Order Failed" : "Order Confirmed!",
+              _isLoading
+                  ? "Saving your order..."
+                  : _isError
+                  ? "Order Failed"
+                  : "Order Confirmed!",
               style: const TextStyle(
                 fontSize: 26,
                 fontWeight: FontWeight.w900,
@@ -100,13 +130,28 @@ class _OrderSuccessPageState extends State<OrderSuccessPage> with SingleTickerPr
             Text(
               _message,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.grey, fontSize: 14, height: 1.5),
+              style: const TextStyle(
+                color: Colors.grey,
+                fontSize: 14,
+                height: 1.5,
+              ),
             ),
             const Spacer(flex: 2),
-            if (!_isError) ...[
-              const CircularProgressIndicator(color: Color(0xFFFF5C00), strokeWidth: 2),
+            if (_isLoading) ...[
+              const Text(
+                "Waiting for database confirmation...",
+                style: TextStyle(color: Colors.grey, fontSize: 12),
+              ),
+            ] else if (!_isError) ...[
+              const CircularProgressIndicator(
+                color: Color(0xFFFF5C00),
+                strokeWidth: 2,
+              ),
               const SizedBox(height: 12),
-              const Text("Redirecting to your orders...", style: TextStyle(color: Colors.grey, fontSize: 12)),
+              const Text(
+                "Redirecting to your orders...",
+                style: TextStyle(color: Colors.grey, fontSize: 12),
+              ),
             ] else ...[
               SizedBox(
                 width: double.infinity,
@@ -116,9 +161,14 @@ class _OrderSuccessPageState extends State<OrderSuccessPage> with SingleTickerPr
                     backgroundColor: Colors.black,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                   ),
-                  child: const Text("Go Back to Cart", style: TextStyle(fontWeight: FontWeight.bold)),
+                  child: const Text(
+                    "Go Back to Cart",
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                 ),
               ),
             ],

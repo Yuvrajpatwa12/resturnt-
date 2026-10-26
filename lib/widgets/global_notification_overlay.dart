@@ -2,6 +2,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../cart_manager.dart';
+import '../services/notification_sound_stub.dart'
+    if (dart.library.js_interop) '../services/notification_sound_web.dart'
+    as notification_sound;
 import '../notifications_page.dart';
 import '../user_profile_view_page.dart';
 import '../my_orders_page.dart';
@@ -57,6 +60,7 @@ class _GlobalNotificationBannerOverlayState extends State<GlobalNotificationBann
   void _onNewPush() {
     final push = ShopManager.instance.latestIncomingPush.value;
     if (push != null) {
+      notification_sound.playNotificationSound('notification');
       try {
         HapticFeedback.mediumImpact();
       } catch (_) {}

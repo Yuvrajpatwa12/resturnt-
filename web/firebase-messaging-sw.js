@@ -30,6 +30,7 @@ messaging.onBackgroundMessage((payload) => {
     body: body,
     icon: "/icons/Icon-192.png",
     badge: "/icons/Icon-192.png",
+    silent: false,
     tag: payload.messageId || "chiyabreak-notification",
     data: {
       url: (payload.fcmOptions && payload.fcmOptions.link)

@@ -4,7 +4,6 @@ import 'package:flutter/gestures.dart';
 import 'cart_manager.dart';
 import 'cart_page.dart';
 import 'voice_order_page.dart';
-import 'app_data.dart';
 import 'product_card.dart';
 import 'menu.dart';
 import 'search_delegate.dart';
@@ -28,10 +27,10 @@ import 'package:url_launcher/url_launcher.dart';
 class MyCustomScrollBehavior extends MaterialScrollBehavior {
   @override
   Set<PointerDeviceKind> get dragDevices => {
-        PointerDeviceKind.touch,
-        PointerDeviceKind.mouse,
-        PointerDeviceKind.trackpad,
-      };
+    PointerDeviceKind.touch,
+    PointerDeviceKind.mouse,
+    PointerDeviceKind.trackpad,
+  };
 }
 
 class HomePage extends StatefulWidget {
@@ -46,8 +45,10 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     // Listen for the trigger to open Table Picker automatically
-    ShopManager.instance.openTablePickerTrigger.addListener(_handleTablePickerTrigger);
-    
+    ShopManager.instance.openTablePickerTrigger.addListener(
+      _handleTablePickerTrigger,
+    );
+
     // 1. CHECK FOR PENDING REVIEW VERIFICATION
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (ShopManager.instance.isWaitingForGoogleReview.value) {
@@ -66,7 +67,10 @@ class _HomePageState extends State<HomePage> {
           children: [
             const Icon(Icons.verified_rounded, color: Colors.indigo),
             const SizedBox(width: 12),
-            const Text("Review Posted?", style: TextStyle(fontWeight: FontWeight.bold)),
+            const Text(
+              "Review Posted?",
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
           ],
         ),
         content: Column(
@@ -81,7 +85,11 @@ class _HomePageState extends State<HomePage> {
               "\"${ShopManager.instance.lastReviewText.value ?? ''}\"",
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 12, color: Colors.grey, fontStyle: FontStyle.italic),
+              style: const TextStyle(
+                fontSize: 12,
+                color: Colors.grey,
+                fontStyle: FontStyle.italic,
+              ),
             ),
           ],
         ),
@@ -89,14 +97,25 @@ class _HomePageState extends State<HomePage> {
           TextButton(
             onPressed: () async {
               final tenant = TenantService().currentTenant.value;
-              final String googleReviewUrl = tenant?.googleMapsLink ?? "https://www.google.com/maps/search/?api=1&query=${tenant?.name ?? 'ChiyaBreak+Restaurant'}";
-              
+              final String googleReviewUrl =
+                  tenant?.googleMapsLink ??
+                  "https://www.google.com/maps/search/?api=1&query=${tenant?.name ?? 'ChiyaBreak+Restaurant'}";
+
               if (await canLaunchUrl(Uri.parse(googleReviewUrl))) {
-                await launchUrl(Uri.parse(googleReviewUrl), mode: LaunchMode.externalApplication);
+                await launchUrl(
+                  Uri.parse(googleReviewUrl),
+                  mode: LaunchMode.externalApplication,
+                );
               }
               Navigator.pop(context);
             },
-            child: const Text("FINISH REVIEW", style: TextStyle(color: Colors.indigo, fontWeight: FontWeight.bold)),
+            child: const Text(
+              "FINISH REVIEW",
+              style: TextStyle(
+                color: Colors.indigo,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -105,17 +124,22 @@ class _HomePageState extends State<HomePage> {
               _showSuccessAnimation();
               // Add Points as reward
               ShopManager.instance.addPoints(
-                TenantService().currentTenant.value?.id ?? '', 
+                TenantService().currentTenant.value?.id ?? '',
                 ShopManager.instance.currentUserId,
-                points: 10
+                points: 10,
               );
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.indigo,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
-            child: const Text("YES, POSTED!", style: TextStyle(fontWeight: FontWeight.bold)),
+            child: const Text(
+              "YES, POSTED!",
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),
@@ -143,15 +167,40 @@ class _HomePageState extends State<HomePage> {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       shape: BoxShape.circle,
-                      boxShadow: [BoxShadow(color: Colors.indigo.withValues(alpha: 0.3), blurRadius: 20, spreadRadius: 5)],
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.indigo.withValues(alpha: 0.3),
+                          blurRadius: 20,
+                          spreadRadius: 5,
+                        ),
+                      ],
                     ),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: const [
-                        Icon(Icons.check_circle_rounded, color: Colors.green, size: 80),
+                        Icon(
+                          Icons.check_circle_rounded,
+                          color: Colors.green,
+                          size: 80,
+                        ),
                         SizedBox(height: 16),
-                        Text("AWESOME!", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.indigo)),
-                        Text("+10 COINS EARNED", style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Colors.green, letterSpacing: 1)),
+                        Text(
+                          "AWESOME!",
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.indigo,
+                          ),
+                        ),
+                        Text(
+                          "+10 COINS EARNED",
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.green,
+                            letterSpacing: 1,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -166,7 +215,9 @@ class _HomePageState extends State<HomePage> {
 
   @override
   void dispose() {
-    ShopManager.instance.openTablePickerTrigger.removeListener(_handleTablePickerTrigger);
+    ShopManager.instance.openTablePickerTrigger.removeListener(
+      _handleTablePickerTrigger,
+    );
     super.dispose();
   }
 
@@ -207,10 +258,12 @@ class _HomePageState extends State<HomePage> {
                 valueListenable: ShopManager.instance.isOnboardingComplete,
                 builder: (context, complete, _) {
                   if (!complete) return const OnboardingModal();
-                  
+
                   return ValueListenableBuilder<bool>(
                     valueListenable: ShopManager.instance.needsPin,
-                    builder: (context, needs, _) => needs ? const SmartAuthOverlay() : const SizedBox.shrink(),
+                    builder: (context, needs, _) => needs
+                        ? const SmartAuthOverlay()
+                        : const SizedBox.shrink(),
                   );
                 },
               ),
@@ -221,7 +274,9 @@ class _HomePageState extends State<HomePage> {
                   return Material(
                     color: Colors.black.withValues(alpha: 0.5),
                     child: InkWell(
-                      onTap: () => ShopManager.instance.showNotificationPrompt.value = false,
+                      onTap: () =>
+                          ShopManager.instance.showNotificationPrompt.value =
+                              false,
                       overlayColor: WidgetStateProperty.all(Colors.transparent),
                       child: const NotificationPrompt(),
                     ),
@@ -232,13 +287,18 @@ class _HomePageState extends State<HomePage> {
               ValueListenableBuilder<bool>(
                 valueListenable: ShopManager.instance.isNearbyOfferVisible,
                 builder: (context, visible, _) {
-                  final isPremium = TenantService().currentTenant.value?.isPremiumEnabled ?? false;
+                  final isPremium =
+                      TenantService().currentTenant.value?.isPremiumEnabled ??
+                      false;
                   if (!visible || !isPremium) return const SizedBox.shrink();
                   return Container(
                     color: Colors.black.withValues(alpha: 0.6),
                     child: ProximityOfferDialog(
-                      restaurantName: TenantService().currentTenant.value?.name ?? "Us",
-                      onDismiss: () => ShopManager.instance.isNearbyOfferVisible.value = false,
+                      restaurantName:
+                          TenantService().currentTenant.value?.name ?? "Us",
+                      onDismiss: () =>
+                          ShopManager.instance.isNearbyOfferVisible.value =
+                              false,
                     ),
                   );
                 },
@@ -251,7 +311,8 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildBottomNav(int currentIndex) {
-    final isPremium = TenantService().currentTenant.value?.isPremiumEnabled ?? false;
+    final isPremium =
+        TenantService().currentTenant.value?.isPremiumEnabled ?? false;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -263,16 +324,34 @@ class _HomePageState extends State<HomePage> {
             color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 15,
             offset: const Offset(0, -4),
-          )
+          ),
         ],
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          _buildNavItem(Icons.home_outlined, Icons.home, 'Home', 0, currentIndex),
-          _buildNavItem(Icons.grid_view_outlined, Icons.grid_view, 'Menu', 1, currentIndex),
+          _buildNavItem(
+            Icons.home_outlined,
+            Icons.home,
+            'Home',
+            0,
+            currentIndex,
+          ),
+          _buildNavItem(
+            Icons.grid_view_outlined,
+            Icons.grid_view,
+            'Menu',
+            1,
+            currentIndex,
+          ),
           if (isPremium)
-            _buildNavItem(Icons.people_alt_outlined, Icons.people_alt, 'Nearby', 2, currentIndex),
+            _buildNavItem(
+              Icons.people_alt_outlined,
+              Icons.people_alt,
+              'Nearby',
+              2,
+              currentIndex,
+            ),
           ValueListenableBuilder<List<CartItem>>(
             valueListenable: ShopManager.instance.items,
             builder: (context, items, child) {
@@ -286,7 +365,13 @@ class _HomePageState extends State<HomePage> {
               );
             },
           ),
-          _buildNavItem(Icons.person_outline, Icons.person, 'Profile', 4, currentIndex),
+          _buildNavItem(
+            Icons.person_outline,
+            Icons.person,
+            'Profile',
+            4,
+            currentIndex,
+          ),
         ],
       ),
     );
@@ -296,22 +381,34 @@ class _HomePageState extends State<HomePage> {
     return ValueListenableBuilder<List<Map<String, dynamic>>>(
       valueListenable: TenantService().products,
       builder: (context, dbProducts, child) {
-        final List<Map<String, dynamic>> rawSource = dbProducts.isNotEmpty ? dbProducts : List<Map<String, dynamic>>.from(AppData.popularPicks);
+        final List<Map<String, dynamic>> rawSource = dbProducts;
         final List<Map<String, dynamic>> sourceList = rawSource.where((p) {
           final avail = p['is_available'];
-          if (avail == false || avail == 0 || avail == '0' || avail == 'false') return false;
+          if (avail == false || avail == 0 || avail == '0' || avail == 'false')
+            return false;
           return true;
         }).toList();
 
         // Filter products based on featured_section
-        final List<Map<String, dynamic>> gridTopItems = sourceList.where((p) => p['featured_section'] == 'just_for_you').toList();
-        final List<Map<String, dynamic>> rowScrollItems = sourceList.where((p) => p['featured_section'] == 'trending').toList();
-        final List<Map<String, dynamic>> popularItems = sourceList.where((p) => p['featured_section'] == 'popular').toList();
-        
+        final List<Map<String, dynamic>> gridTopItems = sourceList
+            .where((p) => p['featured_section'] == 'just_for_you')
+            .toList();
+        final List<Map<String, dynamic>> rowScrollItems = sourceList
+            .where((p) => p['featured_section'] == 'trending')
+            .toList();
+        final List<Map<String, dynamic>> popularItems = sourceList
+            .where((p) => p['featured_section'] == 'popular')
+            .toList();
+
         // Products with NO section selected (or fallback if no sections set)
         final List<Map<String, dynamic>> otherProducts = sourceList.where((p) {
           final sec = p['featured_section'];
-          return sec == 'none' || sec == null || sec == '' || (gridTopItems.isEmpty && rowScrollItems.isEmpty && popularItems.isEmpty);
+          return sec == 'none' ||
+              sec == null ||
+              sec == '' ||
+              (gridTopItems.isEmpty &&
+                  rowScrollItems.isEmpty &&
+                  popularItems.isEmpty);
         }).toList();
 
         return RefreshIndicator(
@@ -328,151 +425,224 @@ class _HomePageState extends State<HomePage> {
           color: const Color(0xFFFF5C00),
           backgroundColor: Colors.white,
           child: CustomScrollView(
-            physics: const AlwaysScrollableScrollPhysics(), // Required for RefreshIndicator
+            physics:
+                const AlwaysScrollableScrollPhysics(), // Required for RefreshIndicator
             slivers: [
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
-                child: _buildHeader(),
-              ),
-            ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                child: _buildSearchAndTable(),
-              ),
-            ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                child: _buildShareStoryShortcut(),
-              ),
-            ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                child: _buildPromoBanner(),
-              ),
-            ),
-            SliverToBoxAdapter(child: _buildNowPlayingCard()),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 18),
-                child: _buildCategories(),
-              ),
-            ),
-
-            // 1. Popular Picks
-            if (popularItems.isNotEmpty) ...[
-              SliverToBoxAdapter(child: _buildSectionTitle('Popular Picks', 'View All →', onTap: () => ShopManager.instance.navigateToCategory(null))),
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  child: _buildHorizontalList(popularItems, 'popular'),
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
+                  child: _buildHeader(),
                 ),
               ),
-            ],
-
-            // 2. Just For You
-            if (gridTopItems.isNotEmpty) ...[
-              SliverToBoxAdapter(child: _buildSectionTitle('Just For You', 'Explore →', onTap: () => ShopManager.instance.navigateToCategory(null))),
-              SliverPadding(
-                padding: const EdgeInsets.all(16),
-                sliver: SliverGrid(
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    mainAxisSpacing: 14,
-                    crossAxisSpacing: 14,
-                    childAspectRatio: 0.8,
-                  ),
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) => ProductCard(item: gridTopItems[index], heroPrefix: 'grid_top'),
-                    childCount: gridTopItems.length,
-                  ),
-                ),
-              ),
-            ],
-
-            // 3. Trending Scroll
-            if (rowScrollItems.isNotEmpty) ...[
-              SliverToBoxAdapter(child: _buildSectionTitle('Trending Scroll', 'More →', onTap: () => ShopManager.instance.navigateToCategory(null))),
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  child: _buildHorizontalLargeList(rowScrollItems, 'trending'),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 10,
+                  ),
+                  child: _buildSearchAndTable(),
                 ),
               ),
-            ],
-
-            if (TenantService().currentTenant.value?.isPremiumEnabled ?? false)
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: _buildRewardsCard(),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 12,
+                  ),
+                  child: _buildShareStoryShortcut(),
                 ),
               ),
-
-            // 4. "All Products" (None Section) - Now positioned at the very bottom
-            if (otherProducts.isNotEmpty) ...[
               SliverToBoxAdapter(
-                child: _buildSectionTitle('All Products', 'Explore More →', onTap: () {
-                  ShopManager.instance.currentTabIndex.value = 1; // Go to Menu Tab
-                }),
-              ),
-              SliverPadding(
-                padding: const EdgeInsets.all(16),
-                sliver: SliverGrid(
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    mainAxisSpacing: 14,
-                    crossAxisSpacing: 14,
-                    childAspectRatio: 0.8,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 12,
                   ),
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) => ProductCard(item: otherProducts[index], heroPrefix: 'all_home'),
-                    childCount: otherProducts.length,
-                  ),
+                  child: _buildPromoBanner(),
                 ),
               ),
-            ],
+              SliverToBoxAdapter(child: _buildNowPlayingCard()),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 18),
+                  child: _buildCategories(),
+                ),
+              ),
 
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 40),
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          width: 8, height: 8,
-                          decoration: const BoxDecoration(color: Colors.green, shape: BoxShape.circle),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          "Chiyala Web Build v1.1.6",
-                          style: TextStyle(color: Colors.grey[500], fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1),
-                        ),
-                      ],
+              if (sourceList.isEmpty)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Center(
+                      child: Text(
+                        dbProducts.isEmpty
+                            ? "Restaurant menu is unavailable. Pull down to refresh."
+                            : "No products are currently available.",
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: Colors.grey),
+                      ),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      "STABILITY SHIELD ACTIVE",
-                      style: TextStyle(color: Colors.grey[300], fontSize: 8, fontWeight: FontWeight.w900, letterSpacing: 2),
+                  ),
+                ),
+
+              // 1. Popular Picks
+              if (popularItems.isNotEmpty) ...[
+                SliverToBoxAdapter(
+                  child: _buildSectionTitle(
+                    'Popular Picks',
+                    'View All →',
+                    onTap: () => ShopManager.instance.navigateToCategory(null),
+                  ),
+                ),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    child: _buildHorizontalList(popularItems, 'popular'),
+                  ),
+                ),
+              ],
+
+              // 2. Just For You
+              if (gridTopItems.isNotEmpty) ...[
+                SliverToBoxAdapter(
+                  child: _buildSectionTitle(
+                    'Just For You',
+                    'Explore →',
+                    onTap: () => ShopManager.instance.navigateToCategory(null),
+                  ),
+                ),
+                SliverPadding(
+                  padding: const EdgeInsets.all(16),
+                  sliver: SliverGrid(
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          mainAxisSpacing: 14,
+                          crossAxisSpacing: 14,
+                          childAspectRatio: 0.8,
+                        ),
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) => ProductCard(
+                        item: gridTopItems[index],
+                        heroPrefix: 'grid_top',
+                      ),
+                      childCount: gridTopItems.length,
                     ),
-                  ],
+                  ),
+                ),
+              ],
+
+              // 3. Trending Scroll
+              if (rowScrollItems.isNotEmpty) ...[
+                SliverToBoxAdapter(
+                  child: _buildSectionTitle(
+                    'Trending Scroll',
+                    'More →',
+                    onTap: () => ShopManager.instance.navigateToCategory(null),
+                  ),
+                ),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    child: _buildHorizontalLargeList(
+                      rowScrollItems,
+                      'trending',
+                    ),
+                  ),
+                ),
+              ],
+
+              if (TenantService().currentTenant.value?.isPremiumEnabled ??
+                  false)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: _buildRewardsCard(),
+                  ),
+                ),
+
+              // 4. "All Products" (None Section) - Now positioned at the very bottom
+              if (otherProducts.isNotEmpty) ...[
+                SliverToBoxAdapter(
+                  child: _buildSectionTitle(
+                    'All Products',
+                    'Explore More →',
+                    onTap: () {
+                      ShopManager.instance.currentTabIndex.value =
+                          1; // Go to Menu Tab
+                    },
+                  ),
+                ),
+                SliverPadding(
+                  padding: const EdgeInsets.all(16),
+                  sliver: SliverGrid(
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          mainAxisSpacing: 14,
+                          crossAxisSpacing: 14,
+                          childAspectRatio: 0.8,
+                        ),
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) => ProductCard(
+                        item: otherProducts[index],
+                        heroPrefix: 'all_home',
+                      ),
+                      childCount: otherProducts.length,
+                    ),
+                  ),
+                ),
+              ],
+
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 40),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            width: 8,
+                            height: 8,
+                            decoration: const BoxDecoration(
+                              color: Colors.green,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            "Chiyala Web Build v1.1.6",
+                            style: TextStyle(
+                              color: Colors.grey[500],
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        "STABILITY SHIELD ACTIVE",
+                        style: TextStyle(
+                          color: Colors.grey[300],
+                          fontSize: 8,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 2,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            const SliverToBoxAdapter(child: SizedBox(height: 120)),
-          ],
-        ),
-      );
-    },
-  );
-}
-
-
+              const SliverToBoxAdapter(child: SizedBox(height: 120)),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
   Widget _buildHeader() {
     return Row(
@@ -483,11 +653,21 @@ class _HomePageState extends State<HomePage> {
           children: [
             const Text(
               "ChiyaBreak",
-              style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Color(0xFFFF5C00), fontStyle: FontStyle.italic),
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.w900,
+                color: Color(0xFFFF5C00),
+                fontStyle: FontStyle.italic,
+              ),
             ),
             Text(
               "TIME FOR A REFRESHING BREAK",
-              style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: Colors.grey[600], letterSpacing: 0.5),
+              style: TextStyle(
+                fontSize: 8,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey[600],
+                letterSpacing: 0.5,
+              ),
             ),
           ],
         ),
@@ -495,7 +675,12 @@ class _HomePageState extends State<HomePage> {
           children: [
             if (TenantService().currentTenant.value?.isPremiumEnabled ?? false)
               _buildHeaderAction(Icons.mic_none_outlined, () {
-                Navigator.push(context, MaterialPageRoute(builder: (context) => const VoiceOrderPage()));
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const VoiceOrderPage(),
+                  ),
+                );
               }),
             if (TenantService().currentTenant.value?.isPremiumEnabled ?? false)
               const SizedBox(width: 10),
@@ -505,16 +690,36 @@ class _HomePageState extends State<HomePage> {
                 clipBehavior: Clip.none,
                 children: [
                   _buildHeaderAction(Icons.notifications_none_outlined, () {
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => const NotificationsPage()));
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const NotificationsPage(),
+                      ),
+                    );
                   }),
                   if (count > 0)
                     Positioned(
-                      top: -2, right: -2,
+                      top: -2,
+                      right: -2,
                       child: Container(
                         padding: const EdgeInsets.all(4),
-                        decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
-                        constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
-                        child: Text("$count", style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+                        decoration: const BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                        ),
+                        constraints: const BoxConstraints(
+                          minWidth: 16,
+                          minHeight: 16,
+                        ),
+                        child: Text(
+                          "$count",
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 8,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
                       ),
                     ),
                 ],
@@ -535,12 +740,18 @@ class _HomePageState extends State<HomePage> {
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Container(
-        width: 40, height: 40,
+        width: 40,
+        height: 40,
         decoration: BoxDecoration(
           color: Colors.white,
           shape: BoxShape.circle,
           border: Border.all(color: const Color(0xFFE2E8F0)),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 4)],
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.02),
+              blurRadius: 4,
+            ),
+          ],
         ),
         child: Icon(icon, color: Colors.black87, size: 20),
       ),
@@ -559,28 +770,58 @@ class _HomePageState extends State<HomePage> {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
-                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 4))],
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.03),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.restaurant, color: Color(0xFFFF5C00), size: 18),
+                  const Icon(
+                    Icons.restaurant,
+                    color: Color(0xFFFF5C00),
+                    size: 18,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(LanguageService().translate("SELECT TABLE NUMBER"), style: const TextStyle(fontSize: 9, color: Color(0xFFFF5C00), fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+                        Text(
+                          LanguageService().translate("SELECT TABLE NUMBER"),
+                          style: const TextStyle(
+                            fontSize: 9,
+                            color: Color(0xFFFF5C00),
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
                         ValueListenableBuilder<int?>(
                           valueListenable: ShopManager.instance.selectedTableId,
                           builder: (context, tableId, child) => Text(
-                            tableId != null ? "${LanguageService().translate('TABLE')} ${tableId.toString().padLeft(2, '0')}" : LanguageService().translate("TAP TO CHOOSE"), 
-                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: tableId != null ? Colors.black87 : const Color(0xFFFF5C00)),
+                            tableId != null
+                                ? "${LanguageService().translate('TABLE')} ${tableId.toString().padLeft(2, '0')}"
+                                : LanguageService().translate("TAP TO CHOOSE"),
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: tableId != null
+                                  ? Colors.black87
+                                  : const Color(0xFFFF5C00),
+                            ),
                           ),
                         ),
                       ],
                     ),
                   ),
-                  const Icon(Icons.keyboard_arrow_down, size: 16, color: Colors.grey),
+                  const Icon(
+                    Icons.keyboard_arrow_down,
+                    size: 16,
+                    color: Colors.grey,
+                  ),
                 ],
               ),
             ),
@@ -590,10 +831,20 @@ class _HomePageState extends State<HomePage> {
         GestureDetector(
           onTap: () {
             final dbProducts = TenantService().products.value;
-            final searchProducts = dbProducts.isNotEmpty
-                ? dbProducts
-                : AppData.popularPicks.map((p) => ({...p, 'tag': 'Popular', 'rating': '4.9', 'discount': ''})).toList();
-            showSearch(context: context, delegate: MySearchDelegate(searchProducts));
+            if (dbProducts.isEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text(
+                    "Restaurant menu is unavailable. Please refresh and try again.",
+                  ),
+                ),
+              );
+              return;
+            }
+            showSearch(
+              context: context,
+              delegate: MySearchDelegate(dbProducts),
+            );
           },
           child: Container(
             width: 48,
@@ -627,9 +878,16 @@ class _HomePageState extends State<HomePage> {
     showModalBottomSheet(
       context: dialogContext,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
       builder: (bottomSheetContext) => Container(
-        padding: EdgeInsets.fromLTRB(24, 24, 24, MediaQuery.of(bottomSheetContext).viewInsets.bottom + 24),
+        padding: EdgeInsets.fromLTRB(
+          24,
+          24,
+          24,
+          MediaQuery.of(bottomSheetContext).viewInsets.bottom + 24,
+        ),
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -647,37 +905,50 @@ class _HomePageState extends State<HomePage> {
               (tables == null || tables.isEmpty)
                   ? const Padding(
                       padding: EdgeInsets.all(24.0),
-                      child: Text("No tables available.", style: TextStyle(color: Colors.grey)),
+                      child: Text(
+                        "No tables available.",
+                        style: TextStyle(color: Colors.grey),
+                      ),
                     )
                   : GridView.builder(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 5,
-                        mainAxisSpacing: 12,
-                        crossAxisSpacing: 12,
-                      ),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 5,
+                            mainAxisSpacing: 12,
+                            crossAxisSpacing: 12,
+                          ),
                       itemCount: tables.length,
                       itemBuilder: (context, index) {
                         final t = tables[index];
-                        int id = int.tryParse(t['table_number']?.toString() ?? '1') ?? 1;
+                        int id =
+                            int.tryParse(
+                              t['table_number']?.toString() ?? '1',
+                            ) ??
+                            1;
                         return InkWell(
                           onTap: () {
                             ShopManager.instance.switchTable(id);
                             Navigator.pop(bottomSheetContext);
                           },
                           child: ValueListenableBuilder<int?>(
-                            valueListenable: ShopManager.instance.selectedTableId,
+                            valueListenable:
+                                ShopManager.instance.selectedTableId,
                             builder: (context, currentId, child) => Container(
                               decoration: BoxDecoration(
-                                color: currentId == id ? const Color(0xFFFF5C00) : Colors.grey[100],
+                                color: currentId == id
+                                    ? const Color(0xFFFF5C00)
+                                    : Colors.grey[100],
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Center(
                                 child: Text(
                                   id.toString().padLeft(2, '0'),
                                   style: TextStyle(
-                                    color: currentId == id ? Colors.white : Colors.black87,
+                                    color: currentId == id
+                                        ? Colors.white
+                                        : Colors.black87,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
@@ -702,7 +973,12 @@ class _HomePageState extends State<HomePage> {
 
         return InkWell(
           onTap: () {
-            Navigator.push(context, MaterialPageRoute(builder: (context) => const ActivitySharePage()));
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const ActivitySharePage(),
+              ),
+            );
           },
           borderRadius: BorderRadius.circular(24),
           child: Container(
@@ -712,7 +988,11 @@ class _HomePageState extends State<HomePage> {
               borderRadius: BorderRadius.circular(24),
               border: Border.all(color: const Color(0xFFF97316), width: 2.5),
               boxShadow: [
-                BoxShadow(color: const Color(0xFFF97316).withValues(alpha: 0.1), blurRadius: 15, offset: const Offset(0, 8))
+                BoxShadow(
+                  color: const Color(0xFFF97316).withValues(alpha: 0.1),
+                  blurRadius: 15,
+                  offset: const Offset(0, 8),
+                ),
               ],
             ),
             child: Row(
@@ -722,15 +1002,36 @@ class _HomePageState extends State<HomePage> {
                   children: [
                     Container(
                       padding: const EdgeInsets.all(12),
-                      decoration: const BoxDecoration(color: Color(0xFFF97316), shape: BoxShape.circle),
-                      child: const Icon(Icons.auto_stories_outlined, color: Colors.white, size: 24),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFF97316),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.auto_stories_outlined,
+                        color: Colors.white,
+                        size: 24,
+                      ),
                     ),
                     Positioned(
-                      top: -8, right: -8,
+                      top: -8,
+                      right: -8,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(8)),
-                        child: const Text("NEW", style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.w900)),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Text(
+                          "NEW",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 8,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
                       ),
                     ),
                   ],
@@ -741,17 +1042,30 @@ class _HomePageState extends State<HomePage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: const [
                       Text(
-                        "SHARE YOUR STORY", 
-                        style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 0.5, color: Color(0xFFF97316)),
+                        "SHARE YOUR STORY",
+                        style: TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 16,
+                          letterSpacing: 0.5,
+                          color: Color(0xFFF97316),
+                        ),
                       ),
                       Text(
-                        "Post on Instagram & earn +50 Points instantly!", 
-                        style: TextStyle(color: Colors.black87, fontSize: 11, fontWeight: FontWeight.bold),
+                        "Post on Instagram & earn +50 Points instantly!",
+                        style: TextStyle(
+                          color: Colors.black87,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ],
                   ),
                 ),
-                const Icon(Icons.arrow_forward_ios_rounded, color: Color(0xFFF97316), size: 16),
+                const Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  color: Color(0xFFF97316),
+                  size: 16,
+                ),
               ],
             ),
           ),
@@ -781,16 +1095,38 @@ class _HomePageState extends State<HomePage> {
               return Padding(
                 padding: const EdgeInsets.only(right: 12),
                 child: InkWell(
-                  onTap: () => ShopManager.instance.navigateToCategory(cat['title'] as String),
+                  onTap: () => ShopManager.instance.navigateToCategory(
+                    cat['title'] as String,
+                  ),
                   child: Column(
                     children: [
                       Container(
-                        width: 55, height: 55,
-                        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 6)]),
-                        child: Icon(_getIconData(cat['icon']), color: const Color(0xFFFF5C00), size: 24),
+                        width: 55,
+                        height: 55,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.04),
+                              blurRadius: 6,
+                            ),
+                          ],
+                        ),
+                        child: Icon(
+                          _getIconData(cat['icon']),
+                          color: const Color(0xFFFF5C00),
+                          size: 24,
+                        ),
                       ),
                       const SizedBox(height: 6),
-                      Text(cat['title'] as String, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600)),
+                      Text(
+                        cat['title'] as String,
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -804,28 +1140,56 @@ class _HomePageState extends State<HomePage> {
 
   IconData _getIconData(dynamic iconName) {
     switch (iconName?.toString()) {
-      case 'lunch_dining': return Icons.lunch_dining;
-      case 'local_cafe': return Icons.local_cafe;
-      case 'local_drink': return Icons.local_drink;
-      case 'icecream': return Icons.icecream;
-      case 'local_pizza': return Icons.local_pizza;
-      case 'fastfood': return Icons.fastfood;
-      case 'kebab_dining': return Icons.kebab_dining;
-      case 'cake': return Icons.cake;
-      case 'restaurant_menu': return Icons.restaurant_menu;
-      case 'breakfast_dining': return Icons.breakfast_dining;
-      default: return Icons.restaurant_menu_rounded;
+      case 'lunch_dining':
+        return Icons.lunch_dining;
+      case 'local_cafe':
+        return Icons.local_cafe;
+      case 'local_drink':
+        return Icons.local_drink;
+      case 'icecream':
+        return Icons.icecream;
+      case 'local_pizza':
+        return Icons.local_pizza;
+      case 'fastfood':
+        return Icons.fastfood;
+      case 'kebab_dining':
+        return Icons.kebab_dining;
+      case 'cake':
+        return Icons.cake;
+      case 'restaurant_menu':
+        return Icons.restaurant_menu;
+      case 'breakfast_dining':
+        return Icons.breakfast_dining;
+      default:
+        return Icons.restaurant_menu_rounded;
     }
   }
 
-  Widget _buildSectionTitle(String title, String action, {VoidCallback? onTap}) {
+  Widget _buildSectionTitle(
+    String title,
+    String action, {
+    VoidCallback? onTap,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(LanguageService().translate(title), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-          InkWell(onTap: onTap, child: Text(LanguageService().translate(action), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFFFF5C00)))),
+          Text(
+            LanguageService().translate(title),
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          InkWell(
+            onTap: onTap,
+            child: Text(
+              LanguageService().translate(action),
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFFFF5C00),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -838,19 +1202,38 @@ class _HomePageState extends State<HomePage> {
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
         itemCount: items.length,
-        itemBuilder: (context, index) => Padding(padding: const EdgeInsets.only(right: 14.0), child: SizedBox(width: 130, child: ProductCard(item: items[index], heroPrefix: prefix))),
+        itemBuilder: (context, index) => Padding(
+          padding: const EdgeInsets.only(right: 14.0),
+          child: SizedBox(
+            width: 130,
+            child: ProductCard(item: items[index], heroPrefix: prefix),
+          ),
+        ),
       ),
     );
   }
 
-  Widget _buildHorizontalLargeList(List<Map<String, dynamic>> items, String prefix) {
+  Widget _buildHorizontalLargeList(
+    List<Map<String, dynamic>> items,
+    String prefix,
+  ) {
     return SizedBox(
       height: 250,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
         itemCount: items.length,
-        itemBuilder: (context, index) => Padding(padding: const EdgeInsets.only(right: 14.0), child: SizedBox(width: 180, child: ProductCard(item: items[index], isLarge: true, heroPrefix: prefix))),
+        itemBuilder: (context, index) => Padding(
+          padding: const EdgeInsets.only(right: 14.0),
+          child: SizedBox(
+            width: 180,
+            child: ProductCard(
+              item: items[index],
+              isLarge: true,
+              heroPrefix: prefix,
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -889,7 +1272,11 @@ class _HomePageState extends State<HomePage> {
                 color: const Color(0xFFFF5C00).withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.stars_rounded, color: Color(0xFFFF5C00), size: 22),
+              child: const Icon(
+                Icons.stars_rounded,
+                color: Color(0xFFFF5C00),
+                size: 22,
+              ),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -898,26 +1285,34 @@ class _HomePageState extends State<HomePage> {
                 children: const [
                   Text(
                     "REWARDS & BENEFITS 🎁",
-                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 0.5),
+                    style: TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 13,
+                      letterSpacing: 0.5,
+                    ),
                   ),
                   SizedBox(height: 2),
                   Text(
                     "Use coins to redeem free food & exclusive rewards",
-                    style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: Colors.grey,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.arrow_forward_ios_rounded, color: Color(0xFFFF5C00), size: 14),
+            const Icon(
+              Icons.arrow_forward_ios_rounded,
+              color: Color(0xFFFF5C00),
+              size: 14,
+            ),
           ],
         ),
       ),
     );
   }
-
-
-
-
 
   Widget _buildNowPlayingCard() {
     return Padding(
@@ -938,7 +1333,7 @@ class _HomePageState extends State<HomePage> {
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.03),
                 blurRadius: 10,
-              )
+              ),
             ],
           ),
           child: ValueListenableBuilder<Map<String, dynamic>>(
@@ -950,7 +1345,11 @@ class _HomePageState extends State<HomePage> {
 
               return Row(
                 children: [
-                  const Icon(Icons.equalizer_rounded, color: Color(0xFFFF5C00), size: 20),
+                  const Icon(
+                    Icons.equalizer_rounded,
+                    color: Color(0xFFFF5C00),
+                    size: 20,
+                  ),
                   const SizedBox(width: 12),
                   if (image.isNotEmpty)
                     ClipRRect(
@@ -970,21 +1369,34 @@ class _HomePageState extends State<HomePage> {
                       children: [
                         Text(
                           title,
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            color: Colors.black87,
+                          ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        if (artist.isNotEmpty && artist != '-' && artist != 'Select top voted song from queue')
+                        if (artist.isNotEmpty &&
+                            artist != '-' &&
+                            artist != 'Select top voted song from queue')
                           Text(
                             artist,
-                            style: const TextStyle(color: Colors.grey, fontSize: 11),
+                            style: const TextStyle(
+                              color: Colors.grey,
+                              fontSize: 11,
+                            ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                       ],
                     ),
                   ),
-                  const Icon(Icons.chevron_right_rounded, color: Colors.grey, size: 20),
+                  const Icon(
+                    Icons.chevron_right_rounded,
+                    color: Colors.grey,
+                    size: 20,
+                  ),
                 ],
               );
             },
@@ -1008,16 +1420,30 @@ class _HomePageState extends State<HomePage> {
           const SizedBox(width: 6),
           Text(
             label,
-            style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(width: 6),
-          CircleAvatar(radius: 3, backgroundColor: isActive ? Colors.greenAccent : Colors.grey),
+          CircleAvatar(
+            radius: 3,
+            backgroundColor: isActive ? Colors.greenAccent : Colors.grey,
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildNavItem(IconData icon, IconData activeIcon, String label, int index, int currentIndex, {int badgeCount = 0}) {
+  Widget _buildNavItem(
+    IconData icon,
+    IconData activeIcon,
+    String label,
+    int index,
+    int currentIndex, {
+    int badgeCount = 0,
+  }) {
     bool isSelected = currentIndex == index;
     return Expanded(
       child: InkWell(
@@ -1032,21 +1458,47 @@ class _HomePageState extends State<HomePage> {
               Stack(
                 clipBehavior: Clip.none,
                 children: [
-                  Icon(isSelected ? activeIcon : icon, color: isSelected ? const Color(0xFFFF5C00) : Colors.grey, size: 24),
+                  Icon(
+                    isSelected ? activeIcon : icon,
+                    color: isSelected ? const Color(0xFFFF5C00) : Colors.grey,
+                    size: 24,
+                  ),
                   if (badgeCount > 0)
                     Positioned(
-                      right: -6, top: -6,
+                      right: -6,
+                      top: -6,
                       child: Container(
                         padding: const EdgeInsets.all(2),
-                        decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(10)),
-                        constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
-                        child: Text('$badgeCount', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        constraints: const BoxConstraints(
+                          minWidth: 16,
+                          minHeight: 16,
+                        ),
+                        child: Text(
+                          '$badgeCount',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
                       ),
                     ),
                 ],
               ),
               const SizedBox(height: 4),
-              Text(LanguageService().translate(label), style: TextStyle(fontSize: 10, color: isSelected ? const Color(0xFFFF5C00) : Colors.grey, fontWeight: FontWeight.w600)),
+              Text(
+                LanguageService().translate(label),
+                style: TextStyle(
+                  fontSize: 10,
+                  color: isSelected ? const Color(0xFFFF5C00) : Colors.grey,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ],
           ),
         ),
@@ -1114,10 +1566,7 @@ class _PromoBannerCarouselState extends State<_PromoBannerCarousel> {
           gradient: const LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              Color(0xFFFFF4EC),
-              Color(0xFFFFE4D3),
-            ],
+            colors: [Color(0xFFFFF4EC), Color(0xFFFFE4D3)],
           ),
           borderRadius: BorderRadius.circular(28),
           boxShadow: [
@@ -1137,14 +1586,20 @@ class _PromoBannerCarouselState extends State<_PromoBannerCarousel> {
               bottom: 0,
               right: 150,
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16.0,
+                  vertical: 12.0,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     // Top Pill Badge: Hot Deals
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(20),
@@ -1159,10 +1614,7 @@ class _PromoBannerCarouselState extends State<_PromoBannerCarousel> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Text(
-                            '🔥',
-                            style: TextStyle(fontSize: 11),
-                          ),
+                          const Text('🔥', style: TextStyle(fontSize: 11)),
                           const SizedBox(width: 4),
                           Text(
                             LanguageService().translate('Hot Deals'),
@@ -1191,7 +1643,9 @@ class _PromoBannerCarouselState extends State<_PromoBannerCarousel> {
 
                     // Subtitle / Slogan - Fills space nicely
                     Text(
-                      LanguageService().translate('Craving deliciousness? Enjoy hot, fresh & flavorful meals delivered fast right to your door!'),
+                      LanguageService().translate(
+                        'Craving deliciousness? Enjoy hot, fresh & flavorful meals delivered fast right to your door!',
+                      ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
@@ -1206,7 +1660,12 @@ class _PromoBannerCarouselState extends State<_PromoBannerCarousel> {
                     GestureDetector(
                       onTap: _goToMenuPage,
                       child: Container(
-                        padding: const EdgeInsets.only(left: 6, right: 14, top: 4, bottom: 4),
+                        padding: const EdgeInsets.only(
+                          left: 6,
+                          right: 14,
+                          top: 4,
+                          bottom: 4,
+                        ),
                         decoration: BoxDecoration(
                           gradient: const LinearGradient(
                             colors: [Color(0xFFFF8A00), Color(0xFFFF5500)],
@@ -1214,7 +1673,9 @@ class _PromoBannerCarouselState extends State<_PromoBannerCarousel> {
                           borderRadius: BorderRadius.circular(20),
                           boxShadow: [
                             BoxShadow(
-                              color: const Color(0xFFFF6600).withValues(alpha: 0.3),
+                              color: const Color(
+                                0xFFFF6600,
+                              ).withValues(alpha: 0.3),
                               blurRadius: 8,
                               offset: const Offset(0, 3),
                             ),
@@ -1278,7 +1739,11 @@ class _PromoBannerCarouselState extends State<_PromoBannerCarousel> {
                             return Container(
                               color: const Color(0xFFFFF0E5),
                               child: const Center(
-                                child: Icon(Icons.fastfood_rounded, color: Color(0xFFFF7A00), size: 32),
+                                child: Icon(
+                                  Icons.fastfood_rounded,
+                                  color: Color(0xFFFF7A00),
+                                  size: 32,
+                                ),
                               ),
                             );
                           },

@@ -199,14 +199,33 @@ try {
 
         case 'send_wave':
             $data = json_decode(file_get_contents('php://input'));
-            $sender = (string)$data->sender_id;
-            $receiver = (string)$data->receiver_id;
-            $tid = (string)$data->tenant_id;
+            $sender = trim((string)($data->sender_id ?? ''));
+            $receiver = trim((string)($data->receiver_id ?? ''));
+            $tid = trim((string)($data->tenant_id ?? ''));
+
+            if ($sender === '' || $receiver === '' || $tid === '' || $sender === $receiver) {
+                http_response_code(400);
+                echo json_encode(["status" => "error", "message" => "Invalid wave request"]);
+                break;
+            }
 
             $stmt = $conn->prepare("INSERT INTO user_waves (sender_id, receiver_id, tenant_id) VALUES (?, ?, ?)");
+            if (!$stmt) {
+                throw new RuntimeException("Could not prepare wave insert: " . $conn->error);
+            }
             $stmt->bind_param("sss", $sender, $receiver, $tid);
-            if ($stmt->execute()) {
+            if (!$stmt->execute()) {
+                $error = $stmt->error;
+                $stmt->close();
+                throw new RuntimeException("Could not save wave: " . $error);
+            }
+            $stmt->close();
+
+            try {
                 $name_stmt = $conn->prepare("SELECT name FROM customers WHERE email = ? AND tenant_id = ? LIMIT 1");
+                if (!$name_stmt) {
+                    throw new RuntimeException("Could not prepare wave sender lookup: " . $conn->error);
+                }
                 $name_stmt->bind_param("ss", $sender, $tid);
                 $name_stmt->execute();
                 $name_res = $name_stmt->get_result();
@@ -216,18 +235,31 @@ try {
                 $notif_title = "Digital Wave!";
                 $notif_msg = "@$s_name waved at you from their table.";
                 $notif_ins = $conn->prepare("INSERT INTO notifications (tenant_id, user_id, title, message, type, sender_id) VALUES (?, ?, ?, ?, 'wave', ?)");
+                if (!$notif_ins) {
+                    throw new RuntimeException("Could not prepare wave notification: " . $conn->error);
+                }
                 $notif_ins->bind_param("sssss", $tid, $receiver, $notif_title, $notif_msg, $sender);
                 if ($notif_ins->execute()) {
                     $notification_id = (int)$conn->insert_id;
-                    queueEmailNotification($conn, $tid, $receiver, $notification_id, 'wave');
-                    notifyUser($receiver, $tid, $notif_title, $notif_msg, 'wave', $sender, $notification_id);
+                    try {
+                        queueEmailNotification($conn, $tid, $receiver, $notification_id, 'wave');
+                    } catch (Throwable $e) {
+                        error_log('Wave saved; email notification failed: ' . $e->getMessage());
+                    }
+                    try {
+                        notifyUser($receiver, $tid, $notif_title, $notif_msg, 'wave', $sender, $notification_id);
+                    } catch (Throwable $e) {
+                        error_log('Wave saved; push notification failed: ' . $e->getMessage());
+                    }
+                } else {
+                    error_log('Wave saved; notification insert failed: ' . $notif_ins->error);
                 }
                 $notif_ins->close();
-
-                echo json_encode(["status" => "success"]);
-            } else {
-                echo json_encode(["status" => "error"]);
+            } catch (Throwable $e) {
+                error_log('Wave saved; notification creation failed: ' . $e->getMessage());
             }
+
+            echo json_encode(["status" => "success"]);
             break;
 
         case 'get_waves':
