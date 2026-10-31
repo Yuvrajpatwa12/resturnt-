@@ -51,13 +51,13 @@ class _PassportPageState extends State<PassportPage> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFF5C00).withValues(alpha: 0.1),
+                          color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
                           "STAMPS: $collectedCount / 20",
-                          style: const TextStyle(
-                            color: Color(0xFFFF5C00),
+                          style: TextStyle(
+                            color: Theme.of(context).primaryColor,
                             fontWeight: FontWeight.w900,
                             fontSize: 12,
                             letterSpacing: 1,
@@ -118,10 +118,10 @@ class _PassportPageState extends State<PassportPage> {
   Widget _buildSmallStamp(int number, bool isStamped) {
     return Container(
       decoration: BoxDecoration(
-        color: isStamped ? const Color(0xFFFF5C00).withValues(alpha: 0.05) : Colors.white,
+        color: isStamped ? Theme.of(context).primaryColor.withValues(alpha: 0.05) : Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isStamped ? const Color(0xFFFF5C00) : Colors.grey[200]!,
+          color: isStamped ? Theme.of(context).primaryColor : Colors.grey[200]!,
           width: 1.5,
         ),
       ),
@@ -130,11 +130,11 @@ class _PassportPageState extends State<PassportPage> {
           ? Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.check_circle, color: Color(0xFFFF5C00), size: 18),
+                Icon(Icons.check_circle, color: Theme.of(context).primaryColor, size: 18),
                 const SizedBox(height: 2),
                 Text(
                   "$number", 
-                  style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Color(0xFFFF5C00))
+                  style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Theme.of(context).primaryColor)
                 ),
               ],
             )
@@ -199,7 +199,7 @@ class _PassportPageState extends State<PassportPage> {
               child: ElevatedButton(
                 onPressed: isUnlocked ? () => _showMasterReward(context) : null,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: isUnlocked ? const Color(0xFFFF5C00) : Colors.grey[300],
+                  backgroundColor: isUnlocked ? Theme.of(context).primaryColor : Colors.grey[300],
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                   elevation: 0,
@@ -228,7 +228,7 @@ class _PassportPageState extends State<PassportPage> {
             children: [
               const Text("🏆 THE ULTIMATE PRIZE", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.amber, letterSpacing: 1.5, fontSize: 10)),
               const SizedBox(height: 12),
-              const Text("MASTER OF MEATS", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFFFF5C00))),
+              Text("MASTER OF MEATS", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Theme.of(context).primaryColor)),
               const Divider(height: 40),
               const Text("FREE SIGNATURE PLATTER", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               const SizedBox(height: 20),

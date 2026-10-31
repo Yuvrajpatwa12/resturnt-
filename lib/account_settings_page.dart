@@ -54,10 +54,10 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
                 children: [
                   CircleAvatar(
                     radius: 50,
-                    backgroundColor: const Color(0xFFFF5C00).withValues(alpha: 0.1),
+                    backgroundColor: Theme.of(context).primaryColor.withValues(alpha: 0.1),
                     child: Icon(
                       _selectedGender == 'Female' ? Icons.face_3_rounded : Icons.face_6_rounded,
-                      color: const Color(0xFFFF5C00),
+                      color: Theme.of(context).primaryColor,
                       size: 50,
                     ),
                   ),
@@ -92,13 +92,13 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
 
             const SizedBox(height: 48),
             _isUpdating 
-              ? const Center(child: CircularProgressIndicator(color: Color(0xFFFF5C00)))
+              ? Center(child: CircularProgressIndicator(color: Theme.of(context).primaryColor))
               : SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: _saveProfile,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFFF5C00),
+                      backgroundColor: Theme.of(context).primaryColor,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 20),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -156,10 +156,10 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 16),
           decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFFFF5C00) : Colors.white,
+            color: isSelected ? Theme.of(context).primaryColor : Colors.white,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: isSelected ? Colors.transparent : Colors.grey[200]!),
-            boxShadow: isSelected ? [BoxShadow(color: const Color(0xFFFF5C00).withValues(alpha: 0.2), blurRadius: 8)] : [],
+            boxShadow: isSelected ? [BoxShadow(color: Theme.of(context).primaryColor.withValues(alpha: 0.2), blurRadius: 8)] : [],
           ),
           child: Center(
             child: Text(

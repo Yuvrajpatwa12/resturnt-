@@ -16,6 +16,8 @@ class DigitalMenuScreen extends StatefulWidget {
 
 class _DigitalMenuScreenState extends State<DigitalMenuScreen> {
   String _selectedCategory = 'All';
+  String _selectedDiet = 'All';
+  final TextEditingController _searchController = TextEditingController();
 
   late int tableIdInt;
 
@@ -23,6 +25,13 @@ class _DigitalMenuScreenState extends State<DigitalMenuScreen> {
   void initState() {
     super.initState();
     tableIdInt = ShopManager.parseTableId(widget.tableId);
+    _searchController.addListener(() => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   List<Map<String, dynamic>> _getFilteredProducts() {
@@ -55,6 +64,49 @@ class _DigitalMenuScreenState extends State<DigitalMenuScreen> {
             _selectedCategory.toLowerCase();
       }).toList();
     }
+
+    final query = _searchController.text.trim().toLowerCase();
+    if (query.isNotEmpty) {
+      products = products.where((item) {
+        final searchable = [
+          item['title'],
+          item['description'],
+          item['category_name'],
+          item['category'],
+        ].whereType<Object>().join(' ').toLowerCase();
+        return searchable.contains(query);
+      }).toList();
+    }
+
+    if (_selectedDiet != 'All') {
+      products = products.where((item) {
+        final diet = [
+          item['dietary_tag'],
+          item['dietary'],
+          item['food_type'],
+          item['tag'],
+          item['tags'],
+          item['meal_tag'],
+          item['category_name'],
+        ].whereType<Object>().join(' ').toLowerCase();
+        final isNonVeg =
+            diet.contains('non-veg') ||
+            diet.contains('non veg') ||
+            diet.contains('nonveg');
+        final isVeg =
+            item['is_veg'] == true ||
+            item['is_veg'] == 1 ||
+            item['is_veg']?.toString().toLowerCase() == 'true' ||
+            item['is_veg']?.toString() == '1';
+        if (_selectedDiet == 'Veg') {
+          return !isNonVeg && (isVeg || diet.contains('veg'));
+        }
+        if (_selectedDiet == 'Vegan') {
+          return diet.contains('vegan');
+        }
+        return isNonVeg;
+      }).toList();
+    }
     return products;
   }
 
@@ -78,6 +130,7 @@ class _DigitalMenuScreenState extends State<DigitalMenuScreen> {
       animation: Listenable.merge([
         TenantService().products,
         TenantService().categories,
+        TenantService().isLoading,
       ]),
       builder: (context, _) {
         final filteredProducts = _getFilteredProducts();
@@ -142,14 +195,28 @@ class _DigitalMenuScreenState extends State<DigitalMenuScreen> {
                                 foregroundColor: WaiterProTheme.royalBlue,
                               ),
                             ),
-                          IconButton(
-                            onPressed: () {},
-                            icon: const Icon(Icons.search, size: 20),
-                          ),
                         ],
                       ),
                       body: Column(
                         children: [
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+                            child: TextField(
+                              controller: _searchController,
+                              textInputAction: TextInputAction.search,
+                              decoration: InputDecoration(
+                                hintText: "Search menu items",
+                                prefixIcon: const Icon(Icons.search),
+                                suffixIcon: _searchController.text.isEmpty
+                                    ? null
+                                    : IconButton(
+                                        tooltip: "Clear search",
+                                        onPressed: _searchController.clear,
+                                        icon: const Icon(Icons.close),
+                                      ),
+                              ),
+                            ),
+                          ),
                           // Category Slider
                           SizedBox(
                             height: 50,
@@ -190,23 +257,82 @@ class _DigitalMenuScreenState extends State<DigitalMenuScreen> {
                               },
                             ),
                           ),
+                          SizedBox(
+                            height: 48,
+                            child: ListView(
+                              scrollDirection: Axis.horizontal,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                              ),
+                              children: ['All', 'Veg', 'Non-veg', 'Vegan']
+                                  .map(
+                                    (diet) => Padding(
+                                      padding: const EdgeInsets.only(right: 8),
+                                      child: FilterChip(
+                                        label: Text(diet),
+                                        selected: _selectedDiet == diet,
+                                        onSelected: (_) => setState(
+                                          () => _selectedDiet = diet,
+                                        ),
+                                        selectedColor:
+                                            WaiterProTheme.emeraldGreen,
+                                        labelStyle: TextStyle(
+                                          color: _selectedDiet == diet
+                                              ? Colors.white
+                                              : WaiterProTheme.darkNavy,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                  )
+                                  .toList(),
+                            ),
+                          ),
                           // Items Grid
                           Expanded(
-                            child: filteredProducts.isEmpty
+                            child:
+                                TenantService().isLoading.value &&
+                                    TenantService().products.value.isEmpty
                                 ? const Center(
-                                    child: Text(
-                                      "No restaurant products are available.",
-                                      style: TextStyle(color: Colors.grey),
+                                    child: CircularProgressIndicator(),
+                                  )
+                                : filteredProducts.isEmpty
+                                ? Center(
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(24),
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const Icon(
+                                            Icons.search_off,
+                                            size: 48,
+                                            color: Colors.grey,
+                                          ),
+                                          const SizedBox(height: 12),
+                                          Text(
+                                            _searchController.text.isNotEmpty ||
+                                                    _selectedCategory !=
+                                                        'All' ||
+                                                    _selectedDiet != 'All'
+                                                ? "No menu items match these filters."
+                                                : "No restaurant products are available.",
+                                            textAlign: TextAlign.center,
+                                            style: const TextStyle(
+                                              color: Colors.grey,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   )
                                 : GridView.builder(
                                     padding: const EdgeInsets.all(12),
                                     gridDelegate:
-                                        const SliverGridDelegateWithFixedCrossAxisCount(
-                                          crossAxisCount: 3,
-                                          crossAxisSpacing: 10,
-                                          mainAxisSpacing: 10,
-                                          childAspectRatio: 0.65,
+                                        const SliverGridDelegateWithMaxCrossAxisExtent(
+                                          maxCrossAxisExtent: 220,
+                                          crossAxisSpacing: 12,
+                                          mainAxisSpacing: 12,
+                                          childAspectRatio: 0.72,
                                         ),
                                     itemCount: filteredProducts.length,
                                     itemBuilder: (context, index) {
@@ -447,50 +573,58 @@ class _DigitalMenuScreenState extends State<DigitalMenuScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    InkWell(
-                      onTap: () {
-                        showDialog(
-                          context: context,
-                          builder: (context) => OrderCustomizationDialog(
-                            itemName: title,
-                            onSave: (notes) {
-                              ShopManager.instance.setPendingItem(
-                                tableIdInt,
-                                p,
-                                pendingQty + 1,
-                              );
-                            },
-                          ),
-                        );
-                      },
-                      child: const Icon(
-                        Icons.settings_outlined,
-                        size: 16,
-                        color: Colors.grey,
+                    SizedBox(
+                      width: 44,
+                      height: 44,
+                      child: InkWell(
+                        onTap: () {
+                          showDialog(
+                            context: context,
+                            builder: (context) => OrderCustomizationDialog(
+                              itemName: title,
+                              onSave: (notes) {
+                                ShopManager.instance.setPendingItem(
+                                  tableIdInt,
+                                  p,
+                                  pendingQty + 1,
+                                );
+                              },
+                            ),
+                          );
+                        },
+                        child: const Icon(
+                          Icons.settings_outlined,
+                          size: 20,
+                          color: Colors.grey,
+                        ),
                       ),
                     ),
                     Container(
-                      height: 24,
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      height: 40,
+                      padding: const EdgeInsets.symmetric(horizontal: 6),
                       decoration: BoxDecoration(
                         color: WaiterProTheme.royalBlue,
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Row(
                         children: [
-                          InkWell(
-                            onTap: () {
-                              if (pendingQty > 0)
-                                ShopManager.instance.setPendingItem(
-                                  tableIdInt,
-                                  p,
-                                  pendingQty - 1,
-                                );
-                            },
-                            child: const Icon(
+                          IconButton(
+                            constraints: const BoxConstraints.tightFor(
+                              width: 36,
+                              height: 36,
+                            ),
+                            padding: EdgeInsets.zero,
+                            onPressed: pendingQty > 0
+                                ? () => ShopManager.instance.setPendingItem(
+                                    tableIdInt,
+                                    p,
+                                    pendingQty - 1,
+                                  )
+                                : null,
+                            icon: const Icon(
                               Icons.remove,
                               color: Colors.white,
-                              size: 14,
+                              size: 18,
                             ),
                           ),
                           Padding(
@@ -504,16 +638,18 @@ class _DigitalMenuScreenState extends State<DigitalMenuScreen> {
                               ),
                             ),
                           ),
-                          InkWell(
-                            onTap: () => ShopManager.instance.setPendingItem(
-                              tableIdInt,
-                              p,
-                              pendingQty + 1,
+                          IconButton(
+                            constraints: const BoxConstraints.tightFor(
+                              width: 36,
+                              height: 36,
                             ),
-                            child: const Icon(
+                            padding: EdgeInsets.zero,
+                            onPressed: () => ShopManager.instance
+                                .setPendingItem(tableIdInt, p, pendingQty + 1),
+                            icon: const Icon(
                               Icons.add,
                               color: Colors.white,
-                              size: 14,
+                              size: 18,
                             ),
                           ),
                         ],

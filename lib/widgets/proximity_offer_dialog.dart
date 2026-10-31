@@ -12,6 +12,7 @@ class ProximityOfferDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final primaryColor = Theme.of(context).primaryColor;
     return Center(
       child: Material(
         color: Colors.transparent,
@@ -36,12 +37,12 @@ class ProximityOfferDialog extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFF5C00).withValues(alpha: 0.1),
+                  color: primaryColor.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.auto_awesome, 
-                  color: Color(0xFFFF5C00), 
+                  color: primaryColor, 
                   size: 40
                 ),
               ),
@@ -75,18 +76,18 @@ class ProximityOfferDialog extends StatelessWidget {
                   border: Border.all(color: const Color(0xFFE2E8F0)),
                 ),
                 child: Column(
-                  children: const [
+                  children: [
                     Text(
                       "YOUR SPECIAL OFFER",
                       style: TextStyle(
                         fontSize: 10, 
                         fontWeight: FontWeight.w900, 
-                        color: Color(0xFFFF5C00),
+                        color: primaryColor,
                         letterSpacing: 1.5,
                       ),
                     ),
-                    SizedBox(height: 4),
-                    Text(
+                    const SizedBox(height: 4),
+                    const Text(
                       "Free Extra Toppings",
                       style: TextStyle(
                         fontSize: 18, 
@@ -103,7 +104,7 @@ class ProximityOfferDialog extends StatelessWidget {
                 child: ElevatedButton(
                   onPressed: onDismiss,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFFF5C00),
+                    backgroundColor: primaryColor,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 18),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),

@@ -34,31 +34,38 @@ class DashboardScreen extends StatelessWidget {
   }
 
   Widget _buildUserInfoHeader() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return ValueListenableBuilder<Tenant?>(
+      valueListenable: TenantService().currentTenant,
+      builder: (context, tenant, child) {
+        final tenantName = tenant?.name ?? "Restaurant Admin";
+        final tenantId = tenant?.id ?? "tenant_id";
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
-              "Hi, Admin",
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: AdminTheme.darkNavy),
-            ),
-            Row(
-              children: const [
-                Icon(Icons.phone, size: 12, color: Colors.grey),
-                SizedBox(width: 4),
-                Text("REST-CHY-001", style: TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold)),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Hi, $tenantName",
+                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: AdminTheme.darkNavy),
+                ),
+                Row(
+                  children: [
+                    const Icon(Icons.store_mall_directory, size: 12, color: Colors.grey),
+                    const SizedBox(width: 4),
+                    Text("ID: $tenantId", style: const TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold)),
+                  ],
+                ),
               ],
             ),
+            const CircleAvatar(
+              radius: 22,
+              backgroundColor: AdminTheme.royalBlue,
+              child: Icon(Icons.person, color: Colors.white, size: 24),
+            ),
           ],
-        ),
-        const CircleAvatar(
-          radius: 22,
-          backgroundColor: AdminTheme.royalBlue,
-          child: Icon(Icons.person, color: Colors.white, size: 24),
-        ),
-      ],
+        );
+      },
     );
   }
 

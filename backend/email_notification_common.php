@@ -193,9 +193,23 @@ function queueEmailNotification($conn, $tenantId, $userId, $notificationId, $eve
         'follow' => 'email_follow',
         'follow_back' => 'email_follow',
         'wave' => 'email_wave',
-        'message' => 'email_message'
+        'message' => 'email_message',
+        'support' => 'email_support',
+        'support_reply' => 'email_support',
+        'order' => 'email_order',
+        'stock' => 'email_stock',
+        'subscription' => 'email_subscription'
     ][$eventType] ?? null;
     if ($preferenceColumn === null) return;
+
+    // For order events, check if the column exists in the preferences table
+    if ($eventType === 'order') {
+        $columnCheck = $conn->query("SHOW COLUMNS FROM customer_notification_email_preferences LIKE 'email_order'");
+        if ($columnCheck && $columnCheck->num_rows === 0) {
+            // Column doesn't exist, add it
+            $conn->query("ALTER TABLE customer_notification_email_preferences ADD COLUMN email_order TINYINT(1) NOT NULL DEFAULT 1");
+        }
+    }
 
     $cleanUserId = strtolower(trim((string)$userId));
     if ($cleanUserId === '') return;
@@ -218,16 +232,43 @@ function queueEmailNotification($conn, $tenantId, $userId, $notificationId, $eve
         return; // Recipient is not a valid email address
     }
 
-    // Check preferences
-    $preference = $conn->prepare("SELECT email_enabled, $preferenceColumn AS event_enabled
-        FROM customer_notification_email_preferences
-        WHERE tenant_id COLLATE utf8mb4_general_ci = ? COLLATE utf8mb4_general_ci
-          AND LOWER(email) COLLATE utf8mb4_general_ci = ? COLLATE utf8mb4_general_ci LIMIT 1");
-    if (!$preference) throw new Exception("Could not check email notification preferences");
-    $preference->bind_param("ss", $tenantId, $cleanUserId);
-    $preference->execute();
-    $settings = $preference->get_result()->fetch_assoc();
-    $preference->close();
+    // Check preferences (try admin table first for admin-specific events)
+    $isAdminEvent = in_array($eventType, ['support', 'support_reply', 'order', 'stock', 'subscription']);
+    $preference = null;
+    $settings = null;
+
+    if ($isAdminEvent) {
+        // Check admin notification preferences
+        $preference = $conn->prepare("SELECT email_enabled, $preferenceColumn AS event_enabled
+            FROM admin_notification_email_preferences
+            WHERE tenant_id COLLATE utf8mb4_general_ci = ? COLLATE utf8mb4_general_ci
+              AND LOWER(admin_email) COLLATE utf8mb4_general_ci = ? COLLATE utf8mb4_general_ci LIMIT 1");
+        if ($preference) {
+            $preference->bind_param("ss", $tenantId, $cleanUserId);
+            $preference->execute();
+            $settings = $preference->get_result()->fetch_assoc();
+            $preference->close();
+        }
+
+        // For system/admin notifications, default to ENABLED if no explicit preference row exists
+        if (!$settings) {
+            $settings = ['email_enabled' => 1, 'event_enabled' => 1];
+        }
+    }
+
+    // If no admin settings found and not an admin event, check customer preferences
+    if (!$settings) {
+        $preference = $conn->prepare("SELECT email_enabled, $preferenceColumn AS event_enabled
+            FROM customer_notification_email_preferences
+            WHERE tenant_id COLLATE utf8mb4_general_ci = ? COLLATE utf8mb4_general_ci
+              AND LOWER(email) COLLATE utf8mb4_general_ci = ? COLLATE utf8mb4_general_ci LIMIT 1");
+        if ($preference) {
+            $preference->bind_param("ss", $tenantId, $cleanUserId);
+            $preference->execute();
+            $settings = $preference->get_result()->fetch_assoc();
+            $preference->close();
+        }
+    }
 
     if (!filter_var($cleanUserId, FILTER_VALIDATE_EMAIL)) return;
     if (!$settings || (int)$settings['email_enabled'] !== 1 || (int)$settings['event_enabled'] !== 1) {

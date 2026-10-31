@@ -16,6 +16,7 @@ class _NotificationPromptState extends State<NotificationPrompt> {
 
   @override
   Widget build(BuildContext context) {
+    final primaryColor = Theme.of(context).primaryColor;
     return GestureDetector(
       onTap: () {}, // Prevent tap from bubbling up to dismiss background
       child: Center(
@@ -35,16 +36,16 @@ class _NotificationPromptState extends State<NotificationPrompt> {
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color:
-                          (_isSuccess ? Colors.green : const Color(0xFFFF5C00))
+                          (_isSuccess ? Colors.green : primaryColor)
                               .withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     ),
                     child: _isLoading
-                        ? const SizedBox(
+                        ? SizedBox(
                             width: 40,
                             height: 40,
                             child: CircularProgressIndicator(
-                              color: Color(0xFFFF5C00),
+                              color: primaryColor,
                               strokeWidth: 3,
                             ),
                           )
@@ -55,7 +56,7 @@ class _NotificationPromptState extends State<NotificationPrompt> {
                             size: 40,
                             color: _isSuccess
                                 ? Colors.green
-                                : const Color(0xFFFF5C00),
+                                : primaryColor,
                           ),
                   ),
                   const SizedBox(height: 24),
@@ -150,10 +151,7 @@ class _NotificationPromptState extends State<NotificationPrompt> {
 
                                     if (!success) return;
 
-                                    // Wait 1.5 seconds to show success state before closing
-                                    await Future.delayed(
-                                      const Duration(milliseconds: 1500),
-                                    );
+                                    // Close immediately after enabling
                                     ShopManager
                                             .instance
                                             .showNotificationPrompt
@@ -161,7 +159,7 @@ class _NotificationPromptState extends State<NotificationPrompt> {
                                         false;
                                   },
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFFF5C00),
+                              backgroundColor: primaryColor,
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               shape: RoundedRectangleBorder(

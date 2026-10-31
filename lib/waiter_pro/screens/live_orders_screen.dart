@@ -12,11 +12,13 @@ class LiveOrdersScreen extends StatefulWidget {
   State<LiveOrdersScreen> createState() => _LiveOrdersScreenState();
 }
 
-class _LiveOrdersScreenState extends State<LiveOrdersScreen> with SingleTickerProviderStateMixin {
+class _LiveOrdersScreenState extends State<LiveOrdersScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   List<Map<String, dynamic>> _pendingOrders = [];
   List<Map<String, dynamic>> _activeOrders = [];
   bool _isLoading = true;
+  bool _hasLoadError = false;
   Timer? _refreshTimer;
   int _lastMod = 0; // Track last sync time
 
@@ -25,18 +27,23 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> with SingleTickerPr
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
     _refreshAll(isInitial: true);
-    
+
     // Efficient Light Polling
-    _refreshTimer = Timer.periodic(const Duration(seconds: 7), (_) => _checkSync());
+    _refreshTimer = Timer.periodic(
+      const Duration(seconds: 7),
+      (_) => _checkSync(),
+    );
   }
 
   Future<void> _checkSync() async {
     final tenant = TenantService().currentTenant.value;
     if (tenant == null) return;
-    
+
     final serverMod = await ApiService.checkOrderChange(tenant.id);
     if (serverMod > _lastMod) {
-      debugPrint("WAITER: New order activity detected ($serverMod > $_lastMod). Syncing...");
+      debugPrint(
+        "WAITER: New order activity detected ($serverMod > $_lastMod). Syncing...",
+      );
       _refreshAll();
       _lastMod = serverMod;
     }
@@ -44,10 +51,18 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> with SingleTickerPr
 
   Future<void> _refreshAll({bool isInitial = false}) async {
     final tenant = TenantService().currentTenant.value;
-    if (tenant == null) return;
+    if (tenant == null) {
+      if (mounted) {
+        setState(() {
+          _hasLoadError = true;
+          _isLoading = false;
+        });
+      }
+      return;
+    }
 
     if (isInitial) setState(() => _isLoading = true);
-    
+
     // 1. Fetch Pending Requests (For Approval)
     final pData = await ApiService.fetchPendingOrders(tenant.id);
     // 2. Fetch Active Orders (Cooking/Ready)
@@ -57,6 +72,7 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> with SingleTickerPr
       setState(() {
         if (pData != null) _pendingOrders = pData;
         if (aData != null) _activeOrders = aData;
+        _hasLoadError = pData == null || aData == null;
         _isLoading = false;
       });
     }
@@ -71,18 +87,27 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> with SingleTickerPr
       return;
     }
 
-    final result = await ApiService.waiterApproveOrder(int.parse(orderId.toString()), staff.id); 
+    final result = await ApiService.waiterApproveOrder(
+      int.parse(orderId.toString()),
+      staff.id,
+    );
     if (result['success'] == true) {
       _refreshAll();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Order sent to Kitchen!"), backgroundColor: WaiterProTheme.emeraldGreen),
+          const SnackBar(
+            content: Text("Order sent to Kitchen!"),
+            backgroundColor: WaiterProTheme.emeraldGreen,
+          ),
         );
       }
     } else {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Approval failed: ${result['message']}"), backgroundColor: Colors.red),
+        SnackBar(
+          content: Text("Approval failed: ${result['message']}"),
+          backgroundColor: Colors.red,
+        ),
       );
     }
   }
@@ -100,7 +125,11 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> with SingleTickerPr
       appBar: AppBar(
         title: const Text("Kitchen Status"),
         actions: [
-          IconButton(onPressed: _refreshAll, icon: const Icon(Icons.refresh, color: WaiterProTheme.royalBlue)),
+          IconButton(
+            tooltip: "Refresh orders",
+            onPressed: _refreshAll,
+            icon: const Icon(Icons.refresh, color: WaiterProTheme.royalBlue),
+          ),
         ],
         bottom: TabBar(
           controller: _tabController,
@@ -116,17 +145,49 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> with SingleTickerPr
           ],
         ),
       ),
-      body: _isLoading 
-        ? const Center(child: CircularProgressIndicator())
-        : TabBarView(
-            controller: _tabController,
-            children: [
-              _buildApprovalQueue(),
-              _buildActiveQueue("Preparing"),
-              _buildActiveQueue("Ready"),
-              _buildCompletedQueue(),
-            ],
-          ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : Column(
+              children: [
+                if (_hasLoadError)
+                  Material(
+                    color: Colors.red.shade50,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.cloud_off, color: Colors.red.shade700),
+                          const SizedBox(width: 10),
+                          const Expanded(
+                            child: Text(
+                              "Some order data could not be refreshed.",
+                              style: TextStyle(fontSize: 12),
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: _refreshAll,
+                            child: const Text("RETRY"),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                Expanded(
+                  child: TabBarView(
+                    controller: _tabController,
+                    children: [
+                      _buildApprovalQueue(),
+                      _buildActiveQueue("Preparing"),
+                      _buildActiveQueue("Ready"),
+                      _buildCompletedQueue(),
+                    ],
+                  ),
+                ),
+              ],
+            ),
     );
   }
 
@@ -165,16 +226,40 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> with SingleTickerPr
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text("TABLE T-${o['table_number']}", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+                    Text(
+                      "TABLE T-${o['table_number']}",
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 16,
+                      ),
+                    ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(color: Colors.orange.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
-                      child: const Text("PENDING APPROVAL", style: TextStyle(color: Colors.orange, fontSize: 8, fontWeight: FontWeight.bold)),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Text(
+                        "PENDING APPROVAL",
+                        style: TextStyle(
+                          color: Colors.orange,
+                          fontSize: 8,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 16),
-                ...items.map((i) => _buildItemRow(i['product_name'], i['quantity'].toString())),
+                ...items.map(
+                  (i) => _buildItemRow(
+                    i['product_name'],
+                    i['quantity'].toString(),
+                  ),
+                ),
               ],
             ),
           ),
@@ -185,10 +270,19 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> with SingleTickerPr
               padding: const EdgeInsets.symmetric(vertical: 16),
               decoration: const BoxDecoration(
                 color: Color(0xFFFF5C00),
-                borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+                borderRadius: BorderRadius.vertical(
+                  bottom: Radius.circular(24),
+                ),
               ),
               child: const Center(
-                child: Text("APPROVE & SEND TO KITCHEN", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                child: Text(
+                  "APPROVE & SEND TO KITCHEN",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
+                  ),
+                ),
               ),
             ),
           ),
@@ -199,7 +293,8 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> with SingleTickerPr
 
   Widget _buildActiveQueue(String status) {
     final filtered = _activeOrders.where((o) => o['status'] == status).toList();
-    if (filtered.isEmpty) return _buildEmptyState("No orders in $status", Icons.restaurant);
+    if (filtered.isEmpty)
+      return _buildEmptyState("No orders in $status", Icons.restaurant);
 
     return ListView.builder(
       padding: const EdgeInsets.all(16),
@@ -207,11 +302,17 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> with SingleTickerPr
       itemBuilder: (context, index) {
         final o = filtered[index];
         final List items = o['items'] ?? [];
-        Color accentColor = status == 'Ready' ? WaiterProTheme.emeraldGreen : Colors.blue;
+        Color accentColor = status == 'Ready'
+            ? WaiterProTheme.emeraldGreen
+            : Colors.blue;
 
         return Container(
           margin: const EdgeInsets.only(bottom: 16),
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24), boxShadow: WaiterProTheme.softShadow),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: WaiterProTheme.softShadow,
+          ),
           child: Column(
             children: [
               Padding(
@@ -222,33 +323,70 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> with SingleTickerPr
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text("TABLE T-${o['table_number']}", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
-                        Text(o['status'].toString().toUpperCase(), style: TextStyle(color: accentColor, fontSize: 10, fontWeight: FontWeight.bold)),
+                        Text(
+                          "TABLE T-${o['table_number']}",
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 16,
+                          ),
+                        ),
+                        Text(
+                          o['status'].toString().toUpperCase(),
+                          style: TextStyle(
+                            color: accentColor,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 16),
-                    ...items.map((i) => _buildItemRow(i['product_name'], i['quantity'].toString())),
+                    ...items.map(
+                      (i) => _buildItemRow(
+                        i['product_name'],
+                        i['quantity'].toString(),
+                      ),
+                    ),
                   ],
                 ),
               ),
               if (status == 'Ready')
                 InkWell(
                   onTap: () async {
-                    final res = await ApiService.updateOrderStatus(int.parse(o['id'].toString()), 'OnWay');
+                    final res = await ApiService.updateOrderStatus(
+                      int.parse(o['id'].toString()),
+                      'OnWay',
+                    );
                     if (res['success'] == true) {
                       _refreshAll();
                     } else {
                       if (!mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text("Delivery Failed: ${res['message']}"), backgroundColor: Colors.red),
+                        SnackBar(
+                          content: Text("Delivery Failed: ${res['message']}"),
+                          backgroundColor: Colors.red,
+                        ),
                       );
                     }
                   },
                   child: Container(
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    decoration: BoxDecoration(color: accentColor, borderRadius: const BorderRadius.vertical(bottom: Radius.circular(24))),
-                    child: const Center(child: Text("ACCEPT DELIVERY", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+                    decoration: BoxDecoration(
+                      color: accentColor,
+                      borderRadius: const BorderRadius.vertical(
+                        bottom: Radius.circular(24),
+                      ),
+                    ),
+                    child: const Center(
+                      child: Text(
+                        "ACCEPT DELIVERY",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
             ],
@@ -259,8 +397,11 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> with SingleTickerPr
   }
 
   Widget _buildCompletedQueue() {
-    final filtered = _activeOrders.where((o) => o['status'] == 'OnWay' || o['status'] == 'Completed').toList();
-    if (filtered.isEmpty) return _buildEmptyState("No history yet", Icons.history);
+    final filtered = _activeOrders
+        .where((o) => o['status'] == 'OnWay' || o['status'] == 'Completed')
+        .toList();
+    if (filtered.isEmpty)
+      return _buildEmptyState("No history yet", Icons.history);
 
     return ListView.builder(
       padding: const EdgeInsets.all(16),
@@ -278,7 +419,10 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> with SingleTickerPr
   Widget _buildItemRow(String name, String qty) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
-      child: Text("$qty x $name", style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+      child: Text(
+        "$qty x $name",
+        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+      ),
     );
   }
 
@@ -290,6 +434,13 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> with SingleTickerPr
           Icon(icon, size: 48, color: Colors.grey.withValues(alpha: 0.2)),
           const SizedBox(height: 16),
           Text(text, style: const TextStyle(color: Colors.grey)),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: _refreshAll,
+            icon: const Icon(Icons.refresh),
+            label: const Text("Refresh"),
+            style: OutlinedButton.styleFrom(minimumSize: const Size(150, 48)),
+          ),
         ],
       ),
     );

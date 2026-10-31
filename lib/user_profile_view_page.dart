@@ -20,6 +20,7 @@ class _UserProfileViewPageState extends State<UserProfileViewPage> with SingleTi
   Map<String, dynamic>? _profile;
   Map<String, dynamic>? _socialStats;
   bool _isLoading = true;
+  bool _isFollowingLoading = false;
   late AnimationController _animationController;
   late Color primaryColor;
   late Color secondaryColor;
@@ -284,14 +285,18 @@ class _UserProfileViewPageState extends State<UserProfileViewPage> with SingleTi
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               ElevatedButton.icon(
-                onPressed: _toggleFollow,
-                icon: Icon(isFollowing ? (followsMe ? Icons.people : Icons.check) : Icons.person_add, size: 18),
-                label: Text(
-                  isFollowing ? (followsMe ? "FRIEND" : "FOLLOWING") : (followsMe ? "FOLLOW BACK" : "FOLLOW"),
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 1),
-                ),
+                onPressed: _isFollowingLoading ? null : _toggleFollow,
+                icon: _isFollowingLoading
+                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                    : Icon(isFollowing ? (followsMe ? Icons.people : Icons.check) : Icons.person_add, size: 18),
+                label: _isFollowingLoading
+                    ? const Text("", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 1))
+                    : Text(
+                        isFollowing ? (followsMe ? "FRIEND" : "FOLLOWING") : (followsMe ? "FOLLOW BACK" : "FOLLOW"),
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 1),
+                      ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
+                  backgroundColor: _isFollowingLoading ? Colors.grey[300] : Colors.white,
                   foregroundColor: startColor,
                   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
@@ -771,9 +776,17 @@ class _UserProfileViewPageState extends State<UserProfileViewPage> with SingleTi
   }
 
   Future<void> _toggleFollow() async {
+    if (_isFollowingLoading) return;
+    
+    setState(() => _isFollowingLoading = true);
+    
     final success = await ShopManager.instance.toggleFollow(widget.userId);
-    if (success) {
-      _loadProfile(); // Refresh to show updated states
+    
+    if (mounted) {
+      setState(() => _isFollowingLoading = false);
+      if (success) {
+        _loadProfile(); // Refresh to show updated states
+      }
     }
   }
 }

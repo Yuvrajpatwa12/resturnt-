@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
+import 'dart:math' as math;
 import 'cart_manager.dart';
 import 'live_order_tracking_screen.dart';
 import 'services/tenant_service.dart';
@@ -11,48 +13,188 @@ class MyOrdersPage extends StatefulWidget {
   State<MyOrdersPage> createState() => _MyOrdersPageState();
 }
 
-class _MyOrdersPageState extends State<MyOrdersPage> with SingleTickerProviderStateMixin {
+class _MyOrdersPageState extends State<MyOrdersPage>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   List<Map<String, dynamic>> _sessionOrders = [];
   bool _isLoading = true;
+  bool _hasLoadError = false;
+  bool _isOrderSyncPending = false;
+  bool _isFetching = false;
+  Timer? _refreshTimer;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _loadOrders();
+    _refreshTimer = Timer.periodic(
+      const Duration(seconds: 10),
+      (_) => _loadOrders(),
+    );
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    _tabController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadOrders() async {
+    if (_isFetching) return;
+    _isFetching = true;
+    await ShopManager.instance.ensureInitialized();
     final tenant = TenantService().currentTenant.value;
-    if (tenant == null) return;
+    if (tenant == null) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _hasLoadError = true;
+        });
+      }
+      _isFetching = false;
+      return;
+    }
 
     if (_sessionOrders.isEmpty) {
-      setState(() => _isLoading = true);
+      if (mounted) setState(() => _isLoading = true);
     }
-    final myEmail = ShopManager.instance.customerEmail.value;
-    final myGuestId = ShopManager.instance.guestId.value;
-    final String uid = myEmail.isNotEmpty ? myEmail : myGuestId;
+    final uid = ShopManager.instance.orderUserId;
+    final email = ShopManager.instance.customerEmail.value;
+    final gid = ShopManager.instance.guestId.value;
+    final activeId = ShopManager.instance.activeOrderId.value;
+    final activeIds = ShopManager.instance.activeOrderIds.value;
+    final orderIdsSet = <int>{
+      if (activeId != null && activeId > 0) activeId,
+      ...activeIds.where((i) => i > 0),
+    };
+    final orderIdsStr = orderIdsSet.isNotEmpty ? orderIdsSet.join(',') : null;
 
-    // Fetch ALL orders (Live + History) using the new dedicated endpoint
-    final data = await ApiService.fetchUserOrders(tenant.id, uid);
-    
-    if (data != null && data['status'] == 'success') {
-      final newList = List<Map<String, dynamic>>.from(data['data']);
+    final cachedOrders = await ApiService.getCachedUserOrders(tenant.id, uid);
+    final cachedEmailOrders = email.isNotEmpty ? await ApiService.getCachedUserOrders(tenant.id, email) : <Map<String, dynamic>>[];
+    final allCached = [...cachedOrders, ...cachedEmailOrders];
+    final mergedCachedById = <String, Map<String, dynamic>>{
+      for (final order in allCached)
+        if (order['id'] != null) order['id'].toString(): order,
+    };
+    final cachedList = mergedCachedById.values.toList();
+
+    if (!mounted) return;
+    if (cachedList.isNotEmpty) {
       setState(() {
-        if (newList.isNotEmpty || _sessionOrders.isEmpty) {
-          _sessionOrders = newList;
-        }
-        ShopManager.instance.totalOrdersCount.value = data['total_count'] ?? _sessionOrders.length;
+        _sessionOrders = cachedList;
+        _isOrderSyncPending = false;
+        _isLoading = false;
       });
-    } else {
-      if (mounted && _sessionOrders.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Slow connection. Could not refresh orders."), duration: Duration(seconds: 2))
-        );
+    }
+
+    try {
+      var data = await ApiService.fetchUserOrders(
+        tenant.id,
+        uid,
+        customerEmail: email,
+        guestId: gid,
+        orderIds: orderIdsStr,
+      );
+      if (!mounted) return;
+
+      if (data != null && data['status'] == 'success') {
+        var newList = _parseOrders(data);
+        final hasKnownActiveOrder =
+            ShopManager.instance.activeOrderId.value != null ||
+            ShopManager.instance.activeOrderIds.value.isNotEmpty;
+
+        // A newly placed order can become visible to the read endpoint shortly
+        // after the order-confirmation response. Retry before showing an empty
+        // state while this device already knows an active order ID.
+        if (newList.isEmpty && hasKnownActiveOrder) {
+          await Future<void>.delayed(const Duration(milliseconds: 800));
+          if (!mounted) return;
+          data = await ApiService.fetchUserOrders(
+            tenant.id,
+            uid,
+            customerEmail: email,
+            guestId: gid,
+            orderIds: orderIdsStr,
+          );
+          if (!mounted) return;
+          if (data != null && data['status'] == 'success') {
+            newList = _parseOrders(data);
+          }
+        }
+
+        final mergedById = <String, Map<String, dynamic>>{
+          for (final order in cachedList)
+            if (order['id'] != null) order['id'].toString(): order,
+        };
+        for (final order in newList) {
+          final id = order['id']?.toString();
+          if (id != null && id.isNotEmpty) mergedById[id] = order;
+        }
+        final mergedOrders = mergedById.values.toList()
+          ..sort((a, b) {
+            final aTime =
+                DateTime.tryParse(a['created_at']?.toString() ?? '') ??
+                DateTime.fromMillisecondsSinceEpoch(0);
+            final bTime =
+                DateTime.tryParse(b['created_at']?.toString() ?? '') ??
+                DateTime.fromMillisecondsSinceEpoch(0);
+            return bTime.compareTo(aTime);
+          });
+        if (mergedOrders.isNotEmpty) {
+          await ApiService.cacheUserOrders(tenant.id, uid, mergedOrders);
+          if (email.isNotEmpty && email != uid) {
+            await ApiService.cacheUserOrders(tenant.id, email, mergedOrders);
+          }
+        }
+        if (!mounted) return;
+        setState(() {
+          _sessionOrders = mergedOrders;
+          _hasLoadError = false;
+          _isOrderSyncPending = mergedOrders.isEmpty && hasKnownActiveOrder;
+          ShopManager.instance.totalOrdersCount.value = math.max(
+            ShopManager.instance.totalOrdersCount.value,
+            math.max(
+              mergedOrders.length,
+              ShopManager.instance.activeOrderIds.value.length,
+            ),
+          );
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _sessionOrders = cachedList;
+          _hasLoadError = true;
+          _isOrderSyncPending = false;
+          _isLoading = false;
+        });
+      }
+    } catch (error) {
+      debugPrint("My Orders refresh failed: $error");
+      if (mounted) {
+        setState(() {
+          _sessionOrders = cachedList;
+          _hasLoadError = true;
+          _isOrderSyncPending = false;
+          _isLoading = false;
+        });
+      }
+    } finally {
+      _isFetching = false;
+      if (mounted && _isLoading) {
+        setState(() => _isLoading = false);
       }
     }
-    if (_isLoading) setState(() => _isLoading = false);
+  }
+
+  List<Map<String, dynamic>> _parseOrders(Map<String, dynamic> response) {
+    final rawOrders = response['data'] ?? response['orders'];
+    if (rawOrders is! List) return [];
+    return rawOrders
+        .whereType<Map>()
+        .map((order) => Map<String, dynamic>.from(order))
+        .toList();
   }
 
   @override
@@ -62,48 +204,116 @@ class _MyOrdersPageState extends State<MyOrdersPage> with SingleTickerProviderSt
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        title: const Text("My Orders", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black87)),
+        title: const Text(
+          "My Orders",
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black87),
+        ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () {
             ShopManager.instance.currentTabIndex.value = 0;
             if (Navigator.canPop(context)) {
-               Navigator.pop(context);
+              Navigator.pop(context);
             }
           },
         ),
         bottom: TabBar(
           controller: _tabController,
-          labelColor: const Color(0xFFFF5C00),
-          indicatorColor: const Color(0xFFFF5C00),
-          tabs: const [Tab(text: "Live Status"), Tab(text: "Order History")],
+          labelColor: Theme.of(context).primaryColor,
+          indicatorColor: Theme.of(context).primaryColor,
+          tabs: const [
+            Tab(text: "Live Status"),
+            Tab(text: "Order History"),
+          ],
         ),
         actions: [
-          IconButton(onPressed: _loadOrders, icon: const Icon(Icons.refresh, color: Color(0xFFFF5C00))),
+          IconButton(
+            onPressed: _loadOrders,
+            icon: Icon(Icons.refresh, color: Theme.of(context).primaryColor),
+          ),
         ],
       ),
-      body: _isLoading 
-        ? const Center(child: CircularProgressIndicator())
-        : TabBarView(
-            controller: _tabController,
-            children: [
-              _buildOrderList(isActive: true),
-              _buildOrderList(isActive: false),
-            ],
-          ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : Column(
+              children: [
+                if (_hasLoadError)
+                  Material(
+                    color: Colors.orange.shade50,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.cloud_off, color: Colors.deepOrange),
+                          const SizedBox(width: 10),
+                          const Expanded(
+                            child: Text(
+                              "Could not refresh orders. Showing the last available results.",
+                              style: TextStyle(fontSize: 12),
+                            ),
+                          ),
+                          IconButton(
+                            tooltip: "Retry",
+                            onPressed: _loadOrders,
+                            icon: const Icon(Icons.refresh),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                Expanded(
+                  child: TabBarView(
+                    controller: _tabController,
+                    children: [
+                      _buildOrderList(isActive: true),
+                      _buildOrderList(isActive: false),
+                    ],
+                  ),
+                ),
+              ],
+            ),
     );
   }
 
   Widget _buildOrderList({required bool isActive}) {
     final filtered = _sessionOrders.where((o) {
-      bool isDone = o['status'] == 'Completed' || o['status'] == 'Cancelled';
+      final status = (o['status'] ?? '').toString().trim().toLowerCase();
+      final isDone =
+          status == 'completed' ||
+          status == 'complete' ||
+          status == 'cancelled' ||
+          status == 'canceled';
       return isActive ? !isDone : isDone;
     }).toList();
 
     if (filtered.isEmpty) {
+      if (_hasLoadError) {
+        return Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.cloud_off, size: 52, color: Colors.grey),
+              const SizedBox(height: 12),
+              const Text(
+                "Orders could not be loaded.",
+                style: TextStyle(color: Colors.grey),
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: _loadOrders,
+                icon: const Icon(Icons.refresh),
+                label: const Text("Try again"),
+              ),
+            ],
+          ),
+        );
+      }
       return RefreshIndicator(
         onRefresh: _loadOrders,
-        color: const Color(0xFFFF5C00),
+        color: Theme.of(context).primaryColor,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           child: Container(
@@ -112,9 +322,20 @@ class _MyOrdersPageState extends State<MyOrdersPage> with SingleTickerProviderSt
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(isActive ? Icons.restaurant : Icons.history, size: 64, color: Colors.grey[200]),
+                Icon(
+                  isActive ? Icons.restaurant : Icons.history,
+                  size: 64,
+                  color: Colors.grey[200],
+                ),
                 const SizedBox(height: 16),
-                Text(isActive ? "No active orders found" : "No order history", style: const TextStyle(color: Colors.grey)),
+                Text(
+                  isActive && _isOrderSyncPending
+                      ? "Syncing your active order..."
+                      : isActive
+                      ? "No active orders found"
+                      : "No order history",
+                  style: const TextStyle(color: Colors.grey),
+                ),
               ],
             ),
           ),
@@ -124,7 +345,7 @@ class _MyOrdersPageState extends State<MyOrdersPage> with SingleTickerProviderSt
 
     return RefreshIndicator(
       onRefresh: _loadOrders,
-      color: const Color(0xFFFF5C00),
+      color: Theme.of(context).primaryColor,
       child: ListView.builder(
         padding: const EdgeInsets.all(20),
         itemCount: filtered.length,
@@ -141,7 +362,13 @@ class _MyOrdersPageState extends State<MyOrdersPage> with SingleTickerProviderSt
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Material(
         color: Colors.white,
@@ -151,7 +378,9 @@ class _MyOrdersPageState extends State<MyOrdersPage> with SingleTickerProviderSt
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => LiveOrderTrackingScreen(orderId: int.parse(o['id'].toString())),
+                builder: (context) => LiveOrderTrackingScreen(
+                  orderId: int.parse(o['id'].toString()),
+                ),
               ),
             );
           },
@@ -166,8 +395,20 @@ class _MyOrdersPageState extends State<MyOrdersPage> with SingleTickerProviderSt
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text("Order #${o['id']} • Table #${o['table_number'] ?? '1'}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                        Text(o['created_at'] ?? 'Just now', style: const TextStyle(color: Colors.grey, fontSize: 11)),
+                        Text(
+                          "Order #${o['id']} • Table #${o['table_number'] ?? '1'}",
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                        Text(
+                          o['created_at'] ?? 'Just now',
+                          style: const TextStyle(
+                            color: Colors.grey,
+                            fontSize: 11,
+                          ),
+                        ),
                       ],
                     ),
                     _buildStatusBadge(o['status']),
@@ -179,8 +420,19 @@ class _MyOrdersPageState extends State<MyOrdersPage> with SingleTickerProviderSt
                   children: [
                     TextButton.icon(
                       onPressed: () => _showOrderItemsModal(context, o),
-                      icon: const Icon(Icons.visibility_outlined, size: 16, color: Color(0xFFFF5C00)),
-                      label: const Text("View Items", style: TextStyle(color: Color(0xFFFF5C00), fontWeight: FontWeight.bold, fontSize: 12)),
+                      icon: Icon(
+                        Icons.visibility_outlined,
+                        size: 16,
+                        color: Theme.of(context).primaryColor,
+                      ),
+                      label: Text(
+                        "View Items",
+                        style: TextStyle(
+                          color: Theme.of(context).primaryColor,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
                       style: TextButton.styleFrom(
                         padding: EdgeInsets.zero,
                         minimumSize: Size.zero,
@@ -190,8 +442,22 @@ class _MyOrdersPageState extends State<MyOrdersPage> with SingleTickerProviderSt
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        const Text("Total Amount", style: TextStyle(color: Colors.grey, fontSize: 10, fontWeight: FontWeight.bold)),
-                        Text("NPR ${o['total_amount']}", style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFFFF5C00), fontSize: 15)),
+                        const Text(
+                          "Total Amount",
+                          style: TextStyle(
+                            color: Colors.grey,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          "NPR ${o['total_amount']}",
+                          style: TextStyle(
+                            fontWeight: FontWeight.w900,
+                            color: Theme.of(context).primaryColor,
+                            fontSize: 15,
+                          ),
+                        ),
                       ],
                     ),
                   ],
@@ -226,7 +492,10 @@ class _MyOrdersPageState extends State<MyOrdersPage> with SingleTickerProviderSt
               child: Container(
                 width: 40,
                 height: 4,
-                decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2)),
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
             ),
             const SizedBox(height: 16),
@@ -236,15 +505,37 @@ class _MyOrdersPageState extends State<MyOrdersPage> with SingleTickerProviderSt
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text("Order #${order['id']} Items", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    Text(
+                      "Order #${order['id']} Items",
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     const SizedBox(height: 2),
-                    Text("Ordered on: $orderTime", style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                    Text(
+                      "Ordered on: $orderTime",
+                      style: const TextStyle(color: Colors.grey, fontSize: 12),
+                    ),
                   ],
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(color: const Color(0xFFFF5C00).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
-                  child: Text("${items.length} Items", style: const TextStyle(color: Color(0xFFFF5C00), fontWeight: FontWeight.bold, fontSize: 12)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    "${items.length} Items",
+                    style: TextStyle(
+                      color: Theme.of(context).primaryColor,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -254,33 +545,50 @@ class _MyOrdersPageState extends State<MyOrdersPage> with SingleTickerProviderSt
             if (items.isEmpty)
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 30),
-                child: Center(child: Text("No items found for this order.", style: TextStyle(color: Colors.grey))),
+                child: Center(
+                  child: Text(
+                    "No items found for this order.",
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ),
               )
             else
               ConstrainedBox(
-                constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.5),
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * 0.5,
+                ),
                 child: ListView.builder(
                   shrinkWrap: true,
                   itemCount: items.length,
                   itemBuilder: (context, index) {
                     final item = items[index];
-                    final itemName = item['product_name'] ?? item['name'] ?? 'Food Item';
+                    final itemName =
+                        item['product_name'] ?? item['name'] ?? 'Food Item';
                     final itemQty = item['quantity'] ?? '1';
-                    final itemPrice = item['price'] ?? item['price_at_order'] ?? '0';
-                    
+                    final itemPrice =
+                        item['price'] ?? item['price_at_order'] ?? '0';
+
                     // Look up product image from TenantService products list
                     String? foundImage;
                     final dbProducts = TenantService().products.value;
                     for (var p in dbProducts) {
-                      final pTitle = (p['title'] ?? p['name'] ?? '').toString().toLowerCase();
-                      if (pTitle == itemName.toLowerCase() || pTitle.contains(itemName.toLowerCase()) || itemName.toLowerCase().contains(pTitle)) {
+                      final pTitle = (p['title'] ?? p['name'] ?? '')
+                          .toString()
+                          .toLowerCase();
+                      if (pTitle == itemName.toLowerCase() ||
+                          pTitle.contains(itemName.toLowerCase()) ||
+                          itemName.toLowerCase().contains(pTitle)) {
                         foundImage = p['image_url'] ?? p['image'];
                         if (foundImage != null && foundImage.isNotEmpty) break;
                       }
                     }
 
-                    final String? rawImage = foundImage ?? item['image'] ?? item['image_url'];
-                    final String imageUrl = (rawImage != null && rawImage.toString().trim().isNotEmpty && rawImage.toString() != 'null')
+                    final String? rawImage =
+                        foundImage ?? item['image'] ?? item['image_url'];
+                    final String imageUrl =
+                        (rawImage != null &&
+                            rawImage.toString().trim().isNotEmpty &&
+                            rawImage.toString() != 'null')
                         ? rawImage.toString()
                         : _getDefaultFoodImage(itemName);
 
@@ -290,7 +598,9 @@ class _MyOrdersPageState extends State<MyOrdersPage> with SingleTickerProviderSt
                       decoration: BoxDecoration(
                         color: const Color(0xFFF8FAFC),
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
+                        border: Border.all(
+                          color: Colors.grey.withValues(alpha: 0.1),
+                        ),
                       ),
                       child: Row(
                         children: [
@@ -311,13 +621,33 @@ class _MyOrdersPageState extends State<MyOrdersPage> with SingleTickerProviderSt
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(itemName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                                Text(
+                                  itemName,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                  ),
+                                ),
                                 const SizedBox(height: 2),
-                                Text("Quantity: x$itemQty", style: const TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.w500)),
+                                Text(
+                                  "Quantity: x$itemQty",
+                                  style: const TextStyle(
+                                    color: Colors.grey,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
                               ],
                             ),
                           ),
-                          Text("NPR $itemPrice", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: Color(0xFFFF5C00))),
+                          Text(
+                            "NPR $itemPrice",
+                            style: TextStyle(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 14,
+                              color: Theme.of(context).primaryColor,
+                            ),
+                          ),
                         ],
                       ),
                     );
@@ -333,22 +663,42 @@ class _MyOrdersPageState extends State<MyOrdersPage> with SingleTickerProviderSt
 
   Widget _buildPlaceholderIcon() {
     return Container(
-      width: 48, height: 48,
-      decoration: BoxDecoration(color: const Color(0xFFFF5C00).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
-      child: const Icon(Icons.restaurant_menu_rounded, color: Color(0xFFFF5C00), size: 22),
+      width: 48,
+      height: 48,
+      decoration: BoxDecoration(
+        color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Icon(
+        Icons.restaurant_menu_rounded,
+        color: Theme.of(context).primaryColor,
+        size: 22,
+      ),
     );
   }
 
   String _getDefaultFoodImage(String name) {
     final lower = name.toLowerCase();
-    if (lower.contains('thupa') || lower.contains('soup')) return 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=500';
-    if (lower.contains('role') || lower.contains('roll') || lower.contains('wrap')) return 'https://images.unsplash.com/photo-1626777552726-4a6b54c97e46?w=500';
-    if (lower.contains('momo') || lower.contains('dumpling')) return 'https://images.unsplash.com/photo-1534422298391-e4f8c172dddb?w=500';
-    if (lower.contains('chowmein') || lower.contains('chaumin') || lower.contains('noodles')) return 'https://images.unsplash.com/photo-1585032226651-759b368d7246?w=500';
-    if (lower.contains('burger')) return 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500';
-    if (lower.contains('pizza')) return 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=500';
-    if (lower.contains('tea') || lower.contains('chiya')) return 'https://images.unsplash.com/photo-1561336313-0bd5e0b27ec8?w=500';
-    if (lower.contains('coffee')) return 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=500';
+    if (lower.contains('thupa') || lower.contains('soup'))
+      return 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=500';
+    if (lower.contains('role') ||
+        lower.contains('roll') ||
+        lower.contains('wrap'))
+      return 'https://images.unsplash.com/photo-1626777552726-4a6b54c97e46?w=500';
+    if (lower.contains('momo') || lower.contains('dumpling'))
+      return 'https://images.unsplash.com/photo-1534422298391-e4f8c172dddb?w=500';
+    if (lower.contains('chowmein') ||
+        lower.contains('chaumin') ||
+        lower.contains('noodles'))
+      return 'https://images.unsplash.com/photo-1585032226651-759b368d7246?w=500';
+    if (lower.contains('burger'))
+      return 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500';
+    if (lower.contains('pizza'))
+      return 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=500';
+    if (lower.contains('tea') || lower.contains('chiya'))
+      return 'https://images.unsplash.com/photo-1561336313-0bd5e0b27ec8?w=500';
+    if (lower.contains('coffee'))
+      return 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=500';
     return 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500';
   }
 
@@ -358,18 +708,33 @@ class _MyOrdersPageState extends State<MyOrdersPage> with SingleTickerProviderSt
     return 'assets/images/food$index.png';
   }
 
-  Widget _buildStatusBadge(String status) {
+  Widget _buildStatusBadge(dynamic rawStatus) {
+    final statusStr = (rawStatus ?? 'Pending').toString().trim();
+    final displayStatus = statusStr.isEmpty ? 'Pending' : statusStr;
+    final lower = displayStatus.toLowerCase();
+
     Color color = Colors.orange;
-    if (status == 'Approved') color = Colors.blue;
-    if (status == 'Preparing') color = Colors.purple;
-    if (status == 'Ready') color = Colors.green;
-    if (status == 'OnWay') color = const Color(0xFF6236FF);
-    if (status == 'Completed') color = Colors.teal;
+    if (lower == 'approved') color = Colors.blue;
+    if (lower == 'preparing') color = Colors.purple;
+    if (lower == 'ready') color = Colors.green;
+    if (lower == 'onway' || lower == 'on way') color = const Color(0xFF6236FF);
+    if (lower == 'completed' || lower == 'complete') color = Colors.teal;
+    if (lower == 'cancelled' || lower == 'canceled') color = Colors.red;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
-      child: Text(status.toUpperCase(), style: TextStyle(color: color, fontSize: 9, fontWeight: FontWeight.bold)),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        displayStatus.toUpperCase(),
+        style: TextStyle(
+          color: color,
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
     );
   }
 }

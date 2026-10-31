@@ -158,7 +158,7 @@ class _CollaborativeSplitPageState extends State<CollaborativeSplitPage> with Ti
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const CircularProgressIndicator(color: Color(0xFFFF5C00)),
+          CircularProgressIndicator(color: Theme.of(context).primaryColor),
           const SizedBox(height: 24),
           Text(
             _isHosting ? "GENERAING SECURE CODE..." : "JOINING GROUP LOBBY...",
@@ -184,7 +184,7 @@ class _CollaborativeSplitPageState extends State<CollaborativeSplitPage> with Ti
             title: "Host Group",
             desc: "Start a new group and get a shareable code for your friends.",
             icon: Icons.add_moderator_rounded,
-            color: const Color(0xFFFF5C00),
+            color: Theme.of(context).primaryColor,
             onTap: _hostGroup,
           ),
           
@@ -259,7 +259,7 @@ class _CollaborativeSplitPageState extends State<CollaborativeSplitPage> with Ti
               keyboardType: TextInputType.number,
               textAlign: TextAlign.center,
               maxLength: 6,
-              style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w900, letterSpacing: 8, color: Color(0xFFFF5C00)),
+              style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, letterSpacing: 8, color: Theme.of(context).primaryColor),
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
               decoration: InputDecoration(
                 hintText: "000000",
@@ -278,7 +278,7 @@ class _CollaborativeSplitPageState extends State<CollaborativeSplitPage> with Ti
                   _joinGroup();
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFFF5C00),
+                  backgroundColor: Theme.of(context).primaryColor,
                   padding: const EdgeInsets.symmetric(vertical: 18),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 ),
@@ -304,12 +304,12 @@ class _CollaborativeSplitPageState extends State<CollaborativeSplitPage> with Ti
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(100),
-              border: Border.all(color: const Color(0xFFFF5C00).withValues(alpha: 0.2)),
+              border: Border.all(color: Theme.of(context).primaryColor.withValues(alpha: 0.2)),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.link_rounded, color: Color(0xFFFF5C00), size: 18),
+                Icon(Icons.link_rounded, color: Theme.of(context).primaryColor, size: 18),
                 const SizedBox(width: 12),
                 Text(
                   "CODE: $_groupCode",
@@ -333,7 +333,7 @@ class _CollaborativeSplitPageState extends State<CollaborativeSplitPage> with Ti
                 child: CircularProgressIndicator(
                   value: 1.0,
                   strokeWidth: 12,
-                  color: const Color(0xFFFF5C00).withValues(alpha: 0.1),
+                  color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
                 ),
               ),
               SizedBox(
@@ -342,7 +342,7 @@ class _CollaborativeSplitPageState extends State<CollaborativeSplitPage> with Ti
                 child: CircularProgressIndicator(
                   value: 0.75, // Simulated progress
                   strokeWidth: 12,
-                  color: const Color(0xFFFF5C00),
+                  color: Theme.of(context).primaryColor,
                   strokeCap: StrokeCap.round,
                 ),
               ),
@@ -422,7 +422,7 @@ class _CollaborativeSplitPageState extends State<CollaborativeSplitPage> with Ti
         children: [
           CircleAvatar(
             radius: 20,
-            backgroundColor: isMe ? const Color(0xFFFF5C00) : Colors.grey[200],
+            backgroundColor: isMe ? Theme.of(context).primaryColor : Colors.grey[200],
             child: Text(
               member['name'][0].toUpperCase(),
               style: TextStyle(color: isMe ? Colors.white : Colors.black87, fontWeight: FontWeight.bold),

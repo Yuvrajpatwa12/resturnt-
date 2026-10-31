@@ -53,6 +53,12 @@ try {
 
             if ($res->num_rows > 0) {
                 $user = $res->fetch_assoc();
+                if (!empty($name) && $name !== 'Diner' && $name !== 'Guest Diner' && (empty($user['name']) || $user['name'] === 'Diner' || $user['name'] === 'Guest Diner')) {
+                    $upd = $conn->prepare("UPDATE customers SET name = ? WHERE LOWER(email) = LOWER(?) AND tenant_id = ?");
+                    $upd->bind_param("sss", $name, $email, $tenant_id);
+                    $upd->execute();
+                    $user['name'] = $name;
+                }
                 $hasPin = !empty($user['pin']) && trim($user['pin']) !== '';
                 echo json_encode([
                     "status" => "success",

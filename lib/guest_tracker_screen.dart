@@ -352,8 +352,8 @@ class _GuestTrackerScreenState extends State<GuestTrackerScreen> with TickerProv
         children: [
           Container(
             padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: accentOrange.withOpacity(0.1), shape: BoxShape.circle),
-            child: const Icon(Icons.restaurant_rounded, color: accentOrange, size: 18),
+            decoration: BoxDecoration(color: Theme.of(context).primaryColor.withOpacity(0.1), shape: BoxShape.circle),
+            child: Icon(Icons.restaurant_rounded, color: Theme.of(context).primaryColor, size: 18),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -470,7 +470,7 @@ class _GuestTrackerScreenState extends State<GuestTrackerScreen> with TickerProv
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: accentOrange,
+              backgroundColor: Theme.of(context).primaryColor,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 18),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),

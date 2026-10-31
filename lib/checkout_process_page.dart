@@ -51,13 +51,13 @@ class _CheckoutProcessPageState extends State<CheckoutProcessPage> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFF5C00).withValues(alpha: 0.05),
+                      color: Theme.of(context).primaryColor.withValues(alpha: 0.05),
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: const Color(0xFFFF5C00).withValues(alpha: 0.2)),
+                      border: Border.all(color: Theme.of(context).primaryColor.withValues(alpha: 0.2)),
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.restaurant_menu_rounded, color: Color(0xFFFF5C00), size: 24),
+                        Icon(Icons.restaurant_menu_rounded, color: Theme.of(context).primaryColor, size: 24),
                         const SizedBox(width: 16),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -102,7 +102,7 @@ class _CheckoutProcessPageState extends State<CheckoutProcessPage> {
                                   Container(
                                     width: 32, height: 32,
                                     decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(8)),
-                                    child: Center(child: Text("${item.quantity}x", style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFFFF5C00)))),
+                                    child: Center(child: Text("${item.quantity}x", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Theme.of(context).primaryColor))),
                                   ),
                                   const SizedBox(width: 12),
                                   Text(item.product.title, style: const TextStyle(fontWeight: FontWeight.bold)),
@@ -149,7 +149,7 @@ class _CheckoutProcessPageState extends State<CheckoutProcessPage> {
                     const Text("Bill Total", style: TextStyle(fontSize: 16, color: Colors.grey, fontWeight: FontWeight.bold)),
                     Text(
                       "NPR ${ShopManager.instance.totalPrice.toStringAsFixed(0)}",
-                      style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Color(0xFFFF5C00)),
+                      style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Theme.of(context).primaryColor),
                     ),
                   ],
                 ),
@@ -166,12 +166,12 @@ class _CheckoutProcessPageState extends State<CheckoutProcessPage> {
                         );
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFFF5C00),
+                        backgroundColor: Theme.of(context).primaryColor,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 22),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                         elevation: 10,
-                        shadowColor: const Color(0xFFFF5C00).withValues(alpha: 0.4),
+                        shadowColor: Theme.of(context).primaryColor.withValues(alpha: 0.4),
                       ),
                       child: Text(
                         tableId == null ? "SELECT TABLE FIRST" : "Confirm & Place Order",

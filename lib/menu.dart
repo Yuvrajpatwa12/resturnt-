@@ -208,7 +208,7 @@ class _MenuPageState extends State<MenuPage> {
                   await TenantService().fetchMenuData(tenant.id);
                 }
               },
-              color: const Color(0xFFFF5C00),
+              color: Theme.of(context).primaryColor,
               backgroundColor: Colors.white,
               child: Container(
                 color: const Color(0xFFF8FAFC),
@@ -359,11 +359,11 @@ class _MenuPageState extends State<MenuPage> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(colors: [Color(0xFFFF5C00), Color(0xFFFF8C00)]),
+        gradient: LinearGradient(colors: [Theme.of(context).primaryColor, Theme.of(context).primaryColor.withValues(alpha: 0.8)]),
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFFFF5C00).withValues(alpha: 0.2),
+            color: Theme.of(context).primaryColor.withValues(alpha: 0.2),
             blurRadius: 15,
             offset: const Offset(0, 8),
           ),
@@ -442,8 +442,8 @@ class _MenuPageState extends State<MenuPage> {
             child: Row(
               children: [
                 CircleAvatar(
-                  backgroundColor: const Color(0xFFFF5C00).withValues(alpha: 0.1),
-                  child: const Icon(Icons.restaurant, color: Color(0xFFFF5C00)),
+                  backgroundColor: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                  child: Icon(Icons.restaurant, color: Theme.of(context).primaryColor),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -530,7 +530,7 @@ class _MenuPageState extends State<MenuPage> {
                               const SizedBox(height: 2),
                               Text(
                                 priceStr,
-                                style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Color(0xFFFF5C00)),
+                                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Theme.of(context).primaryColor),
                               ),
                             ],
                           ),
@@ -601,12 +601,12 @@ class _MenuPageState extends State<MenuPage> {
               label: Text(cat),
               selected: isSelected,
               onSelected: (val) => setState(() => _selectedCategory = cat),
-              selectedColor: const Color(0xFFFF5C00),
+              selectedColor: Theme.of(context).primaryColor,
               backgroundColor: Colors.white,
               labelStyle: TextStyle(color: isSelected ? Colors.white : Colors.black87, fontWeight: FontWeight.bold),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
-                side: BorderSide(color: isSelected ? const Color(0xFFFF5C00) : Colors.grey[200]!),
+                side: BorderSide(color: isSelected ? Theme.of(context).primaryColor : Colors.grey[200]!),
               ),
               showCheckmark: false,
             ),

@@ -203,7 +203,7 @@ class _SmartAuthOverlayState extends State<SmartAuthOverlay>
                   borderRadius: BorderRadius.circular(32),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFFFF5C00).withValues(alpha: 0.15),
+                      color: Theme.of(context).primaryColor.withValues(alpha: 0.15),
                       blurRadius: 30,
                       spreadRadius: 2,
                     ),
@@ -246,19 +246,20 @@ class _SmartAuthOverlayState extends State<SmartAuthOverlay>
 
   // --- CARD 1: EMAIL ENTRY ---
   Widget _buildEmailStepCard() {
+    final primaryColor = Theme.of(context).primaryColor;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
-            color: const Color(0xFFFF5C00).withValues(alpha: 0.1),
+            color: primaryColor.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
-          child: const Icon(
+          child: Icon(
             Icons.mark_email_read_rounded,
             size: 48,
-            color: Color(0xFFFF5C00),
+            color: primaryColor,
           ),
         ),
         const SizedBox(height: 20),
@@ -287,9 +288,9 @@ class _SmartAuthOverlayState extends State<SmartAuthOverlay>
             color: Color(0xFF0F172A),
           ),
           decoration: InputDecoration(
-            prefixIcon: const Icon(
+            prefixIcon: Icon(
               Icons.email_outlined,
-              color: Color(0xFFFF5C00),
+              color: primaryColor,
             ),
             hintText: "your.name@gmail.com",
             labelText: "Google Email",
@@ -305,7 +306,7 @@ class _SmartAuthOverlayState extends State<SmartAuthOverlay>
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: Color(0xFFFF5C00), width: 2),
+              borderSide: BorderSide(color: primaryColor, width: 2),
             ),
           ),
         ),
@@ -327,10 +328,10 @@ class _SmartAuthOverlayState extends State<SmartAuthOverlay>
           child: ElevatedButton(
             onPressed: _isCheckingEmail ? null : _handleEmailSubmit,
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFFF5C00),
+              backgroundColor: primaryColor,
               foregroundColor: Colors.white,
               elevation: 4,
-              shadowColor: const Color(0xFFFF5C00).withValues(alpha: 0.4),
+              shadowColor: primaryColor.withValues(alpha: 0.4),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
@@ -541,6 +542,7 @@ class _SmartAuthOverlayState extends State<SmartAuthOverlay>
 
   // --- CARD 3: THANKS FOR REGISTERING (NEW USER REGISTRATION) ---
   Widget _buildThanksRegisterCard() {
+    final primaryColor = Theme.of(context).primaryColor;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -549,15 +551,15 @@ class _SmartAuthOverlayState extends State<SmartAuthOverlay>
           child: Container(
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFFFF5C00), Color(0xFFFF8A00)],
+              gradient: LinearGradient(
+                colors: [primaryColor, primaryColor.withValues(alpha: 0.8)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFFFF5C00).withValues(alpha: 0.35),
+                  color: primaryColor.withValues(alpha: 0.35),
                   blurRadius: 20,
                   spreadRadius: 4,
                 ),
@@ -585,13 +587,13 @@ class _SmartAuthOverlayState extends State<SmartAuthOverlay>
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
           decoration: BoxDecoration(
-            color: const Color(0xFFFF5C00).withValues(alpha: 0.1),
+            color: primaryColor.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Text(
             _emailCtrl.text.trim(),
-            style: const TextStyle(
-              color: Color(0xFFFF5C00),
+            style: TextStyle(
+              color: primaryColor,
               fontWeight: FontWeight.bold,
               fontSize: 12,
             ),
@@ -631,7 +633,7 @@ class _SmartAuthOverlayState extends State<SmartAuthOverlay>
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(20),
-              borderSide: const BorderSide(color: Color(0xFFFF5C00), width: 2),
+              borderSide: BorderSide(color: primaryColor, width: 2),
             ),
           ),
         ),
@@ -653,10 +655,10 @@ class _SmartAuthOverlayState extends State<SmartAuthOverlay>
           child: ElevatedButton(
             onPressed: _isSubmittingPin ? null : _handlePinSubmit,
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFFF5C00),
+              backgroundColor: primaryColor,
               foregroundColor: Colors.white,
               elevation: 4,
-              shadowColor: const Color(0xFFFF5C00).withValues(alpha: 0.4),
+              shadowColor: primaryColor.withValues(alpha: 0.4),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),

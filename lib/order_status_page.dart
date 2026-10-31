@@ -95,7 +95,7 @@ class OrderStatusPage extends StatelessWidget {
                             style: const TextStyle(color: Colors.black54, fontSize: 13),
                           ),
                           
-                          if (status == OrderStatus.preparing) ...[
+                          if (status == OrderStatus.pending || status == OrderStatus.approved || status == OrderStatus.preparing || status == OrderStatus.ready) ...[
                             const Divider(height: 40),
                             _buildBoredSection(context),
                           ],
@@ -297,7 +297,7 @@ class OrderStatusPage extends StatelessWidget {
                 width: double.infinity,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFFF5C00),
+                    backgroundColor: Theme.of(context).primaryColor,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   ),

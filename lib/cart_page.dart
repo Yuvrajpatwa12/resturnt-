@@ -163,7 +163,7 @@ class CartPage extends StatelessWidget {
                                 const SizedBox(height: 4),
                                 Text(
                                   item.product.price,
-                                  style: const TextStyle(color: Color(0xFFFF5C00), fontWeight: FontWeight.bold),
+                                  style: TextStyle(color: Theme.of(context).primaryColor, fontWeight: FontWeight.bold),
                                 ),
                                 const SizedBox(height: 8),
                                 Row(
@@ -211,7 +211,7 @@ class CartPage extends StatelessWidget {
                         const Text("Total Amount", style: TextStyle(fontSize: 16, color: Colors.grey)),
                         Text(
                           "NPR ${ShopManager.instance.totalPrice.toStringAsFixed(0)}",
-                          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFFFF5C00)),
+                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Theme.of(context).primaryColor),
                         ),
                       ],
                     ),
@@ -222,9 +222,9 @@ class CartPage extends StatelessWidget {
                         onPressed: () {
                           if (ShopManager.instance.selectedTableId.value == null) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text("Please select your table number first!"),
-                                backgroundColor: Color(0xFFFF5C00),
+                              SnackBar(
+                                content: const Text("Please select your table number first!"),
+                                backgroundColor: Theme.of(context).primaryColor,
                               ),
                             );
                             ShopManager.instance.currentTabIndex.value = 0; // Go Home to select table
@@ -236,7 +236,7 @@ class CartPage extends StatelessWidget {
                           );
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFFF5C00),
+                          backgroundColor: Theme.of(context).primaryColor,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),

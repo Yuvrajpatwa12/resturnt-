@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../services/api_service.dart';
 import 'styles.dart';
 import 'screens/overview_screen.dart';
 import 'screens/client_management_screen.dart';
@@ -19,6 +20,8 @@ class SuperAdminMasterHub extends StatefulWidget {
 class _SuperAdminMasterHubState extends State<SuperAdminMasterHub> {
   int _selectedIndex = 0;
   bool _isSidebarCollapsed = false;
+  bool _isAuthenticated = false;
+  bool _isCheckingAuth = true;
 
   final List<Map<String, dynamic>> _menuItems = [
     {'title': 'Command Center', 'icon': Icons.dashboard_rounded, 'screen': const OverviewScreen()},
@@ -32,7 +35,48 @@ class _SuperAdminMasterHubState extends State<SuperAdminMasterHub> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _checkSuperAdminAuth();
+  }
+
+  Future<void> _checkSuperAdminAuth() async {
+    final token = await ApiService.getSuperAdminToken();
+    if (mounted) {
+      setState(() {
+        _isAuthenticated = token != null && token.isNotEmpty;
+        _isCheckingAuth = false;
+      });
+    }
+  }
+
+  void _handleLogout() {
+    ApiService.setSuperAdminToken(null);
+    setState(() {
+      _isAuthenticated = false;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_isCheckingAuth) {
+      return const Scaffold(
+        backgroundColor: SAMStyles.pearlWhite,
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (!_isAuthenticated) {
+      return AuthSecurityScreens(
+        mode: "Login",
+        onAuthenticated: () {
+          setState(() {
+            _isAuthenticated = true;
+          });
+        },
+      );
+    }
+
     return Theme(
       data: SAMStyles.theme,
       child: Scaffold(
@@ -172,7 +216,11 @@ class _SuperAdminMasterHubState extends State<SuperAdminMasterHub> {
       ),
       child: Row(
         children: [
-          IconButton(onPressed: () => Navigator.pushReplacementNamed(context, '/customer'), icon: const Icon(Icons.logout_rounded, color: Colors.redAccent, size: 20)),
+          IconButton(
+            onPressed: _handleLogout,
+            icon: const Icon(Icons.logout_rounded, color: Colors.redAccent, size: 20),
+            tooltip: "Logout Super Admin",
+          ),
           const SizedBox(width: 16),
           Text(
             _menuItems[_selectedIndex]['title'],
@@ -186,7 +234,7 @@ class _SuperAdminMasterHubState extends State<SuperAdminMasterHub> {
               children: [
                 CircleAvatar(radius: 3, backgroundColor: Colors.blue),
                 SizedBox(width: 8),
-                Text("NETWORK: SECURE (VPN)", style: TextStyle(color: Colors.blue, fontSize: 9, fontWeight: FontWeight.w900)),
+                Text("SUPER ADMIN: AUTHENTICATED", style: TextStyle(color: Colors.blue, fontSize: 9, fontWeight: FontWeight.w900)),
               ],
             ),
           ),

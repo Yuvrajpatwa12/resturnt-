@@ -34,11 +34,19 @@ class CartItem {
   });
 }
 
-class ShopManager {
+class ShopManager with WidgetsBindingObserver {
   static final ShopManager instance = ShopManager._internal();
   factory ShopManager() => instance;
 
   Future<void>? _initFuture;
+  Timer? _orderStatusTimer;
+  Timer? _musicTimer;
+  Timer? _notificationsTimer;
+  Timer? _waveTimer;
+  Timer? _presenceTimer;
+  bool _isAppInForeground = true;
+  String? _lastRegisteredFcmToken;
+  String? _lastRegisteredFcmKey;
 
   Future<void> ensureInitialized() async {
     _initFuture ??= _loadPersistedOrder();
@@ -46,6 +54,7 @@ class ShopManager {
   }
 
   ShopManager._internal() {
+    WidgetsBinding.instance.addObserver(this);
     _startGlobalTimer();
     _initFuture = _loadPersistedOrder();
     _startPresenceCheckIn();
@@ -67,6 +76,52 @@ class ShopManager {
     socialVibration.addListener(_persistGenericSettings);
   }
 
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached ||
+        state == AppLifecycleState.hidden) {
+      _isAppInForeground = false;
+      _stopBackgroundPolling();
+    } else if (state == AppLifecycleState.resumed) {
+      _isAppInForeground = true;
+      _resumeBackgroundPolling();
+    }
+  }
+
+  void _stopBackgroundPolling() {
+    _musicTimer?.cancel();
+    _notificationsTimer?.cancel();
+    _waveTimer?.cancel();
+    _presenceTimer?.cancel();
+    _orderSyncTimer?.cancel();
+    _chatTimer?.cancel();
+    _orderStatusTimer?.cancel();
+    _sessionPoller?.cancel();
+  }
+
+  void _resumeBackgroundPolling() {
+    _startMusicPoller();
+    _startWavePoller();
+    _startNotificationsPoller();
+    _startPresenceCheckIn();
+    _startOrderSyncPoller();
+    _startChatPoller();
+    if (activeOrderId.value != null) _startStatusSync();
+    if (activeSessionId.value != null) {
+      startSessionPolling(
+        activeSessionId.value!,
+        isSessionHost.value,
+        pin: activeSessionPin.value,
+      );
+    }
+    refreshNotifications();
+    refreshConversations();
+    _pollIncomingWaves();
+    updatePresenceOnServer();
+    _syncOrderChanges();
+  }
+
   void _persistGenericSettings() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('show_table_number', showTableNumber.value);
@@ -82,18 +137,23 @@ class ShopManager {
 
   void _startOrderSyncPoller() {
     _orderSyncTimer?.cancel();
+    if (!_isAppInForeground) return;
     _orderSyncTimer = Timer.periodic(const Duration(seconds: 15), (
       timer,
     ) async {
-      final tenant = TenantService().currentTenant.value;
-      if (tenant == null) return;
-
-      final serverTimestamp = await ApiService.checkOrderChange(tenant.id);
-      if (serverTimestamp > _lastOrderSyncTimestamp) {
-        await refreshLiveOrders();
-        _lastOrderSyncTimestamp = serverTimestamp;
-      }
+      await _syncOrderChanges();
     });
+  }
+
+  Future<void> _syncOrderChanges() async {
+    final tenant = TenantService().currentTenant.value;
+    if (tenant == null) return;
+
+    final serverTimestamp = await ApiService.checkOrderChange(tenant.id);
+    if (serverTimestamp > _lastOrderSyncTimestamp) {
+      await refreshLiveOrders();
+      _lastOrderSyncTimestamp = serverTimestamp;
+    }
   }
 
   // --- CHAT POLLING ---
@@ -105,6 +165,7 @@ class ShopManager {
 
   void _startChatPoller() {
     _chatTimer?.cancel();
+    if (!_isAppInForeground) return;
     _chatTimer = Timer.periodic(
       const Duration(seconds: 20),
       (timer) => refreshConversations(),
@@ -189,7 +250,12 @@ class ShopManager {
   }
 
   void _startMusicPoller() {
-    Timer.periodic(const Duration(seconds: 5), (timer) => refreshMusicStatus());
+    _musicTimer?.cancel();
+    if (!_isAppInForeground) return;
+    _musicTimer = Timer.periodic(
+      const Duration(seconds: 5),
+      (timer) => refreshMusicStatus(),
+    );
     refreshMusicStatus();
   }
 
@@ -432,21 +498,32 @@ class ShopManager {
 
   Future<void> acknowledgeNotification(int notificationId) async {
     final tenant = TenantService().currentTenant.value;
-    if (tenant == null ||
+    if (tenant == null || !isEmailSynced.value ||
         customerSessionToken.isEmpty ||
         customerEmail.value.isEmpty) {
       return;
     }
-    await ApiService.acknowledgeNotification(
+    final acknowledged = await ApiService.acknowledgeNotification(
       tenantId: tenant.id,
       userId: customerEmail.value,
       notificationId: notificationId,
       sessionToken: customerSessionToken,
     );
+    if (acknowledged) {
+      notificationsList.value = notificationsList.value.map((item) {
+        if (int.tryParse(item['id']?.toString() ?? '') == notificationId) {
+          return {...item, 'is_read': 1};
+        }
+        return item;
+      }).toList();
+      await _cacheNotifications(tenant.id, orderUserId, notificationsList.value);
+    }
   }
 
   void _startNotificationsPoller() {
-    Timer.periodic(
+    _notificationsTimer?.cancel();
+    if (!_isAppInForeground) return;
+    _notificationsTimer = Timer.periodic(
       const Duration(seconds: 15),
       (timer) => refreshNotifications(),
     );
@@ -460,67 +537,166 @@ class ShopManager {
 
   Future<void> refreshNotifications() async {
     final tenant = TenantService().currentTenant.value;
-    if (tenant == null || currentUserId.isEmpty) return;
-    final data = await ApiService.fetchNotifications(
-      tenant.id,
-      currentUserId,
-      sessionToken: customerSessionToken,
-    );
-    if (data != null && data['status'] == 'success') {
-      final newList = List<Map<String, dynamic>>.from(data['data'] ?? []);
-      final newUnseen = (data['unseen_count'] ?? 0) as int;
+    if (tenant == null || orderUserId.isEmpty) return;
+    final uid = orderUserId;
+    final cached = await _readCachedNotifications(tenant.id, uid);
+    if (cached.isNotEmpty) {
+      notificationsList.value = cached;
+      final cachedUnseen = cached.where((item) {
+        final value = item['is_read'];
+        return value == 0 || value == false || value?.toString() == '0';
+      }).length;
+      unseenNotificationsCount.value = cachedUnseen;
+      _lastUnseenCount = cachedUnseen;
+    }
 
-      // Trigger top banner overlay on newly arrived notifications
-      if (newUnseen > _lastUnseenCount && newList.isNotEmpty) {
-        final topNotif = newList.first;
-        latestIncomingPush.value = {
-          'title': topNotif['title'] ?? 'New Notification',
-          'body': topNotif['message'] ?? '',
+    try {
+      final data = await ApiService.fetchNotifications(
+        tenant.id,
+        uid,
+        sessionToken: customerSessionToken,
+      );
+      if (data != null && data['status'] == 'success') {
+        final serverList = List<Map<String, dynamic>>.from(
+          data['data'] ?? [],
+        );
+        final byId = <String, Map<String, dynamic>>{
+          for (final item in cached)
+            if (item['id'] != null) item['id'].toString(): item,
         };
-      }
+        for (final item in serverList) {
+          final id = item['id']?.toString();
+          if (id != null && id.isNotEmpty) byId[id] = item;
+        }
+        final merged = byId.values.toList()
+          ..sort((a, b) {
+            final aDate = DateTime.tryParse(a['created_at']?.toString() ?? '');
+            final bDate = DateTime.tryParse(b['created_at']?.toString() ?? '');
+            if (aDate == null || bDate == null) return 0;
+            return bDate.compareTo(aDate);
+          });
+        final serverUnseen =
+            int.tryParse(data['unseen_count']?.toString() ?? '') ?? 0;
+        final cachedUnseen = merged.where((item) {
+          final value = item['is_read'];
+          return value == 0 || value == false || value?.toString() == '0';
+        }).length;
+        final unseen = serverUnseen > cachedUnseen
+            ? serverUnseen
+            : cachedUnseen;
 
-      _hasLoadedNotifications = true;
-      _lastUnseenCount = newUnseen;
-      notificationsList.value = newList;
-      unseenNotificationsCount.value = newUnseen;
+        if (_hasLoadedNotifications &&
+            unseen > _lastUnseenCount &&
+            merged.isNotEmpty) {
+          final topNotif = merged.first;
+          latestIncomingPush.value = {
+            'title': topNotif['title'] ?? 'New Notification',
+            'body': topNotif['message'] ?? '',
+          };
+        }
+
+        _hasLoadedNotifications = true;
+        _lastUnseenCount = unseen;
+        notificationsList.value = merged;
+        unseenNotificationsCount.value = unseen;
+        await _cacheNotifications(tenant.id, uid, merged);
+      }
+    } catch (error) {
+      debugPrint("Notification refresh failed: $error");
+    }
+  }
+
+  String _notificationCacheKey(String tenantId, String userId) =>
+      'notifications_${Uri.encodeComponent(tenantId)}_${Uri.encodeComponent(userId)}';
+
+  Future<List<Map<String, dynamic>>> _readCachedNotifications(
+    String tenantId,
+    String userId,
+  ) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final encoded = prefs.getString(_notificationCacheKey(tenantId, userId));
+      if (encoded == null || encoded.isEmpty) return [];
+      final decoded = json.decode(encoded);
+      if (decoded is! List) return [];
+      return decoded
+          .whereType<Map>()
+          .map((item) => Map<String, dynamic>.from(item))
+          .toList();
+    } catch (error) {
+      debugPrint("Could not load cached notifications: $error");
+      return [];
+    }
+  }
+
+  Future<void> _cacheNotifications(
+    String tenantId,
+    String userId,
+    List<Map<String, dynamic>> notifications,
+  ) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(
+        _notificationCacheKey(tenantId, userId),
+        json.encode(notifications),
+      );
+    } catch (error) {
+      debugPrint("Could not save cached notifications: $error");
     }
   }
 
   Future<void> clearNotificationBadge() async {
     final tenant = TenantService().currentTenant.value;
-    if (tenant == null || currentUserId.isEmpty) return;
+    if (tenant == null || orderUserId.isEmpty) return;
     if (await ApiService.markNotificationsRead(
       tenant.id,
-      currentUserId,
+      orderUserId,
       sessionToken: customerSessionToken,
     )) {
       _lastUnseenCount = 0;
       unseenNotificationsCount.value = 0;
+      notificationsList.value = notificationsList.value
+          .map((item) => {...item, 'is_read': 1})
+          .toList();
+      await _cacheNotifications(
+        tenant.id,
+        orderUserId,
+        notificationsList.value,
+      );
     }
   }
 
   void _startWavePoller() {
-    Timer.periodic(const Duration(seconds: 12), (timer) async {
-      final tenant = TenantService().currentTenant.value;
-      if (tenant != null && currentUserId.isNotEmpty) {
-        final waves = await ApiService.fetchWaves(tenant.id, currentUserId);
-        if (waves != null && waves.isNotEmpty) {
-          try {
-            HapticFeedback.mediumImpact();
-          } catch (_) {}
+    _waveTimer?.cancel();
+    if (!_isAppInForeground) return;
+    _waveTimer = Timer.periodic(
+      const Duration(seconds: 12),
+      (timer) => _pollIncomingWaves(),
+    );
+  }
 
-          final senderName = waves.first['user_name'] ?? 'Someone';
-          latestIncomingPush.value = {
-            'title': '👋 Digital Wave!',
-            'body': '$senderName waved at you from their table!',
-          };
-        }
-      }
-    });
+  Future<void> _pollIncomingWaves() async {
+    final tenant = TenantService().currentTenant.value;
+    if (tenant == null || currentUserId.isEmpty) return;
+
+    final waves = await ApiService.fetchWaves(tenant.id, currentUserId);
+    if (waves != null && waves.isNotEmpty) {
+      try {
+        HapticFeedback.mediumImpact();
+      } catch (_) {}
+
+      final senderName = waves.first['user_name'] ?? 'Someone';
+      latestIncomingPush.value = {
+        'title': '👋 Digital Wave!',
+        'body': '$senderName waved at you from their table!',
+      };
+    }
   }
 
   void _startPresenceCheckIn() {
-    Timer.periodic(
+    _presenceTimer?.cancel();
+    if (!_isAppInForeground) return;
+    _presenceTimer = Timer.periodic(
       const Duration(seconds: 45),
       (timer) => updatePresenceOnServer(),
     );
@@ -585,6 +761,16 @@ class ShopManager {
       startSessionPolling(sid, isHost, pin: pin);
     }
 
+    // RESTORE LOCAL CUSTOMER NAME AND GENDER IF SAVED
+    String? savedName = prefs.getString('customer_name');
+    if (savedName != null && savedName.trim().isNotEmpty) {
+      customerName.value = savedName.trim();
+    }
+    String? savedGender = prefs.getString('user_gender');
+    if (savedGender != null && savedGender.trim().isNotEmpty) {
+      userGender.value = savedGender.trim();
+    }
+
     // AUTO-RESTORE CUSTOMER SESSION (5-MINUTE TIMEOUT RULE)
     String? savedEmail = prefs.getString('customer_email');
     customerSessionToken = prefs.getString('customer_session_token') ?? '';
@@ -607,7 +793,15 @@ class ShopManager {
       // Fetch user profile & refresh exact points from database
       final res = await syncCustomerIdentity(savedEmail);
       if (res != null && res['user'] != null) {
-        customerName.value = res['user']['name'] ?? 'Guest';
+        final dbName = res['user']['name']?.toString().trim();
+        if (dbName != null &&
+            dbName.isNotEmpty &&
+            dbName != 'Diner' &&
+            dbName != 'Guest Diner' &&
+            dbName != 'Guest') {
+          customerName.value = dbName;
+          await prefs.setString('customer_name', dbName);
+        }
         userPoints.value =
             int.tryParse(res['user']['points']?.toString() ?? '0') ?? 0;
         orderStampCount.value =
@@ -636,10 +830,23 @@ class ShopManager {
     }
     guestId.value = gId;
 
-    final savedIds = prefs.getStringList('active_order_ids');
-    if (savedIds != null && savedIds.isNotEmpty) {
-      activeOrderIds.value = savedIds.map((id) => int.parse(id)).toList();
-      isOrderActive.value = true;
+    final savedIds = prefs.getStringList('active_order_ids') ?? [];
+    final restoredIds = savedIds
+        .map((id) => int.tryParse(id))
+        .whereType<int>()
+        .toList();
+    activeOrderIds.value = restoredIds;
+    final savedActiveId = prefs.getInt('active_order_id');
+    final activeOrderStateInitialized =
+        prefs.getBool('active_order_state_initialized') ?? false;
+    activeOrderId.value = savedActiveId ??
+        (!activeOrderStateInitialized && restoredIds.isNotEmpty
+            ? restoredIds.last
+            : null);
+    isOrderActive.value = activeOrderId.value != null;
+    if (activeOrderId.value != null) {
+      final savedStatus = prefs.getString('active_order_status');
+      if (savedStatus != null) _mapStatus(savedStatus);
       _startStatusSync();
     }
 
@@ -647,6 +854,7 @@ class ShopManager {
     await refreshUserPoints();
     await refreshSocialStats();
     await fetchSocialLists();
+    await refreshNotifications();
     await fetchReviews(); // Fetch reviews on load
     checkNotificationPermission();
   }
@@ -659,7 +867,27 @@ class ShopManager {
     else if (!current.contains(id.toString()))
       current.add(id.toString());
     await prefs.setStringList('active_order_ids', current);
-    activeOrderIds.value = current.map((e) => int.parse(e)).toList();
+    activeOrderIds.value = current
+        .map((e) => int.tryParse(e))
+        .whereType<int>()
+        .toList();
+    if (isRemove) {
+      if (prefs.getInt('active_order_id') == id) {
+        final nextActiveId = current.isEmpty ? null : int.tryParse(current.last);
+        if (nextActiveId == null) {
+          await prefs.remove('active_order_id');
+        } else {
+          await prefs.setInt('active_order_id', nextActiveId);
+        }
+        activeOrderId.value = nextActiveId;
+      }
+    } else {
+      await prefs.setInt('active_order_id', id);
+      await prefs.setString('active_order_status', 'Pending');
+      await prefs.setBool('active_order_state_initialized', true);
+      activeOrderId.value = id;
+      orderStatus.value = OrderStatus.pending;
+    }
   }
 
   void _startGlobalTimer() {
@@ -762,9 +990,15 @@ class ShopManager {
   }
 
   String get currentUserId {
+    return orderUserId;
+  }
+
+  String get orderUserId {
     final staff = TenantService().currentStaff.value;
     if (staff != null) return staff.id.toString();
-    if (customerEmail.value.isNotEmpty) return customerEmail.value;
+    if (isEmailSynced.value && customerEmail.value.trim().isNotEmpty) {
+      return customerEmail.value.trim();
+    }
     return ensureGuestId();
   }
 
@@ -867,19 +1101,38 @@ class ShopManager {
       requestsList.value = List<Map<String, dynamic>>.from(requests);
     if (friends != null)
       friendsList.value = List<Map<String, dynamic>>.from(friends);
+    final activeId = activeOrderId.value;
+    final activeIds = activeOrderIds.value;
+    final orderIdsSet = <int>{
+      if (activeId != null && activeId > 0) activeId,
+      ...activeIds.where((i) => i > 0),
+    };
+    final orderIdsStr = orderIdsSet.isNotEmpty ? orderIdsSet.join(',') : null;
+
     final orderData = await ApiService.fetchUserOrders(
       tenant.id,
-      currentUserId,
+      orderUserId,
+      customerEmail: customerEmail.value,
+      guestId: guestId.value,
+      orderIds: orderIdsStr,
     );
     int countFromApi = 0;
     if (orderData != null) {
-      countFromApi = orderData['total_count'] ?? 0;
+      countFromApi =
+          int.tryParse(orderData['total_count']?.toString() ?? '') ?? 0;
       double maxAmt =
           double.tryParse(orderData['max_amount']?.toString() ?? '0') ?? 0;
       if (maxAmt >= 1000) _checkAndSetQualifiedOrder(maxAmt);
     }
+    final cachedOrders = await ApiService.getCachedUserOrders(
+      tenant.id,
+      orderUserId,
+    );
     int localCount = activeOrderIds.value.length;
-    totalOrdersCount.value = max(countFromApi, localCount);
+    totalOrdersCount.value = max(
+      max(countFromApi, cachedOrders.length),
+      localCount,
+    );
   }
 
   // --- REVIEWS ---
@@ -1016,6 +1269,30 @@ class ShopManager {
               int.tryParse(data['order_count']?.toString() ?? '0') ?? 0;
         }
       }
+    }
+  }
+
+  Future<void> refreshUserOrdersCount() async {
+    final tenant = TenantService().currentTenant.value;
+    if (tenant == null) return;
+    try {
+      final cached = await ApiService.getCachedUserOrders(tenant.id, currentUserId);
+      final res = await ApiService.fetchUserOrders(
+        tenant.id,
+        currentUserId,
+        customerEmail: isEmailSynced.value ? customerEmail.value : null,
+      );
+      List orders = [];
+      if (res != null && res['orders'] is List) {
+        orders = res['orders'];
+      }
+      if (cached.length > orders.length) {
+        totalOrdersCount.value = cached.length;
+      } else {
+        totalOrdersCount.value = orders.length;
+      }
+    } catch (e) {
+      debugPrint("Error refreshing user orders count: $e");
     }
   }
 
@@ -1181,6 +1458,7 @@ class ShopManager {
   }
 
   Future<Map<String, dynamic>> confirmTableOrderWithResult(int tableId) async {
+    await ensureInitialized();
     final tenant = TenantService().currentTenant.value;
     if (tenant == null) return {"success": false};
     final List<CartItem> newItems = tableOrders.value[tableId] ?? [];
@@ -1198,7 +1476,8 @@ class ShopManager {
     final result = await ApiService.placeTableOrder({
       "tenant_id": tenant.id,
       "table_number": tableId,
-      "user_id": currentUserId,
+      "user_id": orderUserId,
+      "customer_email": isEmailSynced.value ? customerEmail.value : '',
       "total_amount": total,
       "items": itemsJson,
     });
@@ -1416,9 +1695,12 @@ class ShopManager {
       isOnboardingComplete.value = true;
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('onboarding_complete', true);
+      await prefs.setString('customer_name', name);
+      await prefs.setString('user_gender', gender);
       await refreshSocialStats();
       await fetchSocialLists();
       await setupPushNotifications();
+      await updatePresenceOnServer();
       return true;
     }
     return false;
@@ -1491,12 +1773,31 @@ class ShopManager {
       debugPrint('FCM did not return a registration token.');
       return false;
     }
+
+    final registrationKey =
+        'fcm_registered_token_${Uri.encodeComponent(tenant.id)}_${Uri.encodeComponent(userId)}';
+    final prefs = await SharedPreferences.getInstance();
+    final persistedToken = prefs.getString(registrationKey);
+    if ((token == _lastRegisteredFcmToken &&
+            registrationKey == _lastRegisteredFcmKey) ||
+        token == persistedToken) {
+      _lastRegisteredFcmToken = token;
+      _lastRegisteredFcmKey = registrationKey;
+      return true;
+    }
+
     final saved = await ApiService.updateFcmToken(
       tenantId: tenant.id,
       userId: userId,
       token: token,
     );
-    if (!saved) debugPrint('Server did not save the FCM registration token.');
+    if (saved) {
+      _lastRegisteredFcmToken = token;
+      _lastRegisteredFcmKey = registrationKey;
+      await prefs.setString(registrationKey, token);
+    } else {
+      debugPrint('Server did not save the FCM registration token.');
+    }
     return saved;
   }
 
@@ -1660,6 +1961,8 @@ class ShopManager {
       return;
     }
 
+    await ensureInitialized();
+
     // Default table ID to 1 if not set
     if (selectedTableId.value == null || selectedTableId.value! <= 0) {
       selectedTableId.value = 1;
@@ -1689,13 +1992,14 @@ class ShopManager {
         .toList();
 
     int? confirmedOrderId;
+    final orderUserIdForSubmission = orderUserId;
 
     try {
       final result = await ApiService.placeTableOrder({
         "tenant_id": tenantId,
         "table_number": selectedTableId.value,
-        "user_id": currentUserId,
-        "customer_email": customerEmail.value,
+        "user_id": orderUserIdForSubmission,
+        "customer_email": isEmailSynced.value ? customerEmail.value : '',
         "total_amount": total,
         "items": itemsJson,
       });
@@ -1711,7 +2015,24 @@ class ShopManager {
     }
 
     // Fallback: If server request failed/offline, generate a local fallback order ID
-    confirmedOrderId ??= (DateTime.now().millisecondsSinceEpoch % 900000) + 100000;
+    confirmedOrderId ??=
+        (DateTime.now().millisecondsSinceEpoch % 900000) + 100000;
+
+    await ApiService.cacheUserOrders(tenantId, orderUserIdForSubmission, [
+      {
+        "id": confirmedOrderId,
+        "tenant_id": tenantId,
+        "table_number": selectedTableId.value,
+        "user_id": orderUserIdForSubmission,
+        "customer_email": isEmailSynced.value ? customerEmail.value : '',
+        "total_amount": total,
+        "status": "Pending",
+        "created_at": DateTime.now().toIso8601String(),
+        "items": itemsJson
+            .map((item) => {...item, "product_name": item["name"]})
+            .toList(),
+      },
+    ]);
 
     _checkAndSetQualifiedOrder(total);
     activeOrderId.value = confirmedOrderId;
@@ -1721,9 +2042,7 @@ class ShopManager {
         .map(
           (i) => {
             'title': i.product.title,
-            'who': customerName.value.isNotEmpty
-                ? customerName.value
-                : "Host",
+            'who': customerName.value.isNotEmpty ? customerName.value : "Host",
             'status': 'Kitchen',
             'price': i.product.price,
             'image': i.product.image,
@@ -1739,7 +2058,10 @@ class ShopManager {
       debugPrint("Order was saved, but local order history failed: $e");
     }
 
-    totalOrdersCount.value = max(totalOrdersCount.value + 1, activeOrderIds.value.length);
+    totalOrdersCount.value = max(
+      totalOrdersCount.value + 1,
+      activeOrderIds.value.length,
+    );
 
     clearCart();
     isOrderActive.value = true;
@@ -1747,45 +2069,58 @@ class ShopManager {
   }
 
   void _startStatusSync() {
-    Timer.periodic(const Duration(seconds: 15), (timer) async {
-      if (activeOrderId.value == null) {
-        timer.cancel();
-        return;
+    _orderStatusTimer?.cancel();
+    if (!_isAppInForeground) return;
+    Future<void> syncStatus() async {
+      final id = activeOrderId.value;
+      if (id == null) return;
+      final live = await ApiService.fetchOrderStatus(id);
+      if (live == null) return;
+      _mapStatus(live);
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('active_order_status', live);
+      if (live.toLowerCase() == 'completed' ||
+          live.toLowerCase() == 'cancelled' ||
+          live.toLowerCase() == 'canceled') {
+        isOrderActive.value = false;
+        _orderStatusTimer?.cancel();
       }
-      final live = await ApiService.fetchOrderStatus(activeOrderId.value!);
-      if (live != null) {
-        if (live == 'Pending')
-          orderStatus.value = OrderStatus.pending;
-        else if (live == 'Approved')
-          orderStatus.value = OrderStatus.approved;
-        else if (live == 'Preparing')
-          orderStatus.value = OrderStatus.preparing;
-        else if (live == 'Ready')
-          orderStatus.value = OrderStatus.ready;
-        else if (live == 'Completed') {
-          isOrderActive.value = false;
-          timer.cancel();
-        }
-      }
-    });
+    }
+
+    syncStatus();
+    _orderStatusTimer = Timer.periodic(
+      const Duration(seconds: 15),
+      (_) => syncStatus(),
+    );
   }
 
   void _mapStatus(String dbStatus) {
-    if (dbStatus == 'Pending')
-      orderStatus.value = OrderStatus.pending;
-    else if (dbStatus == 'Approved')
-      orderStatus.value = OrderStatus.approved;
-    else if (dbStatus == 'Preparing')
-      orderStatus.value = OrderStatus.preparing;
-    else if (dbStatus == 'Ready')
-      orderStatus.value = OrderStatus.ready;
+    switch (dbStatus.trim().toLowerCase()) {
+      case 'approved':
+        orderStatus.value = OrderStatus.approved;
+        break;
+      case 'preparing':
+        orderStatus.value = OrderStatus.preparing;
+        break;
+      case 'ready':
+      case 'onway':
+        orderStatus.value = OrderStatus.ready;
+        break;
+      default:
+        orderStatus.value = OrderStatus.pending;
+    }
   }
 
   Future<void> clearActiveOrder() async {
+    _orderStatusTimer?.cancel();
     isOrderActive.value = false;
     activeOrderId.value = null;
     placedOrderItems.value = [];
     orderStatus.value = OrderStatus.pending;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('active_order_state_initialized', true);
+    await prefs.remove('active_order_id');
+    await prefs.remove('active_order_status');
   }
 
   // --- GAMIFICATION ---
@@ -1866,11 +2201,13 @@ class ShopManager {
     _lastSyncTime = null;
     _failedSyncCount = 0;
     _sessionPoller?.cancel();
-    _sessionPoller = Timer.periodic(
-      const Duration(seconds: 8),
-      (timer) => syncSessionData(),
-    );
-    syncSessionData(); // Initial immediate sync
+    if (_isAppInForeground) {
+      _sessionPoller = Timer.periodic(
+        const Duration(seconds: 8),
+        (timer) => syncSessionData(),
+      );
+      syncSessionData();
+    }
 
     // PERSIST SESSION
     final prefs = await SharedPreferences.getInstance();

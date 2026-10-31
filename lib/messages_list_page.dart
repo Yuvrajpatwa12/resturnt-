@@ -33,7 +33,7 @@ class _MessagesListPageState extends State<MessagesListPage> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh, color: Color(0xFFFF5C00), size: 20),
+            icon: Icon(Icons.refresh, color: Theme.of(context).primaryColor, size: 20),
             onPressed: () => ShopManager.instance.refreshConversations(),
           ),
         ],
@@ -132,8 +132,8 @@ class _MessagesListPageState extends State<MessagesListPage> {
                           if (hasUnread)
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: const BoxDecoration(
-                                color: Color(0xFFFF5C00),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).primaryColor,
                                 shape: BoxShape.circle,
                               ),
                               child: Text(

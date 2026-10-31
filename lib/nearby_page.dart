@@ -3,6 +3,7 @@ import 'dart:async';
 import 'cart_manager.dart';
 import 'messages_list_page.dart';
 import 'user_profile_view_page.dart';
+import 'squad_lobby_page.dart';
 import 'services/tenant_service.dart';
 import 'services/notification_sound_stub.dart'
     if (dart.library.js_interop) 'services/notification_sound_web.dart'
@@ -43,6 +44,76 @@ class _NearbyPageState extends State<NearbyPage> {
     super.dispose();
   }
 
+  Future<void> _inviteUserToTapWar(String targetUserId, String displayName) async {
+    final tenant = TenantService().currentTenant.value;
+    if (tenant == null) return;
+    final myId = ShopManager.instance.currentUserId;
+    final tableId = ShopManager.instance.selectedTableId.value ?? 1;
+
+    final order = await ApiService.fetchLatestOrder(tenant.id, myId);
+    if (order == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("You need an active order (Pending or Cooking) to host a Tap War squad!")),
+        );
+      }
+      return;
+    }
+    final orderStatus = (order['status'] ?? '').toString().toLowerCase();
+    if (orderStatus != 'pending' && orderStatus != 'cooking' && orderStatus != 'preparing') {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Your order is already served. Tap War squads are only available during dining preparation.")),
+        );
+      }
+      return;
+    }
+
+    final squadRes = await ApiService.createSquad(
+      tenantId: tenant.id,
+      userId: myId,
+      tableId: tableId,
+    );
+
+    if (squadRes == null || squadRes['status'] != 'success') {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(squadRes?['message'] ?? "Could not create squad")),
+        );
+      }
+      return;
+    }
+
+    final int squadId = squadRes['squad_id'];
+
+    final inviteRes = await ApiService.inviteToSquad(
+      tenantId: tenant.id,
+      userId: myId,
+      squadId: squadId,
+      invitedUserId: targetUserId,
+    );
+
+    if (inviteRes != null && inviteRes['status'] == 'success') {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Squad invite sent to $displayName! Opening lobby...")),
+        );
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => SquadLobbyPage(squadId: squadId, isHost: true),
+          ),
+        );
+      }
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(inviteRes?['message'] ?? "Could not send squad invite")),
+        );
+      }
+    }
+  }
+
   Future<void> _fetchGuests({bool isInitial = false}) async {
     final tenant = TenantService().currentTenant.value;
     if (tenant == null) return;
@@ -72,7 +143,7 @@ class _NearbyPageState extends State<NearbyPage> {
 
     return RefreshIndicator(
       onRefresh: () => _fetchGuests(),
-      color: const Color(0xFFFF5C00),
+      color: Theme.of(context).primaryColor,
       backgroundColor: Colors.white,
       child: Container(
         color: const Color(0xFFF1F5F9),
@@ -216,9 +287,41 @@ class _NearbyPageState extends State<NearbyPage> {
   
             // List of Users
             if (_isLoading)
-              const SliverFillRemaining(child: Center(child: CircularProgressIndicator(color: Color(0xFFFF5C00))))
+              SliverFillRemaining(child: Center(child: CircularProgressIndicator(color: Theme.of(context).primaryColor)))
             else if (users.isEmpty)
-              const SliverFillRemaining(child: Center(child: Text("No guests nearby yet", style: TextStyle(color: Colors.grey))))
+              SliverFillRemaining(
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text("No guests nearby yet", style: TextStyle(color: Colors.grey)),
+                      const SizedBox(height: 16),
+                      ElevatedButton.icon(
+                        onPressed: () async {
+                          final tenant = TenantService().currentTenant.value;
+                          if (tenant != null) {
+                            final success = await ApiService.spawnTestBot(tenant.id);
+                            if (success) {
+                              _fetchGuests();
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text("Test Bot Diner spawned successfully! 🤖")),
+                                );
+                              }
+                            }
+                          }
+                        },
+                        icon: const Icon(Icons.smart_toy_rounded),
+                        label: const Text("Spawn Test Bot Diner"),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Theme.of(context).primaryColor,
+                          foregroundColor: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )
             else
               SliverList(
                 delegate: SliverChildBuilderDelegate(
@@ -254,9 +357,18 @@ class _NearbyPageState extends State<NearbyPage> {
   }
 
   Widget _buildMapPin(Map<String, dynamic> user) {
-    String displayName = user['user_name'] ?? 'Guest';
-    if (displayName == '0' || displayName.isEmpty || displayName == 'null') {
-       String uidStr = user['user_id']?.toString() ?? '0000';
+    final myId = ShopManager.instance.currentUserId;
+    final myEmail = ShopManager.instance.customerEmail.value;
+    final targetId = user['user_id']?.toString() ?? '';
+    final myCustomName = ShopManager.instance.customerName.value.trim();
+
+    String displayName = user['user_name']?.toString() ?? '';
+    if ((targetId == myId || (myEmail.isNotEmpty && targetId == myEmail)) &&
+        myCustomName.isNotEmpty &&
+        myCustomName != 'Guest') {
+      displayName = myCustomName;
+    } else if (displayName == '0' || displayName.isEmpty || displayName == 'null' || displayName == 'Guest') {
+       String uidStr = targetId.isNotEmpty ? targetId : '0000';
        displayName = "Diner ${uidStr.length >= 4 ? uidStr.substring(uidStr.length - 4) : uidStr}";
     }
     final String displayImage = user['gender'] == 'Female'
@@ -292,16 +404,24 @@ class _NearbyPageState extends State<NearbyPage> {
   }
 
   Widget _buildUserListTile(Map<String, dynamic> user) {
-    String displayName = user['user_name'] ?? 'Guest';
-    if (displayName == '0' || displayName.isEmpty || displayName == 'null') {
-       String uidStr = user['user_id']?.toString() ?? '0000';
+    final myId = ShopManager.instance.currentUserId;
+    final myEmail = ShopManager.instance.customerEmail.value;
+    final targetId = user['user_id']?.toString() ?? '';
+    final myCustomName = ShopManager.instance.customerName.value.trim();
+
+    String displayName = user['user_name']?.toString() ?? '';
+    if ((targetId == myId || (myEmail.isNotEmpty && targetId == myEmail)) &&
+        myCustomName.isNotEmpty &&
+        myCustomName != 'Guest') {
+      displayName = myCustomName;
+    } else if (displayName == '0' || displayName.isEmpty || displayName == 'null' || displayName == 'Guest') {
+       String uidStr = targetId.isNotEmpty ? targetId : '0000';
        displayName = "Diner ${uidStr.length >= 4 ? uidStr.substring(uidStr.length - 4) : uidStr}";
     }
     final String displayLocation = "Table ${user['table_number']}";
     final String displayImage = (user['gender'] == 'Female')
         ? 'https://img.freepik.com/free-vector/beauty-woman-face-concept_23-2148679462.jpg'
         : 'https://img.freepik.com/free-vector/businessman-character-avatar-isolated_24877-60111.jpg';
-    final String targetId = user['user_id']?.toString() ?? '';
     
     // Convert to int/bool safely
     bool isFollowing = _optimisticFollows.containsKey(targetId) 
@@ -312,7 +432,6 @@ class _NearbyPageState extends State<NearbyPage> {
     bool isPublic = (user['is_public'] == 1 || user['is_public'] == true || user['is_public'] == "1");
     bool allowWaves = (user['allow_waves'] == 1 || user['allow_waves'] == true || user['allow_waves'] == "1");
     
-    final myId = ShopManager.instance.currentUserId;
     final bool isMe = targetId == myId;
 
     return InkWell(
@@ -360,11 +479,13 @@ class _NearbyPageState extends State<NearbyPage> {
                     }),
 
                   const SizedBox(width: 10),
+                  _buildSocialIcon(Icons.sports_esports_rounded, Colors.orange, () => _inviteUserToTapWar(targetId, displayName)),
+
+                  const SizedBox(width: 10),
                   Material(
                     color: Colors.transparent,
                     child: InkWell(
-                      onTap: () async {
-                        if (_loadingFollowIds.contains(targetId)) return;
+                      onTap: _loadingFollowIds.contains(targetId) ? null : () async {
                         if (!isPublic) {
                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Profile is private.")));
                            return;
@@ -388,13 +509,24 @@ class _NearbyPageState extends State<NearbyPage> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                         decoration: BoxDecoration(
-                          color: isFollowing ? const Color(0xFFF1F5F9) : const Color(0xFFFF5C00),
+                          color: _loadingFollowIds.contains(targetId) 
+                              ? Colors.grey[300] 
+                              : (isFollowing ? const Color(0xFFF1F5F9) : Theme.of(context).primaryColor),
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: Text(
-                          isFollowing ? (followsMe ? "Friend" : "Following") : (followsMe ? "Follow Back" : "Follow"),
-                          style: TextStyle(color: isFollowing ? Colors.black87 : Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
-                        ),
+                        child: _loadingFollowIds.contains(targetId)
+                            ? const SizedBox(
+                                width: 12,
+                                height: 12,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.grey),
+                                ),
+                              )
+                            : Text(
+                                isFollowing ? (followsMe ? "Friend" : "Following") : (followsMe ? "Follow Back" : "Follow"),
+                                style: TextStyle(color: isFollowing ? Colors.black87 : Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                              ),
                       ),
                     ),
                   ),
@@ -500,10 +632,10 @@ class _NearbyPageState extends State<NearbyPage> {
   Widget _buildSettingRow(IconData icon, String title, String sub, bool value, Function(bool) onChanged) {
     return Row(
       children: [
-        Icon(icon, color: value ? const Color(0xFFFF5C00) : Colors.grey),
+        Icon(icon, color: value ? Theme.of(context).primaryColor : Colors.grey),
         const SizedBox(width: 16),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(fontWeight: FontWeight.bold)), Text(sub, style: const TextStyle(color: Colors.grey, fontSize: 12))])),
-        Switch(value: value, onChanged: onChanged, activeThumbColor: const Color(0xFFFF5C00)),
+        Switch(value: value, onChanged: onChanged, activeThumbColor: Theme.of(context).primaryColor),
       ],
     );
   }

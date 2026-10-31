@@ -24,6 +24,8 @@ class ChatPage extends StatefulWidget {
 class _ChatPageState extends State<ChatPage> {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  final FocusNode _focusNode = FocusNode();
+  int _textFieldKey = 0;
 
   List<Map<String, dynamic>> _messages = [];
   bool _isLoading = true;
@@ -161,13 +163,13 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 
-  Future<void> _sendMessage() async {
+  Future<void> _sendMessage({String? textParam}) async {
     if (_isSending ||
         (!_isMutualFollow && !_isFollowing) ||
         (!_isMutualFollow && _sentBeforeFollowBack >= 2)) {
       return;
     }
-    final text = _controller.text.trim();
+    final text = textParam ?? _controller.text.trim();
     if (text.isEmpty) return;
 
     final tenant = TenantService().currentTenant.value;
@@ -191,20 +193,9 @@ class _ChatPageState extends State<ChatPage> {
     if (!mounted) return;
     setState(() => _isSending = false);
     if (result['success'] == true) {
-      _controller.clear();
       setState(() => _replyingTo = null);
       await _syncMessages();
     } else {
-      final message = result['message']?.toString();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            message?.isNotEmpty == true
-                ? message!
-                : 'Could not send message. Please try again.',
-          ),
-        ),
-      );
       await _syncMessages();
     }
   }
@@ -341,7 +332,7 @@ class _ChatPageState extends State<ChatPage> {
                     _isOtherTyping ? 'typing...' : 'Online',
                     style: TextStyle(
                       color: _isOtherTyping
-                          ? const Color(0xFFFF5C00)
+                          ? Theme.of(context).primaryColor
                           : Colors.green,
                       fontSize: 10,
                       fontWeight: FontWeight.bold,
@@ -358,12 +349,6 @@ class _ChatPageState extends State<ChatPage> {
                   _isLoading = true;
                 });
                 _syncMessages();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text("Refreshing chat..."),
-                    duration: Duration(seconds: 1),
-                  ),
-                );
               },
               icon: const Icon(
                 Icons.refresh_rounded,
@@ -378,8 +363,8 @@ class _ChatPageState extends State<ChatPage> {
         children: [
           Expanded(
             child: _isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(color: Color(0xFFFF5C00)),
+                ? Center(
+                    child: CircularProgressIndicator(color: Theme.of(context).primaryColor),
                   )
                 : _messages.isEmpty
                 ? _buildEmptyState()
@@ -437,7 +422,7 @@ class _ChatPageState extends State<ChatPage> {
                                         color: isMe
                                             ? (isDeleted
                                                   ? Colors.grey[200]
-                                                  : const Color(0xFFFF5C00))
+                                                  : Theme.of(context).primaryColor)
                                             : Colors.white,
                                         borderRadius: BorderRadius.only(
                                           topLeft: const Radius.circular(20),
@@ -610,8 +595,8 @@ class _ChatPageState extends State<ChatPage> {
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(8),
-        border: const Border(
-          left: BorderSide(color: Color(0xFFFF5C00), width: 3),
+        border: Border(
+          left: BorderSide(color: Theme.of(context).primaryColor, width: 3),
         ),
       ),
       child: Text(
@@ -673,9 +658,9 @@ class _ChatPageState extends State<ChatPage> {
             color: Colors.white,
             child: Row(
               children: [
-                const Icon(
+                Icon(
                   Icons.reply_rounded,
-                  color: Color(0xFFFF5C00),
+                  color: Theme.of(context).primaryColor,
                   size: 20,
                 ),
                 const SizedBox(width: 12),
@@ -683,12 +668,12 @@ class _ChatPageState extends State<ChatPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         "Replying to",
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFFFF5C00),
+                          color: Theme.of(context).primaryColor,
                         ),
                       ),
                       Text(
@@ -739,9 +724,20 @@ class _ChatPageState extends State<ChatPage> {
                     borderRadius: BorderRadius.circular(25),
                   ),
                   child: TextField(
+                    key: ValueKey('text_field_$_textFieldKey'),
                     controller: _controller,
+                    focusNode: _focusNode,
                     onChanged: canSend ? _onTyping : null,
-                    onSubmitted: canSend ? (_) => _sendMessage() : null,
+                    onSubmitted: canSend ? (value) {
+                      final text = value.trim();
+                      if (text.isNotEmpty) {
+                        _controller.clear();
+                        setState(() {
+                          _textFieldKey++;
+                        });
+                        _sendMessage(textParam: text);
+                      }
+                    } : null,
                     enabled: canSend,
                     decoration: const InputDecoration(
                       hintText: 'Type a message...',
@@ -757,7 +753,7 @@ class _ChatPageState extends State<ChatPage> {
                 child: Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: canSend ? const Color(0xFFFF5C00) : Colors.grey,
+                    color: canSend ? Theme.of(context).primaryColor : Colors.grey,
                     shape: BoxShape.circle,
                   ),
                   child: _isSending

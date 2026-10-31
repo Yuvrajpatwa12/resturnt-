@@ -88,7 +88,7 @@ class _BillingPageState extends State<BillingPage> {
                       const Text("Grand Total", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Colors.black87)),
                       Text(
                         "NPR ${total.toStringAsFixed(0)}", 
-                        style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFFFF5C00))
+                        style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Theme.of(context).primaryColor)
                       ),
                     ],
                   ),
@@ -144,7 +144,7 @@ class _BillingPageState extends State<BillingPage> {
                       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Payment Successful! Receipt emailed.")));
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: isPaid ? Colors.green : const Color(0xFFFF5C00),
+                      backgroundColor: isPaid ? Colors.green : Theme.of(context).primaryColor,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 20),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),

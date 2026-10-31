@@ -83,10 +83,10 @@ class _RewardsPageState extends State<RewardsPage> {
         ],
       ),
       body: _isLoading 
-        ? const Center(child: CircularProgressIndicator(color: Color(0xFFFF5C00)))
+        ? Center(child: CircularProgressIndicator(color: Theme.of(context).primaryColor))
         : RefreshIndicator(
             onRefresh: _loadData,
-            color: const Color(0xFFFF5C00),
+            color: Theme.of(context).primaryColor,
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               physics: const BouncingScrollPhysics(),
@@ -268,9 +268,9 @@ class _RewardsPageState extends State<RewardsPage> {
                   ? Image.network(
                       formattedImg, 
                       fit: BoxFit.cover,
-                      errorBuilder: (c,e,s) => const Center(child: Icon(Icons.fastfood_rounded, color: Color(0xFFFF5C00), size: 32)),
+                      errorBuilder: (c,e,s) => Center(child: Icon(Icons.fastfood_rounded, color: Theme.of(context).primaryColor, size: 32)),
                     )
-                  : const Center(child: Icon(Icons.fastfood_rounded, color: Color(0xFFFF5C00), size: 32)),
+                  : Center(child: Icon(Icons.fastfood_rounded, color: Theme.of(context).primaryColor, size: 32)),
             ),
           ),
           const SizedBox(width: 16),
@@ -319,7 +319,7 @@ class _RewardsPageState extends State<RewardsPage> {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
           gradient: enabled 
-              ? const LinearGradient(colors: [Color(0xFFFF5C00), Color(0xFFFF8C00)]) 
+              ? LinearGradient(colors: [Theme.of(context).primaryColor, Color(0xFFFF8C00)]) 
               : null,
           color: enabled ? null : const Color(0xFFF1F5F9),
           borderRadius: BorderRadius.circular(16),
@@ -374,7 +374,7 @@ class _RewardsPageState extends State<RewardsPage> {
                  children: [
                    const Text("Show this code to the waiter:"),
                    const SizedBox(height: 16),
-                   Text(res['claim_code'], style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: 2, color: Color(0xFFFF5C00))),
+                   Text(res['claim_code'], style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: 2, color: Theme.of(context).primaryColor)),
                  ],
                ),
                actions: [TextButton(onPressed: () => Navigator.pop(c), child: const Text("DONE"))],
@@ -415,12 +415,12 @@ class _RewardsPageState extends State<RewardsPage> {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: isClaimed ? Colors.blue.withValues(alpha: 0.1) : const Color(0xFFFF5C00).withValues(alpha: 0.1), 
+                color: isClaimed ? Colors.blue.withValues(alpha: 0.1) : Theme.of(context).primaryColor.withValues(alpha: 0.1), 
                 shape: BoxShape.circle
               ),
               child: Icon(
                 isClaimed ? Icons.check_circle_outline : Icons.qr_code_2_rounded, 
-                color: isClaimed ? Colors.blue : const Color(0xFFFF5C00), 
+                color: isClaimed ? Colors.blue : Theme.of(context).primaryColor, 
                 size: 18
               ),
             ),
@@ -444,7 +444,7 @@ class _RewardsPageState extends State<RewardsPage> {
                 Text(
                   isClaimed ? "SERVED" : "ACTIVE", 
                   style: TextStyle(
-                    color: isClaimed ? Colors.blue : const Color(0xFFFF5C00), 
+                    color: isClaimed ? Colors.blue : Theme.of(context).primaryColor, 
                     fontSize: 9, 
                     fontWeight: FontWeight.bold
                   )

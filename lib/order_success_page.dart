@@ -143,8 +143,8 @@ class _OrderSuccessPageState extends State<OrderSuccessPage>
                 style: TextStyle(color: Colors.grey, fontSize: 12),
               ),
             ] else if (!_isError) ...[
-              const CircularProgressIndicator(
-                color: Color(0xFFFF5C00),
+              CircularProgressIndicator(
+                color: Theme.of(context).primaryColor,
                 strokeWidth: 2,
               ),
               const SizedBox(height: 12),

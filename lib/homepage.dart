@@ -21,6 +21,7 @@ import 'widgets/onboarding_modal.dart';
 import 'widgets/notification_prompt.dart';
 import 'widgets/ios_pwa_prompt.dart';
 import 'widgets/proximity_offer_dialog.dart';
+import 'widgets/are_you_bored_dialog.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 // Enables Mouse Drag Scrolling on Web/Desktop
@@ -41,6 +42,8 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  bool _hasShownBoredDialog = false;
+
   @override
   void initState() {
     super.initState();
@@ -48,13 +51,48 @@ class _HomePageState extends State<HomePage> {
     ShopManager.instance.openTablePickerTrigger.addListener(
       _handleTablePickerTrigger,
     );
+    ShopManager.instance.isOrderActive.addListener(_handleOrderActiveChange);
 
-    // 1. CHECK FOR PENDING REVIEW VERIFICATION
+    // 1. CHECK FOR PENDING REVIEW VERIFICATION & ACTIVE ORDER
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (ShopManager.instance.isWaitingForGoogleReview.value) {
         _showReviewVerificationDialog();
       }
+      if (ShopManager.instance.isOrderActive.value && !_hasShownBoredDialog) {
+        _hasShownBoredDialog = true;
+        showDialog(
+          context: context,
+          builder: (ctx) => AreYouBoredDialog(
+            onDismiss: () {},
+          ),
+        );
+      }
     });
+  }
+
+  @override
+  void dispose() {
+    ShopManager.instance.openTablePickerTrigger.removeListener(
+      _handleTablePickerTrigger,
+    );
+    ShopManager.instance.isOrderActive.removeListener(_handleOrderActiveChange);
+    super.dispose();
+  }
+
+  void _handleOrderActiveChange() {
+    if (ShopManager.instance.isOrderActive.value && !_hasShownBoredDialog) {
+      _hasShownBoredDialog = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          showDialog(
+            context: context,
+            builder: (ctx) => AreYouBoredDialog(
+              onDismiss: () {},
+            ),
+          );
+        }
+      });
+    }
   }
 
   void _showReviewVerificationDialog() {
@@ -213,13 +251,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  @override
-  void dispose() {
-    ShopManager.instance.openTablePickerTrigger.removeListener(
-      _handleTablePickerTrigger,
-    );
-    super.dispose();
-  }
+  // (Duplicate dispose removed)
 
   void _handleTablePickerTrigger() {
     if (ShopManager.instance.openTablePickerTrigger.value) {
@@ -422,7 +454,7 @@ class _HomePageState extends State<HomePage> {
               ]);
             }
           },
-          color: const Color(0xFFFF5C00),
+          color: Theme.of(context).primaryColor,
           backgroundColor: Colors.white,
           child: CustomScrollView(
             physics:
@@ -651,12 +683,12 @@ class _HomePageState extends State<HomePage> {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               "ChiyaBreak",
               style: TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.w900,
-                color: Color(0xFFFF5C00),
+                color: Theme.of(context).primaryColor,
                 fontStyle: FontStyle.italic,
               ),
             ),
@@ -780,9 +812,9 @@ class _HomePageState extends State<HomePage> {
               ),
               child: Row(
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.restaurant,
-                    color: Color(0xFFFF5C00),
+                    color: Theme.of(context).primaryColor,
                     size: 18,
                   ),
                   const SizedBox(width: 8),
@@ -792,9 +824,9 @@ class _HomePageState extends State<HomePage> {
                       children: [
                         Text(
                           LanguageService().translate("SELECT TABLE NUMBER"),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 9,
-                            color: Color(0xFFFF5C00),
+                            color: Theme.of(context).primaryColor,
                             fontWeight: FontWeight.w900,
                             letterSpacing: 0.5,
                           ),
@@ -810,7 +842,7 @@ class _HomePageState extends State<HomePage> {
                               fontWeight: FontWeight.bold,
                               color: tableId != null
                                   ? Colors.black87
-                                  : const Color(0xFFFF5C00),
+                                  : Theme.of(context).primaryColor,
                             ),
                           ),
                         ),
@@ -850,11 +882,11 @@ class _HomePageState extends State<HomePage> {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: const Color(0xFFFF5C00),
+              color: Theme.of(context).primaryColor,
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFFFF5C00).withValues(alpha: 0.3),
+                  color: Theme.of(context).primaryColor.withValues(alpha: 0.3),
                   blurRadius: 8,
                   offset: const Offset(0, 4),
                 ),
@@ -892,12 +924,12 @@ class _HomePageState extends State<HomePage> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
+              Text(
                 "SELECT TABLE NUMBER",
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w900,
-                  color: Color(0xFFFF5C00),
+                  color: Theme.of(context).primaryColor,
                   letterSpacing: 1.2,
                 ),
               ),
@@ -938,7 +970,7 @@ class _HomePageState extends State<HomePage> {
                             builder: (context, currentId, child) => Container(
                               decoration: BoxDecoration(
                                 color: currentId == id
-                                    ? const Color(0xFFFF5C00)
+                                    ? Theme.of(context).primaryColor
                                     : Colors.grey[100],
                                 borderRadius: BorderRadius.circular(12),
                               ),
@@ -1115,7 +1147,7 @@ class _HomePageState extends State<HomePage> {
                         ),
                         child: Icon(
                           _getIconData(cat['icon']),
-                          color: const Color(0xFFFF5C00),
+                          color: Theme.of(context).primaryColor,
                           size: 24,
                         ),
                       ),
@@ -1183,10 +1215,10 @@ class _HomePageState extends State<HomePage> {
             onTap: onTap,
             child: Text(
               LanguageService().translate(action),
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFFFF5C00),
+                color: Theme.of(context).primaryColor,
               ),
             ),
           ),
@@ -1269,12 +1301,12 @@ class _HomePageState extends State<HomePage> {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: const Color(0xFFFF5C00).withValues(alpha: 0.1),
+                color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.stars_rounded,
-                color: Color(0xFFFF5C00),
+                color: Theme.of(context).primaryColor,
                 size: 22,
               ),
             ),
@@ -1303,9 +1335,9 @@ class _HomePageState extends State<HomePage> {
                 ],
               ),
             ),
-            const Icon(
+            Icon(
               Icons.arrow_forward_ios_rounded,
-              color: Color(0xFFFF5C00),
+              color: Theme.of(context).primaryColor,
               size: 14,
             ),
           ],
@@ -1345,9 +1377,9 @@ class _HomePageState extends State<HomePage> {
 
               return Row(
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.equalizer_rounded,
-                    color: Color(0xFFFF5C00),
+                    color: Theme.of(context).primaryColor,
                     size: 20,
                   ),
                   const SizedBox(width: 12),
@@ -1460,7 +1492,7 @@ class _HomePageState extends State<HomePage> {
                 children: [
                   Icon(
                     isSelected ? activeIcon : icon,
-                    color: isSelected ? const Color(0xFFFF5C00) : Colors.grey,
+                    color: isSelected ? Theme.of(context).primaryColor : Colors.grey,
                     size: 24,
                   ),
                   if (badgeCount > 0)
@@ -1495,7 +1527,7 @@ class _HomePageState extends State<HomePage> {
                 LanguageService().translate(label),
                 style: TextStyle(
                   fontSize: 10,
-                  color: isSelected ? const Color(0xFFFF5C00) : Colors.grey,
+                  color: isSelected ? Theme.of(context).primaryColor : Colors.grey,
                   fontWeight: FontWeight.w600,
                 ),
               ),

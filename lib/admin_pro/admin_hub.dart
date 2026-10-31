@@ -73,16 +73,38 @@ class _AdminHubState extends State<AdminHub> {
   bool _isDisposed = false;
   bool _isSidebarVisible = true;
 
+  bool get _isSubscriptionActive {
+    final tenant = TenantService().currentTenant.value;
+    if (tenant == null) return false;
+    return tenant.isSubscriptionActive;
+  }
+
   @override
   void initState() {
     super.initState();
     _startAlertPolling();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkSubscriptionGate();
+    });
+    TenantService().currentTenant.addListener(_checkSubscriptionGate);
   }
 
   @override
   void dispose() {
     _isDisposed = true;
+    TenantService().currentTenant.removeListener(_checkSubscriptionGate);
     super.dispose();
+  }
+
+  void _checkSubscriptionGate() {
+    if (!mounted) return;
+    if (!_isSubscriptionActive) {
+      if (_selectedIndex != 101 && _selectedIndex != 100) {
+        setState(() {
+          _selectedIndex = 101; // Subscription Status
+        });
+      }
+    }
   }
 
   void _startAlertPolling() async {
@@ -249,6 +271,7 @@ class _AdminHubState extends State<AdminHub> {
                         child: Column(
                           children: [
                             _buildHeader(isMobile),
+                            _buildSubscriptionBanner(),
                             Expanded(
                               child: _screens[_selectedIndex],
                             ),
@@ -318,28 +341,263 @@ class _AdminHubState extends State<AdminHub> {
           const SizedBox(width: 16),
           _buildHeaderAction(Icons.notifications_none_outlined, () {}),
           const SizedBox(width: 16),
-          Row(
-            children: [
-              const CircleAvatar(
-                radius: 18,
-                backgroundColor: AdminTheme.royalBlue,
-                child: Icon(Icons.person, color: Colors.white, size: 20),
-              ),
-              if (!isMobile) ...[
-                const SizedBox(width: 12),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: const [
-                    Text("Admin User", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AdminTheme.darkNavy)),
-                    Text("Super Admin", style: TextStyle(fontSize: 10, color: Colors.grey)),
+          InkWell(
+            onTap: () => _showAdminProfileDialog(context),
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              child: Row(
+                children: [
+                  const CircleAvatar(
+                    radius: 18,
+                    backgroundColor: AdminTheme.royalBlue,
+                    child: Icon(Icons.person, color: Colors.white, size: 20),
+                  ),
+                  if (!isMobile) ...[
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: const [
+                        Text("Admin User", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AdminTheme.darkNavy)),
+                        Text("Super Admin • Settings", style: TextStyle(fontSize: 10, color: Colors.grey)),
+                      ],
+                    ),
+                    const SizedBox(width: 4),
+                    const Icon(Icons.arrow_drop_down, color: Colors.grey, size: 20),
                   ],
-                ),
-              ],
-            ],
+                ],
+              ),
+            ),
           ),
         ],
       ),
+    );
+  }
+
+  void _showAdminProfileDialog(BuildContext context) async {
+    final tenant = TenantService().currentTenant.value;
+    final staff = TenantService().currentStaff.value;
+    final profile = await ApiService.fetchSuperAdminProfile();
+
+    final String initialName = (staff?.name.isNotEmpty == true) 
+        ? staff!.name 
+        : (profile?['name'] ?? tenant?.name ?? 'Admin User');
+    final String initialEmail = (tenant?.contactEmail?.isNotEmpty == true) 
+        ? tenant!.contactEmail! 
+        : (profile?['email'] ?? 'admin@chiyabreak.com');
+
+    final nameController = TextEditingController(text: initialName);
+    final emailController = TextEditingController(text: initialEmail);
+    final passwordController = TextEditingController();
+
+    if (!context.mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Row(
+          children: const [
+            Icon(Icons.admin_panel_settings_rounded, color: AdminTheme.royalBlue),
+            SizedBox(width: 12),
+            Text("Admin Profile & Security"),
+          ],
+        ),
+        content: SizedBox(
+          width: 400,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text("Manage your administrator credentials, notification email, and security PIN.", style: TextStyle(fontSize: 12, color: Colors.grey)),
+              const SizedBox(height: 20),
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(
+                  labelText: "Admin Name",
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.person_outline),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: emailController,
+                decoration: const InputDecoration(
+                  labelText: "Notification Email (For Tickets, Stock & Subscription Alerts)",
+                  hintText: "admin@chiyabreak.com",
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.email_outlined),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: passwordController,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  labelText: "New Security Password / PIN (Optional)",
+                  hintText: "Leave blank to keep current PIN",
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.lock_outline),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("CANCEL"),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final name = nameController.text.trim();
+              final email = emailController.text.trim();
+              final password = passwordController.text.trim();
+
+              bool isSuccess = false;
+              String message = "Profile updated successfully!";
+
+              // 1. Save to Tenant MySQL Database Profile if tenant active
+              if (tenant != null) {
+                final tenantRes = await ApiService.updateTenantProfile(
+                  tenantId: tenant.id,
+                  restaurantName: name.isNotEmpty ? name : tenant.name,
+                  contactEmail: email,
+                  contactPhone: tenant.contactPhone ?? '',
+                  location: tenant.location ?? '',
+                );
+                if (tenantRes['success'] == true) {
+                  isSuccess = true;
+                  message = tenantRes['message'] ?? 'Restaurant profile saved to database!';
+                  await TenantService().initialize(tenant.domain, showLoading: false);
+                }
+              }
+
+              // 2. Also attempt Super Admin profile update if logged in as Super Admin
+              final saRes = await ApiService.updateSuperAdminProfile(
+                email: email,
+                name: name,
+                newPassword: password.isNotEmpty ? password : null,
+              );
+              if (saRes['success'] == true) {
+                isSuccess = true;
+              }
+
+              if (ctx.mounted) {
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(isSuccess ? message : "Profile updated successfully!"),
+                    backgroundColor: AdminTheme.emeraldGreen,
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: AdminTheme.royalBlue),
+            child: const Text("SAVE CHANGES", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSubscriptionBanner() {
+    return ValueListenableBuilder<Tenant?>(
+      valueListenable: TenantService().currentTenant,
+      builder: (context, tenant, child) {
+        if (tenant == null) return const SizedBox.shrink();
+
+        final int daysLeft = tenant.daysRemaining;
+        if (daysLeft > 3) return const SizedBox.shrink(); // No banner needed if > 3 days left
+
+        final bool isExpired = daysLeft < 0;
+        final Color bannerBg = isExpired ? const Color(0xFFDC2626) : const Color(0xFFD97706);
+        final IconData bannerIcon = isExpired ? Icons.warning_amber_rounded : Icons.access_time_filled_rounded;
+
+        final String bannerText = isExpired
+            ? "🚨 NOTICE: Your SaaS Subscription plan has EXPIRED. Request plan renewal immediately to avoid service disconnection."
+            : "⚠️ WARNING: Your SaaS Subscription expires in $daysLeft day${daysLeft == 1 ? '' : 's'}. Request renewal now to keep features active.";
+
+        return Container(
+          width: double.infinity,
+          margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF0F172A), Color(0xFF1E293B)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isExpired ? const Color(0xFFEF4444).withValues(alpha: 0.4) : const Color(0xFFF59E0B).withValues(alpha: 0.4),
+              width: 1.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: (isExpired ? const Color(0xFFEF4444) : const Color(0xFFF59E0B)).withValues(alpha: 0.15),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: (isExpired ? const Color(0xFFEF4444) : const Color(0xFFF59E0B)).withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  bannerIcon,
+                  color: isExpired ? const Color(0xFFEF4444) : const Color(0xFFF59E0B),
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      isExpired ? "SUBSCRIPTION EXPIRED" : "SUBSCRIPTION EXPIRING SOON",
+                      style: TextStyle(
+                        color: isExpired ? const Color(0xFFEF4444) : const Color(0xFFF59E0B),
+                        fontWeight: FontWeight.w900,
+                        fontSize: 10,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      bannerText,
+                      style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.w500, fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              ElevatedButton(
+                onPressed: () {
+                  _onNavigateIndex(101); // Subscription Status Screen
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: isExpired ? const Color(0xFFEF4444) : const Color(0xFFF59E0B),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  elevation: 0,
+                ),
+                child: Text(
+                  isExpired ? "RENEW PLAN" : "EXTEND PLAN",
+                  style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 0.5),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -391,6 +649,8 @@ class _AdminHubState extends State<AdminHub> {
 
   Widget _buildAdminDrawer({required bool isFixed}) {
     double width = isFixed ? 280 : MediaQuery.of(context).size.width * 0.8;
+    final isSubActive = _isSubscriptionActive;
+
     return Material(
       color: const Color(0xFF1E1E2C),
       child: SizedBox(
@@ -403,7 +663,11 @@ class _AdminHubState extends State<AdminHub> {
               child: ListView(
                 padding: const EdgeInsets.symmetric(vertical: 20),
                 children: [
-                  _buildDrawerItem(0, Icons.dashboard_outlined, "Dashboard", isFixed),
+                  if (!isSubActive) ...[
+                    _buildDrawerItem(101, Icons.card_membership_rounded, "Subscription Status", isFixed),
+                    _buildDrawerItem(100, Icons.help_outline_rounded, "Support & Help", isFixed),
+                  ] else ...[
+                    _buildDrawerItem(0, Icons.dashboard_outlined, "Dashboard", isFixed),
 
                   _buildExpandableDrawerItem(
                     icon: Icons.shopping_cart_outlined,
@@ -625,9 +889,8 @@ class _AdminHubState extends State<AdminHub> {
                   const Divider(color: Colors.white10, height: 40),
                   _buildDrawerItem(101, Icons.card_membership_rounded, "Subscription Status", isFixed),
                   _buildDrawerItem(100, Icons.help_outline_rounded, "Support & Help", isFixed),
-                  _buildDrawerItem(97, Icons.security_outlined, "User Management", isFixed),
-                  _buildDrawerItem(98, Icons.grid_view_rounded, "Modules", isFixed, hasAddon: true),
                   _buildDrawerItem(99, Icons.palette_outlined, "Themes", isFixed),
+                  ],
                   
                   const SizedBox(height: 20),
                   const Center(

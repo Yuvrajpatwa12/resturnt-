@@ -16,6 +16,11 @@ class Tenant {
   final String state;
   final String? expiry;
   final String? startDate;
+  final String? subscriptionStatus;
+  final String? trialStart;
+  final String? trialEnd;
+  final String? subscriptionStart;
+  final String? subscriptionEnd;
   final String? storage;
   final double? latitude;  // Added
   final double? longitude; // Added
@@ -23,7 +28,16 @@ class Tenant {
   final String? instagramLink;   // Added
   final String? facebookLink;    // Added
   final String? tiktokLink;      // Added
+  final String? contactEmail;    // Restaurant Admin Notification Email
+  final String? contactPhone;    // Support Phone
+  final String? location;        // Business Address
   final bool isPremiumEnabled; // Master switch for AR, Voice, Loyalty, Proximity
+  final String? themeName;
+  final String? secondaryColor;
+  final String? backgroundColor;
+  final String? fontFamily;
+  final double? borderRadius;
+  final bool? darkModeEnabled;
 
   Tenant({
     required this.id,
@@ -39,6 +53,11 @@ class Tenant {
     this.state = 'Bagmati Province',
     this.expiry,
     this.startDate,
+    this.subscriptionStatus,
+    this.trialStart,
+    this.trialEnd,
+    this.subscriptionStart,
+    this.subscriptionEnd,
     this.storage,
     this.latitude,
     this.longitude,
@@ -46,7 +65,16 @@ class Tenant {
     this.instagramLink,
     this.facebookLink,
     this.tiktokLink,
+    this.contactEmail,
+    this.contactPhone,
+    this.location,
     required this.isPremiumEnabled,
+    this.themeName,
+    this.secondaryColor,
+    this.backgroundColor,
+    this.fontFamily,
+    this.borderRadius,
+    this.darkModeEnabled,
   });
 
   factory Tenant.fromMap(Map<String, dynamic> map) {
@@ -62,8 +90,13 @@ class Tenant {
       currencySymbol: map['currency_symbol'] ?? 'Rs.',
       country: map['country'] ?? 'Nepal',
       state: map['state'] ?? map['province'] ?? 'Bagmati Province',
-      expiry: map['expiry_date'] ?? map['expiry'],
-      startDate: map['start_date'] ?? map['created_at'],
+      expiry: map['subscription_end'] ?? map['expiry_date'] ?? map['expiry'],
+      startDate: map['subscription_start'] ?? map['start_date'] ?? map['created_at'],
+      subscriptionStatus: map['subscription_status'] ?? (map['plan'] == '3 Days Free Trial' ? 'Trial' : 'Active'),
+      trialStart: map['trial_start'],
+      trialEnd: map['trial_end'],
+      subscriptionStart: map['subscription_start'],
+      subscriptionEnd: map['subscription_end'] ?? map['expiry_date'] ?? map['expiry'],
       storage: map['storage_used'] ?? map['storage'] ?? '0.0 GB',
       latitude: double.tryParse(map['latitude']?.toString() ?? ''),
       longitude: double.tryParse(map['longitude']?.toString() ?? ''),
@@ -71,8 +104,52 @@ class Tenant {
       instagramLink: map['instagram_link'],
       facebookLink: map['facebook_link'],
       tiktokLink: map['tiktok_link'],
+      contactEmail: map['contact_email'] ?? map['primary_email'],
+      contactPhone: map['contact_phone'] ?? map['phone'],
+      location: map['location'] ?? map['address'],
       isPremiumEnabled: (map['is_premium_enabled'] == 1 || map['is_premium_enabled'] == true),
+      themeName: map['theme_name'],
+      secondaryColor: map['secondary_color'],
+      backgroundColor: map['background_color'],
+      fontFamily: map['font_family'],
+      borderRadius: (map['border_radius'] as num?)?.toDouble(),
+      darkModeEnabled: (map['dark_mode_enabled'] == 1 || map['dark_mode_enabled'] == true),
     );
+  }
+
+  int get daysRemaining {
+    final now = DateTime.now();
+    DateTime? expDate;
+    final expStr = subscriptionEnd ?? expiry;
+    if (expStr != null && expStr.isNotEmpty) {
+      try {
+        expDate = DateTime.parse(expStr);
+      } catch (_) {}
+    }
+    if (expDate == null) {
+      return -1; // Inactive / No subscription approved yet
+    }
+    return expDate.difference(now).inDays;
+  }
+
+  bool get isSubscriptionExpiringOrExpired {
+    return daysRemaining <= 3;
+  }
+
+  bool get isExpired {
+    final expStr = subscriptionEnd ?? expiry;
+    if (expStr == null || expStr.isEmpty) {
+      return true;
+    }
+    return daysRemaining < 0;
+  }
+
+  bool get isSubscriptionActive {
+    final status = subscriptionStatus?.toLowerCase() ?? '';
+    if (status == 'pending' || status == 'inactive' || status == 'unapproved') {
+      return false;
+    }
+    return isActive && !isExpired;
   }
 }
 
@@ -120,6 +197,53 @@ class TenantService extends ChangeNotifier {
       CurrencyService().applyTenantCurrency(parsedTenant.currencyCode, parsedTenant.currencySymbol);
       
       debugPrint("TENANT: Loaded ${currentTenant.value!.name} (ID: ${currentTenant.value!.id})");
+      
+      // Fetch theme settings from backend
+      debugPrint("TENANT: Fetching theme from backend for ${parsedTenant.id}...");
+      final themeData = await ApiService.fetchTheme(parsedTenant.id);
+      if (themeData != null) {
+        debugPrint("TENANT: Theme data received - ${themeData['theme_name']}, color: ${themeData['primary_color']}");
+        final updatedTenant = Tenant(
+          id: parsedTenant.id,
+          name: parsedTenant.name,
+          logo: parsedTenant.logo,
+          color: themeData['primary_color'] ?? parsedTenant.color,
+          domain: parsedTenant.domain,
+          isActive: parsedTenant.isActive,
+          plan: parsedTenant.plan,
+          currencyCode: parsedTenant.currencyCode,
+          currencySymbol: parsedTenant.currencySymbol,
+          country: parsedTenant.country,
+          state: parsedTenant.state,
+          expiry: parsedTenant.expiry,
+          startDate: parsedTenant.startDate,
+          subscriptionStatus: parsedTenant.subscriptionStatus,
+          trialStart: parsedTenant.trialStart,
+          trialEnd: parsedTenant.trialEnd,
+          subscriptionStart: parsedTenant.subscriptionStart,
+          subscriptionEnd: parsedTenant.subscriptionEnd,
+          storage: parsedTenant.storage,
+          latitude: parsedTenant.latitude,
+          longitude: parsedTenant.longitude,
+          googleMapsLink: parsedTenant.googleMapsLink,
+          instagramLink: parsedTenant.instagramLink,
+          facebookLink: parsedTenant.facebookLink,
+          tiktokLink: parsedTenant.tiktokLink,
+          isPremiumEnabled: parsedTenant.isPremiumEnabled,
+          themeName: themeData['theme_name'],
+          secondaryColor: themeData['secondary_color'],
+          backgroundColor: themeData['background_color'],
+          fontFamily: themeData['font_family'],
+          borderRadius: (themeData['border_radius'] as num?)?.toDouble(),
+          darkModeEnabled: themeData['dark_mode_enabled'],
+        );
+        currentTenant.value = updatedTenant;
+        debugPrint("TENANT: Theme applied successfully!");
+      } else {
+        debugPrint("TENANT: Theme data is NULL - using default colors from tenant data");
+        debugPrint("TENANT: Current color from DB: ${parsedTenant.color}");
+      }
+      
       await fetchMenuData(currentTenant.value!.id);
     } else {
       debugPrint("TENANT: ERROR - Tenant data could not be fetched. Using Default Active Tenant.");

@@ -47,10 +47,23 @@ try {
             $tnum = (int)$data->table_number;
             $uimg = $data->user_image ?? '';
 
-            // Fix "0" name bug
-            $uname = (string)($data->user_name ?? '');
-            if (empty($uname) || $uname == "0" || $uname == "null") {
-                $uname = "Diner " . substr($uid, -4);
+            // Fix "0" / default name bug
+            $uname = trim((string)($data->user_name ?? ''));
+            if (empty($uname) || $uname === "0" || $uname === "null" || $uname === "Diner" || $uname === "Guest Diner") {
+                $c_stmt = $conn->prepare("SELECT name FROM customers WHERE (LOWER(email) = LOWER(?) OR (tenant_id = ? AND user_id = ?)) AND name IS NOT NULL AND name != '' AND name != 'Diner' AND name != 'Guest Diner' LIMIT 1");
+                if ($c_stmt) {
+                    $c_stmt->bind_param("sss", $uid, $tid, $uid);
+                    $c_stmt->execute();
+                    $c_res = $c_stmt->get_result();
+                    if ($c_res && $c_row = $c_res->fetch_assoc()) {
+                        $uname = $c_row['name'];
+                    } else {
+                        $uname = "Diner " . substr($uid, -4);
+                    }
+                    $c_stmt->close();
+                } else {
+                    $uname = "Diner " . substr($uid, -4);
+                }
             }
 
             $stmt = $conn->prepare("INSERT INTO restaurant_presence (user_id, tenant_id, table_number, user_name, user_image, last_seen)
@@ -72,6 +85,7 @@ try {
             // Fetch users seen in the last 60 minutes + Follow Status
             // Use GROUP BY to avoid duplicates
             $sql = "SELECT p.*,
+                    COALESCE(c.name, p.user_name) AS user_name,
                     COALESCE(privacy.is_public, 1) AS is_public,
                     COALESCE(privacy.allow_waves, 1) AS allow_waves,
                     (SELECT COUNT(*) FROM user_follows f
@@ -83,11 +97,12 @@ try {
                             AND f.following_id COLLATE utf8mb4_general_ci = ? COLLATE utf8mb4_general_ci
                             AND f.tenant_id COLLATE utf8mb4_general_ci = p.tenant_id COLLATE utf8mb4_general_ci) as follows_me
                     FROM restaurant_presence p
+                    LEFT JOIN customers c ON LOWER(c.email) = LOWER(p.user_id) AND c.tenant_id = p.tenant_id
                     LEFT JOIN user_privacy_settings privacy
                         ON privacy.tenant_id COLLATE utf8mb4_general_ci = p.tenant_id COLLATE utf8mb4_general_ci
                             AND privacy.user_id COLLATE utf8mb4_general_ci = p.user_id COLLATE utf8mb4_general_ci
                     WHERE p.tenant_id COLLATE utf8mb4_general_ci = ? COLLATE utf8mb4_general_ci
-                        AND p.last_seen > (NOW() - INTERVAL 60 MINUTE)
+                        AND p.last_seen > (NOW() - INTERVAL 4 MINUTE)
                         AND (COALESCE(privacy.is_public, 1) = 1
                             OR p.user_id COLLATE utf8mb4_general_ci = ? COLLATE utf8mb4_general_ci)
                     ORDER BY p.last_seen DESC";
@@ -278,6 +293,25 @@ try {
                 $conn->query("UPDATE user_waves SET is_delivered = 1 WHERE receiver_id = '$uid' AND tenant_id = '$tid'");
             }
             echo json_encode(["status" => "success", "data" => $waves]);
+            break;
+
+        case 'spawn_test_bot':
+            $tid = trim((string)($_GET['tenant_id'] ?? ''));
+            if (empty($tid)) {
+                echo json_encode(["status" => "error", "message" => "Missing tenant_id"]);
+                exit;
+            }
+            $bot_id = 'bot_diner_' . rand(100, 999);
+            $bot_name = 'Bot Diner ' . rand(10, 99);
+            $bot_table = rand(1, 15);
+            $stmt = $conn->prepare("INSERT INTO restaurant_presence (user_id, tenant_id, table_number, user_name, user_image, last_seen) VALUES (?, ?, ?, ?, '', NOW()) ON DUPLICATE KEY UPDATE last_seen = NOW()");
+            $stmt->bind_param("ssis", $bot_id, $tid, $bot_table, $bot_name);
+            if ($stmt->execute()) {
+                echo json_encode(["status" => "success", "bot_id" => $bot_id]);
+            } else {
+                echo json_encode(["status" => "error", "message" => "Could not spawn bot"]);
+            }
+            $stmt->close();
             break;
 
         default:

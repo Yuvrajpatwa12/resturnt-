@@ -63,9 +63,9 @@ class _OnboardingModalState extends State<OnboardingModal> {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     const SizedBox(height: 12),
-                                    const Text(
+                                    Text(
                                       "WELCOME!",
-                                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFFFF5C00)),
+                                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Theme.of(context).primaryColor),
                                     ),
                                     const SizedBox(height: 8),
                                     const Text(
@@ -117,7 +117,7 @@ class _OnboardingModalState extends State<OnboardingModal> {
                                       child: ElevatedButton(
                                         onPressed: _isSaving ? null : _submit,
                                         style: ElevatedButton.styleFrom(
-                                          backgroundColor: const Color(0xFFFF5C00),
+                                          backgroundColor: Theme.of(context).primaryColor,
                                           foregroundColor: Colors.white,
                                           padding: const EdgeInsets.symmetric(vertical: 18),
                                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),

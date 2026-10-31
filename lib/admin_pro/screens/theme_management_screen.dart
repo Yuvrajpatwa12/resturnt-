@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../admin_theme.dart';
+import '../../../services/api_service.dart';
+import '../../../services/tenant_service.dart';
 
 class ThemeManagementScreen extends StatefulWidget {
   const ThemeManagementScreen({super.key});
@@ -57,6 +59,24 @@ class _ThemeManagementScreenState extends State<ThemeManagementScreen> {
   }
 
   Future<void> _loadSettings() async {
+    // First try to load from backend
+    final tenant = TenantService().currentTenant.value;
+    if (tenant != null) {
+      final themeData = await ApiService.fetchTheme(tenant.id);
+      if (themeData != null && mounted) {
+        setState(() {
+          _primaryColor = _parseColor(themeData['primary_color'] ?? '#FF5C00');
+          _selectedThemeName = themeData['theme_name'] ?? 'Default Blue';
+          _isDarkMode = themeData['dark_mode_enabled'] ?? false;
+          _borderRadius = (themeData['border_radius'] as num?)?.toDouble() ?? 16.0;
+          _fontFamily = themeData['font_family'] ?? 'Inter';
+          _isLoadingSettings = false;
+        });
+        return;
+      }
+    }
+    
+    // Fallback to SharedPreferences
     final prefs = await SharedPreferences.getInstance();
     if (mounted) {
       setState(() {
@@ -72,6 +92,34 @@ class _ThemeManagementScreenState extends State<ThemeManagementScreen> {
   }
 
   Future<void> _saveSettings() async {
+    // Save to backend first
+    final tenant = TenantService().currentTenant.value;
+    if (tenant != null) {
+      final result = await ApiService.updateTheme(
+        tenantId: tenant.id,
+        primaryColor: '#${_primaryColor.value.toRadixString(16).substring(2).toUpperCase()}',
+        themeName: _selectedThemeName,
+        secondaryColor: '#002D62',
+        backgroundColor: '#F8FAFC',
+        fontFamily: _fontFamily,
+        borderRadius: _borderRadius,
+        darkModeEnabled: _isDarkMode,
+      );
+      
+      if (result['success'] == true) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(result['message'] ?? 'Theme settings saved and applied!'),
+              backgroundColor: AdminTheme.emeraldGreen,
+            )
+          );
+        }
+        return;
+      }
+    }
+    
+    // Fallback to SharedPreferences
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('theme_primary_color', _primaryColor.value);
     await prefs.setBool('theme_dark_mode', _isDarkMode);
@@ -82,7 +130,7 @@ class _ThemeManagementScreenState extends State<ThemeManagementScreen> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Theme settings saved and applied!"),
+          content: Text("Theme settings saved locally!"),
           backgroundColor: AdminTheme.emeraldGreen,
         )
       );
@@ -484,5 +532,13 @@ class _ThemeManagementScreenState extends State<ThemeManagementScreen> {
         ],
       ),
     );
+  }
+
+  Color _parseColor(String hex) {
+    try {
+      return Color(int.parse(hex.replaceFirst('#', '0xFF')));
+    } catch (e) {
+      return AdminTheme.royalBlue;
+    }
   }
 }

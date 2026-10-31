@@ -96,14 +96,14 @@ class _GlobalNotificationBannerOverlayState extends State<GlobalNotificationBann
 
         // Determine icon & color based on real notification context
         IconData iconData = Icons.notifications_active_rounded;
-        Color accentColor = const Color(0xFFFF5C00);
+        Color accentColor = Theme.of(context).primaryColor;
 
         if (title.contains('Wave') || body.contains('waved')) {
           iconData = Icons.waving_hand_rounded;
           accentColor = const Color(0xFFF59E0B); // Warm Gold
         } else if (title.contains('Order') || body.contains('order')) {
           iconData = Icons.restaurant_menu_rounded;
-          accentColor = const Color(0xFFFF5C00); // Brand Orange
+          accentColor = Theme.of(context).primaryColor; // Brand Primary Color
         } else if (title.contains('Follow') || body.contains('followed') || title.contains('Friend')) {
           iconData = Icons.person_add_rounded;
           accentColor = const Color(0xFF6366F1); // Royal Indigo

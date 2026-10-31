@@ -150,7 +150,7 @@ class _ARViewPageState extends State<ARViewPage> {
                     ElevatedButton(
                       onPressed: () => Navigator.pop(context),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFFF5C00),
+                        backgroundColor: Theme.of(context).primaryColor,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -163,13 +163,13 @@ class _ARViewPageState extends State<ARViewPage> {
             )
           else ...[
             // Background Loading State
-            const Center(
+            Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  CircularProgressIndicator(color: Color(0xFFFF5C00)),
-                  SizedBox(height: 24),
-                  Text("Initializing 3D Engine...", style: TextStyle(color: Colors.grey, fontSize: 13, fontWeight: FontWeight.bold)),
+                  CircularProgressIndicator(color: Theme.of(context).primaryColor),
+                  const SizedBox(height: 24),
+                  const Text("Initializing 3D Engine...", style: TextStyle(color: Colors.grey, fontSize: 13, fontWeight: FontWeight.bold)),
                 ],
               ),
             ),
@@ -204,7 +204,7 @@ class _ARViewPageState extends State<ARViewPage> {
                           icon: const Icon(Icons.view_in_ar_rounded, size: 20),
                           label: const Text("Launch Fast AR", style: TextStyle(fontWeight: FontWeight.bold)),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFFF5C00),
+                            backgroundColor: Theme.of(context).primaryColor,
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 18),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),

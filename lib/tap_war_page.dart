@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'cart_manager.dart';
+import 'services/tenant_service.dart';
+import 'services/api_service.dart';
 
 class TapWarPage extends StatefulWidget {
   const TapWarPage({super.key});
@@ -372,3 +375,275 @@ class _TapWarPageState extends State<TapWarPage> with SingleTickerProviderStateM
     );
   }
 }
+
+class TapWarMultiplayerPage extends StatefulWidget {
+  final int squadId;
+  final String? startAt;
+
+  const TapWarMultiplayerPage({
+    super.key,
+    required this.squadId,
+    this.startAt,
+  });
+
+  @override
+  State<TapWarMultiplayerPage> createState() => _TapWarMultiplayerPageState();
+}
+
+class _TapWarMultiplayerPageState extends State<TapWarMultiplayerPage> with SingleTickerProviderStateMixin {
+  late AnimationController _pulseController;
+  int _localTaps = 0;
+  int _localTapDelta = 0;
+  List<Map<String, dynamic>> _scores = [];
+  Timer? _tickTimer;
+  int _timeLeft = 30; // 30 seconds match duration
+  bool _isStarted = false;
+  bool _isGameOver = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 200),
+      lowerBound: 0.95,
+      upperBound: 1.05,
+    );
+
+    if (widget.startAt != null) {
+      try {
+        final startTime = DateTime.parse(widget.startAt!);
+        final diff = startTime.difference(DateTime.now()).inSeconds;
+        if (diff > 0) {
+          _timeLeft = diff + 30;
+        }
+      } catch (_) {}
+    }
+
+    _tickTimer = Timer.periodic(const Duration(seconds: 1), _onTick);
+  }
+
+  @override
+  void dispose() {
+    _tickTimer?.cancel();
+    _pulseController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _onTick(Timer timer) async {
+    if (_isGameOver) return;
+
+    final tenant = TenantService().currentTenant.value;
+    if (tenant == null) return;
+    final myId = ShopManager.instance.currentUserId;
+
+    if (_localTapDelta > 0) {
+      final deltaToSend = _localTapDelta;
+      _localTapDelta = 0;
+      final success = await ApiService.submitTapBatch(
+        tenantId: tenant.id,
+        userId: myId,
+        squadId: widget.squadId,
+        tapCountIncrement: deltaToSend,
+      );
+      if (!success) {
+        _localTapDelta += deltaToSend;
+      }
+    }
+
+    final gameState = await ApiService.getGameState(
+      tenantId: tenant.id,
+      squadId: widget.squadId,
+    );
+
+    if (gameState != null && gameState['status'] == 'success' && mounted) {
+      setState(() {
+        _scores = List<Map<String, dynamic>>.from(gameState['scores'] ?? []);
+        final status = gameState['squad_status']?.toString().toLowerCase();
+        if (status == 'completed' || _timeLeft <= 0) {
+          _isGameOver = true;
+        }
+      });
+    }
+
+    setState(() {
+      if (_timeLeft > 0) {
+        _timeLeft--;
+        if (_timeLeft <= 30) {
+          _isStarted = true;
+        }
+      } else {
+        _isGameOver = true;
+        _tickTimer?.cancel();
+      }
+    });
+  }
+
+  void _handleTap() {
+    if (!_isStarted || _isGameOver) return;
+    setState(() {
+      _localTaps++;
+      _localTapDelta++;
+    });
+    _pulseController.forward().then((_) => _pulseController.reverse());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final myId = ShopManager.instance.currentUserId;
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF7F8FA),
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.close, color: Colors.black87),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text("Multiplayer Tap War 🔥", style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
+        centerTitle: true,
+      ),
+      body: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        child: Column(
+          children: [
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              color: Colors.white,
+              child: Column(
+                children: [
+                  Text(
+                    !_isStarted ? "GET READY..." : "00:${(_timeLeft > 30 ? 30 : _timeLeft).toString().padLeft(2, '0')}",
+                    style: TextStyle(
+                      fontSize: 48,
+                      fontWeight: FontWeight.w900,
+                      color: !_isStarted ? Colors.orange : ((_timeLeft <= 5) ? Colors.red : const Color(0xFFFF5C00)),
+                    ),
+                  ),
+                  Text(
+                    !_isStarted ? "BATTLE STARTING SOON" : "TAP AS FAST AS YOU CAN!",
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 2, color: Colors.grey),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(30.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  GestureDetector(
+                    onTap: _handleTap,
+                    child: ScaleTransition(
+                      scale: _pulseController,
+                      child: Container(
+                        width: 220,
+                        height: 220,
+                        decoration: BoxDecoration(
+                          color: (!_isStarted || _isGameOver) ? Colors.grey[300] : const Color(0xFFFF5C00),
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: ((!_isStarted || _isGameOver) ? Colors.grey : const Color(0xFFFF5C00)).withValues(alpha: 0.4),
+                              blurRadius: 30,
+                              spreadRadius: 10,
+                            ),
+                          ],
+                          border: Border.all(color: Colors.white, width: 8),
+                        ),
+                        child: Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                (!_isStarted || _isGameOver) ? Icons.timer_outlined : Icons.touch_app,
+                                size: 60,
+                                color: Colors.white,
+                              ),
+                              const SizedBox(height: 10),
+                              Text(
+                                !_isStarted ? "WAIT" : (_isGameOver ? "TIME UP!" : "TAP!"),
+                                style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                "My Taps: $_localTaps",
+                                style: const TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.fromLTRB(24, 30, 24, 40),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(40)),
+                boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 20)],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text("LIVE SQUAD LEADERBOARD", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.5, color: Colors.grey)),
+                  const SizedBox(height: 20),
+                  if (_scores.isEmpty)
+                    const Center(child: Text("Waiting for player scores...", style: TextStyle(color: Colors.grey)))
+                  else
+                    ..._scores.asMap().entries.map((entry) {
+                      final index = entry.key;
+                      final s = entry.value;
+                      final bool isMe = s['user_id'] == myId;
+                      final int score = int.tryParse(s['tap_count']?.toString() ?? '0') ?? 0;
+                      final double factor = (score / 300).clamp(0.05, 1.0);
+
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: Row(
+                          children: [
+                            SizedBox(
+                              width: 100,
+                              child: Text(
+                                s['user_name'] ?? 'Diner',
+                                style: TextStyle(fontWeight: isMe ? FontWeight.w900 : FontWeight.bold, fontSize: 13, color: isMe ? const Color(0xFFFF5C00) : Colors.black87),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            Expanded(
+                              child: Stack(
+                                children: [
+                                  Container(height: 12, decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(6))),
+                                  AnimatedContainer(
+                                    duration: const Duration(milliseconds: 300),
+                                    height: 12,
+                                    width: (MediaQuery.of(context).size.width - 230) * factor,
+                                    decoration: BoxDecoration(
+                                      color: isMe ? const Color(0xFFFF5C00) : Colors.grey[400],
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 15),
+                            Text(score.toString(), style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: isMe ? const Color(0xFFFF5C00) : Colors.black54)),
+                          ],
+                        ),
+                      );
+                    }),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+

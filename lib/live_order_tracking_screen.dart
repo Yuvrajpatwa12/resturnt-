@@ -136,7 +136,7 @@ class _LiveOrderTrackingScreenState extends State<LiveOrderTrackingScreen> {
     int currentStepIndex = _getStepIndex(_currentStatus);
     bool isDone = currentStepIndex > stepIndex;
     bool isActive = currentStepIndex == stepIndex;
-    Color color = isDone ? Colors.green : (isActive ? const Color(0xFFFF5C00) : Colors.grey[300]!);
+    Color color = isDone ? Colors.green : (isActive ? Theme.of(context).primaryColor : Colors.grey[300]!);
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -172,45 +172,55 @@ class _LiveOrderTrackingScreenState extends State<LiveOrderTrackingScreen> {
   }
 
   int _getStepIndex(String status) {
-    switch (status) {
-      case 'Pending': return 0;
-      case 'Approved': return 1;
-      case 'Preparing': return 2;
-      case 'Ready': return 3;
-      case 'OnWay': return 4;
-      case 'Completed': return 5;
+    switch (status.trim().toLowerCase()) {
+      case 'pending': return 0;
+      case 'approved': return 1;
+      case 'preparing': return 2;
+      case 'ready': return 3;
+      case 'onway':
+      case 'on way': return 4;
+      case 'completed':
+      case 'served': return 5;
       default: return 0;
     }
   }
 
   String _getStatusTitle() {
-    switch (_currentStatus) {
-      case 'Pending': return "Pending Approval";
-      case 'Approved': return "Accepted";
-      case 'Preparing': return "In the Kitchen";
-      case 'Ready': return "Ready for Pickup";
-      case 'OnWay': return "Bringing to Table";
-      case 'Completed': return "Served";
+    switch (_currentStatus.trim().toLowerCase()) {
+      case 'pending': return "Pending Approval";
+      case 'approved': return "Accepted";
+      case 'preparing': return "In the Kitchen";
+      case 'ready': return "Ready for Pickup";
+      case 'onway':
+      case 'on way': return "Bringing to Table";
+      case 'completed':
+      case 'served': return "Served";
       default: return "Processing";
     }
   }
 
   Color _getStatusColor() {
-    switch (_currentStatus) {
-      case 'Pending': return Colors.orange;
-      case 'Preparing': return Colors.blue;
-      case 'OnWay': return const Color(0xFF6236FF);
-      case 'Completed': return Colors.green;
+    switch (_currentStatus.trim().toLowerCase()) {
+      case 'pending': return Colors.orange;
+      case 'approved': return Colors.blue;
+      case 'preparing': return Colors.purple;
+      case 'ready': return Colors.green;
+      case 'onway':
+      case 'on way': return const Color(0xFF6236FF);
+      case 'completed':
+      case 'served': return Colors.teal;
       default: return const Color(0xFFFF5C00);
     }
   }
 
   IconData _getStatusIcon() {
-    switch (_currentStatus) {
-      case 'Pending': return Icons.timer_outlined;
-      case 'Preparing': return Icons.restaurant;
-      case 'OnWay': return Icons.directions_run;
-      case 'Completed': return Icons.check_circle;
+    switch (_currentStatus.trim().toLowerCase()) {
+      case 'pending': return Icons.timer_outlined;
+      case 'preparing': return Icons.restaurant;
+      case 'onway':
+      case 'on way': return Icons.directions_run;
+      case 'completed':
+      case 'served': return Icons.check_circle;
       default: return Icons.local_fire_department;
     }
   }

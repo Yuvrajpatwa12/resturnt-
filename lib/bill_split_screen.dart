@@ -167,7 +167,7 @@ class _BillSplitScreenState extends State<BillSplitScreen> {
                           controller: _billController,
                           keyboardType: const TextInputType.numberWithOptions(decimal: true),
                           textAlign: TextAlign.center,
-                          style: const TextStyle(fontSize: 42, fontWeight: FontWeight.w900, color: Color(0xFFFF5C00)),
+                          style: TextStyle(fontSize: 42, fontWeight: FontWeight.w900, color: Theme.of(context).primaryColor),
                           inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))],
                           decoration: const InputDecoration(
                             hintText: "0.00",
@@ -192,7 +192,7 @@ class _BillSplitScreenState extends State<BillSplitScreen> {
                         onPressed: _addFriend,
                         icon: const Icon(Icons.add_circle_outline, size: 18),
                         label: const Text("ADD FRIEND", style: TextStyle(fontWeight: FontWeight.bold)),
-                        style: TextButton.styleFrom(foregroundColor: const Color(0xFFFF5C00)),
+                        style: TextButton.styleFrom(foregroundColor: Theme.of(context).primaryColor),
                       ),
                     ],
                   ),
@@ -244,7 +244,7 @@ class _BillSplitScreenState extends State<BillSplitScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: isPriority ? const Color(0xFFFF5C00).withValues(alpha: 0.3) : Colors.transparent,
+          color: isPriority ? Theme.of(context).primaryColor.withValues(alpha: 0.3) : Colors.transparent,
           width: 2,
         ),
       ),
@@ -256,7 +256,7 @@ class _BillSplitScreenState extends State<BillSplitScreen> {
             child: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: isPriority ? const Color(0xFFFF5C00) : const Color(0xFFF1F5F9),
+                color: isPriority ? Theme.of(context).primaryColor : const Color(0xFFF1F5F9),
                 shape: BoxShape.circle,
               ),
               child: Icon(
@@ -353,7 +353,7 @@ class _BillSplitScreenState extends State<BillSplitScreen> {
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
               ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFF5C00),
+                backgroundColor: Theme.of(context).primaryColor,
                 padding: const EdgeInsets.symmetric(vertical: 18),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 elevation: 0,

@@ -39,6 +39,8 @@ class _IosPwaPromptState extends State<IosPwaPrompt> {
   Widget build(BuildContext context) {
     if (!_showPrompt) return const SizedBox.shrink();
 
+    final primaryColor = Theme.of(context).primaryColor;
+
     return GestureDetector(
       onTap: () {}, // Prevent dismissal on background tap
       child: Container(
@@ -66,13 +68,13 @@ class _IosPwaPromptState extends State<IosPwaPrompt> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFF5C00).withValues(alpha: 0.1),
+                    color: primaryColor.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.phone_iphone_rounded,
                     size: 32,
-                    color: Color(0xFFFF5C00),
+                    color: primaryColor,
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -100,11 +102,11 @@ class _IosPwaPromptState extends State<IosPwaPrompt> {
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: Colors.grey[200]!),
                   ),
-                  child: const Row(
+                  child: Row(
                     children: [
-                      Icon(Icons.ios_share_rounded, color: Color(0xFFFF5C00), size: 22),
-                      SizedBox(width: 12),
-                      Expanded(
+                      Icon(Icons.ios_share_rounded, color: primaryColor, size: 22),
+                      const SizedBox(width: 12),
+                      const Expanded(
                         child: Text(
                           "1. Tap the Share button at the bottom of Safari/Chrome",
                           style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.black87),
@@ -123,11 +125,11 @@ class _IosPwaPromptState extends State<IosPwaPrompt> {
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: Colors.grey[200]!),
                   ),
-                  child: const Row(
+                  child: Row(
                     children: [
-                      Icon(Icons.add_box_outlined, color: Color(0xFFFF5C00), size: 22),
-                      SizedBox(width: 12),
-                      Expanded(
+                      Icon(Icons.add_box_outlined, color: primaryColor, size: 22),
+                      const SizedBox(width: 12),
+                      const Expanded(
                         child: Text(
                           "2. Scroll down & select 'Add to Home Screen'",
                           style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.black87),
@@ -147,7 +149,7 @@ class _IosPwaPromptState extends State<IosPwaPrompt> {
                       await prefs.setBool('ios_pwa_prompt_dismissed', true);
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFFF5C00),
+                      backgroundColor: primaryColor,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(

@@ -106,7 +106,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFFFF5C00).withValues(alpha: 0.15),
+                      color: Theme.of(context).primaryColor.withValues(alpha: 0.15),
                       blurRadius: 100,
                       spreadRadius: 50,
                     )
@@ -150,8 +150,8 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                           opacity: _opacityAnimation,
                           child: Text(
                             lastPart.toUpperCase(),
-                            style: const TextStyle(
-                              color: Color(0xFFFF5C00), // Premium Brand Color
+                            style: TextStyle(
+                              color: Theme.of(context).primaryColor, // Premium Brand Color
                               fontSize: 24,
                               fontWeight: FontWeight.w300,
                               letterSpacing: 12,
@@ -160,8 +160,8 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                         ),
                       ),
                     const SizedBox(height: 40),
-                    const CircularProgressIndicator(
-                      color: Color(0xFFFF5C00),
+                    CircularProgressIndicator(
+                      color: Theme.of(context).primaryColor,
                       strokeWidth: 2,
                     ),
                   ],

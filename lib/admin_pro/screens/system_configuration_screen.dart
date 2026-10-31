@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../admin_theme.dart';
 import '../../services/language_service.dart';
+import '../../services/api_service.dart';
+import '../../services/tenant_service.dart';
 
 class SystemConfigurationScreen extends StatefulWidget {
   final String mode;
@@ -14,6 +16,8 @@ class SystemConfigurationScreen extends StatefulWidget {
 
 class _SystemConfigurationScreenState extends State<SystemConfigurationScreen> {
   bool _isLoading = true;
+  bool _isSaving = false;
+
   Map<String, dynamic> _configState = {
     "restaurant_name": "Chiyalaa Global Hub",
     "restaurant_id": "CHY-PRO-9901",
@@ -39,44 +43,81 @@ class _SystemConfigurationScreenState extends State<SystemConfigurationScreen> {
     _loadConfig();
   }
 
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _phoneController.dispose();
+    _addressController.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadConfig() async {
+    final tenant = TenantService().currentTenant.value;
+    if (tenant != null) {
+      _configState['restaurant_name'] = tenant.name;
+      _configState['contact_email'] = tenant.contactEmail ?? _configState['contact_email'];
+      _configState['contact_phone'] = tenant.contactPhone ?? _configState['contact_phone'];
+      _configState['location'] = tenant.location ?? _configState['location'];
+      _configState['currency'] = tenant.currencyCode;
+      _configState['subscription_plan'] = tenant.plan;
+    }
+
     final prefs = await SharedPreferences.getInstance();
     String? saved = prefs.getString('system_config_data');
     if (saved != null) {
-      setState(() {
-        _configState = json.decode(saved);
-        _populateControllers();
-        _isLoading = false;
-      });
-    } else {
-      _populateControllers();
-      setState(() => _isLoading = false);
+      try {
+        final Map<String, dynamic> decoded = json.decode(saved);
+        _configState.addAll(decoded);
+      } catch (_) {}
     }
+
+    _populateControllers();
+    if (mounted) setState(() => _isLoading = false);
   }
 
   void _populateControllers() {
-    _nameController.text = _configState['restaurant_name'] ?? "";
-    _emailController.text = _configState['contact_email'] ?? "";
-    _phoneController.text = _configState['contact_phone'] ?? "";
-    _addressController.text = _configState['location'] ?? "";
+    final tenant = TenantService().currentTenant.value;
+    _nameController.text = (tenant?.name.isNotEmpty == true) ? tenant!.name : (_configState['restaurant_name'] ?? "");
+    _emailController.text = (tenant?.contactEmail?.isNotEmpty == true) ? tenant!.contactEmail! : (_configState['contact_email'] ?? "");
+    _phoneController.text = (tenant?.contactPhone?.isNotEmpty == true) ? tenant!.contactPhone! : (_configState['contact_phone'] ?? "");
+    _addressController.text = (tenant?.location?.isNotEmpty == true) ? tenant!.location! : (_configState['location'] ?? "");
   }
 
   Future<void> _saveConfig() async {
-    setState(() => _isLoading = true);
-    final prefs = await SharedPreferences.getInstance();
-    
-    _configState['restaurant_name'] = _nameController.text;
-    _configState['contact_email'] = _emailController.text;
-    _configState['contact_phone'] = _phoneController.text;
-    _configState['location'] = _addressController.text;
+    final tenant = TenantService().currentTenant.value;
+    final tenantId = tenant?.id ?? 'startups_main';
 
+    setState(() => _isSaving = true);
+
+    final res = await ApiService.updateTenantProfile(
+      tenantId: tenantId,
+      restaurantName: _nameController.text.trim(),
+      contactEmail: _emailController.text.trim(),
+      contactPhone: _phoneController.text.trim(),
+      location: _addressController.text.trim(),
+    );
+
+    _configState['restaurant_name'] = _nameController.text.trim();
+    _configState['contact_email'] = _emailController.text.trim();
+    _configState['contact_phone'] = _phoneController.text.trim();
+    _configState['location'] = _addressController.text.trim();
+
+    final prefs = await SharedPreferences.getInstance();
     await prefs.setString('system_config_data', json.encode(_configState));
-    await Future.delayed(const Duration(milliseconds: 500));
-    
+
+    if (tenant != null) {
+      await TenantService().initialize(tenant.domain, showLoading: false);
+    }
+
     if (mounted) {
-      setState(() => _isLoading = false);
+      setState(() => _isSaving = false);
+      final bool isSuccess = res['success'] == true;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Configurations synchronized successfully!"), backgroundColor: Colors.green),
+        SnackBar(
+          content: Text(isSuccess ? "Restaurant profile saved to database permanently!" : "Local profile saved (${res['message']})"),
+          backgroundColor: isSuccess ? Colors.green : Colors.orange,
+        ),
       );
     }
   }
@@ -116,9 +157,11 @@ class _SystemConfigurationScreenState extends State<SystemConfigurationScreen> {
             ],
           ),
           ElevatedButton.icon(
-            onPressed: _saveConfig,
-            icon: const Icon(Icons.sync_rounded, size: 18),
-            label: const Text("SYNC CHANGES"),
+            onPressed: _isSaving ? null : _saveConfig,
+            icon: _isSaving
+                ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                : const Icon(Icons.sync_rounded, size: 18),
+            label: Text(_isSaving ? "SAVING..." : "SYNC CHANGES"),
             style: ElevatedButton.styleFrom(
               backgroundColor: AdminTheme.royalBlue,
               foregroundColor: Colors.white,
@@ -163,7 +206,7 @@ class _SystemConfigurationScreenState extends State<SystemConfigurationScreen> {
         const SizedBox(height: 16),
         Row(
           children: [
-            Expanded(child: _buildConfigInput("Admin Email", _emailController, Icons.email_outlined)),
+            Expanded(child: _buildConfigInput("Admin Notification Email (For Tickets, Stock & Subscription Alerts)", _emailController, Icons.email_outlined)),
             const SizedBox(width: 16),
             Expanded(child: _buildConfigInput("Support Phone", _phoneController, Icons.phone_android)),
           ],

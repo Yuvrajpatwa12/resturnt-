@@ -173,7 +173,7 @@ class ProductCard extends StatelessWidget {
                                     ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
                                     : null,
                                 strokeWidth: 2,
-                                color: const Color(0xFFFF5C00),
+                                color: Theme.of(context).primaryColor,
                               ),
                             );
                           },
@@ -214,7 +214,7 @@ class ProductCard extends StatelessWidget {
                         bottom: 8, left: 8,
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                          decoration: BoxDecoration(color: const Color(0xFFFF5C00), borderRadius: BorderRadius.circular(4)),
+                          decoration: BoxDecoration(color: Theme.of(context).primaryColor, borderRadius: BorderRadius.circular(4)),
                           child: Text(item['tag'], style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
                         ),
                       ),
@@ -237,7 +237,7 @@ class ProductCard extends StatelessWidget {
                             child: Icon(
                               Icons.view_in_ar_rounded, 
                               color: (product.modelUrl != null && product.modelUrl!.isNotEmpty) 
-                                  ? const Color(0xFFFF5C00) 
+                                  ? Theme.of(context).primaryColor 
                                   : Colors.grey, 
                               size: 16
                             ),
@@ -263,7 +263,7 @@ class ProductCard extends StatelessWidget {
                               shape: BoxShape.circle,
                               boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 4)],
                             ),
-                            child: const Icon(Icons.spatial_audio_off_rounded, color: Color(0xFFFF5C00), size: 16),
+                            child: Icon(Icons.spatial_audio_off_rounded, color: Theme.of(context).primaryColor, size: 16),
                           ),
                         ),
                       ),
@@ -291,7 +291,7 @@ class ProductCard extends StatelessWidget {
                       const SizedBox(height: 4),
                       Text(
                         displayPrice, 
-                        style: TextStyle(fontSize: isLarge ? 12 : 11, fontWeight: FontWeight.w900, color: const Color(0xFFFF5C00)),
+                        style: TextStyle(fontSize: isLarge ? 12 : 11, fontWeight: FontWeight.w900, color: Theme.of(context).primaryColor),
                       ),
                       if ((product.slogan != null && product.slogan!.isNotEmpty) || (item['description'] != null && item['description'].toString().isNotEmpty))
                         Padding(
@@ -376,7 +376,7 @@ class ProductCard extends StatelessWidget {
       },
       child: Container(
         padding: const EdgeInsets.all(4),
-        decoration: const BoxDecoration(color: Color(0xFFFF5C00), shape: BoxShape.circle),
+        decoration: BoxDecoration(color: Theme.of(context).primaryColor, shape: BoxShape.circle),
         child: Icon(Icons.add, color: Colors.white, size: isLarge ? 14 : 12),
       ),
     );
@@ -385,7 +385,7 @@ class ProductCard extends StatelessWidget {
   Widget _buildQuantityCounter(BuildContext context, Product product, int qty) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFFF5C00).withValues(alpha: 0.1),
+        color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
@@ -395,7 +395,7 @@ class ProductCard extends StatelessWidget {
             onTap: () => ShopManager.instance.updateQuantity(product, qty - 1),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              child: Icon(Icons.remove, size: isLarge ? 14 : 12, color: const Color(0xFFFF5C00)),
+              child: Icon(Icons.remove, size: isLarge ? 14 : 12, color: Theme.of(context).primaryColor),
             ),
           ),
           Text(
@@ -403,14 +403,14 @@ class ProductCard extends StatelessWidget {
             style: TextStyle(
               fontSize: isLarge ? 12 : 10,
               fontWeight: FontWeight.bold,
-              color: const Color(0xFFFF5C00),
+              color: Theme.of(context).primaryColor,
             ),
           ),
           GestureDetector(
             onTap: () => ShopManager.instance.updateQuantity(product, qty + 1),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              child: Icon(Icons.add, size: isLarge ? 14 : 12, color: const Color(0xFFFF5C00)),
+              child: Icon(Icons.add, size: isLarge ? 14 : 12, color: Theme.of(context).primaryColor),
             ),
           ),
         ],

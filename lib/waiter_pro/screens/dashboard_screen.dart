@@ -15,7 +15,9 @@ class DashboardScreen extends StatelessWidget {
         actions: [
           IconButton(
             onPressed: () {
-              Future.microtask(() => ShopManager.instance.waiterTabIndex.value = 3); // Switch to Alerts
+              Future.microtask(
+                () => ShopManager.instance.waiterTabIndex.value = 3,
+              ); // Switch to Alerts
             },
             icon: const Icon(Icons.notifications_none),
           ),
@@ -23,7 +25,10 @@ class DashboardScreen extends StatelessWidget {
           const CircleAvatar(
             radius: 14,
             backgroundColor: WaiterProTheme.royalBlue,
-            child: Text("YP", style: TextStyle(color: Colors.white, fontSize: 10)),
+            child: Text(
+              "YP",
+              style: TextStyle(color: Colors.white, fontSize: 10),
+            ),
           ),
           const SizedBox(width: 12),
         ],
@@ -37,16 +42,32 @@ class DashboardScreen extends StatelessWidget {
             ValueListenableBuilder<Map<int, String>>(
               valueListenable: ShopManager.instance.tableStatuses,
               builder: (context, statuses, child) {
-                final activeCount = statuses.values.where((s) => s == "Dining").length;
-                final availableCount = statuses.values.where((s) => s == "Available").length;
-                
+                final activeCount = statuses.values
+                    .where((s) => s == "Dining")
+                    .length;
+                final availableCount = statuses.values
+                    .where((s) => s == "Available")
+                    .length;
+
                 return Row(
                   children: [
-                    _buildStatChip(context, "Occupied", "$activeCount", WaiterProTheme.royalBlue, 1),
+                    _buildStatChip(
+                      context,
+                      "Occupied",
+                      "$activeCount",
+                      WaiterProTheme.royalBlue,
+                      1,
+                    ),
                     const SizedBox(width: 10),
-                    _buildStatChip(context, "Available", "$availableCount", WaiterProTheme.emeraldGreen, 1),
+                    _buildStatChip(
+                      context,
+                      "Available",
+                      "$availableCount",
+                      WaiterProTheme.emeraldGreen,
+                      1,
+                    ),
                     const SizedBox(width: 10),
-                    _buildStatChip(context, "Alerts", "03", Colors.orange, 3),
+                    _buildStatChip(context, "Alerts", "—", Colors.orange, 3),
                   ],
                 );
               },
@@ -61,23 +82,40 @@ class DashboardScreen extends StatelessWidget {
                 ),
                 TextButton(
                   onPressed: () {
-                    Future.microtask(() => ShopManager.instance.waiterTabIndex.value = 1); // Go to Tables
+                    Future.microtask(
+                      () => ShopManager.instance.waiterTabIndex.value = 1,
+                    ); // Go to Tables
                   },
                   child: const Text("View All", style: TextStyle(fontSize: 13)),
                 ),
               ],
             ),
             const SizedBox(height: 8),
+            Wrap(
+              spacing: 12,
+              runSpacing: 8,
+              children: [
+                _buildLegend("Available", Colors.green.shade700),
+                _buildLegend("Occupied", WaiterProTheme.royalBlue),
+                _buildLegend("KOT pending", Colors.orange.shade800),
+                _buildLegend("Ready", WaiterProTheme.emeraldGreen),
+                _buildLegend("Billing", Colors.deepPurple),
+                _buildLegend("Dirty", Colors.brown),
+              ],
+            ),
+            const SizedBox(height: 12),
             // Interactive Table Grid
             ValueListenableBuilder<Map<int, String>>(
               valueListenable: ShopManager.instance.tableStatuses,
               builder: (context, statuses, child) {
                 if (statuses.isEmpty) {
                   ShopManager.instance.initializeTables(20);
-                  return const Center(child: Padding(
-                    padding: EdgeInsets.all(40.0),
-                    child: CircularProgressIndicator(),
-                  ));
+                  return const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(40.0),
+                      child: CircularProgressIndicator(),
+                    ),
+                  );
                 }
 
                 final sortedIds = statuses.keys.toList()..sort();
@@ -91,7 +129,12 @@ class DashboardScreen extends StatelessWidget {
                     bool isDining = status == "Dining";
                     return SizedBox(
                       width: (MediaQuery.of(context).size.width - 24 - 20) / 3,
-                      child: _buildTableCard(context, id.toString(), isDining ? "Occupied" : status, isDining),
+                      child: _buildTableCard(
+                        context,
+                        id.toString(),
+                        isDining ? "Occupied" : status,
+                        isDining,
+                      ),
                     );
                   }).toList(),
                 );
@@ -103,10 +146,18 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStatChip(BuildContext context, String label, String value, Color color, int targetIndex) {
+  Widget _buildStatChip(
+    BuildContext context,
+    String label,
+    String value,
+    Color color,
+    int targetIndex,
+  ) {
     return Expanded(
       child: InkWell(
-        onTap: () => Future.microtask(() => ShopManager.instance.waiterTabIndex.value = targetIndex),
+        onTap: () => Future.microtask(
+          () => ShopManager.instance.waiterTabIndex.value = targetIndex,
+        ),
         borderRadius: BorderRadius.circular(10),
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
@@ -117,8 +168,22 @@ class DashboardScreen extends StatelessWidget {
           ),
           child: Column(
             children: [
-              Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color)),
-              Text(label, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w500, color: Colors.grey)),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
+              ),
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 9,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.grey,
+                ),
+              ),
             ],
           ),
         ),
@@ -126,20 +191,45 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTableCard(BuildContext context, String tableNum, String status, bool isOccupied) {
+  Widget _buildTableCard(
+    BuildContext context,
+    String tableNum,
+    String status,
+    bool isOccupied,
+  ) {
     Color statusColor;
     IconData icon;
-    switch (status) {
-      case "Occupied":
+    switch (status.toLowerCase()) {
+      case "occupied":
+      case "dining":
         statusColor = WaiterProTheme.royalBlue;
         icon = Icons.people_alt;
         break;
-      case "Dirty":
-        statusColor = Colors.orange;
+      case "dirty":
+        statusColor = Colors.brown;
         icon = Icons.cleaning_services;
         break;
-      default:
+      case "new order":
+      case "kot pending":
+      case "pending":
+        statusColor = Colors.orange;
+        icon = Icons.pending_actions;
+        break;
+      case "ready":
         statusColor = WaiterProTheme.emeraldGreen;
+        icon = Icons.room_service;
+        break;
+      case "billing":
+      case "bill requested":
+        statusColor = Colors.deepPurple;
+        icon = Icons.receipt_long;
+        break;
+      case "reserved":
+        statusColor = Colors.teal;
+        icon = Icons.event_seat;
+        break;
+      default:
+        statusColor = Colors.green.shade700;
         icon = Icons.event_available;
     }
 
@@ -148,12 +238,17 @@ class DashboardScreen extends StatelessWidget {
         if (isOccupied) {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => RunningOrderSummaryScreen(tableId: "T-$tableNum")),
+            MaterialPageRoute(
+              builder: (context) =>
+                  RunningOrderSummaryScreen(tableId: "T-$tableNum"),
+            ),
           );
         } else {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => DigitalMenuScreen(tableId: "T-$tableNum")),
+            MaterialPageRoute(
+              builder: (context) => DigitalMenuScreen(tableId: "T-$tableNum"),
+            ),
           );
         }
       },
@@ -177,11 +272,30 @@ class DashboardScreen extends StatelessWidget {
             ),
             Text(
               status,
-              style: TextStyle(fontSize: 9, color: statusColor, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: 9,
+                color: statusColor,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildLegend(String label, Color color) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 9,
+          height: 9,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 5),
+        Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey)),
+      ],
     );
   }
 }

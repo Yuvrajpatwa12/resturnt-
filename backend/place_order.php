@@ -17,6 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
 
 require_once 'db_config.php';
 require_once 'push_notifier.php';
+require_once 'email_notification_common.php';
 
 if ($conn->connect_error) {
     echo json_encode(["status" => "error", "message" => "DB Connection Failed"]);
@@ -138,10 +139,47 @@ try {
             $notif_ins->bind_param("ssss", $tenant_id, $target_uid, $notif_title, $notif_msg);
             $notif_ins->execute();
 
+            // Only queue email if customer_email is provided
+            if (!empty($customer_email) && filter_var($customer_email, FILTER_VALIDATE_EMAIL)) {
+                // Ensure customer has email preferences
+                $pref_check = $conn->prepare("SELECT 1 FROM customer_notification_email_preferences WHERE tenant_id = ? AND email = ? LIMIT 1");
+                $pref_check->bind_param("ss", $tenant_id, $customer_email);
+                $pref_check->execute();
+                if ($pref_check->get_result()->num_rows === 0) {
+                    // Create default preferences for this customer
+                    $pref_ins = $conn->prepare("INSERT INTO customer_notification_email_preferences (tenant_id, email, email_enabled, email_follow, email_wave, email_message) VALUES (?, ?, 1, 1, 1, 1)");
+                    $pref_ins->bind_param("ss", $tenant_id, $customer_email);
+                    $pref_ins->execute();
+                }
+                queueEmailNotification($conn, $tenant_id, $customer_email, $conn->insert_id, 'order');
+            }
+
             notifyUser($target_uid, $tenant_id, $notif_title, $notif_msg, 'order');
         } catch (Throwable $notification_error) {
             error_log("Order #$order_id was saved, but notification delivery failed: " . $notification_error->getMessage());
         }
+    }
+
+    // 6. Notify Admin about new order
+    try {
+        $admin_stmt = $conn->prepare("SELECT primary_email, contact_email FROM tenants WHERE tenant_id = ? LIMIT 1");
+        $admin_stmt->bind_param("s", $tenant_id);
+        $admin_stmt->execute();
+        $admin_res = $admin_stmt->get_result();
+        $admin_email = 'admin';
+        if ($admin_row = $admin_res->fetch_assoc()) {
+            $admin_email = !empty($admin_row['primary_email']) ? $admin_row['primary_email'] : 
+                          (!empty($admin_row['contact_email']) ? $admin_row['contact_email'] : 'admin');
+        }
+
+        $admin_notif_title = "New Order #$order_id";
+        $admin_notif_msg = "Table #$table_number - Total: ₹$total_amount";
+        $admin_notif = $conn->prepare("INSERT INTO notifications (tenant_id, user_id, title, message, type) VALUES (?, ?, ?, ?, 'order')");
+        $admin_notif->bind_param("ssss", $tenant_id, $admin_email, $admin_notif_title, $admin_notif_msg);
+        $admin_notif->execute();
+        queueEmailNotification($conn, $tenant_id, $admin_email, $conn->insert_id, 'order');
+    } catch (Throwable $admin_notification_error) {
+        error_log("Order #$order_id was saved, but admin notification failed: " . $admin_notification_error->getMessage());
     }
 
     echo json_encode([

@@ -4,6 +4,7 @@ import 'waiter_pro/theme.dart';
 import 'homepage.dart';
 import 'cart_manager.dart';
 import 'services/tenant_service.dart';
+import 'services/api_service.dart';
 import 'services/suspension_screen.dart';
 import 'super_admin_module/master_hub.dart';
 
@@ -145,12 +146,6 @@ class _MyAppState extends State<MyApp> {
         return ValueListenableBuilder<Tenant?>(
           valueListenable: TenantService().currentTenant,
           builder: (context, tenant, child) {
-            // BYPASS FOR LOCALHOST TESTING:
-            // Agar aap PC par hain aur database set nahi hai, toh seedha Dashboard dikhao
-            if (Uri.base.host == "localhost" && tenant == null) {
-               return _buildMainApp(null, isBypass: true);
-            }
-
             if (tenant == null || !tenant.isActive) {
               return MaterialApp(
                 debugShowCheckedModeBanner: false,
@@ -163,41 +158,59 @@ class _MyAppState extends State<MyApp> {
               );
             }
 
-            return _buildMainApp(tenant);
+            // Build app with tenant's theme - this will rebuild when tenant changes
+            final themeColor = _parseColor(tenant.color);
+            final fontFamily = tenant.fontFamily ?? 'Inter';
+            final borderRadius = tenant.borderRadius ?? 16.0;
+            final isDarkMode = tenant.darkModeEnabled ?? false;
+
+            return MaterialApp(
+              debugShowCheckedModeBanner: false,
+              title: tenant.name,
+              theme: ThemeData(
+                useMaterial3: true,
+                primaryColor: themeColor,
+                colorScheme: ColorScheme.fromSeed(
+                  seedColor: themeColor,
+                  brightness: isDarkMode ? Brightness.dark : Brightness.light,
+                ),
+                fontFamily: fontFamily,
+                cardTheme: CardThemeData(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(borderRadius),
+                  ),
+                ),
+                elevatedButtonTheme: ElevatedButtonThemeData(
+                  style: ElevatedButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(borderRadius),
+                    ),
+                  ),
+                ),
+                inputDecorationTheme: InputDecorationTheme(
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(borderRadius),
+                  ),
+                ),
+              ),
+              home: const SplashScreen(),
+              builder: (context, child) {
+                return Stack(
+                  children: [
+                    if (child != null) child,
+                    const GlobalNotificationBannerOverlay(),
+                  ],
+                );
+              },
+              routes: {
+                '/customer': (context) => const HomePage(),
+                '/super-admin': (context) => const SuperAdminMasterHub(),
+                '/restaurant-admin': (context) => const StaffGateway(),
+                '/dashboard': (context) => const SuperAdminDashboard(),
+              },
+            );
           },
         );
-      },
-    );
-  }
-
-  Widget _buildMainApp(Tenant? tenant, {bool isBypass = false}) {
-    final themeColor = (tenant != null && !isBypass) 
-        ? _parseColor(tenant.color) 
-        : const Color(0xFFFF5C00);
-
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: (tenant != null && !isBypass) ? tenant.name : "ChiyaBreak SaaS (Local)",
-      theme: ThemeData(
-        useMaterial3: true,
-        primaryColor: themeColor,
-        colorScheme: ColorScheme.fromSeed(seedColor: themeColor),
-      ),
-      // Set SplashScreen as the initial entry point
-      home: const SplashScreen(),
-      builder: (context, child) {
-        return Stack(
-          children: [
-            if (child != null) child,
-            const GlobalNotificationBannerOverlay(),
-          ],
-        );
-      },
-      routes: {
-        '/customer': (context) => const HomePage(),
-        '/super-admin': (context) => const SuperAdminMasterHub(),
-        '/restaurant-admin': (context) => const StaffGateway(),
-        '/dashboard': (context) => const SuperAdminDashboard(),
       },
     );
   }

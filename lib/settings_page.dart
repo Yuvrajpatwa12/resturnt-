@@ -171,14 +171,14 @@ class _SettingsPageState extends State<SettingsPage> {
     return ValueListenableBuilder<bool>(
       valueListenable: notifier,
       builder: (context, val, _) => ListTile(
-        leading: Icon(icon, color: val ? const Color(0xFFFF5C00) : Colors.grey, size: 20),
+        leading: Icon(icon, color: val ? Theme.of(context).primaryColor : Colors.grey, size: 20),
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
         subtitle: Text(sub, style: const TextStyle(fontSize: 11, color: Colors.grey)),
         trailing: Switch(
           value: val,
           onChanged: (v) => notifier.value = v,
-          activeThumbColor: const Color(0xFFFF5C00),
-          activeTrackColor: const Color(0xFFFF5C00).withValues(alpha: 0.3),
+          activeThumbColor: Theme.of(context).primaryColor,
+          activeTrackColor: Theme.of(context).primaryColor.withValues(alpha: 0.3),
         ),
       ),
     );
@@ -191,8 +191,8 @@ class _SettingsPageState extends State<SettingsPage> {
       title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
       trailing: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(color: const Color(0xFFFF5C00).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
-        child: const Text("ALLOW", style: TextStyle(color: Color(0xFFFF5C00), fontSize: 10, fontWeight: FontWeight.bold)),
+        decoration: BoxDecoration(color: Theme.of(context).primaryColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
+        child: Text("ALLOW", style: TextStyle(color: Theme.of(context).primaryColor, fontSize: 10, fontWeight: FontWeight.bold)),
       ),
     );
   }
@@ -377,12 +377,12 @@ class _EmailNotificationSettingsState extends State<_EmailNotificationSettings> 
     return SwitchListTile(
       value: _preferences[keyName] ?? false,
       onChanged: _saving ? null : (value) => _update(keyName, value),
-      secondary: Icon(icon, color: const Color(0xFFFF5C00), size: 20),
+      secondary: Icon(icon, color: Theme.of(context).primaryColor, size: 20),
       title: Text(title, style: const TextStyle(fontSize: 13)),
       subtitle: subtitle == null
           ? null
           : Text(subtitle, style: const TextStyle(fontSize: 11)),
-      activeThumbColor: const Color(0xFFFF5C00),
+      activeThumbColor: Theme.of(context).primaryColor,
     );
   }
 

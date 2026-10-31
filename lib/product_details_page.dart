@@ -157,8 +157,8 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
           color: const Color(0xFFFFF0E5),
           borderRadius: BorderRadius.circular(20),
         ),
-        child: const Center(
-          child: Icon(Icons.fastfood_rounded, color: Color(0xFFFF5C00), size: 64),
+        child: Center(
+          child: Icon(Icons.fastfood_rounded, color: Theme.of(context).primaryColor, size: 64),
         ),
       );
     }
@@ -176,8 +176,8 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
             color: const Color(0xFFFFF0E5),
             borderRadius: BorderRadius.circular(20),
           ),
-          child: const Center(
-            child: Icon(Icons.fastfood_rounded, color: Color(0xFFFF5C00), size: 64),
+          child: Center(
+            child: Icon(Icons.fastfood_rounded, color: Theme.of(context).primaryColor, size: 64),
           ),
         ),
       );
@@ -198,7 +198,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
               value: loadingProgress.expectedTotalBytes != null
                   ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
                   : null,
-              color: const Color(0xFFFF5C00),
+              color: Theme.of(context).primaryColor,
             ),
           ),
         );
@@ -210,8 +210,8 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
           color: const Color(0xFFFFF0E5),
           borderRadius: BorderRadius.circular(20),
         ),
-        child: const Center(
-          child: Icon(Icons.fastfood_rounded, color: Color(0xFFFF5C00), size: 64),
+        child: Center(
+          child: Icon(Icons.fastfood_rounded, color: Theme.of(context).primaryColor, size: 64),
         ),
       ),
     );
@@ -293,7 +293,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFFF5C00),
+                        color: Theme.of(context).primaryColor,
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
@@ -328,7 +328,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                           child: Icon(
                             Icons.view_in_ar_rounded, 
                             color: (widget.product.modelUrl != null && widget.product.modelUrl!.isNotEmpty)
-                                ? const Color(0xFFFF5C00)
+                                ? Theme.of(context).primaryColor
                                 : Colors.grey,
                             size: 24,
                           ),
@@ -485,7 +485,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                 const Text("Price", style: TextStyle(color: Colors.grey, fontSize: 12)),
                 Text(
                   currentDisplayPrice.isNotEmpty ? currentDisplayPrice : widget.product.price,
-                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFFFF5C00)),
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Theme.of(context).primaryColor),
                 ),
               ],
             ),
@@ -529,14 +529,14 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                           SnackBar(
                             content: Text("$cartTitle added to cart!"),
                             behavior: SnackBarBehavior.floating,
-                            backgroundColor: const Color(0xFFFF5C00),
+                            backgroundColor: Theme.of(context).primaryColor,
                           ),
                         );
                         Navigator.pop(context);
                       }
                     : null,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: widget.product.isAvailable ? const Color(0xFFFF5C00) : Colors.grey.shade400,
+                  backgroundColor: widget.product.isAvailable ? Theme.of(context).primaryColor : Colors.grey.shade400,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 18),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -560,7 +560,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
       child: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: isAdd ? const Color(0xFFFF5C00) : Colors.white,
+          color: isAdd ? Theme.of(context).primaryColor : Colors.white,
           borderRadius: BorderRadius.circular(8),
           boxShadow: [if(!isAdd) BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4)],
         ),
@@ -614,13 +614,13 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                 duration: const Duration(milliseconds: 200),
                 padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
                 decoration: BoxDecoration(
-                  color: isSelected ? const Color(0xFFFF5C00) : Colors.white,
+                  color: isSelected ? Theme.of(context).primaryColor : Colors.white,
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: isSelected ? const Color(0xFFFF5C00) : Colors.grey[300]!),
+                  border: Border.all(color: isSelected ? Theme.of(context).primaryColor : Colors.grey[300]!),
                   boxShadow: isSelected
                       ? [
                           BoxShadow(
-                            color: const Color(0xFFFF5C00).withValues(alpha: 0.25),
+                            color: Theme.of(context).primaryColor.withValues(alpha: 0.25),
                             blurRadius: 8,
                             offset: const Offset(0, 4),
                           )
@@ -650,14 +650,14 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFFF5C00).withValues(alpha: 0.1) : Colors.white,
+          color: isSelected ? Theme.of(context).primaryColor.withValues(alpha: 0.1) : Colors.white,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: isSelected ? const Color(0xFFFF5C00) : Colors.grey[200]!),
+          border: Border.all(color: isSelected ? Theme.of(context).primaryColor : Colors.grey[200]!),
         ),
         child: Text(
           size,
           style: TextStyle(
-            color: isSelected ? const Color(0xFFFF5C00) : Colors.grey[600],
+            color: isSelected ? Theme.of(context).primaryColor : Colors.grey[600],
             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
           ),
         ),

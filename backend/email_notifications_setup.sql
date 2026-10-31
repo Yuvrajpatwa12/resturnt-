@@ -14,9 +14,22 @@ CREATE TABLE IF NOT EXISTS customer_notification_email_preferences (
     email_follow TINYINT(1) NOT NULL DEFAULT 1,
     email_wave TINYINT(1) NOT NULL DEFAULT 1,
     email_message TINYINT(1) NOT NULL DEFAULT 1,
+    email_order TINYINT(1) NOT NULL DEFAULT 1,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (tenant_id, email)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS admin_notification_email_preferences (
+    tenant_id VARCHAR(100) NOT NULL,
+    admin_email VARCHAR(190) NOT NULL,
+    email_enabled TINYINT(1) NOT NULL DEFAULT 1,
+    email_support TINYINT(1) NOT NULL DEFAULT 1,
+    email_order TINYINT(1) NOT NULL DEFAULT 1,
+    email_stock TINYINT(1) NOT NULL DEFAULT 1,
+    email_subscription TINYINT(1) NOT NULL DEFAULT 1,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (tenant_id, admin_email)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE TABLE IF NOT EXISTS notification_email_queue (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,

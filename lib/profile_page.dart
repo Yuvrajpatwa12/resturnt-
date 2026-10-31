@@ -4,8 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'cart_manager.dart';
 
 import 'passport_page.dart';
-import 'mystery_box_page.dart';
 import 'rewards_page.dart';
+import 'game_hub.dart';
 import 'live_order_tracking_screen.dart';
 import 'my_orders_page.dart';
 import 'user_profile_view_page.dart';
@@ -41,6 +41,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
     super.initState();
     ShopManager.instance.fetchSocialLists();
     ShopManager.instance.refreshUserPoints();
+    ShopManager.instance.refreshUserOrdersCount();
     
     _animationController = AnimationController(
       vsync: this,
@@ -55,11 +56,11 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
   }
 
   Color _parseColor(String? hex) {
-    if (hex == null || hex.isEmpty) return const Color(0xFFFF5C00);
+    if (hex == null || hex.isEmpty) return Theme.of(context).primaryColor;
     try {
       return Color(int.parse(hex.replaceFirst('#', '0xFF')));
     } catch (e) {
-      return const Color(0xFFFF5C00);
+      return Theme.of(context).primaryColor;
     }
   }
 
@@ -172,7 +173,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
     final isPremium = TenantService().currentTenant.value?.isPremiumEnabled ?? false;
 
     return Container(
-      height: 440, // Reduced height as requested
+      height: 480, // Expanded height to comfortably fit all action cards without clipping
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -186,8 +187,11 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
           // CENTERED CONTENT
           Positioned(
             top: 25, // Moved even higher
+            left: 0,
+            right: 0,
             child: Column(
               mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 // Avatar with RAYS
                 Stack(
@@ -291,14 +295,21 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
                   ],
                 ),
                 const SizedBox(height: 2), // Tighter gap
-                ValueListenableBuilder<bool>(
-                  valueListenable: ShopManager.instance.isEmailSynced,
-                  builder: (context, synced, _) {
-                    return ValueListenableBuilder<String>(
-                      valueListenable: ShopManager.instance.customerName,
-                      builder: (context, name, _) => Text(
-                        (synced && name.isNotEmpty) ? name : "Guest Diner",
-                        style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                ValueListenableBuilder<String>(
+                  valueListenable: ShopManager.instance.customerName,
+                  builder: (context, name, _) {
+                    final trimmed = name.trim();
+                    final displayName = (trimmed.isNotEmpty && trimmed != 'Guest')
+                        ? trimmed
+                        : (ShopManager.instance.customerEmail.value.trim().isNotEmpty
+                            ? ShopManager.instance.customerEmail.value.trim().split('@').first
+                            : "Guest Diner");
+                    return Text(
+                      displayName,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
                       ),
                     );
                   },
@@ -349,38 +360,44 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
 
                 const SizedBox(height: 15),
 
+                const SizedBox(height: 15),
+
                 // ACTION BUTTONS (FOR SELF PROFILE)
                 if (isPremium)
-                  Row(
-                    children: [
-                      ElevatedButton.icon(
-                        onPressed: () {
-                          ShopManager.instance.currentTabIndex.value = 2; // Nearby
-                        },
-                        icon: const Icon(Icons.bolt, size: 18),
-                        label: const Text("CONNECT", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 1)),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: startColor,
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
-                          elevation: 0,
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            ShopManager.instance.currentTabIndex.value = 2; // Nearby
+                          },
+                          icon: const Icon(Icons.bolt, size: 18),
+                          label: const Text("CONNECT", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 1)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: startColor,
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+                            elevation: 0,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      OutlinedButton.icon(
-                        onPressed: () {
-                          Navigator.push(context, MaterialPageRoute(builder: (context) => MessagesListPage()));
-                        },
-                        icon: const Icon(Icons.chat_bubble_outline, size: 18, color: Colors.white),
-                        label: const Text("MESSAGES", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.white, letterSpacing: 1)),
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: Colors.white54),
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+                        const SizedBox(width: 12),
+                        OutlinedButton.icon(
+                          onPressed: () {
+                            Navigator.push(context, MaterialPageRoute(builder: (context) => MessagesListPage()));
+                          },
+                          icon: const Icon(Icons.chat_bubble_outline, size: 18, color: Colors.white),
+                          label: const Text("MESSAGES", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.white, letterSpacing: 1)),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Colors.white54),
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
               ],
             ),
@@ -563,14 +580,6 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
               }
             }),
           if (isPremium)
-            _buildMenuItem(Icons.auto_awesome, "Surprise Mystery Box", "Win free items while in-house", Colors.purple, () {
-              if (ShopManager.instance.isEmailSynced.value) {
-                Navigator.push(context, MaterialPageRoute(builder: (context) => const MysteryBoxPage()));
-              } else {
-                SmartAuthOverlay.show(context);
-              }
-            }),
-          if (isPremium)
             _buildMenuItem(Icons.card_giftcard, "Redeem Rewards", "Spend your loyalty points", Colors.green, () {
               if (ShopManager.instance.isEmailSynced.value) {
                 Navigator.push(context, MaterialPageRoute(builder: (context) => const RewardsPage()));
@@ -578,6 +587,9 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
                 SmartAuthOverlay.show(context);
               }
             }),
+          _buildMenuItem(Icons.sports_esports_rounded, "Game Hub & Tap War", "Play games & battle nearby diners", Colors.orange, () {
+            Navigator.push(context, MaterialPageRoute(builder: (context) => const GameHubPage()));
+          }),
 
           // --- NEW: SOCIAL MEDIA LINKS SECTION ---
           const SizedBox(height: 10),

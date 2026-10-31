@@ -69,10 +69,10 @@ class _MusicPollWidgetState extends State<MusicPollWidget> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     "LIVE COMMUNITY POLL",
                     style: TextStyle(
-                      color: Color(0xFFFF5C00),
+                      color: Theme.of(context).primaryColor,
                       fontSize: 10,
                       fontWeight: FontWeight.w900,
                       letterSpacing: 1.5,
@@ -105,10 +105,10 @@ class _MusicPollWidgetState extends State<MusicPollWidget> {
                 child: Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: isVoted ? const Color(0xFFFF5C00).withValues(alpha: 0.03) : Colors.grey[50],
+                    color: isVoted ? Theme.of(context).primaryColor.withValues(alpha: 0.03) : Colors.grey[50],
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: isVoted ? const Color(0xFFFF5C00).withValues(alpha: 0.3) : Colors.grey[200]!,
+                      color: isVoted ? Theme.of(context).primaryColor.withValues(alpha: 0.3) : Colors.grey[200]!,
                       width: 1.5,
                     ),
                   ),
@@ -137,7 +137,7 @@ class _MusicPollWidgetState extends State<MusicPollWidget> {
                           Text(
                             "${(percentage * 100).toStringAsFixed(0)}%",
                             style: TextStyle(
-                              color: isVoted ? const Color(0xFFFF5C00) : Colors.grey[600],
+                              color: isVoted ? Theme.of(context).primaryColor : Colors.grey[600],
                               fontSize: 11,
                               fontWeight: FontWeight.w900,
                             ),
@@ -168,7 +168,7 @@ class _MusicPollWidgetState extends State<MusicPollWidget> {
                               boxShadow: [
                                 if (isVoted)
                                   BoxShadow(
-                                    color: const Color(0xFFFF5C00).withValues(alpha: 0.3),
+                                    color: Theme.of(context).primaryColor.withValues(alpha: 0.3),
                                     blurRadius: 4,
                                     offset: const Offset(0, 2),
                                   )
@@ -204,11 +204,11 @@ class _MusicPollWidgetState extends State<MusicPollWidget> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFFFF5C00),
+        color: Theme.of(context).primaryColor,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFFFF5C00).withValues(alpha: 0.2),
+            color: Theme.of(context).primaryColor.withValues(alpha: 0.2),
             blurRadius: 10,
             offset: const Offset(0, 4),
           )

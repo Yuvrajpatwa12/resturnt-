@@ -780,11 +780,15 @@ class _SupportTicketScreenState extends State<SupportTicketScreen> {
                             ),
                           ),
                         ),
-                        ..._chatHistory.map((m) => _buildMessageBubble(
-                          text: m['message'] ?? '',
-                          isMe: m['sender_type'] == 'Tenant',
-                          subtitle: m['created_at'] ?? '',
-                        )),
+                        ..._chatHistory.map((m) {
+                          final sender = (m['sender'] ?? m['sender_type'] ?? '').toString();
+                          final isMe = sender != 'Admin' && sender != 'SuperAdmin';
+                          return _buildMessageBubble(
+                            text: m['message'] ?? '',
+                            isMe: isMe,
+                            subtitle: "$sender • ${m['created_at'] ?? ''}",
+                          );
+                        }),
                       ],
                     ],
                   ),

@@ -51,20 +51,20 @@ class ClaimDetailsModal extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
-                color: isClaimed ? Colors.blue.withValues(alpha: 0.1) : const Color(0xFFFF5C00).withValues(alpha: 0.1),
+                color: isClaimed ? Colors.blue.withValues(alpha: 0.1) : Theme.of(context).primaryColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(30),
-                border: Border.all(color: isClaimed ? Colors.blue : const Color(0xFFFF5C00), width: 1.5),
+                border: Border.all(color: isClaimed ? Colors.blue : Theme.of(context).primaryColor, width: 1.5),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(isClaimed ? Icons.check_circle_outline : Icons.pending_actions_rounded, 
-                       color: isClaimed ? Colors.blue : const Color(0xFFFF5C00), size: 16),
+                       color: isClaimed ? Colors.blue : Theme.of(context).primaryColor, size: 16),
                   const SizedBox(width: 8),
                   Text(
                     isClaimed ? "SERVED" : "ACTIVE", 
                     style: TextStyle(
-                      color: isClaimed ? Colors.blue : const Color(0xFFFF5C00), 
+                      color: isClaimed ? Colors.blue : Theme.of(context).primaryColor, 
                       fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1
                     )
                   ),

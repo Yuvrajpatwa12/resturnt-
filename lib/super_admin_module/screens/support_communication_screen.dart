@@ -553,11 +553,15 @@ class _SupportCommunicationScreenState extends State<SupportCommunicationScreen>
               ),
             ),
           ),
-          ..._chatHistory.map((m) => _buildMessageBubble(
-                text: m['message'] ?? '',
-                isMe: m['sender_type'] == 'Admin' || m['sender_type'] == 'SuperAdmin',
-                subtitle: m['created_at'] ?? '',
-              )),
+          ..._chatHistory.map((m) {
+            final sender = (m['sender'] ?? m['sender_type'] ?? '').toString();
+            final isMe = sender == 'Admin' || sender == 'SuperAdmin';
+            return _buildMessageBubble(
+              text: m['message'] ?? '',
+              isMe: isMe,
+              subtitle: "${m['sender'] ?? 'Admin'} • ${m['created_at'] ?? ''}",
+            );
+          }),
         ],
       ],
     );

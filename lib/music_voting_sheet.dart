@@ -90,9 +90,9 @@ class _MusicVotingSheetState extends State<MusicVotingSheet> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFF5C00).withValues(alpha: 0.08),
+                  color: Theme.of(context).primaryColor.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFFFF5C00).withValues(alpha: 0.2)),
+                  border: Border.all(color: Theme.of(context).primaryColor.withValues(alpha: 0.2)),
                 ),
                 child: Row(
                   children: [
@@ -261,7 +261,7 @@ class _MusicVotingSheetState extends State<MusicVotingSheet> {
                 Navigator.push(context, MaterialPageRoute(builder: (context) => const JukeboxPage()));
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFF5C00),
+                backgroundColor: Theme.of(context).primaryColor,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 18),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),

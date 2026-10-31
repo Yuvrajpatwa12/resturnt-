@@ -103,8 +103,8 @@ class _JukeboxPageState extends State<JukeboxPage> with TickerProviderStateMixin
                 valueListenable: ShopManager.instance.vibeScore,
                 builder: (context, score, child) => Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(color: const Color(0xFFFF5C00).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
-                  child: Text("VIBE SCORE: $score%", style: const TextStyle(color: Color(0xFFFF5C00), fontSize: 9, fontWeight: FontWeight.bold)),
+                  decoration: BoxDecoration(color: Theme.of(context).primaryColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
+                  child: Text("VIBE SCORE: $score%", style: TextStyle(color: Theme.of(context).primaryColor, fontSize: 9, fontWeight: FontWeight.bold)),
                 ),
               ),
             ],
@@ -139,7 +139,7 @@ class _JukeboxPageState extends State<JukeboxPage> with TickerProviderStateMixin
             width: 240, height: 240,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: const Color(0xFFFF5C00).withValues(alpha: 0.15),
+              color: Theme.of(context).primaryColor.withValues(alpha: 0.15),
             ),
           ),
           Container(
@@ -147,7 +147,7 @@ class _JukeboxPageState extends State<JukeboxPage> with TickerProviderStateMixin
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               boxShadow: [
-                BoxShadow(color: const Color(0xFFFF5C00).withValues(alpha: 0.25), blurRadius: 40, spreadRadius: 5),
+                BoxShadow(color: Theme.of(context).primaryColor.withValues(alpha: 0.25), blurRadius: 40, spreadRadius: 5),
               ],
             ),
             child: ClipOval(
@@ -209,7 +209,7 @@ class _JukeboxPageState extends State<JukeboxPage> with TickerProviderStateMixin
             return Container(
               margin: const EdgeInsets.symmetric(horizontal: 3),
               width: 4, height: height,
-              decoration: BoxDecoration(color: const Color(0xFFFF5C00), borderRadius: BorderRadius.circular(2)),
+              decoration: BoxDecoration(color: Theme.of(context).primaryColor, borderRadius: BorderRadius.circular(2)),
             );
           }),
         );
@@ -227,11 +227,11 @@ class _JukeboxPageState extends State<JukeboxPage> with TickerProviderStateMixin
           SliderTheme(
             data: SliderThemeData(
               trackHeight: 4,
-              activeTrackColor: const Color(0xFFFF5C00),
+              activeTrackColor: Theme.of(context).primaryColor,
               inactiveTrackColor: const Color(0xFFE2E8F0),
-              thumbColor: const Color(0xFFFF5C00),
+              thumbColor: Theme.of(context).primaryColor,
               thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-              overlayColor: const Color(0xFFFF5C00).withValues(alpha: 0.1),
+              overlayColor: Theme.of(context).primaryColor.withValues(alpha: 0.1),
             ),
             child: Slider(value: progress, onChanged: (v) {}),
           ),
@@ -271,7 +271,7 @@ class _JukeboxPageState extends State<JukeboxPage> with TickerProviderStateMixin
                 icon: const Icon(Icons.add, size: 16),
                 label: const Text("Request", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFFF5C00),
+                  backgroundColor: Theme.of(context).primaryColor,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                   elevation: 0,
@@ -441,12 +441,12 @@ class _JukeboxPageState extends State<JukeboxPage> with TickerProviderStateMixin
                   final res = await ShopManager.instance.requestSong(title, "Requested", dedication.isNotEmpty ? dedication : null);
                   if (res['success'] == true && context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Song Requested Successfully! 🔥"), backgroundColor: Color(0xFFFF5C00)),
+                      SnackBar(content: const Text("Song Requested Successfully! 🔥"), backgroundColor: Theme.of(context).primaryColor),
                     );
                   }
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFFF5C00),
+                  backgroundColor: Theme.of(context).primaryColor,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),

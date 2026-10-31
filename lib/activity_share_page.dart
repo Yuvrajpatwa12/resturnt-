@@ -205,7 +205,7 @@ class _ActivitySharePageState extends State<ActivitySharePage> with SingleTicker
                 Navigator.pop(context);
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFF5C00),
+                backgroundColor: Theme.of(context).primaryColor,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
               ),
               child: const Text("COLLECT POINTS", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
@@ -219,7 +219,7 @@ class _ActivitySharePageState extends State<ActivitySharePage> with SingleTicker
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator(color: Color(0xFFFF5C00))));
+      return Scaffold(body: Center(child: CircularProgressIndicator(color: Theme.of(context).primaryColor)));
     }
 
     return Scaffold(
@@ -277,7 +277,7 @@ class _ActivitySharePageState extends State<ActivitySharePage> with SingleTicker
                   style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFFF5C00),
+                  backgroundColor: Theme.of(context).primaryColor,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 18),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -371,9 +371,9 @@ class _ActivitySharePageState extends State<ActivitySharePage> with SingleTicker
                       decoration: BoxDecoration(
                         color: Colors.white,
                         shape: BoxShape.circle,
-                        boxShadow: [BoxShadow(color: const Color(0xFFFF5C00).withValues(alpha: 0.5), blurRadius: 15)],
+                        boxShadow: [BoxShadow(color: Theme.of(context).primaryColor.withValues(alpha: 0.5), blurRadius: 15)],
                       ),
-                      child: const Icon(Icons.restaurant_rounded, color: Color(0xFFFF5C00), size: 24),
+                      child: Icon(Icons.restaurant_rounded, color: Theme.of(context).primaryColor, size: 24),
                     ),
                     const SizedBox(width: 15),
                     Expanded(
@@ -440,7 +440,7 @@ class _ActivitySharePageState extends State<ActivitySharePage> with SingleTicker
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.alternate_email_rounded, color: Color(0xFFFF5C00), size: 16),
+                      Icon(Icons.alternate_email_rounded, color: Theme.of(context).primaryColor, size: 16),
                       const SizedBox(width: 6),
                       Text(
                         "${tenant?.name.toLowerCase().replaceAll(' ', '_') ?? 'chiyala'}_official",
@@ -549,14 +549,14 @@ class _ActivitySharePageState extends State<ActivitySharePage> with SingleTicker
                                 decoration: BoxDecoration(
                                   gradient: LinearGradient(
                                     colors: [
-                                      const Color(0xFFFF5C00).withValues(alpha: 0),
-                                      const Color(0xFFFF5C00),
-                                      const Color(0xFFFF5C00).withValues(alpha: 0),
+                                      Theme.of(context).primaryColor.withValues(alpha: 0),
+                                      Theme.of(context).primaryColor,
+                                      Theme.of(context).primaryColor.withValues(alpha: 0),
                                     ],
                                   ),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: const Color(0xFFFF5C00).withValues(alpha: 0.8),
+                                      color: Theme.of(context).primaryColor.withValues(alpha: 0.8),
                                       blurRadius: 20,
                                       spreadRadius: 2,
                                     )
@@ -576,14 +576,14 @@ class _ActivitySharePageState extends State<ActivitySharePage> with SingleTicker
                                 decoration: BoxDecoration(
                                   color: Colors.black.withValues(alpha: 0.7),
                                   borderRadius: BorderRadius.circular(30),
-                                  border: Border.all(color: const Color(0xFFFF5C00).withValues(alpha: 0.5)),
+                                  border: Border.all(color: Theme.of(context).primaryColor.withValues(alpha: 0.5)),
                                 ),
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    const SizedBox(
+                                    SizedBox(
                                       width: 20, height: 20,
-                                      child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFFFF5C00)),
+                                      child: CircularProgressIndicator(strokeWidth: 2, color: Theme.of(context).primaryColor),
                                     ),
                                     const SizedBox(width: 16),
                                     Text(
@@ -599,7 +599,7 @@ class _ActivitySharePageState extends State<ActivitySharePage> with SingleTicker
                                 child: LinearProgressIndicator(
                                   value: _scanProgress,
                                   backgroundColor: Colors.white24,
-                                  valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFFF5C00)),
+                                  valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).primaryColor),
                                   borderRadius: BorderRadius.circular(10),
                                   minHeight: 6,
                                 ),
@@ -636,7 +636,7 @@ class _ActivitySharePageState extends State<ActivitySharePage> with SingleTicker
         ),
         child: Column(
           children: [
-            Icon(icon, color: const Color(0xFFFF5C00), size: 28),
+            Icon(icon, color: Theme.of(context).primaryColor, size: 28),
             const SizedBox(height: 8),
             Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
           ],

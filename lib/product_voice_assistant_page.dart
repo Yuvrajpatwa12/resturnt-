@@ -186,7 +186,7 @@ class _ProductVoiceAssistantPageState extends State<ProductVoiceAssistantPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(widget.product.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                      Text(widget.product.price, style: const TextStyle(color: Color(0xFFFF5C00), fontWeight: FontWeight.w900)),
+                      Text(widget.product.price, style: TextStyle(color: Theme.of(context).primaryColor, fontWeight: FontWeight.w900)),
                     ],
                   ),
                 ),
@@ -209,7 +209,7 @@ class _ProductVoiceAssistantPageState extends State<ProductVoiceAssistantPage> {
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
                     decoration: BoxDecoration(
-                      color: isStaff ? Colors.white : const Color(0xFFFF5C00),
+                      color: isStaff ? Colors.white : Theme.of(context).primaryColor,
                       borderRadius: BorderRadius.only(
                         topLeft: const Radius.circular(16),
                         topRight: const Radius.circular(16),
@@ -227,7 +227,7 @@ class _ProductVoiceAssistantPageState extends State<ProductVoiceAssistantPage> {
                             padding: const EdgeInsets.only(right: 8, top: 2),
                             child: GestureDetector(
                               onTap: () => _speak(msg['speakText'] ?? msg['text']!),
-                              child: Icon(Icons.volume_up, size: 14, color: _isSpeaking ? const Color(0xFFFF5C00) : Colors.grey),
+                              child: Icon(Icons.volume_up, size: 14, color: _isSpeaking ? Theme.of(context).primaryColor : Colors.grey),
                             ),
                           ),
                         Flexible(
@@ -250,9 +250,9 @@ class _ProductVoiceAssistantPageState extends State<ProductVoiceAssistantPage> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.volume_up, color: Color(0xFFFF5C00), size: 16),
+                  Icon(Icons.volume_up, color: Theme.of(context).primaryColor, size: 16),
                   const SizedBox(width: 8),
-                  const Text("Assistant is speaking...", style: TextStyle(color: Color(0xFFFF5C00), fontSize: 12, fontWeight: FontWeight.bold)),
+                  Text("Assistant is speaking...", style: TextStyle(color: Theme.of(context).primaryColor, fontSize: 12, fontWeight: FontWeight.bold)),
                 ],
               ),
             ),
@@ -268,7 +268,7 @@ class _ProductVoiceAssistantPageState extends State<ProductVoiceAssistantPage> {
                 icon: const Icon(Icons.play_arrow_rounded),
                 label: const Text("सुरु गर्नुहोस् (Start Voice)"),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFFF5C00),
+                  backgroundColor: Theme.of(context).primaryColor,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),

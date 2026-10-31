@@ -4,6 +4,7 @@ import 'user_profile_view_page.dart';
 import 'my_orders_page.dart';
 import 'rewards_page.dart';
 import 'nearby_page.dart';
+import 'squad_lobby_page.dart';
 import 'services/tenant_service.dart';
 import 'services/api_service.dart';
 
@@ -56,7 +57,7 @@ class _NotificationsPageState extends State<NotificationsPage> with SingleTicker
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFFF5C00),
+              backgroundColor: Theme.of(context).primaryColor,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -189,6 +190,24 @@ class _NotificationsPageState extends State<NotificationsPage> with SingleTicker
                   context,
                   MaterialPageRoute(builder: (context) => const RewardsPage()),
                 );
+              } else if (type == 'squad_invite') {
+                final tenant = TenantService().currentTenant.value;
+                final myId = ShopManager.instance.currentUserId;
+                if (tenant != null && myId.isNotEmpty) {
+                  final squad = await ApiService.getActiveSquad(tenantId: tenant.id, userId: myId);
+                  if (squad != null && mounted) {
+                    final int squadId = int.tryParse(squad['id'].toString()) ?? 0;
+                    final bool isHost = squad['created_by_user_id']?.toString() == myId;
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => SquadLobbyPage(squadId: squadId, isHost: isHost)),
+                    );
+                  } else if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Squad session has expired or closed.")),
+                    );
+                  }
+                }
               }
             },
             child: _buildNotificationItem(n),
@@ -207,6 +226,7 @@ class _NotificationsPageState extends State<NotificationsPage> with SingleTicker
     if (n['type'] == 'wave') { icon = Icons.back_hand; color = Colors.amber; }
     if (n['type'] == 'points') { icon = Icons.monetization_on; color = Colors.green; }
     if (n['type'] == 'message') { icon = Icons.chat_bubble; color = Colors.purple; }
+    if (n['type'] == 'squad_invite') { icon = Icons.sports_esports_rounded; color = Colors.deepOrange; }
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
