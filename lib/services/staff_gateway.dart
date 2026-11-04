@@ -6,7 +6,8 @@ import '../waiter_pro/waiter_hub.dart';
 import '../kitchen_pro/kitchen_hub.dart';
 
 class StaffGateway extends StatelessWidget {
-  const StaffGateway({super.key});
+  final String? initialRoleHint;
+  const StaffGateway({super.key, this.initialRoleHint});
 
   @override
   Widget build(BuildContext context) {
@@ -15,7 +16,7 @@ class StaffGateway extends StatelessWidget {
       builder: (context, staff, child) {
         // 1. Always show Login Screen if not authenticated
         if (staff == null) {
-          return const AdminLoginScreen(roleHint: "Staff");
+          return AdminLoginScreen(roleHint: initialRoleHint ?? "Staff");
         }
 
         // 2. Automatic Routing based on Database Role

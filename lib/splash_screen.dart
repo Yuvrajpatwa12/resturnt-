@@ -4,6 +4,8 @@ import 'services/tenant_service.dart';
 import 'cart_manager.dart';
 import 'homepage.dart';
 import 'services/dev_launcher.dart';
+import 'super_admin_module/master_hub.dart';
+import 'services/staff_gateway.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -61,11 +63,38 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     if (!mounted) return;
     
     bool isQRUser = ShopManager.instance.isQrLaunch.value;
-    
+    if (isQRUser) {
+      Navigator.of(context).pushReplacement(
+        PageRouteBuilder(
+          pageBuilder: (context, animation, secondaryAnimation) => const HomePage(),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return FadeTransition(opacity: animation, child: child);
+          },
+          transitionDuration: const Duration(milliseconds: 800),
+        ),
+      );
+      return;
+    }
+
+    final path = Uri.base.path.toLowerCase();
+    Widget nextScreen;
+    if (path.contains('/superadmin') || path.contains('/super-admin')) {
+      nextScreen = const SuperAdminMasterHub();
+    } else if (path.contains('/admin') || path.contains('/restaurant-admin')) {
+      nextScreen = const StaffGateway(initialRoleHint: "Admin");
+    } else if (path.contains('/waiter')) {
+      nextScreen = const StaffGateway(initialRoleHint: "Waiter");
+    } else if (path.contains('/kitchen')) {
+      nextScreen = const StaffGateway(initialRoleHint: "Kitchen");
+    } else if (path.contains('/customer')) {
+      nextScreen = const HomePage();
+    } else {
+      nextScreen = const DevLauncherScreen();
+    }
+
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) => 
-          isQRUser ? const HomePage() : const DevLauncherScreen(),
+        pageBuilder: (context, animation, secondaryAnimation) => nextScreen,
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           return FadeTransition(opacity: animation, child: child);
         },
