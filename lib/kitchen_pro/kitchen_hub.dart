@@ -7,6 +7,7 @@ import '../../cart_manager.dart';
 import '../../models.dart';
 import 'kitchen_theme.dart';
 import 'widgets/kot_ticket_card.dart';
+import '../utils/responsive_helper.dart';
 
 class KitchenHub extends StatefulWidget {
   const KitchenHub({super.key});
@@ -264,11 +265,11 @@ class _KitchenHubState extends State<KitchenHub> with SingleTickerProviderStateM
 
     return GridView.builder(
       padding: const EdgeInsets.all(16),
-      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 380,
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: Responsive.gridColumns(context, phone: 1, tablet: 2, desktop: 4),
         mainAxisSpacing: 16,
         crossAxisSpacing: 16,
-        childAspectRatio: 0.8, 
+        childAspectRatio: Responsive.value(context, phone: 1.2, tablet: 0.9, desktop: 0.8),
       ),
       itemCount: filteredOrders.length,
       itemBuilder: (context, index) {

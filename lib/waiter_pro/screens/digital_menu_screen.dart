@@ -5,6 +5,7 @@ import '../../services/tenant_service.dart';
 import '../theme.dart';
 import '../widgets/order_customization_dialog.dart';
 import 'running_order_summary_screen.dart';
+import '../../utils/responsive_helper.dart';
 
 class DigitalMenuScreen extends StatefulWidget {
   final String tableId;
@@ -320,11 +321,11 @@ class _DigitalMenuScreenState extends State<DigitalMenuScreen> {
                                 : GridView.builder(
                                     padding: const EdgeInsets.all(12),
                                     gridDelegate:
-                                        const SliverGridDelegateWithMaxCrossAxisExtent(
-                                          maxCrossAxisExtent: 220,
+                                        SliverGridDelegateWithFixedCrossAxisCount(
+                                          crossAxisCount: Responsive.gridColumns(context, phone: 2, tablet: 3, desktop: 4),
                                           crossAxisSpacing: 12,
                                           mainAxisSpacing: 12,
-                                          childAspectRatio: 0.72,
+                                          childAspectRatio: Responsive.value(context, phone: 0.72, tablet: 0.8, desktop: 0.85),
                                         ),
                                     itemCount: filteredProducts.length,
                                     itemBuilder: (context, index) {

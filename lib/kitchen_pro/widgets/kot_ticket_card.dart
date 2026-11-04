@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../cart_manager.dart';
 import '../kitchen_theme.dart';
+import '../../utils/responsive_helper.dart';
 
 class KotTicketCard extends StatelessWidget {
   final int tableId;
@@ -158,35 +159,39 @@ class KotTicketCard extends StatelessWidget {
             child: Row(
               children: [
                 Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: onAction,
-                    icon: Icon(
-                      stage == "Ready" ? Icons.notifications_active : (stage == "Incoming" ? Icons.play_arrow : Icons.check),
-                      size: 18,
-                    ),
-                    label: Text(
-                      stage == "Incoming" ? "START COOKING" : (stage == "Preparing" ? "MARK READY" : "NOTIFY WAITER"),
-                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 0.5),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: headerColor,
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      minimumSize: const Size(0, 48),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  child: Responsive.touchTarget(
+                    ElevatedButton.icon(
+                      onPressed: onAction,
+                      icon: Icon(
+                        stage == "Ready" ? Icons.notifications_active : (stage == "Incoming" ? Icons.play_arrow : Icons.check),
+                        size: 18,
+                      ),
+                      label: Text(
+                        stage == "Incoming" ? "START COOKING" : (stage == "Preparing" ? "MARK READY" : "NOTIFY WAITER"),
+                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 0.5),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: headerColor,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        minimumSize: const Size(0, 48),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
                     ),
                   ),
                 ),
                 if (stage != "Ready") ...[
                   const SizedBox(width: 8),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.grey.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: IconButton(
-                      onPressed: () {},
-                      icon: const Icon(Icons.close, color: Colors.redAccent, size: 18),
+                  Responsive.touchTarget(
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.grey.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: IconButton(
+                        onPressed: () {},
+                        icon: const Icon(Icons.close, color: Colors.redAccent, size: 18),
+                      ),
                     ),
                   ),
                 ],

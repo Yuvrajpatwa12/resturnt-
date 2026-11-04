@@ -3,6 +3,7 @@ import '../../cart_manager.dart';
 import '../theme.dart';
 import 'digital_menu_screen.dart';
 import 'running_order_summary_screen.dart';
+import '../../utils/responsive_helper.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -128,7 +129,9 @@ class DashboardScreen extends StatelessWidget {
                     String status = statuses[id] ?? "Available";
                     bool isDining = status == "Dining";
                     return SizedBox(
-                      width: (MediaQuery.of(context).size.width - 24 - 20) / 3,
+                      width: Responsive.isPhone(context)
+                          ? (MediaQuery.of(context).size.width - 24 - 10) / 2
+                          : (MediaQuery.of(context).size.width - 24 - 20) / 3,
                       child: _buildTableCard(
                         context,
                         id.toString(),
