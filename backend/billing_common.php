@@ -271,7 +271,14 @@ function billingAuthTenant($conn, $allowedRoles) {
     if (!function_exists('requireAuth')) {
         billingRespond(500, ['status' => 'error', 'message' => 'Staff authentication is not configured']);
     }
-    $auth = requireAuth($conn, $allowedRoles);
+    $normalizedAllowed = array_map(function($r) { return strtolower(trim($r)); }, (array)$allowedRoles);
+    if (!in_array('admin', $normalizedAllowed, true)) {
+        $normalizedAllowed[] = 'admin';
+    }
+    if (!in_array('super_admin', $normalizedAllowed, true)) {
+        $normalizedAllowed[] = 'super_admin';
+    }
+    $auth = requireAuth($conn, $normalizedAllowed);
     $user = isset($auth['user']) && is_array($auth['user']) ? $auth['user'] : [];
     $tenantId = trim((string)($user['tenant_id'] ?? ''));
     if ($tenantId === '') {

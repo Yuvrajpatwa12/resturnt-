@@ -51,9 +51,20 @@ if (!function_exists('requireAuth')) {
             staffAuthRespond(401, 'Staff session is no longer valid');
         }
 
-        $staff['role'] = strtolower(trim((string)$staff['role']));
-        if (!empty($allowedRoles) && !in_array($staff['role'], $allowedRoles, true)) {
-            staffAuthRespond(403, 'Your staff role cannot perform this action');
+        $rawRole = (string)($staff['role'] ?? '');
+        $normalizedRole = strtolower(trim(str_replace([' ', '-'], '_', $rawRole)));
+        $staff['role'] = $normalizedRole;
+
+        if (!empty($allowedRoles)) {
+            $normalizedAllowed = array_map(function($r) {
+                return strtolower(trim(str_replace([' ', '-'], '_', $r)));
+            }, $allowedRoles);
+
+            $adminRoles = ['admin', 'super_admin', 'super_administrator', 'manager'];
+
+            if (!in_array($normalizedRole, $adminRoles, true) && !in_array($normalizedRole, $normalizedAllowed, true)) {
+                staffAuthRespond(403, 'Your staff role cannot perform this action');
+            }
         }
 
         return ['user' => $staff];
