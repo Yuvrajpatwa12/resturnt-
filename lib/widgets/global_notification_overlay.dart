@@ -15,10 +15,12 @@ class GlobalNotificationBannerOverlay extends StatefulWidget {
   const GlobalNotificationBannerOverlay({super.key});
 
   @override
-  State<GlobalNotificationBannerOverlay> createState() => _GlobalNotificationBannerOverlayState();
+  State<GlobalNotificationBannerOverlay> createState() =>
+      _GlobalNotificationBannerOverlayState();
 }
 
-class _GlobalNotificationBannerOverlayState extends State<GlobalNotificationBannerOverlay>
+class _GlobalNotificationBannerOverlayState
+    extends State<GlobalNotificationBannerOverlay>
     with SingleTickerProviderStateMixin {
   late AnimationController _animController;
   late Animation<Offset> _slideAnimation;
@@ -33,13 +35,10 @@ class _GlobalNotificationBannerOverlayState extends State<GlobalNotificationBann
       duration: const Duration(milliseconds: 500),
     );
 
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, -1.2),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _animController,
-      curve: Curves.easeOutBack,
-    ));
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, -1.2), end: Offset.zero).animate(
+          CurvedAnimation(parent: _animController, curve: Curves.easeOutBack),
+        );
 
     _fadeAnimation = CurvedAnimation(
       parent: _animController,
@@ -104,10 +103,15 @@ class _GlobalNotificationBannerOverlayState extends State<GlobalNotificationBann
         } else if (title.contains('Order') || body.contains('order')) {
           iconData = Icons.restaurant_menu_rounded;
           accentColor = Theme.of(context).primaryColor; // Brand Primary Color
-        } else if (title.contains('Follow') || body.contains('followed') || title.contains('Friend')) {
+        } else if (title.contains('Follow') ||
+            body.contains('followed') ||
+            title.contains('Friend')) {
           iconData = Icons.person_add_rounded;
           accentColor = const Color(0xFF6366F1); // Royal Indigo
-        } else if (title.contains('Offer') || title.contains('Points') || body.contains('earned') || body.contains('off')) {
+        } else if (title.contains('Offer') ||
+            title.contains('Points') ||
+            body.contains('earned') ||
+            body.contains('off')) {
           iconData = Icons.local_offer_rounded;
           accentColor = const Color(0xFF10B981); // Emerald Green
         }
@@ -129,7 +133,7 @@ class _GlobalNotificationBannerOverlayState extends State<GlobalNotificationBann
                   borderRadius: BorderRadius.circular(20),
                   onTap: () {
                     _dismissBanner();
-                    
+
                     Widget pageToOpen = const NotificationsPage();
                     if (title.contains('Wave') || body.contains('waved')) {
                       if (senderId != null && senderId.isNotEmpty) {
@@ -137,22 +141,28 @@ class _GlobalNotificationBannerOverlayState extends State<GlobalNotificationBann
                       } else {
                         pageToOpen = const NearbyPage();
                       }
-                    } else if (title.contains('Follow') || body.contains('followed')) {
+                    } else if (title.contains('Follow') ||
+                        body.contains('followed')) {
                       if (senderId != null && senderId.isNotEmpty) {
                         pageToOpen = UserProfileViewPage(userId: senderId);
                       }
-                    } else if (title.contains('Order') || body.contains('order')) {
+                    } else if (title.contains('Order') ||
+                        body.contains('order')) {
                       pageToOpen = const MyOrdersPage();
-                    } else if (title.contains('Offer') || title.contains('Points')) {
+                    } else if (title.contains('Offer') ||
+                        title.contains('Points')) {
                       pageToOpen = const RewardsPage();
                     }
 
-                    Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => pageToOpen),
-                    );
+                    Navigator.of(
+                      context,
+                    ).push(MaterialPageRoute(builder: (_) => pageToOpen));
                   },
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
@@ -168,11 +178,7 @@ class _GlobalNotificationBannerOverlayState extends State<GlobalNotificationBann
                             color: accentColor.withValues(alpha: 0.12),
                             shape: BoxShape.circle,
                           ),
-                          child: Icon(
-                            iconData,
-                            color: accentColor,
-                            size: 22,
-                          ),
+                          child: Icon(iconData, color: accentColor, size: 22),
                         ),
                         const SizedBox(width: 14),
                         Expanded(

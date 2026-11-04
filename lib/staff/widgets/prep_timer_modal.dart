@@ -3,10 +3,7 @@ import 'package:flutter/material.dart';
 class PrepTimerModal extends StatelessWidget {
   final Function(int) onSelected;
 
-  const PrepTimerModal({
-    super.key,
-    required this.onSelected,
-  });
+  const PrepTimerModal({super.key, required this.onSelected});
 
   static void show(BuildContext context, Function(int) onSelected) {
     showModalBottomSheet(
@@ -27,9 +24,15 @@ class PrepTimerModal extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text("Set Preparation Time", style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+          const Text(
+            "Set Preparation Time",
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+          ),
           const SizedBox(height: 12),
-          const Text("How long will this order take to be ready?", style: TextStyle(color: Colors.grey, fontSize: 13)),
+          const Text(
+            "How long will this order take to be ready?",
+            style: TextStyle(color: Colors.grey, fontSize: 13),
+          ),
           const SizedBox(height: 30),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -51,9 +54,17 @@ class PrepTimerModal extends StatelessWidget {
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFFF5C00),
                 padding: const EdgeInsets.symmetric(vertical: 20),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15),
+                ),
               ),
-              child: const Text("START PREPARATION", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              child: const Text(
+                "START PREPARATION",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ),
         ],
@@ -72,9 +83,17 @@ class PrepTimerModal extends StatelessWidget {
         decoration: BoxDecoration(
           color: const Color(0xFFFF5C00).withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(15),
-          border: Border.all(color: const Color(0xFFFF5C00).withValues(alpha: 0.3)),
+          border: Border.all(
+            color: const Color(0xFFFF5C00).withValues(alpha: 0.3),
+          ),
         ),
-        child: Text("${mins}M", style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFFFF5C00))),
+        child: Text(
+          "${mins}M",
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Color(0xFFFF5C00),
+          ),
+        ),
       ),
     );
   }

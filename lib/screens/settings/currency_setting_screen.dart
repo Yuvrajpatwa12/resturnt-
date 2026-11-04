@@ -22,7 +22,9 @@ class _CurrencySettingScreenState extends State<CurrencySettingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final filteredCurrencies = CurrencyService.availableCurrencies.where((curr) {
+    final filteredCurrencies = CurrencyService.availableCurrencies.where((
+      curr,
+    ) {
       final code = curr['code']!.toLowerCase();
       final name = curr['name']!.toLowerCase();
       final country = curr['country']!.toLowerCase();
@@ -54,7 +56,9 @@ class _CurrencySettingScreenState extends State<CurrencySettingScreen> {
                   decoration: BoxDecoration(
                     color: AppTheme.primaryPurpleSubtle,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppTheme.primaryPurple.withValues(alpha: 0.2)),
+                    border: Border.all(
+                      color: AppTheme.primaryPurple.withValues(alpha: 0.2),
+                    ),
                   ),
                   child: Row(
                     children: [
@@ -103,13 +107,19 @@ class _CurrencySettingScreenState extends State<CurrencySettingScreen> {
                 // Search Input Card
                 Container(
                   decoration: AppTheme.cardDecoration(),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 4,
+                  ),
                   child: TextField(
                     controller: _searchController,
                     onChanged: (val) => setState(() => _searchQuery = val),
                     decoration: InputDecoration(
                       hintText: "Search NPR, INR, or USD...",
-                      prefixIcon: const Icon(Icons.search_rounded, color: AppTheme.primaryPurple),
+                      prefixIcon: const Icon(
+                        Icons.search_rounded,
+                        color: AppTheme.primaryPurple,
+                      ),
                       suffixIcon: _searchQuery.isNotEmpty
                           ? IconButton(
                               icon: const Icon(Icons.clear_rounded, size: 20),
@@ -149,7 +159,8 @@ class _CurrencySettingScreenState extends State<CurrencySettingScreen> {
                       : ListView.separated(
                           physics: const BouncingScrollPhysics(),
                           itemCount: filteredCurrencies.length,
-                          separatorBuilder: (_, __) => const SizedBox(height: 10),
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(height: 10),
                           itemBuilder: (context, index) {
                             final curr = filteredCurrencies[index];
                             final isSelected = curr['code'] == activeCode;
@@ -169,18 +180,25 @@ class _CurrencySettingScreenState extends State<CurrencySettingScreen> {
                                 child: InkWell(
                                   borderRadius: BorderRadius.circular(16),
                                   onTap: () {
-                                    final messenger = ScaffoldMessenger.of(context);
-                                    final tenantId = TenantService().currentTenant.value?.id;
+                                    final messenger = ScaffoldMessenger.of(
+                                      context,
+                                    );
+                                    final tenantId =
+                                        TenantService().currentTenant.value?.id;
                                     messenger.showSnackBar(
                                       SnackBar(
                                         content: Text(
                                           "Active Currency set to ${curr['code']} (${curr['symbol']})",
-                                          style: const TextStyle(fontWeight: FontWeight.w500),
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w500,
+                                          ),
                                         ),
                                         backgroundColor: AppTheme.primaryPurple,
                                         behavior: SnackBarBehavior.floating,
                                         shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(10),
+                                          borderRadius: BorderRadius.circular(
+                                            10,
+                                          ),
                                         ),
                                         duration: const Duration(seconds: 2),
                                       ),
@@ -206,7 +224,9 @@ class _CurrencySettingScreenState extends State<CurrencySettingScreen> {
                                             color: isSelected
                                                 ? AppTheme.primaryPurple
                                                 : AppTheme.primaryPurpleLight,
-                                            borderRadius: BorderRadius.circular(12),
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
                                           ),
                                           child: Center(
                                             child: Text(
@@ -224,7 +244,8 @@ class _CurrencySettingScreenState extends State<CurrencySettingScreen> {
                                         const SizedBox(width: 14),
                                         Expanded(
                                           child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
                                             children: [
                                               Row(
                                                 children: [
@@ -232,16 +253,21 @@ class _CurrencySettingScreenState extends State<CurrencySettingScreen> {
                                                     curr['code']!,
                                                     style: TextStyle(
                                                       color: isSelected
-                                                          ? AppTheme.primaryPurple
-                                                          : AppTheme.textPrimary,
+                                                          ? AppTheme
+                                                                .primaryPurple
+                                                          : AppTheme
+                                                                .textPrimary,
                                                       fontSize: 16,
-                                                      fontWeight: FontWeight.bold,
+                                                      fontWeight:
+                                                          FontWeight.bold,
                                                     ),
                                                   ),
                                                   const SizedBox(width: 8),
                                                   Text(
                                                     curr['flag']!,
-                                                    style: const TextStyle(fontSize: 16),
+                                                    style: const TextStyle(
+                                                      fontSize: 16,
+                                                    ),
                                                   ),
                                                 ],
                                               ),
@@ -262,7 +288,10 @@ class _CurrencySettingScreenState extends State<CurrencySettingScreen> {
                                           activeColor: AppTheme.primaryPurple,
                                           onChanged: (val) {
                                             if (val != null) {
-                                              final tenantId = TenantService().currentTenant.value?.id;
+                                              final tenantId = TenantService()
+                                                  .currentTenant
+                                                  .value
+                                                  ?.id;
                                               CurrencyService().setCurrency(
                                                 val,
                                                 curr['symbol']!,

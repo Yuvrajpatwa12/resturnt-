@@ -203,7 +203,9 @@ class _SmartAuthOverlayState extends State<SmartAuthOverlay>
                   borderRadius: BorderRadius.circular(32),
                   boxShadow: [
                     BoxShadow(
-                      color: Theme.of(context).primaryColor.withValues(alpha: 0.15),
+                      color: Theme.of(
+                        context,
+                      ).primaryColor.withValues(alpha: 0.15),
                       blurRadius: 30,
                       spreadRadius: 2,
                     ),
@@ -288,10 +290,7 @@ class _SmartAuthOverlayState extends State<SmartAuthOverlay>
             color: Color(0xFF0F172A),
           ),
           decoration: InputDecoration(
-            prefixIcon: Icon(
-              Icons.email_outlined,
-              color: primaryColor,
-            ),
+            prefixIcon: Icon(Icons.email_outlined, color: primaryColor),
             hintText: "your.name@gmail.com",
             labelText: "Google Email",
             filled: true,

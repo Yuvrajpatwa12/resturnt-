@@ -48,13 +48,25 @@ class _ProductionListScreenState extends State<ProductionListScreen> {
 
   String _getCategoryImage(String category) {
     final cat = category.toLowerCase();
-    if (cat.contains('pizza')) return 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=500';
-    if (cat.contains('burger')) return 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500';
-    if (cat.contains('tea') || cat.contains('lassi') || cat.contains('drink')) return 'https://images.unsplash.com/photo-1561336313-0bd5e0b27ec8?w=500';
-    if (cat.contains('momo') || cat.contains('dumpling')) return 'https://images.unsplash.com/photo-1534422298391-e4f8c170db06?w=500';
-    if (cat.contains('coffee')) return 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=500';
-    if (cat.contains('dessert') || cat.contains('icecream') || cat.contains('cake')) return 'https://images.unsplash.com/photo-1551024506-0bccd828d307?w=500';
-    if (cat.contains('roll') || cat.contains('chicken') || cat.contains('soup') || cat.contains('thupa')) return 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500';
+    if (cat.contains('pizza'))
+      return 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=500';
+    if (cat.contains('burger'))
+      return 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500';
+    if (cat.contains('tea') || cat.contains('lassi') || cat.contains('drink'))
+      return 'https://images.unsplash.com/photo-1561336313-0bd5e0b27ec8?w=500';
+    if (cat.contains('momo') || cat.contains('dumpling'))
+      return 'https://images.unsplash.com/photo-1534422298391-e4f8c170db06?w=500';
+    if (cat.contains('coffee'))
+      return 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=500';
+    if (cat.contains('dessert') ||
+        cat.contains('icecream') ||
+        cat.contains('cake'))
+      return 'https://images.unsplash.com/photo-1551024506-0bccd828d307?w=500';
+    if (cat.contains('roll') ||
+        cat.contains('chicken') ||
+        cat.contains('soup') ||
+        cat.contains('thupa'))
+      return 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500';
     return 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500';
   }
 
@@ -105,7 +117,11 @@ class _ProductionListScreenState extends State<ProductionListScreen> {
         ),
         child: Row(
           children: [
-            Icon(icon, size: 18, color: isSelected ? Colors.white : Colors.black87),
+            Icon(
+              icon,
+              size: 18,
+              color: isSelected ? Colors.white : Colors.black87,
+            ),
             const SizedBox(width: 8),
             Text(
               title,
@@ -132,7 +148,8 @@ class _ProductionListScreenState extends State<ProductionListScreen> {
 
         final liveProducts = products.where((p) {
           final val = p['is_coming_soon'];
-          final isComing = val == true || val == 1 || val == '1' || val == 'true';
+          final isComing =
+              val == true || val == 1 || val == '1' || val == 'true';
           if (isComing) return false;
 
           final query = _liveSearchCtrl.text.trim().toLowerCase();
@@ -150,7 +167,11 @@ class _ProductionListScreenState extends State<ProductionListScreen> {
             // Section Header Title
             const Text(
               "Production List (Live Menu)",
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87),
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
             ),
             const SizedBox(height: 4),
             Text(
@@ -175,10 +196,19 @@ class _ProductionListScreenState extends State<ProductionListScreen> {
                       onChanged: (v) => setState(() {}),
                       decoration: InputDecoration(
                         hintText: "Search live products...",
-                        hintStyle: TextStyle(color: Colors.grey[400], fontSize: 13),
-                        prefixIcon: Icon(Icons.search_rounded, color: Colors.grey[500], size: 20),
+                        hintStyle: TextStyle(
+                          color: Colors.grey[400],
+                          fontSize: 13,
+                        ),
+                        prefixIcon: Icon(
+                          Icons.search_rounded,
+                          color: Colors.grey[500],
+                          size: 20,
+                        ),
                         border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                        contentPadding: const EdgeInsets.symmetric(
+                          vertical: 14,
+                        ),
                       ),
                     ),
                   ),
@@ -210,7 +240,10 @@ class _ProductionListScreenState extends State<ProductionListScreen> {
             if (liveProducts.isEmpty)
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 20),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 60,
+                  horizontal: 20,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(20),
@@ -219,11 +252,24 @@ class _ProductionListScreenState extends State<ProductionListScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.storefront_outlined, size: 48, color: Colors.grey[400]),
+                    Icon(
+                      Icons.storefront_outlined,
+                      size: 48,
+                      color: Colors.grey[400],
+                    ),
                     const SizedBox(height: 16),
-                    const Text("No Live Products Found", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    const Text(
+                      "No Live Products Found",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     const SizedBox(height: 6),
-                    Text("Products active in your menu will appear here.", style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+                    Text(
+                      "Products active in your menu will appear here.",
+                      style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                    ),
                   ],
                 ),
               )
@@ -235,7 +281,8 @@ class _ProductionListScreenState extends State<ProductionListScreen> {
                 itemBuilder: (context, index) {
                   final p = liveProducts[index];
                   final title = p['title'] ?? 'Product';
-                  final desc = p['description']?.toString() ?? 'Delicious item on menu';
+                  final desc =
+                      p['description']?.toString() ?? 'Delicious item on menu';
                   final price = p['price']?.toString() ?? '0.00';
                   final rawImg = p['image_url'] ?? p['image'] ?? '';
                   final catId = p['category_id']?.toString() ?? '';
@@ -269,7 +316,11 @@ class _ProductionListScreenState extends State<ProductionListScreen> {
                               imageUrl,
                               fit: BoxFit.cover,
                               errorBuilder: (c, e, s) => Center(
-                                child: Icon(Icons.fastfood_rounded, color: Colors.grey[400], size: 36),
+                                child: Icon(
+                                  Icons.fastfood_rounded,
+                                  color: Colors.grey[400],
+                                  size: 36,
+                                ),
                               ),
                             ),
                           ),
@@ -292,7 +343,10 @@ class _ProductionListScreenState extends State<ProductionListScreen> {
                               const SizedBox(height: 4),
                               Text(
                                 desc,
-                                style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                                style: TextStyle(
+                                  color: Colors.grey[500],
+                                  fontSize: 12,
+                                ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -302,7 +356,10 @@ class _ProductionListScreenState extends State<ProductionListScreen> {
                               Row(
                                 children: [
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 3,
+                                    ),
                                     decoration: BoxDecoration(
                                       color: lightBlueBg,
                                       borderRadius: BorderRadius.circular(8),
@@ -318,7 +375,10 @@ class _ProductionListScreenState extends State<ProductionListScreen> {
                                   ),
                                   const SizedBox(width: 8),
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 3,
+                                    ),
                                     decoration: BoxDecoration(
                                       color: lightOrangeBg,
                                       borderRadius: BorderRadius.circular(8),
@@ -356,7 +416,10 @@ class _ProductionListScreenState extends State<ProductionListScreen> {
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
                               decoration: BoxDecoration(
                                 color: lightGreenBg,
                                 borderRadius: BorderRadius.circular(20),
@@ -410,7 +473,8 @@ class _ProductionListScreenState extends State<ProductionListScreen> {
 
         final comingProducts = products.where((p) {
           final val = p['is_coming_soon'];
-          final isComing = val == true || val == 1 || val == '1' || val == 'true';
+          final isComing =
+              val == true || val == 1 || val == '1' || val == 'true';
           if (!isComing) return false;
 
           final query = _comingSearchCtrl.text.trim().toLowerCase();
@@ -441,7 +505,11 @@ class _ProductionListScreenState extends State<ProductionListScreen> {
                       color: lightBlueBg,
                       borderRadius: BorderRadius.circular(14),
                     ),
-                    child: const Icon(Icons.upcoming_rounded, color: accentBlue, size: 26),
+                    child: const Icon(
+                      Icons.upcoming_rounded,
+                      color: accentBlue,
+                      size: 26,
+                    ),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
@@ -460,7 +528,10 @@ class _ProductionListScreenState extends State<ProductionListScreen> {
                             ),
                             const SizedBox(width: 10),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
                               decoration: BoxDecoration(
                                 color: lightBlueBg,
                                 borderRadius: BorderRadius.circular(12),
@@ -496,9 +567,17 @@ class _ProductionListScreenState extends State<ProductionListScreen> {
                       backgroundColor: accentBlue,
                       foregroundColor: Colors.white,
                       elevation: 0,
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                      textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 14,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      textStyle: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
                     ),
                   ),
                 ],
@@ -523,10 +602,19 @@ class _ProductionListScreenState extends State<ProductionListScreen> {
                       onChanged: (v) => setState(() {}),
                       decoration: InputDecoration(
                         hintText: "Search coming products...",
-                        hintStyle: TextStyle(color: Colors.grey[400], fontSize: 13),
-                        prefixIcon: Icon(Icons.search_rounded, color: Colors.grey[500], size: 20),
+                        hintStyle: TextStyle(
+                          color: Colors.grey[400],
+                          fontSize: 13,
+                        ),
+                        prefixIcon: Icon(
+                          Icons.search_rounded,
+                          color: Colors.grey[500],
+                          size: 20,
+                        ),
                         border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                        contentPadding: const EdgeInsets.symmetric(
+                          vertical: 14,
+                        ),
                       ),
                     ),
                   ),
@@ -559,7 +647,10 @@ class _ProductionListScreenState extends State<ProductionListScreen> {
             if (comingProducts.isEmpty)
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 20),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 60,
+                  horizontal: 20,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(20),
@@ -574,12 +665,20 @@ class _ProductionListScreenState extends State<ProductionListScreen> {
                         color: lightBlueBg,
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.upcoming_outlined, size: 48, color: accentBlue),
+                      child: const Icon(
+                        Icons.upcoming_outlined,
+                        size: 48,
+                        color: accentBlue,
+                      ),
                     ),
                     const SizedBox(height: 16),
                     const Text(
                       "No Coming Products Uploaded",
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
                     ),
                     const SizedBox(height: 6),
                     Text(
@@ -595,8 +694,13 @@ class _ProductionListScreenState extends State<ProductionListScreen> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: accentBlue,
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 12,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                     ),
                   ],
@@ -642,7 +746,11 @@ class _ProductionListScreenState extends State<ProductionListScreen> {
                               imageUrl,
                               fit: BoxFit.cover,
                               errorBuilder: (c, e, s) => Center(
-                                child: Icon(Icons.fastfood_rounded, color: Colors.grey[400], size: 36),
+                                child: Icon(
+                                  Icons.fastfood_rounded,
+                                  color: Colors.grey[400],
+                                  size: 36,
+                                ),
                               ),
                             ),
                           ),
@@ -666,8 +774,13 @@ class _ProductionListScreenState extends State<ProductionListScreen> {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                desc.isNotEmpty ? desc : "Upcoming teaser product",
-                                style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                                desc.isNotEmpty
+                                    ? desc
+                                    : "Upcoming teaser product",
+                                style: TextStyle(
+                                  color: Colors.grey[500],
+                                  fontSize: 12,
+                                ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -675,7 +788,10 @@ class _ProductionListScreenState extends State<ProductionListScreen> {
 
                               // Category Tag
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 3,
+                                ),
                                 decoration: BoxDecoration(
                                   color: Colors.grey.shade100,
                                   borderRadius: BorderRadius.circular(8),
@@ -711,7 +827,10 @@ class _ProductionListScreenState extends State<ProductionListScreen> {
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
                               decoration: BoxDecoration(
                                 color: lightGreenBg,
                                 borderRadius: BorderRadius.circular(20),
@@ -734,17 +853,26 @@ class _ProductionListScreenState extends State<ProductionListScreen> {
                                 // Edit Button
                                 Container(
                                   height: 36,
-                                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: lightBlueBg,
                                     borderRadius: BorderRadius.circular(10),
                                   ),
                                   child: InkWell(
-                                    onTap: () => _showEditComingProductDialog(context, p),
+                                    onTap: () => _showEditComingProductDialog(
+                                      context,
+                                      p,
+                                    ),
                                     borderRadius: BorderRadius.circular(10),
                                     child: const Row(
                                       children: [
-                                        Icon(Icons.edit_outlined, color: accentBlue, size: 16),
+                                        Icon(
+                                          Icons.edit_outlined,
+                                          color: accentBlue,
+                                          size: 16,
+                                        ),
                                         SizedBox(width: 4),
                                         Text(
                                           "Edit",
@@ -768,8 +896,15 @@ class _ProductionListScreenState extends State<ProductionListScreen> {
                                     borderRadius: BorderRadius.circular(10),
                                   ),
                                   child: IconButton(
-                                    icon: Icon(Icons.delete_outline_rounded, color: Colors.red.shade600, size: 18),
-                                    onPressed: () => _deleteComingProduct(context, p['id']?.toString() ?? ''),
+                                    icon: Icon(
+                                      Icons.delete_outline_rounded,
+                                      color: Colors.red.shade600,
+                                      size: 18,
+                                    ),
+                                    onPressed: () => _deleteComingProduct(
+                                      context,
+                                      p['id']?.toString() ?? '',
+                                    ),
                                     tooltip: "Delete Product",
                                   ),
                                 ),
@@ -797,13 +932,17 @@ class _ProductionListScreenState extends State<ProductionListScreen> {
     bool isSubmitting = false;
 
     final categories = TenantService().categories.value;
-    String? selectedCategoryId = categories.isNotEmpty ? categories.first['id'].toString() : null;
+    String? selectedCategoryId = categories.isNotEmpty
+        ? categories.first['id'].toString()
+        : null;
 
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setDialogState) => Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           child: Container(
             width: 480,
             padding: const EdgeInsets.all(24),
@@ -821,14 +960,23 @@ class _ProductionListScreenState extends State<ProductionListScreen> {
                             padding: const EdgeInsets.all(8),
                             decoration: const BoxDecoration(
                               color: lightBlueBg,
-                              borderRadius: BorderRadius.all(Radius.circular(10)),
+                              borderRadius: BorderRadius.all(
+                                Radius.circular(10),
+                              ),
                             ),
-                            child: const Icon(Icons.add_circle_outline, color: accentBlue, size: 20),
+                            child: const Icon(
+                              Icons.add_circle_outline,
+                              color: accentBlue,
+                              size: 20,
+                            ),
                           ),
                           const SizedBox(width: 12),
                           const Text(
                             "Add Coming Product",
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ],
                       ),
@@ -846,7 +994,9 @@ class _ProductionListScreenState extends State<ProductionListScreen> {
                     decoration: InputDecoration(
                       labelText: "Product Title *",
                       hintText: "e.g. Special Mango Lassi",
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 14),
@@ -860,7 +1010,9 @@ class _ProductionListScreenState extends State<ProductionListScreen> {
                           decoration: InputDecoration(
                             labelText: "Price (NPR) *",
                             hintText: "e.g. 150",
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
                         ),
                       ),
@@ -870,13 +1022,23 @@ class _ProductionListScreenState extends State<ProductionListScreen> {
                           value: selectedCategoryId,
                           decoration: InputDecoration(
                             labelText: "Category *",
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
-                          items: categories.map((c) => DropdownMenuItem(
-                            value: c['id'].toString(),
-                            child: Text(c['title'] ?? 'Category', overflow: TextOverflow.ellipsis),
-                          )).toList(),
-                          onChanged: (v) => setDialogState(() => selectedCategoryId = v),
+                          items: categories
+                              .map(
+                                (c) => DropdownMenuItem(
+                                  value: c['id'].toString(),
+                                  child: Text(
+                                    c['title'] ?? 'Category',
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (v) =>
+                              setDialogState(() => selectedCategoryId = v),
                         ),
                       ),
                     ],
@@ -889,18 +1051,25 @@ class _ProductionListScreenState extends State<ProductionListScreen> {
                     decoration: InputDecoration(
                       labelText: "Description *",
                       hintText: "Brief teaser description for customers...",
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 16),
 
                   // Image Upload Container
-                  const Text("Product Image *", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  const Text(
+                    "Product Image *",
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  ),
                   const SizedBox(height: 8),
                   InkWell(
                     onTap: () async {
                       final picker = ImagePicker();
-                      final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+                      final pickedFile = await picker.pickImage(
+                        source: ImageSource.gallery,
+                      );
                       if (pickedFile != null) {
                         final bytes = await pickedFile.readAsBytes();
                         setDialogState(() {
@@ -913,18 +1082,26 @@ class _ProductionListScreenState extends State<ProductionListScreen> {
                     child: Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: selectedImageBytes != null ? lightGreenBg : Colors.grey.shade50,
+                        color: selectedImageBytes != null
+                            ? lightGreenBg
+                            : Colors.grey.shade50,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: selectedImageBytes != null ? greenText : Colors.grey.shade300,
+                          color: selectedImageBytes != null
+                              ? greenText
+                              : Colors.grey.shade300,
                           style: BorderStyle.solid,
                         ),
                       ),
                       child: Row(
                         children: [
                           Icon(
-                            selectedImageBytes != null ? Icons.check_circle_rounded : Icons.cloud_upload_outlined,
-                            color: selectedImageBytes != null ? greenText : accentBlue,
+                            selectedImageBytes != null
+                                ? Icons.check_circle_rounded
+                                : Icons.cloud_upload_outlined,
+                            color: selectedImageBytes != null
+                                ? greenText
+                                : accentBlue,
                             size: 28,
                           ),
                           const SizedBox(width: 12),
@@ -933,16 +1110,25 @@ class _ProductionListScreenState extends State<ProductionListScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  selectedImageBytes != null ? (selectedImageName ?? "Image Selected") : "Click to select image",
+                                  selectedImageBytes != null
+                                      ? (selectedImageName ?? "Image Selected")
+                                      : "Click to select image",
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 13,
-                                    color: selectedImageBytes != null ? greenText : Colors.black87,
+                                    color: selectedImageBytes != null
+                                        ? greenText
+                                        : Colors.black87,
                                   ),
                                 ),
                                 Text(
-                                  selectedImageBytes != null ? "Tap to change image" : "JPG, PNG or WEBP from computer",
-                                  style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                                  selectedImageBytes != null
+                                      ? "Tap to change image"
+                                      : "JPG, PNG or WEBP from computer",
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.grey[600],
+                                  ),
                                 ),
                               ],
                             ),
@@ -950,7 +1136,12 @@ class _ProductionListScreenState extends State<ProductionListScreen> {
                           if (selectedImageBytes != null)
                             ClipRRect(
                               borderRadius: BorderRadius.circular(8),
-                              child: Image.memory(selectedImageBytes!, width: 44, height: 44, fit: BoxFit.cover),
+                              child: Image.memory(
+                                selectedImageBytes!,
+                                width: 44,
+                                height: 44,
+                                fit: BoxFit.cover,
+                              ),
                             ),
                         ],
                       ),
@@ -963,7 +1154,9 @@ class _ProductionListScreenState extends State<ProductionListScreen> {
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       TextButton(
-                        onPressed: isSubmitting ? null : () => Navigator.pop(ctx),
+                        onPressed: isSubmitting
+                            ? null
+                            : () => Navigator.pop(ctx),
                         child: const Text("Cancel"),
                       ),
                       const SizedBox(width: 12),
@@ -971,57 +1164,93 @@ class _ProductionListScreenState extends State<ProductionListScreen> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: accentBlue,
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 14,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
-                        onPressed: isSubmitting ? null : () async {
-                          if (titleCtrl.text.trim().isEmpty ||
-                              priceCtrl.text.trim().isEmpty ||
-                              descCtrl.text.trim().isEmpty ||
-                              selectedCategoryId == null ||
-                              selectedImageBytes == null) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text("All fields and product image are compulsory!"), backgroundColor: Colors.red),
-                            );
-                            return;
-                          }
+                        onPressed: isSubmitting
+                            ? null
+                            : () async {
+                                if (titleCtrl.text.trim().isEmpty ||
+                                    priceCtrl.text.trim().isEmpty ||
+                                    descCtrl.text.trim().isEmpty ||
+                                    selectedCategoryId == null ||
+                                    selectedImageBytes == null) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        "All fields and product image are compulsory!",
+                                      ),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                  return;
+                                }
 
-                          setDialogState(() => isSubmitting = true);
+                                setDialogState(() => isSubmitting = true);
 
-                          final tenant = TenantService().currentTenant.value;
-                          final tenantId = tenant != null ? tenant.id : 'startups_main';
+                                final tenant =
+                                    TenantService().currentTenant.value;
+                                final tenantId = tenant != null
+                                    ? tenant.id
+                                    : 'startups_main';
 
-                          String imageUrl = "";
-                          final uploadedUrl = await ApiService.uploadProductImage(selectedImageBytes!, selectedImageName!);
-                          if (uploadedUrl != null) imageUrl = uploadedUrl;
+                                String imageUrl = "";
+                                final uploadedUrl =
+                                    await ApiService.uploadProductImage(
+                                      selectedImageBytes!,
+                                      selectedImageName!,
+                                    );
+                                if (uploadedUrl != null) imageUrl = uploadedUrl;
 
-                          final res = await ApiService.addProduct({
-                            "tenant_id": tenantId,
-                            "category_id": int.tryParse(selectedCategoryId ?? '0') ?? 0,
-                            "title": titleCtrl.text.trim(),
-                            "price": priceCtrl.text.trim(),
-                            "description": descCtrl.text.trim(),
-                            "image_url": imageUrl,
-                            "tag": "Coming Soon",
-                            "is_coming_soon": 1,
-                          });
+                                final res = await ApiService.addProduct({
+                                  "tenant_id": tenantId,
+                                  "category_id":
+                                      int.tryParse(selectedCategoryId ?? '0') ??
+                                      0,
+                                  "title": titleCtrl.text.trim(),
+                                  "price": priceCtrl.text.trim(),
+                                  "description": descCtrl.text.trim(),
+                                  "image_url": imageUrl,
+                                  "tag": "Coming Soon",
+                                  "is_coming_soon": 1,
+                                });
 
-                          if (ctx.mounted) Navigator.pop(ctx);
-                          if (res['success'] == true) {
-                            if (tenant != null) {
-                              TenantService().fetchMenuData(tenant.id);
-                            }
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text("Coming product added successfully!"), backgroundColor: accentBlue),
-                            );
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text("Error: ${res['message']}"), backgroundColor: Colors.red),
-                            );
-                          }
-                        },
+                                if (ctx.mounted) Navigator.pop(ctx);
+                                if (res['success'] == true) {
+                                  if (tenant != null) {
+                                    TenantService().fetchMenuData(tenant.id);
+                                  }
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        "Coming product added successfully!",
+                                      ),
+                                      backgroundColor: accentBlue,
+                                    ),
+                                  );
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text("Error: ${res['message']}"),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                }
+                              },
                         child: isSubmitting
-                            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
                             : const Text("Upload Coming Product"),
                       ),
                     ],
@@ -1035,23 +1264,36 @@ class _ProductionListScreenState extends State<ProductionListScreen> {
     );
   }
 
-  void _showEditComingProductDialog(BuildContext context, Map<String, dynamic> product) {
-    final titleCtrl = TextEditingController(text: product['title']?.toString() ?? '');
-    final priceCtrl = TextEditingController(text: product['price']?.toString() ?? '');
-    final descCtrl = TextEditingController(text: product['description']?.toString() ?? '');
+  void _showEditComingProductDialog(
+    BuildContext context,
+    Map<String, dynamic> product,
+  ) {
+    final titleCtrl = TextEditingController(
+      text: product['title']?.toString() ?? '',
+    );
+    final priceCtrl = TextEditingController(
+      text: product['price']?.toString() ?? '',
+    );
+    final descCtrl = TextEditingController(
+      text: product['description']?.toString() ?? '',
+    );
     Uint8List? selectedImageBytes;
     String? selectedImageName;
     String existingImageUrl = product['image_url'] ?? product['image'] ?? '';
     bool isSubmitting = false;
 
     final categories = TenantService().categories.value;
-    String? selectedCategoryId = product['category_id']?.toString() ?? (categories.isNotEmpty ? categories.first['id'].toString() : null);
+    String? selectedCategoryId =
+        product['category_id']?.toString() ??
+        (categories.isNotEmpty ? categories.first['id'].toString() : null);
 
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setDialogState) => Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           child: Container(
             width: 480,
             padding: const EdgeInsets.all(24),
@@ -1069,14 +1311,23 @@ class _ProductionListScreenState extends State<ProductionListScreen> {
                             padding: const EdgeInsets.all(8),
                             decoration: const BoxDecoration(
                               color: lightBlueBg,
-                              borderRadius: BorderRadius.all(Radius.circular(10)),
+                              borderRadius: BorderRadius.all(
+                                Radius.circular(10),
+                              ),
                             ),
-                            child: const Icon(Icons.edit, color: accentBlue, size: 20),
+                            child: const Icon(
+                              Icons.edit,
+                              color: accentBlue,
+                              size: 20,
+                            ),
                           ),
                           const SizedBox(width: 12),
                           const Text(
                             "Edit Coming Product",
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ],
                       ),
@@ -1093,7 +1344,9 @@ class _ProductionListScreenState extends State<ProductionListScreen> {
                     controller: titleCtrl,
                     decoration: InputDecoration(
                       labelText: "Product Title *",
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 14),
@@ -1106,7 +1359,9 @@ class _ProductionListScreenState extends State<ProductionListScreen> {
                           keyboardType: TextInputType.number,
                           decoration: InputDecoration(
                             labelText: "Price (NPR) *",
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
                         ),
                       ),
@@ -1116,13 +1371,23 @@ class _ProductionListScreenState extends State<ProductionListScreen> {
                           value: selectedCategoryId,
                           decoration: InputDecoration(
                             labelText: "Category *",
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
-                          items: categories.map((c) => DropdownMenuItem(
-                            value: c['id'].toString(),
-                            child: Text(c['title'] ?? 'Category', overflow: TextOverflow.ellipsis),
-                          )).toList(),
-                          onChanged: (v) => setDialogState(() => selectedCategoryId = v),
+                          items: categories
+                              .map(
+                                (c) => DropdownMenuItem(
+                                  value: c['id'].toString(),
+                                  child: Text(
+                                    c['title'] ?? 'Category',
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (v) =>
+                              setDialogState(() => selectedCategoryId = v),
                         ),
                       ),
                     ],
@@ -1134,18 +1399,25 @@ class _ProductionListScreenState extends State<ProductionListScreen> {
                     maxLines: 2,
                     decoration: InputDecoration(
                       labelText: "Description *",
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 16),
 
                   // Image Container
-                  const Text("Change Image (Optional)", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  const Text(
+                    "Change Image (Optional)",
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  ),
                   const SizedBox(height: 8),
                   InkWell(
                     onTap: () async {
                       final picker = ImagePicker();
-                      final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+                      final pickedFile = await picker.pickImage(
+                        source: ImageSource.gallery,
+                      );
                       if (pickedFile != null) {
                         final bytes = await pickedFile.readAsBytes();
                         setDialogState(() {
@@ -1164,19 +1436,34 @@ class _ProductionListScreenState extends State<ProductionListScreen> {
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.cloud_upload_outlined, color: accentBlue, size: 28),
+                          const Icon(
+                            Icons.cloud_upload_outlined,
+                            color: accentBlue,
+                            size: 28,
+                          ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  selectedImageBytes != null ? (selectedImageName ?? "New Image Selected") : "Update Product Image",
-                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                  selectedImageBytes != null
+                                      ? (selectedImageName ??
+                                            "New Image Selected")
+                                      : "Update Product Image",
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                  ),
                                 ),
                                 Text(
-                                  selectedImageBytes != null ? "Tap to change image" : "Leave unchanged to keep current image",
-                                  style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                                  selectedImageBytes != null
+                                      ? "Tap to change image"
+                                      : "Leave unchanged to keep current image",
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.grey[600],
+                                  ),
                                 ),
                               ],
                             ),
@@ -1184,12 +1471,23 @@ class _ProductionListScreenState extends State<ProductionListScreen> {
                           if (selectedImageBytes != null)
                             ClipRRect(
                               borderRadius: BorderRadius.circular(8),
-                              child: Image.memory(selectedImageBytes!, width: 44, height: 44, fit: BoxFit.cover),
+                              child: Image.memory(
+                                selectedImageBytes!,
+                                width: 44,
+                                height: 44,
+                                fit: BoxFit.cover,
+                              ),
                             )
                           else if (existingImageUrl.isNotEmpty)
                             ClipRRect(
                               borderRadius: BorderRadius.circular(8),
-                              child: Image.network(_getFormattedImageUrl(existingImageUrl, 'Food'), width: 44, height: 44, fit: BoxFit.cover, errorBuilder: (c, e, s) => const SizedBox()),
+                              child: Image.network(
+                                _getFormattedImageUrl(existingImageUrl, 'Food'),
+                                width: 44,
+                                height: 44,
+                                fit: BoxFit.cover,
+                                errorBuilder: (c, e, s) => const SizedBox(),
+                              ),
                             ),
                         ],
                       ),
@@ -1202,7 +1500,9 @@ class _ProductionListScreenState extends State<ProductionListScreen> {
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       TextButton(
-                        onPressed: isSubmitting ? null : () => Navigator.pop(ctx),
+                        onPressed: isSubmitting
+                            ? null
+                            : () => Navigator.pop(ctx),
                         child: const Text("Cancel"),
                       ),
                       const SizedBox(width: 12),
@@ -1210,56 +1510,97 @@ class _ProductionListScreenState extends State<ProductionListScreen> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: accentBlue,
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 14,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
-                        onPressed: isSubmitting ? null : () async {
-                          if (titleCtrl.text.trim().isEmpty || priceCtrl.text.trim().isEmpty || descCtrl.text.trim().isEmpty || selectedCategoryId == null) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text("All text fields are compulsory!"), backgroundColor: Colors.red),
-                            );
-                            return;
-                          }
+                        onPressed: isSubmitting
+                            ? null
+                            : () async {
+                                if (titleCtrl.text.trim().isEmpty ||
+                                    priceCtrl.text.trim().isEmpty ||
+                                    descCtrl.text.trim().isEmpty ||
+                                    selectedCategoryId == null) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        "All text fields are compulsory!",
+                                      ),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                  return;
+                                }
 
-                          setDialogState(() => isSubmitting = true);
+                                setDialogState(() => isSubmitting = true);
 
-                          final tenant = TenantService().currentTenant.value;
-                          final tenantId = tenant != null ? tenant.id : 'startups_main';
+                                final tenant =
+                                    TenantService().currentTenant.value;
+                                final tenantId = tenant != null
+                                    ? tenant.id
+                                    : 'startups_main';
 
-                          String imageUrl = existingImageUrl;
-                          if (selectedImageBytes != null && selectedImageName != null) {
-                            final uploadedUrl = await ApiService.uploadProductImage(selectedImageBytes!, selectedImageName!);
-                            if (uploadedUrl != null) imageUrl = uploadedUrl;
-                          }
+                                String imageUrl = existingImageUrl;
+                                if (selectedImageBytes != null &&
+                                    selectedImageName != null) {
+                                  final uploadedUrl =
+                                      await ApiService.uploadProductImage(
+                                        selectedImageBytes!,
+                                        selectedImageName!,
+                                      );
+                                  if (uploadedUrl != null)
+                                    imageUrl = uploadedUrl;
+                                }
 
-                          final res = await ApiService.updateProduct({
-                            "id": product['id'],
-                            "tenant_id": tenantId,
-                            "category_id": int.tryParse(selectedCategoryId ?? '0') ?? 0,
-                            "title": titleCtrl.text.trim(),
-                            "price": priceCtrl.text.trim(),
-                            "description": descCtrl.text.trim(),
-                            "image_url": imageUrl,
-                            "tag": "Coming Soon",
-                            "is_coming_soon": 1,
-                          });
+                                final res = await ApiService.updateProduct({
+                                  "id": product['id'],
+                                  "tenant_id": tenantId,
+                                  "category_id":
+                                      int.tryParse(selectedCategoryId ?? '0') ??
+                                      0,
+                                  "title": titleCtrl.text.trim(),
+                                  "price": priceCtrl.text.trim(),
+                                  "description": descCtrl.text.trim(),
+                                  "image_url": imageUrl,
+                                  "tag": "Coming Soon",
+                                  "is_coming_soon": 1,
+                                });
 
-                          if (ctx.mounted) Navigator.pop(ctx);
-                          if (res['success'] == true) {
-                            if (tenant != null) {
-                              TenantService().fetchMenuData(tenant.id);
-                            }
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text("Coming product updated successfully!"), backgroundColor: Colors.green),
-                            );
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text("Error: ${res['message']}"), backgroundColor: Colors.red),
-                            );
-                          }
-                        },
+                                if (ctx.mounted) Navigator.pop(ctx);
+                                if (res['success'] == true) {
+                                  if (tenant != null) {
+                                    TenantService().fetchMenuData(tenant.id);
+                                  }
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        "Coming product updated successfully!",
+                                      ),
+                                      backgroundColor: Colors.green,
+                                    ),
+                                  );
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text("Error: ${res['message']}"),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                }
+                              },
                         child: isSubmitting
-                            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
                             : const Text("Save Changes"),
                       ),
                     ],
@@ -1279,11 +1620,19 @@ class _ProductionListScreenState extends State<ProductionListScreen> {
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text("Delete Coming Product"),
-        content: const Text("Are you sure you want to delete this coming product? This action cannot be undone."),
+        content: const Text(
+          "Are you sure you want to delete this coming product? This action cannot be undone.",
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("Cancel")),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text("Cancel"),
+          ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text("Delete"),
           ),
@@ -1302,13 +1651,19 @@ class _ProductionListScreenState extends State<ProductionListScreen> {
         }
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Coming product deleted successfully!"), backgroundColor: Colors.green),
+            const SnackBar(
+              content: Text("Coming product deleted successfully!"),
+              backgroundColor: Colors.green,
+            ),
           );
         }
       } else {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Failed to delete coming product"), backgroundColor: Colors.red),
+            const SnackBar(
+              content: Text("Failed to delete coming product"),
+              backgroundColor: Colors.red,
+            ),
           );
         }
       }

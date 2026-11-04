@@ -19,12 +19,20 @@ class AdminPlaceholderScreen extends StatelessWidget {
               color: AdminTheme.royalBlue.withValues(alpha: 0.05),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.construction_rounded, color: AdminTheme.royalBlue, size: 48),
+            child: const Icon(
+              Icons.construction_rounded,
+              color: AdminTheme.royalBlue,
+              size: 48,
+            ),
           ),
           const SizedBox(height: 24),
           Text(
             title,
-            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: AdminTheme.darkNavy),
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w900,
+              color: AdminTheme.darkNavy,
+            ),
           ),
           const SizedBox(height: 8),
           const Text(
@@ -37,7 +45,9 @@ class AdminPlaceholderScreen extends StatelessWidget {
             onPressed: () {},
             style: ElevatedButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(30),
+              ),
             ),
             child: const Text("VIEW DOCUMENTATION"),
           ),

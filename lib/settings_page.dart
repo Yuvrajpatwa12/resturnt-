@@ -4,8 +4,6 @@ import 'services/tenant_service.dart';
 import 'services/api_service.dart';
 import 'package:geolocator/geolocator.dart';
 import 'account_settings_page.dart';
-import 'staff/staff_hub.dart';
-import 'super_admin_module/master_hub.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -28,7 +26,11 @@ class _SettingsPageState extends State<SettingsPage> {
         ),
         title: const Text(
           "Settings & Support",
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 18),
+          style: TextStyle(
+            color: Colors.black,
+            fontWeight: FontWeight.w900,
+            fontSize: 18,
+          ),
         ),
         centerTitle: true,
       ),
@@ -44,13 +46,15 @@ class _SettingsPageState extends State<SettingsPage> {
                 title: "Account",
                 onTap: () {
                   Navigator.push(
-                    context, 
-                    MaterialPageRoute(builder: (context) => const AccountSettingsPage())
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const AccountSettingsPage(),
+                    ),
                   );
                 },
               ),
             ]),
-            
+
             const SizedBox(height: 32),
             _buildSectionHeader("Privacy Controls"),
             _buildSettingsGroup([
@@ -140,7 +144,12 @@ class _SettingsPageState extends State<SettingsPage> {
       padding: const EdgeInsets.only(left: 8, bottom: 12),
       child: Text(
         title,
-        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey, letterSpacing: 0.5),
+        style: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+          color: Colors.grey,
+          letterSpacing: 0.5,
+        ),
       ),
     );
   }
@@ -151,48 +160,102 @@ class _SettingsPageState extends State<SettingsPage> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4)),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
         ],
       ),
       child: Column(children: children),
     );
   }
 
-  Widget _buildSettingRow({required IconData icon, required String title, required VoidCallback onTap, Color? titleColor}) {
+  Widget _buildSettingRow({
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+    Color? titleColor,
+  }) {
     return ListTile(
       onTap: onTap,
       leading: Icon(icon, color: titleColor ?? Colors.black87, size: 20),
-      title: Text(title, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: titleColor)),
-      trailing: const Icon(Icons.chevron_right_rounded, color: Colors.grey, size: 20),
+      title: Text(
+        title,
+        style: TextStyle(
+          fontWeight: FontWeight.w600,
+          fontSize: 14,
+          color: titleColor,
+        ),
+      ),
+      trailing: const Icon(
+        Icons.chevron_right_rounded,
+        color: Colors.grey,
+        size: 20,
+      ),
     );
   }
 
-  Widget _buildToggleRow({required IconData icon, required String title, required String sub, required ValueNotifier<bool> notifier}) {
+  Widget _buildToggleRow({
+    required IconData icon,
+    required String title,
+    required String sub,
+    required ValueNotifier<bool> notifier,
+  }) {
     return ValueListenableBuilder<bool>(
       valueListenable: notifier,
       builder: (context, val, _) => ListTile(
-        leading: Icon(icon, color: val ? Theme.of(context).primaryColor : Colors.grey, size: 20),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-        subtitle: Text(sub, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+        leading: Icon(
+          icon,
+          color: val ? Theme.of(context).primaryColor : Colors.grey,
+          size: 20,
+        ),
+        title: Text(
+          title,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+        ),
+        subtitle: Text(
+          sub,
+          style: const TextStyle(fontSize: 11, color: Colors.grey),
+        ),
         trailing: Switch(
           value: val,
           onChanged: (v) => notifier.value = v,
           activeThumbColor: Theme.of(context).primaryColor,
-          activeTrackColor: Theme.of(context).primaryColor.withValues(alpha: 0.3),
+          activeTrackColor: Theme.of(
+            context,
+          ).primaryColor.withValues(alpha: 0.3),
         ),
       ),
     );
   }
 
-  Widget _buildActionRow({required IconData icon, required String title, required VoidCallback onTap}) {
+  Widget _buildActionRow({
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+  }) {
     return ListTile(
       onTap: onTap,
       leading: Icon(icon, color: Colors.black87, size: 20),
-      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+      title: Text(
+        title,
+        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+      ),
       trailing: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(color: Theme.of(context).primaryColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
-        child: Text("ALLOW", style: TextStyle(color: Theme.of(context).primaryColor, fontSize: 10, fontWeight: FontWeight.bold)),
+        decoration: BoxDecoration(
+          color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Text(
+          "ALLOW",
+          style: TextStyle(
+            color: Theme.of(context).primaryColor,
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ),
     );
   }
@@ -207,11 +270,24 @@ class _SettingsPageState extends State<SettingsPage> {
           TenantService().logout();
           Navigator.pop(context);
         },
-        icon: const Icon(Icons.logout_rounded, color: Colors.redAccent, size: 18),
-        label: const Text("LOGOUT ACCOUNT", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+        icon: const Icon(
+          Icons.logout_rounded,
+          color: Colors.redAccent,
+          size: 18,
+        ),
+        label: const Text(
+          "LOGOUT ACCOUNT",
+          style: TextStyle(
+            color: Colors.redAccent,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         style: TextButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 18),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: const BorderSide(color: Colors.redAccent, width: 1)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: const BorderSide(color: Colors.redAccent, width: 1),
+          ),
         ),
       ),
     );
@@ -235,7 +311,8 @@ class _EmailNotificationSettings extends StatefulWidget {
       _EmailNotificationSettingsState();
 }
 
-class _EmailNotificationSettingsState extends State<_EmailNotificationSettings> {
+class _EmailNotificationSettingsState
+    extends State<_EmailNotificationSettings> {
   bool _loading = true;
   bool _saving = false;
   final Map<String, bool> _preferences = {
@@ -267,8 +344,7 @@ class _EmailNotificationSettingsState extends State<_EmailNotificationSettings> 
     if (!mounted) return;
     if (saved != null) {
       for (final key in _preferences.keys) {
-        _preferences[key] =
-            saved[key] == true || saved[key]?.toString() == '1';
+        _preferences[key] = saved[key] == true || saved[key]?.toString() == '1';
       }
     }
     setState(() => _loading = false);
@@ -309,8 +385,7 @@ class _EmailNotificationSettingsState extends State<_EmailNotificationSettings> 
   @override
   Widget build(BuildContext context) {
     final manager = ShopManager.instance;
-    if (!manager.isEmailSynced.value ||
-        manager.customerSessionToken.isEmpty) {
+    if (!manager.isEmailSynced.value || manager.customerSessionToken.isEmpty) {
       return _settingsCard(
         const Padding(
           padding: EdgeInsets.all(16),
@@ -341,7 +416,8 @@ class _EmailNotificationSettingsState extends State<_EmailNotificationSettings> 
           _emailSwitch(
             icon: Icons.alternate_email_rounded,
             title: 'Email me about app alerts',
-            subtitle: 'Message emails send after 1 minute if not read or answered.',
+            subtitle:
+                'Message emails send after 1 minute if not read or answered.',
             keyName: 'email_enabled',
           ),
           if (_preferences['email_enabled'] == true) ...[

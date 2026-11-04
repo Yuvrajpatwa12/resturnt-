@@ -54,7 +54,9 @@ class _ClientManagementScreenState extends State<ClientManagementScreen> {
           } else if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text("Failed to register restaurant. Check Tenant ID or Domain."),
+                content: Text(
+                  "Failed to register restaurant. Check Tenant ID or Domain.",
+                ),
                 backgroundColor: Colors.red,
               ),
             );
@@ -70,7 +72,13 @@ class _ClientManagementScreenState extends State<ClientManagementScreen> {
       );
     }
 
-    final filteredTenants = _tenants.where((t) => (t['restaurant_name'] ?? '').toLowerCase().contains(_searchQuery.toLowerCase())).toList();
+    final filteredTenants = _tenants
+        .where(
+          (t) => (t['restaurant_name'] ?? '').toLowerCase().contains(
+            _searchQuery.toLowerCase(),
+          ),
+        )
+        .toList();
 
     return Padding(
       padding: const EdgeInsets.all(32.0),
@@ -82,11 +90,11 @@ class _ClientManagementScreenState extends State<ClientManagementScreen> {
           _buildSearchBar(),
           const SizedBox(height: 32),
           Expanded(
-            child: _isLoading 
-              ? const Center(child: CircularProgressIndicator())
-              : filteredTenants.isEmpty 
-                  ? const Center(child: Text("No restaurants found."))
-                  : _buildClientGrid(filteredTenants),
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : filteredTenants.isEmpty
+                ? const Center(child: Text("No restaurants found."))
+                : _buildClientGrid(filteredTenants),
           ),
         ],
       ),
@@ -100,8 +108,14 @@ class _ClientManagementScreenState extends State<ClientManagementScreen> {
         const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("Client Directory", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-            Text("Manage active restaurant instances and access status.", style: TextStyle(color: SAMStyles.textGrey)),
+            Text(
+              "Client Directory",
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            Text(
+              "Manage active restaurant instances and access status.",
+              style: TextStyle(color: SAMStyles.textGrey),
+            ),
           ],
         ),
         ElevatedButton.icon(
@@ -128,8 +142,14 @@ class _ClientManagementScreenState extends State<ClientManagementScreen> {
             decoration: InputDecoration(
               hintText: "Search restaurants...",
               prefixIcon: const Icon(Icons.search, color: SAMStyles.textGrey),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide.none,
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 20,
+                vertical: 16,
+              ),
             ),
           ),
         ),
@@ -170,7 +190,11 @@ class _ClientManagementScreenState extends State<ClientManagementScreen> {
           color: Colors.white,
           borderRadius: BorderRadius.circular(24),
           boxShadow: SAMStyles.softShadow,
-          border: Border.all(color: isActive ? Colors.transparent : Colors.red.withValues(alpha: 0.1)),
+          border: Border.all(
+            color: isActive
+                ? Colors.transparent
+                : Colors.red.withValues(alpha: 0.1),
+          ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -181,10 +205,17 @@ class _ClientManagementScreenState extends State<ClientManagementScreen> {
                 CircleAvatar(
                   backgroundColor: SAMStyles.royalBlue.withValues(alpha: 0.1),
                   child: Text(
-                    (t['restaurant_name'] ?? t['name'] ?? 'R').toString().isNotEmpty 
-                        ? (t['restaurant_name'] ?? t['name'] ?? 'R').toString()[0].toUpperCase()
-                        : 'R', 
-                    style: const TextStyle(fontWeight: FontWeight.bold, color: SAMStyles.royalBlue),
+                    (t['restaurant_name'] ?? t['name'] ?? 'R')
+                            .toString()
+                            .isNotEmpty
+                        ? (t['restaurant_name'] ?? t['name'] ?? 'R')
+                              .toString()[0]
+                              .toUpperCase()
+                        : 'R',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: SAMStyles.royalBlue,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -192,21 +223,42 @@ class _ClientManagementScreenState extends State<ClientManagementScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(t['restaurant_name'] ?? t['name'] ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
-                      Text(t['custom_domain'] ?? t['subdomain'] ?? 'No Domain', style: const TextStyle(color: Colors.blue, fontSize: 10, fontWeight: FontWeight.bold)),
+                      Text(
+                        t['restaurant_name'] ?? t['name'] ?? 'Unknown',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 16,
+                        ),
+                      ),
+                      Text(
+                        t['custom_domain'] ?? t['subdomain'] ?? 'No Domain',
+                        style: const TextStyle(
+                          color: Colors.blue,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ],
                   ),
                 ),
                 // Status indicator instead of switch for safer control
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
-                    color: (isActive ? SAMStyles.emeraldGreen : Colors.red).withValues(alpha: 0.1),
+                    color: (isActive ? SAMStyles.emeraldGreen : Colors.red)
+                        .withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
                     isActive ? "ACTIVE" : "BLOCKED",
-                    style: TextStyle(color: isActive ? SAMStyles.emeraldGreen : Colors.red, fontSize: 8, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      color: isActive ? SAMStyles.emeraldGreen : Colors.red,
+                      fontSize: 8,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ],
@@ -218,15 +270,41 @@ class _ClientManagementScreenState extends State<ClientManagementScreen> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text("PLAN", style: TextStyle(color: Colors.grey, fontSize: 9, fontWeight: FontWeight.bold)),
-                    Text(t['plan'] ?? 'Basic', style: const TextStyle(fontWeight: FontWeight.w900, color: SAMStyles.darkNavy)),
+                    const Text(
+                      "PLAN",
+                      style: TextStyle(
+                        color: Colors.grey,
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      t['plan'] ?? 'Basic',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w900,
+                        color: SAMStyles.darkNavy,
+                      ),
+                    ),
                   ],
                 ),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    const Text("EXPIRY", style: TextStyle(color: Colors.grey, fontSize: 9, fontWeight: FontWeight.bold)),
-                    Text(t['expiry_date'] ?? 'N/A', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 11)),
+                    const Text(
+                      "EXPIRY",
+                      style: TextStyle(
+                        color: Colors.grey,
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      t['expiry_date'] ?? 'N/A',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 11,
+                      ),
+                    ),
                   ],
                 ),
               ],

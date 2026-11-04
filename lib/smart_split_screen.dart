@@ -19,7 +19,7 @@ class _SmartSplitScreenState extends State<SmartSplitScreen> {
   static const Color accentOrange = Color(0xFFF97316);
   static const Color cardWhite = Colors.white;
 
-  String? selectedVolunteerId; 
+  String? selectedVolunteerId;
   bool _isSharing = false;
 
   @override
@@ -34,12 +34,14 @@ class _SmartSplitScreenState extends State<SmartSplitScreen> {
           builder: (context, totalBill, _) {
             // Logic
             final int memberCount = members.length;
-            final int flatPay = memberCount == 0 ? 0 : (totalBill / memberCount).floor();
+            final int flatPay = memberCount == 0
+                ? 0
+                : (totalBill / memberCount).floor();
             final double remainder = totalBill - (flatPay * memberCount);
 
             // Default selection if none
             if (selectedVolunteerId == null && members.isNotEmpty) {
-               selectedVolunteerId = members[0]['user_id'];
+              selectedVolunteerId = members[0]['user_id'];
             }
 
             return Scaffold(
@@ -53,10 +55,14 @@ class _SmartSplitScreenState extends State<SmartSplitScreen> {
                         const SizedBox(height: 20),
                         // 1. Top Summary Card
                         _buildTopSummaryCard(totalBill, memberCount),
-                        
+
                         const SizedBox(height: 16),
                         // 2. Smart Paisa Friction Solver Banner
-                        _buildFrictionSolverBanner(totalBill, memberCount, remainder),
+                        _buildFrictionSolverBanner(
+                          totalBill,
+                          memberCount,
+                          remainder,
+                        ),
 
                         const SizedBox(height: 24),
                         // 3. Absorbing the Remainder List
@@ -66,16 +72,16 @@ class _SmartSplitScreenState extends State<SmartSplitScreen> {
                       ],
                     ),
                   ),
-                  if (_isSharing)
-                    _buildSharingOverlay(),
+                  if (_isSharing) _buildSharingOverlay(),
                 ],
               ),
               floatingActionButton: _buildShareButton(flatPay, remainder),
-              floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+              floatingActionButtonLocation:
+                  FloatingActionButtonLocation.centerFloat,
             );
-          }
+          },
         );
-      }
+      },
     );
   }
 
@@ -91,15 +97,37 @@ class _SmartSplitScreenState extends State<SmartSplitScreen> {
         children: [
           Container(
             padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(color: accentOrange.withValues(alpha: 0.1), shape: BoxShape.circle),
-            child: const Icon(Icons.restaurant_menu, color: accentOrange, size: 18),
+            decoration: BoxDecoration(
+              color: accentOrange.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.restaurant_menu,
+              color: accentOrange,
+              size: 18,
+            ),
           ),
           const SizedBox(width: 10),
           const Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text("Chiyala •", style: TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 16)),
-              Text("SMART SPLIT", style: TextStyle(color: Colors.grey, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1)),
+              Text(
+                "Chiyala •",
+                style: TextStyle(
+                  color: Colors.black,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 16,
+                ),
+              ),
+              Text(
+                "SMART SPLIT",
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1,
+                ),
+              ),
             ],
           ),
         ],
@@ -107,7 +135,14 @@ class _SmartSplitScreenState extends State<SmartSplitScreen> {
       actions: [
         Padding(
           padding: const EdgeInsets.only(right: 16),
-          child: Text("#CHIYA-SESSION", style: TextStyle(color: primaryBlue.withValues(alpha: 0.6), fontWeight: FontWeight.bold, fontSize: 12)),
+          child: Text(
+            "#CHIYA-SESSION",
+            style: TextStyle(
+              color: primaryBlue.withValues(alpha: 0.6),
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+            ),
+          ),
         ),
       ],
     );
@@ -120,18 +155,42 @@ class _SmartSplitScreenState extends State<SmartSplitScreen> {
       decoration: BoxDecoration(
         color: cardWhite,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 20, offset: const Offset(0, 10))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
       child: Column(
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text("TOTAL BILL TO SETTLE", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 0.5)),
+              const Text(
+                "TOTAL BILL TO SETTLE",
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 10,
+                  letterSpacing: 0.5,
+                ),
+              ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(color: Colors.green.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
-                child: const Text("● Split Active", style: TextStyle(color: Colors.green, fontSize: 9, fontWeight: FontWeight.bold)),
+                decoration: BoxDecoration(
+                  color: Colors.green.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Text(
+                  "● Split Active",
+                  style: TextStyle(
+                    color: Colors.green,
+                    fontSize: 9,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ],
           ),
@@ -140,16 +199,35 @@ class _SmartSplitScreenState extends State<SmartSplitScreen> {
             crossAxisAlignment: CrossAxisAlignment.baseline,
             textBaseline: TextBaseline.alphabetic,
             children: [
-              const Text("NPR ", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.grey)),
-              Text(total.toInt().toString(), 
-                style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w900, color: Colors.black)),
+              const Text(
+                "NPR ",
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey,
+                ),
+              ),
+              Text(
+                total.toInt().toString(),
+                style: const TextStyle(
+                  fontSize: 36,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.black,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 8),
           Align(
             alignment: Alignment.centerLeft,
-            child: Text("Includes All Charges • $diners Diners", 
-              style: const TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.w500)),
+            child: Text(
+              "Includes All Charges • $diners Diners",
+              style: const TextStyle(
+                color: Colors.grey,
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
           ),
         ],
       ),
@@ -175,27 +253,52 @@ class _SmartSplitScreenState extends State<SmartSplitScreen> {
                 children: [
                   Icon(Icons.auto_awesome, color: accentOrange, size: 14),
                   SizedBox(width: 8),
-                  Text("Smart Paisa Friction Solver", style: TextStyle(color: accentOrange, fontWeight: FontWeight.w900, fontSize: 11)),
+                  Text(
+                    "Smart Paisa Friction Solver",
+                    style: TextStyle(
+                      color: accentOrange,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 11,
+                    ),
+                  ),
                 ],
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(color: accentOrange.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
-                child: Text("Odd: Rs. ${rem.toInt()}", style: const TextStyle(color: accentOrange, fontSize: 9, fontWeight: FontWeight.w900)),
+                decoration: BoxDecoration(
+                  color: accentOrange.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  "Odd: Rs. ${rem.toInt()}",
+                  style: const TextStyle(
+                    color: accentOrange,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
               ),
             ],
           ),
           const SizedBox(height: 8),
           Text(
-            "Mathematical split is Rs. ${count == 0 ? 0 : (total/count).toStringAsFixed(2)}. 1 volunteer absorbs the small Rs. ${rem.toInt()} remainder so everyone else transfers a clean flat note.",
-            style: TextStyle(color: Colors.black.withValues(alpha: 0.6), fontSize: 10, height: 1.4),
+            "Mathematical split is Rs. ${count == 0 ? 0 : (total / count).toStringAsFixed(2)}. 1 volunteer absorbs the small Rs. ${rem.toInt()} remainder so everyone else transfers a clean flat note.",
+            style: TextStyle(
+              color: Colors.black.withValues(alpha: 0.6),
+              fontSize: 10,
+              height: 1.4,
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildVolunteerList(List<Map<String, dynamic>> members, int flat, double rem) {
+  Widget _buildVolunteerList(
+    List<Map<String, dynamic>> members,
+    int flat,
+    double rem,
+  ) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
@@ -208,10 +311,26 @@ class _SmartSplitScreenState extends State<SmartSplitScreen> {
                 children: [
                   Icon(Icons.people_outline, color: primaryBlue, size: 18),
                   SizedBox(width: 8),
-                  Text("Who's Absorbing the\nRemainder?", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: Colors.black87, height: 1.1)),
+                  Text(
+                    "Who's Absorbing the\nRemainder?",
+                    style: TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 15,
+                      color: Colors.black87,
+                      height: 1.1,
+                    ),
+                  ),
                 ],
               ),
-              Text("Tap to\nswap", textAlign: TextAlign.right, style: TextStyle(color: primaryBlue.withValues(alpha: 0.4), fontSize: 10, fontWeight: FontWeight.bold)),
+              Text(
+                "Tap to\nswap",
+                textAlign: TextAlign.right,
+                style: TextStyle(
+                  color: primaryBlue.withValues(alpha: 0.4),
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 16),
@@ -220,22 +339,43 @@ class _SmartSplitScreenState extends State<SmartSplitScreen> {
             final int payAmount = isVolunteer ? (flat + rem.toInt()) : flat;
 
             return GestureDetector(
-              onTap: () => setState(() => selectedVolunteerId = diner['user_id']),
+              onTap: () =>
+                  setState(() => selectedVolunteerId = diner['user_id']),
               child: Container(
                 margin: const EdgeInsets.only(bottom: 12),
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: cardWhite,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: isVolunteer ? primaryBlue : Colors.transparent, width: 1.5),
-                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10)],
+                  border: Border.all(
+                    color: isVolunteer ? primaryBlue : Colors.transparent,
+                    width: 1.5,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.02),
+                      blurRadius: 10,
+                    ),
+                  ],
                 ),
                 child: Row(
                   children: [
                     CircleAvatar(
-                      radius: 20, 
-                      backgroundColor: (diner['gender'] == 'Female' ? Colors.pink : Colors.blue).withValues(alpha: 0.1),
-                      child: Text(diner['name'][0], style: TextStyle(color: diner['gender'] == 'Female' ? Colors.pink : Colors.blue, fontWeight: FontWeight.bold)),
+                      radius: 20,
+                      backgroundColor:
+                          (diner['gender'] == 'Female'
+                                  ? Colors.pink
+                                  : Colors.blue)
+                              .withValues(alpha: 0.1),
+                      child: Text(
+                        diner['name'][0],
+                        style: TextStyle(
+                          color: diner['gender'] == 'Female'
+                              ? Colors.pink
+                              : Colors.blue,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                     const SizedBox(width: 16),
                     Expanded(
@@ -244,33 +384,78 @@ class _SmartSplitScreenState extends State<SmartSplitScreen> {
                         children: [
                           Row(
                             children: [
-                              Text(diner['name'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                              Text(
+                                diner['name'],
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
                               if (isVolunteer) ...[
                                 const SizedBox(width: 6),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                  decoration: BoxDecoration(color: primaryBlue.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
-                                  child: Text("+Rs. ${rem.toInt()} Extra", style: const TextStyle(color: primaryBlue, fontSize: 8, fontWeight: FontWeight.w900)),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: primaryBlue.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    "+Rs. ${rem.toInt()} Extra",
+                                    style: const TextStyle(
+                                      color: primaryBlue,
+                                      fontSize: 8,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
                                 ),
                               ],
                             ],
                           ),
-                          Text(isVolunteer ? "Volunteered to absorb 50p rounding" : "Flat share", 
-                            style: const TextStyle(color: Colors.grey, fontSize: 10, fontWeight: FontWeight.w500)),
+                          Text(
+                            isVolunteer
+                                ? "Volunteered to absorb 50p rounding"
+                                : "Flat share",
+                            style: const TextStyle(
+                              color: Colors.grey,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
                         ],
                       ),
                     ),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        Text("Rs. $payAmount", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: primaryBlue)),
-                        Text(isVolunteer ? "Clean Pay" : "Flat Pay", style: TextStyle(color: primaryBlue.withValues(alpha: 0.4), fontSize: 9, fontWeight: FontWeight.bold)),
+                        Text(
+                          "Rs. $payAmount",
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 16,
+                            color: primaryBlue,
+                          ),
+                        ),
+                        Text(
+                          isVolunteer ? "Clean Pay" : "Flat Pay",
+                          style: TextStyle(
+                            color: primaryBlue.withValues(alpha: 0.4),
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ],
                     ),
                     const SizedBox(width: 12),
                     Icon(
-                      isVolunteer ? Icons.radio_button_checked : Icons.radio_button_off,
-                      color: isVolunteer ? primaryBlue : Colors.grey.withValues(alpha: 0.3),
+                      isVolunteer
+                          ? Icons.radio_button_checked
+                          : Icons.radio_button_off,
+                      color: isVolunteer
+                          ? primaryBlue
+                          : Colors.grey.withValues(alpha: 0.3),
                       size: 20,
                     ),
                   ],
@@ -284,7 +469,8 @@ class _SmartSplitScreenState extends State<SmartSplitScreen> {
   }
 
   Widget _buildShareButton(int flat, double rem) {
-    if (!ShopManager.instance.isSessionHost.value) return const SizedBox.shrink();
+    if (!ShopManager.instance.isSessionHost.value)
+      return const SizedBox.shrink();
 
     return Container(
       width: double.infinity,
@@ -292,11 +478,20 @@ class _SmartSplitScreenState extends State<SmartSplitScreen> {
       child: ElevatedButton.icon(
         onPressed: _shareToGroupChat,
         icon: const Icon(Icons.send_rounded, color: Colors.white, size: 20),
-        label: const Text("SHARE SPLIT TO GROUP", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16)),
+        label: const Text(
+          "SHARE SPLIT TO GROUP",
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w900,
+            fontSize: 16,
+          ),
+        ),
         style: ElevatedButton.styleFrom(
           backgroundColor: accentOrange,
           padding: const EdgeInsets.symmetric(vertical: 18),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           elevation: 10,
           shadowColor: accentOrange.withValues(alpha: 0.5),
         ),
@@ -323,11 +518,16 @@ class _SmartSplitScreenState extends State<SmartSplitScreen> {
       barrierDismissible: false,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: const Text("Upload Payment QR", style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text(
+          "Upload Payment QR",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text("Please select your payment QR code (eSewa / Khalti / Fonepay) so table members can scan and pay."),
+            const Text(
+              "Please select your payment QR code (eSewa / Khalti / Fonepay) so table members can scan and pay.",
+            ),
             const SizedBox(height: 20),
             ElevatedButton.icon(
               onPressed: () async {
@@ -339,8 +539,13 @@ class _SmartSplitScreenState extends State<SmartSplitScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: accentOrange,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 12,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
               ),
             ),
           ],
@@ -359,9 +564,12 @@ class _SmartSplitScreenState extends State<SmartSplitScreen> {
     if (sid == null || selectedVolunteerId == null) return;
 
     setState(() => _isSharing = true);
-    
+
     final qrUrl = await ApiService.uploadGroupQR(sid, bytes, image.name);
-    final success = await ApiService.shareSplitDetails(sid, selectedVolunteerId!);
+    final success = await ApiService.shareSplitDetails(
+      sid,
+      selectedVolunteerId!,
+    );
 
     if (success) {
       if (qrUrl != null) {
@@ -377,7 +585,9 @@ class _SmartSplitScreenState extends State<SmartSplitScreen> {
     } else {
       if (mounted) {
         setState(() => _isSharing = false);
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Failed to share split. Try again.")));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Failed to share split. Try again.")),
+        );
       }
     }
   }
@@ -398,12 +608,20 @@ class _SmartSplitScreenState extends State<SmartSplitScreen> {
                 color: Colors.green.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.check_circle_rounded, color: Colors.green, size: 56),
+              child: const Icon(
+                Icons.check_circle_rounded,
+                color: Colors.green,
+                size: 56,
+              ),
             ),
             const SizedBox(height: 20),
             const Text(
               "Successfully Shared!",
-              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: Colors.black87),
+              style: TextStyle(
+                fontWeight: FontWeight.w900,
+                fontSize: 18,
+                color: Colors.black87,
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 10),
@@ -418,16 +636,22 @@ class _SmartSplitScreenState extends State<SmartSplitScreen> {
               child: ElevatedButton(
                 onPressed: () {
                   Navigator.pop(context);
-                  ShopManager.instance.currentTabIndex.value = 1; // Group Chat Tab
+                  ShopManager.instance.currentTabIndex.value =
+                      1; // Group Chat Tab
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: accentOrange,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                   elevation: 0,
                 ),
-                child: const Text("VIEW IN GROUP CHAT", style: TextStyle(fontWeight: FontWeight.bold)),
+                child: const Text(
+                  "VIEW IN GROUP CHAT",
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
               ),
             ),
           ],
@@ -450,7 +674,12 @@ class _SmartSplitScreenState extends State<SmartSplitScreen> {
                 const SizedBox(height: 24),
                 const Text(
                   "GENERATING SMART SPLIT...",
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 1.2),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 16,
+                    letterSpacing: 1.2,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 const Text(

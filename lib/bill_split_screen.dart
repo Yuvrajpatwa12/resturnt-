@@ -15,7 +15,7 @@ class _BillSplitScreenState extends State<BillSplitScreen> {
     TextEditingController(text: "Me"),
     TextEditingController(),
   ];
-  
+
   int _priorityIndex = 0; // Default priority to first person (usually 'Me')
 
   @override
@@ -47,29 +47,31 @@ class _BillSplitScreenState extends State<BillSplitScreen> {
   Map<String, double> _calculateSplit() {
     final double total = double.tryParse(_billController.text) ?? 0.0;
     final int count = _friendControllers.length;
-    
+
     if (total <= 0 || count == 0) return {};
 
     // 1. Calculate base equal share (rounded down to 2 decimals to prevent overcharging)
     // We use .floor() logic to ensure we don't exceed the total, then handle the penny gap.
     double equalShare = (total / count * 100).floorToDouble() / 100.0;
-    
+
     // 2. Calculate the total of all equal shares
     double totalEqualShares = equalShare * count;
-    
+
     // 3. The remainder (the extra pennies or rupees)
-    double remainder = double.parse((total - totalEqualShares).toStringAsFixed(2));
+    double remainder = double.parse(
+      (total - totalEqualShares).toStringAsFixed(2),
+    );
 
     Map<String, double> result = {};
     for (int i = 0; i < count; i++) {
       String name = _friendControllers[i].text.trim();
       if (name.isEmpty) name = "Friend ${i + 1}";
-      
+
       double finalShare = equalShare;
       if (i == _priorityIndex) {
         finalShare += remainder;
       }
-      
+
       result[name] = double.parse(finalShare.toStringAsFixed(2));
     }
 
@@ -80,7 +82,9 @@ class _BillSplitScreenState extends State<BillSplitScreen> {
     final splits = _calculateSplit();
     if (splits.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please enter a valid bill amount first!")),
+        const SnackBar(
+          content: Text("Please enter a valid bill amount first!"),
+        ),
       );
       return;
     }
@@ -89,17 +93,20 @@ class _BillSplitScreenState extends State<BillSplitScreen> {
     String message = "🍔 *Chiyala Group Bill Split* 🥤\n\n";
     message += "Total Bill: *Rs. $total*\n";
     message += "----------------------------\n";
-    
+
     splits.forEach((name, amount) {
-      bool isPriority = name == _friendControllers[_priorityIndex].text || 
-                        (name == "Me" && _priorityIndex == 0);
+      bool isPriority =
+          name == _friendControllers[_priorityIndex].text ||
+          (name == "Me" && _priorityIndex == 0);
       String marker = isPriority ? "👑 " : "👤 ";
       message += "$marker$name: *Rs. $amount*\n";
     });
-    
+
     message += "----------------------------\n\n";
-    message += "Guys, please clear your dues via *eSewa* or *Khalti* to keep our group leader happy! 😄🙏\n";
-    message += "No one likes the 'where is my money' talk, so let's keep it smooth! ✨";
+    message +=
+        "Guys, please clear your dues via *eSewa* or *Khalti* to keep our group leader happy! 😄🙏\n";
+    message +=
+        "No one likes the 'where is my money' talk, so let's keep it smooth! ✨";
 
     Share.share(message);
   }
@@ -112,7 +119,7 @@ class _BillSplitScreenState extends State<BillSplitScreen> {
     String message = "🍔 *Chiyala Group Bill Split* 🥤\n";
     message += "Total Bill: Rs. $total\n";
     splits.forEach((name, amount) => message += "👤 $name: Rs. $amount\n");
-    
+
     Clipboard.setData(ClipboardData(text: message));
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("Bill summary copied to clipboard!")),
@@ -133,7 +140,11 @@ class _BillSplitScreenState extends State<BillSplitScreen> {
         ),
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black, size: 20),
+          icon: const Icon(
+            Icons.arrow_back_ios_new,
+            color: Colors.black,
+            size: 20,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -153,26 +164,48 @@ class _BillSplitScreenState extends State<BillSplitScreen> {
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(24),
                       boxShadow: [
-                        BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 15, offset: const Offset(0, 8))
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.04),
+                          blurRadius: 15,
+                          offset: const Offset(0, 8),
+                        ),
                       ],
                     ),
                     child: Column(
                       children: [
                         const Text(
                           "Total Bill Amount",
-                          style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold, fontSize: 13),
+                          style: TextStyle(
+                            color: Colors.grey,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
                         ),
                         const SizedBox(height: 12),
                         TextField(
                           controller: _billController,
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
                           textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 42, fontWeight: FontWeight.w900, color: Theme.of(context).primaryColor),
-                          inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))],
+                          style: TextStyle(
+                            fontSize: 42,
+                            fontWeight: FontWeight.w900,
+                            color: Theme.of(context).primaryColor,
+                          ),
+                          inputFormatters: [
+                            FilteringTextInputFormatter.allow(
+                              RegExp(r'^\d+\.?\d{0,2}'),
+                            ),
+                          ],
                           decoration: const InputDecoration(
                             hintText: "0.00",
                             prefixText: "Rs. ",
-                            prefixStyle: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.grey),
+                            prefixStyle: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey,
+                            ),
                             border: InputBorder.none,
                           ),
                           onChanged: (_) => setState(() {}),
@@ -191,8 +224,13 @@ class _BillSplitScreenState extends State<BillSplitScreen> {
                       TextButton.icon(
                         onPressed: _addFriend,
                         icon: const Icon(Icons.add_circle_outline, size: 18),
-                        label: const Text("ADD FRIEND", style: TextStyle(fontWeight: FontWeight.bold)),
-                        style: TextButton.styleFrom(foregroundColor: Theme.of(context).primaryColor),
+                        label: const Text(
+                          "ADD FRIEND",
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        style: TextButton.styleFrom(
+                          foregroundColor: Theme.of(context).primaryColor,
+                        ),
                       ),
                     ],
                   ),
@@ -208,10 +246,9 @@ class _BillSplitScreenState extends State<BillSplitScreen> {
                   ),
 
                   const SizedBox(height: 24),
-                  
+
                   // --- SUMMARY INFO ---
-                  if (_billController.text.isNotEmpty)
-                    _buildSummaryCard(),
+                  if (_billController.text.isNotEmpty) _buildSummaryCard(),
 
                   const SizedBox(height: 100), // Spacing for bottom button
                 ],
@@ -229,7 +266,12 @@ class _BillSplitScreenState extends State<BillSplitScreen> {
       padding: const EdgeInsets.only(left: 4, bottom: 12),
       child: Text(
         title,
-        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Color(0xFF64748B), letterSpacing: 1.2),
+        style: const TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w900,
+          color: Color(0xFF64748B),
+          letterSpacing: 1.2,
+        ),
       ),
     );
   }
@@ -244,7 +286,9 @@ class _BillSplitScreenState extends State<BillSplitScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: isPriority ? Theme.of(context).primaryColor.withValues(alpha: 0.3) : Colors.transparent,
+          color: isPriority
+              ? Theme.of(context).primaryColor.withValues(alpha: 0.3)
+              : Colors.transparent,
           width: 2,
         ),
       ),
@@ -256,7 +300,9 @@ class _BillSplitScreenState extends State<BillSplitScreen> {
             child: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: isPriority ? Theme.of(context).primaryColor : const Color(0xFFF1F5F9),
+                color: isPriority
+                    ? Theme.of(context).primaryColor
+                    : const Color(0xFFF1F5F9),
                 shape: BoxShape.circle,
               ),
               child: Icon(
@@ -282,7 +328,11 @@ class _BillSplitScreenState extends State<BillSplitScreen> {
           // Remove Button
           if (_friendControllers.length > 1)
             IconButton(
-              icon: Icon(Icons.remove_circle_outline, color: Colors.red[300], size: 20),
+              icon: Icon(
+                Icons.remove_circle_outline,
+                color: Colors.red[300],
+                size: 20,
+              ),
               onPressed: () => _removeFriend(index),
             ),
         ],
@@ -292,7 +342,7 @@ class _BillSplitScreenState extends State<BillSplitScreen> {
 
   Widget _buildSummaryCard() {
     final splits = _calculateSplit();
-    
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -304,30 +354,60 @@ class _BillSplitScreenState extends State<BillSplitScreen> {
         children: [
           Row(
             children: [
-              const Icon(Icons.info_outline_rounded, color: Colors.green, size: 20),
+              const Icon(
+                Icons.info_outline_rounded,
+                color: Colors.green,
+                size: 20,
+              ),
               const SizedBox(width: 12),
               const Text(
                 "SMART SPLIT PREVIEW",
-                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Colors.green, letterSpacing: 0.5),
+                style: TextStyle(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 12,
+                  color: Colors.green,
+                  letterSpacing: 0.5,
+                ),
               ),
             ],
           ),
           const Divider(height: 24, color: Colors.green),
-          ...splits.entries.map((e) => Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(e.key, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                Text("Rs. ${e.value}", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: Colors.black87)),
-              ],
-            ),
-          )).toList(),
+          ...splits.entries
+              .map(
+                (e) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        e.key,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                      Text(
+                        "Rs. ${e.value}",
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 15,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+              .toList(),
           const SizedBox(height: 12),
           Text(
             "* The remainder has been adjusted for ${_friendControllers[_priorityIndex].text.isEmpty ? 'Friend ${_priorityIndex + 1}' : _friendControllers[_priorityIndex].text}.",
-            style: const TextStyle(fontSize: 10, fontStyle: FontStyle.italic, color: Colors.green),
-          )
+            style: const TextStyle(
+              fontSize: 10,
+              fontStyle: FontStyle.italic,
+              color: Colors.green,
+            ),
+          ),
         ],
       ),
     );
@@ -338,7 +418,13 @@ class _BillSplitScreenState extends State<BillSplitScreen> {
       padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
       decoration: BoxDecoration(
         color: Colors.white,
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 20, offset: const Offset(0, -5))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 20,
+            offset: const Offset(0, -5),
+          ),
+        ],
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -350,12 +436,18 @@ class _BillSplitScreenState extends State<BillSplitScreen> {
               icon: const Icon(Icons.send_rounded, color: Colors.white),
               label: const Text(
                 "SHARE ON WHATSAPP",
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: Colors.white,
+                ),
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Theme.of(context).primaryColor,
                 padding: const EdgeInsets.symmetric(vertical: 18),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
                 elevation: 0,
               ),
             ),
@@ -365,8 +457,18 @@ class _BillSplitScreenState extends State<BillSplitScreen> {
             width: double.infinity,
             child: TextButton.icon(
               onPressed: _copyToClipboard,
-              icon: const Icon(Icons.copy_rounded, color: Colors.grey, size: 18),
-              label: const Text("COPY SUMMARY", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+              icon: const Icon(
+                Icons.copy_rounded,
+                color: Colors.grey,
+                size: 18,
+              ),
+              label: const Text(
+                "COPY SUMMARY",
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               style: TextButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 14),
               ),

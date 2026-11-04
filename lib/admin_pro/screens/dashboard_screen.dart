@@ -47,13 +47,28 @@ class DashboardScreen extends StatelessWidget {
               children: [
                 Text(
                   "Hi, $tenantName",
-                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: AdminTheme.darkNavy),
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w900,
+                    color: AdminTheme.darkNavy,
+                  ),
                 ),
                 Row(
                   children: [
-                    const Icon(Icons.store_mall_directory, size: 12, color: Colors.grey),
+                    const Icon(
+                      Icons.store_mall_directory,
+                      size: 12,
+                      color: Colors.grey,
+                    ),
                     const SizedBox(width: 4),
-                    Text("ID: $tenantId", style: const TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold)),
+                    Text(
+                      "ID: $tenantId",
+                      style: const TextStyle(
+                        color: Colors.grey,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ],
                 ),
               ],
@@ -78,18 +93,24 @@ class DashboardScreen extends StatelessWidget {
         final now = DateTime.now();
         DateTime expiryDate = now.add(const Duration(days: 10)); // Fallback
         try {
-          if (tenant.expiry != null) expiryDate = DateTime.parse(tenant.expiry!);
+          if (tenant.expiry != null)
+            expiryDate = DateTime.parse(tenant.expiry!);
         } catch (_) {}
-        
+
         final daysLeft = expiryDate.difference(now).inDays.clamp(0, 365);
         final bool isWarning = daysLeft < 7;
 
         return Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: isWarning ? Colors.red[50] : AdminTheme.emeraldGreen.withValues(alpha: 0.1),
+            color: isWarning
+                ? Colors.red[50]
+                : AdminTheme.emeraldGreen.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: (isWarning ? Colors.red : AdminTheme.emeraldGreen).withValues(alpha: 0.2)),
+            border: Border.all(
+              color: (isWarning ? Colors.red : AdminTheme.emeraldGreen)
+                  .withValues(alpha: 0.2),
+            ),
           ),
           child: Row(
             children: [
@@ -99,7 +120,11 @@ class DashboardScreen extends StatelessWidget {
                   color: isWarning ? Colors.red : AdminTheme.emeraldGreen,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.timer_outlined, color: Colors.white, size: 16),
+                child: const Icon(
+                  Icons.timer_outlined,
+                  color: Colors.white,
+                  size: 16,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -111,7 +136,9 @@ class DashboardScreen extends StatelessWidget {
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 13,
-                        color: isWarning ? Colors.red[900] : AdminTheme.darkNavy,
+                        color: isWarning
+                            ? Colors.red[900]
+                            : AdminTheme.darkNavy,
                       ),
                     ),
                     Text(
@@ -127,7 +154,7 @@ class DashboardScreen extends StatelessWidget {
               ),
               TextButton(
                 onPressed: () {
-                  // This is a bit tricky since we are in a sub-screen. 
+                  // This is a bit tricky since we are in a sub-screen.
                   // In a real app, we'd use a provider or callback.
                   // For now, it just shows info.
                 },
@@ -167,7 +194,12 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTintedActionCard(String title, String subtitle, Color color, IconData icon) {
+  Widget _buildTintedActionCard(
+    String title,
+    String subtitle,
+    Color color,
+    IconData icon,
+  ) {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.all(16),
@@ -183,15 +215,30 @@ class DashboardScreen extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Icon(icon, color: color, size: 20),
-                const Icon(Icons.play_circle_fill, color: Colors.white, size: 18),
+                const Icon(
+                  Icons.play_circle_fill,
+                  color: Colors.white,
+                  size: 18,
+                ),
               ],
             ),
             const SizedBox(height: 12),
-            Text(title, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 13)),
+            Text(
+              title,
+              style: TextStyle(
+                color: color,
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+              ),
+            ),
             const SizedBox(height: 4),
             Text(
               subtitle,
-              style: TextStyle(color: color.withValues(alpha: 0.7), fontSize: 10, fontWeight: FontWeight.w500),
+              style: TextStyle(
+                color: color.withValues(alpha: 0.7),
+                fontSize: 10,
+                fontWeight: FontWeight.w500,
+              ),
               maxLines: 2,
             ),
           ],
@@ -206,7 +253,11 @@ class DashboardScreen extends StatelessWidget {
       builder: (context, bills, child) {
         double totalRevenue = 0;
         for (var bill in bills) {
-          totalRevenue += double.tryParse(bill['total'].replaceAll(RegExp(r'[^0-9.]'), '')) ?? 0;
+          totalRevenue +=
+              double.tryParse(
+                bill['total'].replaceAll(RegExp(r'[^0-9.]'), ''),
+              ) ??
+              0;
         }
 
         return Container(
@@ -222,16 +273,36 @@ class DashboardScreen extends StatelessWidget {
                 children: [
                   Container(
                     padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(color: AdminTheme.royalBlue.withValues(alpha: 0.1), shape: BoxShape.circle),
-                    child: const Icon(Icons.account_balance_wallet, color: AdminTheme.royalBlue, size: 20),
+                    decoration: BoxDecoration(
+                      color: AdminTheme.royalBlue.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.account_balance_wallet,
+                      color: AdminTheme.royalBlue,
+                      size: 20,
+                    ),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text("Revenue Balance", style: TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold)),
-                        Text("NPR ${totalRevenue.toStringAsFixed(0)}", style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
+                        const Text(
+                          "Revenue Balance",
+                          style: TextStyle(
+                            color: Colors.grey,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          "NPR ${totalRevenue.toStringAsFixed(0)}",
+                          style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -260,9 +331,23 @@ class DashboardScreen extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(color: Colors.grey, fontSize: 10, fontWeight: FontWeight.bold)),
+        Text(
+          label,
+          style: const TextStyle(
+            color: Colors.grey,
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         const SizedBox(height: 4),
-        Text(value, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AdminTheme.darkNavy)),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w800,
+            color: AdminTheme.darkNavy,
+          ),
+        ),
       ],
     );
   }
@@ -283,47 +368,105 @@ class DashboardScreen extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text("Recent Kitchen Alerts", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+                const Text(
+                  "Recent Kitchen Alerts",
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+                ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(color: Colors.red[100], borderRadius: BorderRadius.circular(10)),
-                  child: Text("${alerts.length} NEW", style: const TextStyle(color: Colors.red, fontSize: 9, fontWeight: FontWeight.bold)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.red[100],
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    "${alerts.length} NEW",
+                    style: const TextStyle(
+                      color: Colors.red,
+                      fontSize: 9,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ],
             ),
             const SizedBox(height: 16),
             Container(
               padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24), boxShadow: AdminTheme.softShadow),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: AdminTheme.softShadow,
+              ),
               child: Column(
-                children: alerts.take(3).map((a) => Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 12,
-                        backgroundColor: (a['urgency'] == 'Critical' ? Colors.red : Colors.orange).withValues(alpha: 0.1),
-                        child: Icon(Icons.warning_amber_rounded, size: 14, color: a['urgency'] == 'Critical' ? Colors.red : Colors.orange),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                children: alerts
+                    .take(3)
+                    .map(
+                      (a) => Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: Row(
                           children: [
-                            Text(a['item_name'] ?? 'Item', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                            Text(a['notes'] ?? 'Out of stock', style: const TextStyle(fontSize: 10, color: Colors.grey), maxLines: 1, overflow: TextOverflow.ellipsis),
+                            CircleAvatar(
+                              radius: 12,
+                              backgroundColor:
+                                  (a['urgency'] == 'Critical'
+                                          ? Colors.red
+                                          : Colors.orange)
+                                      .withValues(alpha: 0.1),
+                              child: Icon(
+                                Icons.warning_amber_rounded,
+                                size: 14,
+                                color: a['urgency'] == 'Critical'
+                                    ? Colors.red
+                                    : Colors.orange,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    a['item_name'] ?? 'Item',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                  Text(
+                                    a['notes'] ?? 'Out of stock',
+                                    style: const TextStyle(
+                                      fontSize: 10,
+                                      color: Colors.grey,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Text(
+                              a['urgency'] ?? 'Medium',
+                              style: TextStyle(
+                                fontSize: 9,
+                                fontWeight: FontWeight.w900,
+                                color: a['urgency'] == 'Critical'
+                                    ? Colors.red
+                                    : Colors.orange,
+                              ),
+                            ),
                           ],
                         ),
                       ),
-                      Text(a['urgency'] ?? 'Medium', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: a['urgency'] == 'Critical' ? Colors.red : Colors.orange)),
-                    ],
-                  ),
-                )).toList(),
+                    )
+                    .toList(),
               ),
             ),
           ],
         );
-      }
+      },
     );
   }
 
@@ -334,8 +477,18 @@ class DashboardScreen extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text("Activities this week", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
-            const Text("-7.6%", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 12)),
+            const Text(
+              "Activities this week",
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+            ),
+            const Text(
+              "-7.6%",
+              style: TextStyle(
+                color: Colors.red,
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+              ),
+            ),
           ],
         ),
         const SizedBox(height: 16),
@@ -355,7 +508,11 @@ class DashboardScreen extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     _buildStatCol("136", "Avg. 26 per day"),
-                    const Icon(Icons.trending_down, color: Colors.red, size: 20),
+                    const Icon(
+                      Icons.trending_down,
+                      color: Colors.red,
+                      size: 20,
+                    ),
                   ],
                 ),
                 const Spacer(),
@@ -373,8 +530,18 @@ class DashboardScreen extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(main, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
-        Text(sub, style: const TextStyle(color: Colors.grey, fontSize: 10, fontWeight: FontWeight.bold)),
+        Text(
+          main,
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+        ),
+        Text(
+          sub,
+          style: const TextStyle(
+            color: Colors.grey,
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ],
     );
   }
@@ -389,7 +556,9 @@ class DashboardScreen extends StatelessWidget {
           width: 8,
           height: h,
           decoration: BoxDecoration(
-            color: index == 5 ? AdminTheme.royalBlue : AdminTheme.royalBlue.withValues(alpha: 0.1),
+            color: index == 5
+                ? AdminTheme.royalBlue
+                : AdminTheme.royalBlue.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(4),
           ),
         );
@@ -411,17 +580,47 @@ class DashboardScreen extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text("Monthly Performance", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+              const Text(
+                "Monthly Performance",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(20)),
-                child: const Text("+12.4%", style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Text(
+                  "+12.4%",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ],
           ),
           const SizedBox(height: 24),
-          const Text("NPR 84,200", style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900)),
-          const Text("Projected growth for October", style: TextStyle(color: Colors.white60, fontSize: 11)),
+          const Text(
+            "NPR 84,200",
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 24,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const Text(
+            "Projected growth for October",
+            style: TextStyle(color: Colors.white60, fontSize: 11),
+          ),
           const SizedBox(height: 24),
           LinearProgressIndicator(
             value: 0.76,

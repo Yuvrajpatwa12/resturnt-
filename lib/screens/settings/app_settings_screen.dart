@@ -43,7 +43,10 @@ class AppSettingsScreen extends StatelessWidget {
                         if (canPop) ...[
                           IconButton(
                             onPressed: () => Navigator.pop(context),
-                            icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+                            icon: const Icon(
+                              Icons.arrow_back_rounded,
+                              color: Colors.white,
+                            ),
                             padding: EdgeInsets.zero,
                             constraints: const BoxConstraints(),
                           ),
@@ -95,7 +98,10 @@ class AppSettingsScreen extends StatelessWidget {
 
             // Settings Categories List
             SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 8.0,
+              ),
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
                   // Section 1: General Preferences
@@ -106,10 +112,13 @@ class AppSettingsScreen extends StatelessWidget {
                     iconBgColor: const Color(0xFFF0FDF4),
                     iconColor: const Color(0xFF16A34A),
                     title: "Currency Settings",
-                    subtitle: "Choose default transaction currency and symbol format",
+                    subtitle:
+                        "Choose default transaction currency and symbol format",
                     onTap: () => Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => const CurrencySettingScreen()),
+                      MaterialPageRoute(
+                        builder: (_) => const CurrencySettingScreen(),
+                      ),
                     ),
                   ),
 
@@ -126,7 +135,9 @@ class AppSettingsScreen extends StatelessWidget {
                     subtitle: "Select default country and regional standards",
                     onTap: () => Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => const CountrySettingScreen()),
+                      MaterialPageRoute(
+                        builder: (_) => const CountrySettingScreen(),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -139,7 +150,9 @@ class AppSettingsScreen extends StatelessWidget {
                     subtitle: "Manage provinces, states and tax jurisdictions",
                     onTap: () => Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => const StateSettingScreen()),
+                      MaterialPageRoute(
+                        builder: (_) => const StateSettingScreen(),
+                      ),
                     ),
                   ),
 
@@ -153,10 +166,13 @@ class AppSettingsScreen extends StatelessWidget {
                     iconBgColor: const Color(0xFFF5F3FF),
                     iconColor: AppTheme.primaryPurple,
                     title: "Application Configuration",
-                    subtitle: "Push notifications, updates, cache & storage limits",
+                    subtitle:
+                        "Push notifications, updates, cache & storage limits",
                     onTap: () => Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => const ApplicationConfigScreen()),
+                      MaterialPageRoute(
+                        builder: (_) => const ApplicationConfigScreen(),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -166,11 +182,14 @@ class AppSettingsScreen extends StatelessWidget {
                     iconBgColor: AppTheme.dangerSubtle,
                     iconColor: AppTheme.danger,
                     title: "Factory Reset",
-                    subtitle: "Reset preferences, clear local storage & restore defaults",
+                    subtitle:
+                        "Reset preferences, clear local storage & restore defaults",
                     isWarning: true,
                     onTap: () => Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => const FactoryResetScreen()),
+                      MaterialPageRoute(
+                        builder: (_) => const FactoryResetScreen(),
+                      ),
                     ),
                   ),
 
@@ -211,7 +230,9 @@ class AppSettingsScreen extends StatelessWidget {
   }) {
     return Container(
       decoration: AppTheme.cardDecoration(
-        borderColor: isWarning ? AppTheme.danger.withOpacity(0.2) : AppTheme.cardBorder,
+        borderColor: isWarning
+            ? AppTheme.danger.withOpacity(0.2)
+            : AppTheme.cardBorder,
       ),
       child: Material(
         color: Colors.transparent,
@@ -231,11 +252,7 @@ class AppSettingsScreen extends StatelessWidget {
                     color: iconBgColor,
                     borderRadius: BorderRadius.circular(14),
                   ),
-                  child: Icon(
-                    icon,
-                    color: iconColor,
-                    size: 22,
-                  ),
+                  child: Icon(icon, color: iconColor, size: 22),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -245,7 +262,9 @@ class AppSettingsScreen extends StatelessWidget {
                       Text(
                         title,
                         style: TextStyle(
-                          color: isWarning ? AppTheme.danger : AppTheme.textPrimary,
+                          color: isWarning
+                              ? AppTheme.danger
+                              : AppTheme.textPrimary,
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
                         ),

@@ -322,10 +322,21 @@ class _DigitalMenuScreenState extends State<DigitalMenuScreen> {
                                     padding: const EdgeInsets.all(12),
                                     gridDelegate:
                                         SliverGridDelegateWithFixedCrossAxisCount(
-                                          crossAxisCount: Responsive.gridColumns(context, phone: 2, tablet: 3, desktop: 4),
+                                          crossAxisCount:
+                                              Responsive.gridColumns(
+                                                context,
+                                                phone: 2,
+                                                tablet: 3,
+                                                desktop: 4,
+                                              ),
                                           crossAxisSpacing: 12,
                                           mainAxisSpacing: 12,
-                                          childAspectRatio: Responsive.value(context, phone: 0.72, tablet: 0.8, desktop: 0.85),
+                                          childAspectRatio: Responsive.value(
+                                            context,
+                                            phone: 0.72,
+                                            tablet: 0.8,
+                                            desktop: 0.85,
+                                          ),
                                         ),
                                     itemCount: filteredProducts.length,
                                     itemBuilder: (context, index) {

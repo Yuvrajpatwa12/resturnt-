@@ -36,7 +36,9 @@ class StaffGateway extends StatelessWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text("Role '${staff.role}' not recognized for this portal."),
+                    Text(
+                      "Role '${staff.role}' not recognized for this portal.",
+                    ),
                     const SizedBox(height: 20),
                     ElevatedButton(
                       onPressed: () => TenantService().logout(),

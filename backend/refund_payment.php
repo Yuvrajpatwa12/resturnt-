@@ -58,9 +58,9 @@ try {
     }
     $refundSum = $conn->prepare(
         'SELECT COALESCE(SUM(amount), 0) AS refunded_amount
-         FROM refunds WHERE payment_id = ?'
+         FROM refunds WHERE payment_id = ? AND tenant_id = ?'
     );
-    $refundSum->bind_param('i', $paymentId);
+    $refundSum->bind_param('is', $paymentId, $tenantId);
     $refundSum->execute();
     $alreadyRefundedCents = (int)round(
         (float)$refundSum->get_result()->fetch_assoc()['refunded_amount'] * 100
@@ -78,10 +78,10 @@ try {
     }
     $amount = number_format($refundCents / 100, 2, '.', '');
     $insert = $conn->prepare(
-        'INSERT INTO refunds (payment_id, amount, reason, staff_id)
-         VALUES (?, ?, ?, ?)'
+        'INSERT INTO refunds (payment_id, tenant_id, amount, reason, staff_id)
+         VALUES (?, ?, ?, ?, ?)'
     );
-    $insert->bind_param('issi', $paymentId, $amount, $reason, $staffId);
+    $insert->bind_param('sisss', $paymentId, $tenantId, $amount, $reason, $staffId);
     $insert->execute();
     $refundId = (int)$conn->insert_id;
     $insert->close();

@@ -35,9 +35,8 @@ class _NotificationPromptState extends State<NotificationPrompt> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color:
-                          (_isSuccess ? Colors.green : primaryColor)
-                              .withValues(alpha: 0.1),
+                      color: (_isSuccess ? Colors.green : primaryColor)
+                          .withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     ),
                     child: _isLoading
@@ -54,9 +53,7 @@ class _NotificationPromptState extends State<NotificationPrompt> {
                                 ? Icons.check_circle_outline
                                 : Icons.notifications_active_outlined,
                             size: 40,
-                            color: _isSuccess
-                                ? Colors.green
-                                : primaryColor,
+                            color: _isSuccess ? Colors.green : primaryColor,
                           ),
                   ),
                   const SizedBox(height: 24),

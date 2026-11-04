@@ -10,7 +10,8 @@ class GuestTrackerScreen extends StatefulWidget {
   State<GuestTrackerScreen> createState() => _GuestTrackerScreenState();
 }
 
-class _GuestTrackerScreenState extends State<GuestTrackerScreen> with TickerProviderStateMixin {
+class _GuestTrackerScreenState extends State<GuestTrackerScreen>
+    with TickerProviderStateMixin {
   static const Color primaryBlue = Color(0xFF1E3A8A);
   static const Color accentOrange = Color(0xFFF97316);
   static const Color bgColor = Color(0xFFF8F9FA);
@@ -53,7 +54,9 @@ class _GuestTrackerScreenState extends State<GuestTrackerScreen> with TickerProv
             return ValueListenableBuilder<List<Map<String, dynamic>>>(
               valueListenable: session.liveSessionMembers,
               builder: (context, members, _) {
-                double myShare = members.isEmpty ? 0 : totalBill / members.length;
+                double myShare = members.isEmpty
+                    ? 0
+                    : totalBill / members.length;
 
                 return Scaffold(
                   backgroundColor: bgColor,
@@ -62,19 +65,24 @@ class _GuestTrackerScreenState extends State<GuestTrackerScreen> with TickerProv
                     elevation: 0,
                     scrolledUnderElevation: 0,
                     title: const Text(
-                      "MY DINING SESSION", 
-                      style: TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 1.5)
+                      "MY DINING SESSION",
+                      style: TextStyle(
+                        color: Colors.black,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 16,
+                        letterSpacing: 1.5,
+                      ),
                     ),
                     centerTitle: true,
-                    actions: [
-                      _buildLiveBadge(),
-                      const SizedBox(width: 16),
-                    ],
+                    actions: [_buildLiveBadge(), const SizedBox(width: 16)],
                   ),
                   body: Stack(
                     children: [
                       SingleChildScrollView(
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 24,
+                        ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -88,13 +96,21 @@ class _GuestTrackerScreenState extends State<GuestTrackerScreen> with TickerProv
                                     ValueListenableBuilder<String>(
                                       valueListenable: session.customerName,
                                       builder: (context, name, _) => Text(
-                                        "Namaste, ${name.isNotEmpty ? name : 'Guest'}!", 
-                                        style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, letterSpacing: -0.5)
+                                        "Namaste, ${name.isNotEmpty ? name : 'Guest'}!",
+                                        style: const TextStyle(
+                                          fontSize: 28,
+                                          fontWeight: FontWeight.w900,
+                                          letterSpacing: -0.5,
+                                        ),
                                       ),
                                     ),
                                     const Text(
-                                      "Table #04 • Live Sync Active 👑", 
-                                      style: TextStyle(color: Colors.grey, fontSize: 13, fontWeight: FontWeight.bold)
+                                      "Table #04 • Live Sync Active 👑",
+                                      style: TextStyle(
+                                        color: Colors.grey,
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -103,17 +119,30 @@ class _GuestTrackerScreenState extends State<GuestTrackerScreen> with TickerProv
                                   decoration: BoxDecoration(
                                     color: Colors.white,
                                     shape: BoxShape.circle,
-                                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.05),
+                                        blurRadius: 10,
+                                      ),
+                                    ],
                                   ),
-                                  child: const Icon(Icons.sync_rounded, color: Colors.green, size: 20),
+                                  child: const Icon(
+                                    Icons.sync_rounded,
+                                    color: Colors.green,
+                                    size: 20,
+                                  ),
                                 ),
                               ],
                             ),
-                            
+
                             const SizedBox(height: 32),
 
                             // 2. HERO "MY SHARE" GLASSMORPHIC CARD
-                            _buildHeroShareCard(myShare, totalBill, members.length),
+                            _buildHeroShareCard(
+                              myShare,
+                              totalBill,
+                              members.length,
+                            ),
 
                             const SizedBox(height: 32),
 
@@ -127,27 +156,33 @@ class _GuestTrackerScreenState extends State<GuestTrackerScreen> with TickerProv
                             // 4. TABLE-WIDE ACTIVITY (Transparency)
                             _buildSectionHeader("TABLE-WIDE ACTIVITY"),
                             const SizedBox(height: 16),
-                            
+
                             if (orders.isEmpty)
                               _buildEmptyActivityState()
                             else
-                              ...orders.map((a) => _buildActivityItem(
-                                a['title'] as String, 
-                                a['who'] ?? "Guest", 
-                                a['status'] as String, 
-                                a['price'] is double ? "Rs. ${a['price']}" : a['price'].toString(),
-                              )).toList(),
+                              ...orders
+                                  .map(
+                                    (a) => _buildActivityItem(
+                                      a['title'] as String,
+                                      a['who'] ?? "Guest",
+                                      a['status'] as String,
+                                      a['price'] is double
+                                          ? "Rs. ${a['price']}"
+                                          : a['price'].toString(),
+                                    ),
+                                  )
+                                  .toList(),
 
                             const SizedBox(height: 40),
-                            
+
                             // 5. ACTION AREA
                             _buildActionButtons(),
-                            
+
                             const SizedBox(height: 100),
                           ],
                         ),
                       ),
-                      
+
                       // 6. PREMIUM LOCK OVERLAY
                       ValueListenableBuilder<bool>(
                         valueListenable: ShopManager.instance.isSessionLocked,
@@ -159,11 +194,11 @@ class _GuestTrackerScreenState extends State<GuestTrackerScreen> with TickerProv
                     ],
                   ),
                 );
-              }
+              },
             );
-          }
+          },
         );
-      }
+      },
     );
   }
 
@@ -183,8 +218,13 @@ class _GuestTrackerScreenState extends State<GuestTrackerScreen> with TickerProv
           ),
           const SizedBox(width: 8),
           const Text(
-            "LIVE SYNC", 
-            style: TextStyle(color: Colors.green, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 0.5)
+            "LIVE SYNC",
+            style: TextStyle(
+              color: Colors.green,
+              fontSize: 10,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0.5,
+            ),
           ),
         ],
       ),
@@ -197,7 +237,11 @@ class _GuestTrackerScreenState extends State<GuestTrackerScreen> with TickerProv
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(32),
         boxShadow: [
-          BoxShadow(color: primaryBlue.withOpacity(0.1), blurRadius: 30, offset: const Offset(0, 15))
+          BoxShadow(
+            color: primaryBlue.withOpacity(0.1),
+            blurRadius: 30,
+            offset: const Offset(0, 15),
+          ),
         ],
       ),
       child: ClipRRect(
@@ -221,13 +265,31 @@ class _GuestTrackerScreenState extends State<GuestTrackerScreen> with TickerProv
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text(
-                      "YOUR INDIVIDUAL SHARE", 
-                      style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 1.2)
+                      "YOUR INDIVIDUAL SHARE",
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 11,
+                        letterSpacing: 1.2,
+                      ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(8)),
-                      child: const Text("Equal Split", style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white10,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Text(
+                        "Equal Split",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -236,19 +298,38 @@ class _GuestTrackerScreenState extends State<GuestTrackerScreen> with TickerProv
                   crossAxisAlignment: CrossAxisAlignment.baseline,
                   textBaseline: TextBaseline.alphabetic,
                   children: [
-                    const Text("Rs. ", style: TextStyle(color: Colors.white54, fontSize: 24, fontWeight: FontWeight.bold)),
+                    const Text(
+                      "Rs. ",
+                      style: TextStyle(
+                        color: Colors.white54,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     TweenAnimationBuilder<double>(
                       tween: Tween(begin: 0, end: share),
                       duration: const Duration(seconds: 1),
                       builder: (context, value, child) {
                         return Text(
                           value.toStringAsFixed(0),
-                          style: const TextStyle(color: Colors.white, fontSize: 52, fontWeight: FontWeight.w900, letterSpacing: -1),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 52,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -1,
+                          ),
                         );
                       },
                     ),
                     const SizedBox(width: 8),
-                    const Text("NPR", style: TextStyle(color: Colors.white38, fontSize: 14, fontWeight: FontWeight.bold)),
+                    const Text(
+                      "NPR",
+                      style: TextStyle(
+                        color: Colors.white38,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 24),
@@ -273,9 +354,23 @@ class _GuestTrackerScreenState extends State<GuestTrackerScreen> with TickerProv
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(color: Colors.white54, fontSize: 10, fontWeight: FontWeight.bold)),
+        Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white54,
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         const SizedBox(height: 4),
-        Text(value, style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w900)),
+        Text(
+          value,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 15,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
       ],
     );
   }
@@ -284,8 +379,13 @@ class _GuestTrackerScreenState extends State<GuestTrackerScreen> with TickerProv
     return Row(
       children: [
         Text(
-          title, 
-          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF64748B), letterSpacing: 1.5)
+          title,
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w900,
+            color: Color(0xFF64748B),
+            letterSpacing: 1.5,
+          ),
         ),
         const SizedBox(width: 12),
         Expanded(child: Divider(color: Colors.grey.withOpacity(0.1))),
@@ -313,24 +413,42 @@ class _GuestTrackerScreenState extends State<GuestTrackerScreen> with TickerProv
                   alignment: Alignment.center,
                   children: [
                     ScaleTransition(
-                      scale: _pulseController.drive(Tween(begin: 1.0, end: 1.2)),
+                      scale: _pulseController.drive(
+                        Tween(begin: 1.0, end: 1.2),
+                      ),
                       child: Container(
-                        width: 54, height: 54,
+                        width: 54,
+                        height: 54,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          border: Border.all(color: color.withOpacity(0.5), width: 2),
+                          border: Border.all(
+                            color: color.withOpacity(0.5),
+                            width: 2,
+                          ),
                         ),
                       ),
                     ),
                     CircleAvatar(
                       radius: 24,
                       backgroundColor: color.withOpacity(0.1),
-                      child: Text(name.isNotEmpty ? name[0].toUpperCase() : "?", style: TextStyle(color: color, fontWeight: FontWeight.bold)),
+                      child: Text(
+                        name.isNotEmpty ? name[0].toUpperCase() : "?",
+                        style: TextStyle(
+                          color: color,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 8),
-                Text(name, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900)),
+                Text(
+                  name,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
               ],
             ),
           );
@@ -339,7 +457,12 @@ class _GuestTrackerScreenState extends State<GuestTrackerScreen> with TickerProv
     );
   }
 
-  Widget _buildActivityItem(String title, String who, String status, String price) {
+  Widget _buildActivityItem(
+    String title,
+    String who,
+    String status,
+    String price,
+  ) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
@@ -352,24 +475,58 @@ class _GuestTrackerScreenState extends State<GuestTrackerScreen> with TickerProv
         children: [
           Container(
             padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: Theme.of(context).primaryColor.withOpacity(0.1), shape: BoxShape.circle),
-            child: Icon(Icons.restaurant_rounded, color: Theme.of(context).primaryColor, size: 18),
+            decoration: BoxDecoration(
+              color: Theme.of(context).primaryColor.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.restaurant_rounded,
+              color: Theme.of(context).primaryColor,
+              size: 18,
+            ),
           ),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                Text("Ordered by $who", style: const TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.w500)),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+                Text(
+                  "Ordered by $who",
+                  style: const TextStyle(
+                    color: Colors.grey,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
               ],
             ),
           ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text(price, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: primaryBlue)),
-              Text(status.toUpperCase(), style: TextStyle(color: status == 'Served' ? Colors.green : Colors.orange, fontSize: 9, fontWeight: FontWeight.w900)),
+              Text(
+                price,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 14,
+                  color: primaryBlue,
+                ),
+              ),
+              Text(
+                status.toUpperCase(),
+                style: TextStyle(
+                  color: status == 'Served' ? Colors.green : Colors.orange,
+                  fontSize: 9,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
             ],
           ),
         ],
@@ -381,12 +538,26 @@ class _GuestTrackerScreenState extends State<GuestTrackerScreen> with TickerProv
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(32),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24)),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+      ),
       child: Column(
         children: [
-          Icon(Icons.hourglass_empty_rounded, color: Colors.grey[300], size: 40),
+          Icon(
+            Icons.hourglass_empty_rounded,
+            color: Colors.grey[300],
+            size: 40,
+          ),
           const SizedBox(height: 12),
-          const Text("Waiting for first order...", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold, fontSize: 12)),
+          const Text(
+            "Waiting for first order...",
+            style: TextStyle(
+              color: Colors.grey,
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+            ),
+          ),
         ],
       ),
     );
@@ -406,26 +577,46 @@ class _GuestTrackerScreenState extends State<GuestTrackerScreen> with TickerProv
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(28),
-                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 40)],
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 40,
+                    ),
+                  ],
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Container(
                       padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(color: primaryBlue.withOpacity(0.1), shape: BoxShape.circle),
-                      child: const Icon(Icons.lock_person_rounded, color: primaryBlue, size: 32),
+                      decoration: BoxDecoration(
+                        color: primaryBlue.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.lock_person_rounded,
+                        color: primaryBlue,
+                        size: 32,
+                      ),
                     ),
                     const SizedBox(height: 24),
                     const Text(
-                      "ORDERING LOCKED", 
-                      style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 1)
+                      "ORDERING LOCKED",
+                      style: TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 18,
+                        letterSpacing: 1,
+                      ),
                     ),
                     const SizedBox(height: 12),
                     const Text(
-                      "The host is finalizing the bill. Please proceed to payment summary.", 
+                      "The host is finalizing the bill. Please proceed to payment summary.",
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.grey, fontSize: 13, height: 1.5)
+                      style: TextStyle(
+                        color: Colors.grey,
+                        fontSize: 13,
+                        height: 1.5,
+                      ),
                     ),
                     const SizedBox(height: 24),
                     SizedBox(
@@ -436,9 +627,14 @@ class _GuestTrackerScreenState extends State<GuestTrackerScreen> with TickerProv
                           backgroundColor: primaryBlue,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
                         ),
-                        child: const Text("VIEW FINAL BILL", style: TextStyle(fontWeight: FontWeight.bold)),
+                        child: const Text(
+                          "VIEW FINAL BILL",
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
                       ),
                     ),
                   ],
@@ -456,47 +652,67 @@ class _GuestTrackerScreenState extends State<GuestTrackerScreen> with TickerProv
       children: [
         Expanded(
           child: ElevatedButton(
-            onPressed: _isCallingWaiter ? null : () async {
-              setState(() => _isCallingWaiter = true);
-              _bellController.repeat(reverse: true);
-              
-              await Future.delayed(const Duration(seconds: 1));
-              
-              if (mounted) {
-                _bellController.stop();
-                _bellController.reset();
-                setState(() => _isCallingWaiter = false);
-                WaiterAssistanceModal.show(context);
-              }
-            },
+            onPressed: _isCallingWaiter
+                ? null
+                : () async {
+                    setState(() => _isCallingWaiter = true);
+                    _bellController.repeat(reverse: true);
+
+                    await Future.delayed(const Duration(seconds: 1));
+
+                    if (mounted) {
+                      _bellController.stop();
+                      _bellController.reset();
+                      setState(() => _isCallingWaiter = false);
+                      WaiterAssistanceModal.show(context);
+                    }
+                  },
             style: ElevatedButton.styleFrom(
               backgroundColor: Theme.of(context).primaryColor,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 18),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(18),
+              ),
               elevation: 0,
             ),
             child: _isCallingWaiter
                 ? const SizedBox(
                     width: 20,
                     height: 20,
-                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2,
+                    ),
                   )
-                : const Text("CALL WAITER", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, letterSpacing: 0.5)),
+                : const Text(
+                    "CALL WAITER",
+                    style: TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 14,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
           ),
         ),
         const SizedBox(width: 12),
         Container(
-          height: 56, width: 56,
+          height: 56,
+          width: 56,
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(18),
             border: Border.all(color: primaryBlue.withOpacity(0.1)),
           ),
           child: RotationTransition(
-            turns: Tween(begin: -0.15, end: 0.15).animate(CurvedAnimation(parent: _bellController, curve: Curves.easeInOut)),
+            turns: Tween(begin: -0.15, end: 0.15).animate(
+              CurvedAnimation(parent: _bellController, curve: Curves.easeInOut),
+            ),
             child: IconButton(
-              icon: const Icon(Icons.notifications_active_outlined, color: primaryBlue),
+              icon: const Icon(
+                Icons.notifications_active_outlined,
+                color: primaryBlue,
+              ),
               onPressed: () {},
             ),
           ),

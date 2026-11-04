@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-
 import '../cart_manager.dart';
 import 'theme.dart';
 import 'screens/dashboard_screen.dart';
@@ -47,13 +46,18 @@ class _WaiterHubState extends State<WaiterHub> {
                 child: Opacity(
                   opacity: value,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
                     decoration: BoxDecoration(
                       color: WaiterProTheme.emeraldGreen,
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
-                          color: WaiterProTheme.emeraldGreen.withValues(alpha: 0.3),
+                          color: WaiterProTheme.emeraldGreen.withValues(
+                            alpha: 0.3,
+                          ),
                           blurRadius: 15,
                           offset: const Offset(0, 8),
                         ),
@@ -61,7 +65,11 @@ class _WaiterHubState extends State<WaiterHub> {
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.notifications_active, color: Colors.white, size: 20),
+                        const Icon(
+                          Icons.notifications_active,
+                          color: Colors.white,
+                          size: 20,
+                        ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Column(
@@ -70,23 +78,43 @@ class _WaiterHubState extends State<WaiterHub> {
                             children: [
                               const Text(
                                 "KITCHEN BELL",
-                                style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 1),
+                                style: TextStyle(
+                                  color: Colors.white70,
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 10,
+                                  letterSpacing: 1,
+                                ),
                               ),
                               Text(
                                 "Table T-$firstTableId order is ready!",
-                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
                               ),
                             ],
                           ),
                         ),
                         TextButton(
-                          onPressed: () => ShopManager.instance.clearWaiterNotification(firstTableId),
+                          onPressed: () => ShopManager.instance
+                              .clearWaiterNotification(firstTableId),
                           style: TextButton.styleFrom(
-                            backgroundColor: Colors.white.withValues(alpha: 0.2),
+                            backgroundColor: Colors.white.withValues(
+                              alpha: 0.2,
+                            ),
                             foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
                           ),
-                          child: const Text("DISMISS", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                          child: const Text(
+                            "DISMISS",
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 11,
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -105,67 +133,81 @@ class _WaiterHubState extends State<WaiterHub> {
     return ValueListenableBuilder<int>(
       valueListenable: ShopManager.instance.waiterTabIndex,
       builder: (context, selectedIndex, child) {
-            return Scaffold(
-              body: Stack(
-                children: [
-                  RepaintBoundary(
-                    child: IndexedStack(
-                      index: selectedIndex,
-                      children: _screens,
-                    ),
+        return Scaffold(
+          body: Stack(
+            children: [
+              RepaintBoundary(
+                child: IndexedStack(index: selectedIndex, children: _screens),
+              ),
+              _buildKitchenAlertOverlay(),
+            ],
+          ),
+          bottomNavigationBar: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, -4),
+                ),
+              ],
+            ),
+            child: NavigationBar(
+              selectedIndex: selectedIndex,
+              onDestinationSelected: (index) {
+                Future.microtask(
+                  () => ShopManager.instance.waiterTabIndex.value = index,
+                );
+              },
+              backgroundColor: Colors.white,
+              indicatorColor: WaiterProTheme.royalBlue.withValues(alpha: 0.1),
+              destinations: const [
+                NavigationDestination(
+                  icon: Icon(Icons.dashboard_outlined),
+                  selectedIcon: Icon(
+                    Icons.dashboard,
+                    color: WaiterProTheme.royalBlue,
                   ),
-                  _buildKitchenAlertOverlay(),
-                ],
-              ),
-              bottomNavigationBar: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 10,
-                      offset: const Offset(0, -4),
-                    ),
-                  ],
+                  label: 'Dashboard',
                 ),
-                child: NavigationBar(
-                  selectedIndex: selectedIndex,
-                  onDestinationSelected: (index) {
-                    Future.microtask(() => ShopManager.instance.waiterTabIndex.value = index);
-                  },
-                  backgroundColor: Colors.white,
-                  indicatorColor: WaiterProTheme.royalBlue.withValues(alpha: 0.1),
-                  destinations: const [
-                    NavigationDestination(
-                      icon: Icon(Icons.dashboard_outlined),
-                      selectedIcon: Icon(Icons.dashboard, color: WaiterProTheme.royalBlue),
-                      label: 'Dashboard',
-                    ),
-                    NavigationDestination(
-                      icon: Icon(Icons.table_restaurant_outlined),
-                      selectedIcon: Icon(Icons.table_restaurant, color: WaiterProTheme.royalBlue),
-                      label: 'Tables',
-                    ),
-                    NavigationDestination(
-                      icon: Icon(Icons.list_alt_outlined),
-                      selectedIcon: Icon(Icons.list_alt, color: WaiterProTheme.royalBlue),
-                      label: 'Orders',
-                    ),
-                    NavigationDestination(
-                      icon: Icon(Icons.notifications_outlined),
-                      selectedIcon: Icon(Icons.notifications, color: WaiterProTheme.royalBlue),
-                      label: 'Alerts',
-                    ),
-                    NavigationDestination(
-                      icon: Icon(Icons.person_outline),
-                      selectedIcon: Icon(Icons.person, color: WaiterProTheme.royalBlue),
-                      label: 'Profile',
-                    ),
-                  ],
+                NavigationDestination(
+                  icon: Icon(Icons.table_restaurant_outlined),
+                  selectedIcon: Icon(
+                    Icons.table_restaurant,
+                    color: WaiterProTheme.royalBlue,
+                  ),
+                  label: 'Tables',
                 ),
-              ),
-            );
-          },
+                NavigationDestination(
+                  icon: Icon(Icons.list_alt_outlined),
+                  selectedIcon: Icon(
+                    Icons.list_alt,
+                    color: WaiterProTheme.royalBlue,
+                  ),
+                  label: 'Orders',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.notifications_outlined),
+                  selectedIcon: Icon(
+                    Icons.notifications,
+                    color: WaiterProTheme.royalBlue,
+                  ),
+                  label: 'Alerts',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.person_outline),
+                  selectedIcon: Icon(
+                    Icons.person,
+                    color: WaiterProTheme.royalBlue,
+                  ),
+                  label: 'Profile',
+                ),
+              ],
+            ),
+          ),
         );
+      },
+    );
   }
 }

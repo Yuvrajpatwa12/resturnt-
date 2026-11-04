@@ -9,13 +9,15 @@ class ProductionDashboardScreen extends StatefulWidget {
   const ProductionDashboardScreen({super.key, required this.title});
 
   @override
-  State<ProductionDashboardScreen> createState() => _ProductionDashboardScreenState();
+  State<ProductionDashboardScreen> createState() =>
+      _ProductionDashboardScreenState();
 }
 
 class _ProductionDashboardScreenState extends State<ProductionDashboardScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = "";
-  String _selectedTab = "All Active"; // "All Active", "Incoming", "Preparing", "Ready", "History", "Stock Out"
+  String _selectedTab =
+      "All Active"; // "All Active", "Incoming", "Preparing", "Ready", "History", "Stock Out"
 
   List<Map<String, dynamic>> _liveOrders = [];
   List<Map<String, dynamic>> _historyOrders = [];
@@ -29,7 +31,10 @@ class _ProductionDashboardScreenState extends State<ProductionDashboardScreen> {
     super.initState();
     _refreshDashboard(isInitial: true);
     // Auto-sync polling every 8 seconds
-    _refreshTimer = Timer.periodic(const Duration(seconds: 8), (_) => _syncDashboard());
+    _refreshTimer = Timer.periodic(
+      const Duration(seconds: 8),
+      (_) => _syncDashboard(),
+    );
   }
 
   @override
@@ -81,7 +86,9 @@ class _ProductionDashboardScreenState extends State<ProductionDashboardScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text("Order #$orderId marked as ${newStatus.toUpperCase()}"),
+            content: Text(
+              "Order #$orderId marked as ${newStatus.toUpperCase()}",
+            ),
             backgroundColor: AdminTheme.emeraldGreen,
             behavior: SnackBarBehavior.floating,
           ),
@@ -91,7 +98,9 @@ class _ProductionDashboardScreenState extends State<ProductionDashboardScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text("Failed to update status: ${res['message'] ?? 'Unknown error'}"),
+            content: Text(
+              "Failed to update status: ${res['message'] ?? 'Unknown error'}",
+            ),
             backgroundColor: Colors.redAccent,
             behavior: SnackBarBehavior.floating,
           ),
@@ -102,14 +111,23 @@ class _ProductionDashboardScreenState extends State<ProductionDashboardScreen> {
 
   // Helper to normalize stage name
   String _getOrderStage(Map<String, dynamic> order) {
-    final st = (order['status'] ?? order['stage'] ?? 'incoming').toString().toLowerCase().trim();
+    final st = (order['status'] ?? order['stage'] ?? 'incoming')
+        .toString()
+        .toLowerCase()
+        .trim();
     if (st == 'incoming' || st == 'pending' || st == 'placed' || st == 'new') {
       return 'Incoming';
-    } else if (st == 'preparing' || st == 'cooking' || st == 'in_progress' || st == 'in progress') {
+    } else if (st == 'preparing' ||
+        st == 'cooking' ||
+        st == 'in_progress' ||
+        st == 'in progress') {
       return 'Preparing';
     } else if (st == 'ready' || st == 'cooked' || st == 'prepared') {
       return 'Ready';
-    } else if (st == 'completed' || st == 'delivered' || st == 'served' || st == 'closed') {
+    } else if (st == 'completed' ||
+        st == 'delivered' ||
+        st == 'served' ||
+        st == 'closed') {
       return 'Completed';
     } else if (st == 'cancelled' || st == 'rejected') {
       return 'Cancelled';
@@ -134,12 +152,19 @@ class _ProductionDashboardScreenState extends State<ProductionDashboardScreen> {
   @override
   Widget build(BuildContext context) {
     // 1. Calculate Live Stats
-    final incomingList = _liveOrders.where((o) => _getOrderStage(o) == 'Incoming').toList();
-    final preparingList = _liveOrders.where((o) => _getOrderStage(o) == 'Preparing').toList();
-    final readyList = _liveOrders.where((o) => _getOrderStage(o) == 'Ready').toList();
+    final incomingList = _liveOrders
+        .where((o) => _getOrderStage(o) == 'Incoming')
+        .toList();
+    final preparingList = _liveOrders
+        .where((o) => _getOrderStage(o) == 'Preparing')
+        .toList();
+    final readyList = _liveOrders
+        .where((o) => _getOrderStage(o) == 'Ready')
+        .toList();
     final stockOutCount = _stockReports.length;
 
-    int totalActive = incomingList.length + preparingList.length + readyList.length;
+    int totalActive =
+        incomingList.length + preparingList.length + readyList.length;
 
     double avgMinutes = 0;
     if (_liveOrders.isNotEmpty) {
@@ -162,8 +187,18 @@ class _ProductionDashboardScreenState extends State<ProductionDashboardScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(widget.title, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AdminTheme.darkNavy)),
-                  const Text("Live Kitchen Monitor (Read-Only • Status updates managed in Kitchen App)", style: TextStyle(color: Colors.grey, fontSize: 12)),
+                  Text(
+                    widget.title,
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: AdminTheme.darkNavy,
+                    ),
+                  ),
+                  const Text(
+                    "Live Kitchen Monitor (Read-Only • Status updates managed in Kitchen App)",
+                    style: TextStyle(color: Colors.grey, fontSize: 12),
+                  ),
                 ],
               ),
               IconButton(
@@ -211,7 +246,9 @@ class _ProductionDashboardScreenState extends State<ProductionDashboardScreen> {
           if (_isLoading)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 40),
-              child: Center(child: CircularProgressIndicator(color: AdminTheme.royalBlue)),
+              child: Center(
+                child: CircularProgressIndicator(color: AdminTheme.royalBlue),
+              ),
             )
           else if (_selectedTab == "Stock Out")
             _buildStockOutView()
@@ -241,36 +278,113 @@ class _ProductionDashboardScreenState extends State<ProductionDashboardScreen> {
             spacing: 12,
             runSpacing: 12,
             children: [
-              _buildMetricCard("Incoming", "$incomingCount", Colors.orange, Icons.inbox),
-              _buildMetricCard("Preparing", "$preparingCount", AdminTheme.royalBlue, Icons.soup_kitchen),
-              _buildMetricCard("Ready", "$readyCount", AdminTheme.emeraldGreen, Icons.check_circle_outline),
-              _buildMetricCard("Total Active", "$totalActiveCount", AdminTheme.darkNavy, Icons.restaurant),
-              _buildMetricCard("Avg. Time", "${avgMinutes.round()}m", Colors.purple, Icons.timer_outlined),
-              _buildMetricCard("Stock Out", "$stockOutCount", Colors.redAccent, Icons.inventory_2_outlined),
+              _buildMetricCard(
+                "Incoming",
+                "$incomingCount",
+                Colors.orange,
+                Icons.inbox,
+              ),
+              _buildMetricCard(
+                "Preparing",
+                "$preparingCount",
+                AdminTheme.royalBlue,
+                Icons.soup_kitchen,
+              ),
+              _buildMetricCard(
+                "Ready",
+                "$readyCount",
+                AdminTheme.emeraldGreen,
+                Icons.check_circle_outline,
+              ),
+              _buildMetricCard(
+                "Total Active",
+                "$totalActiveCount",
+                AdminTheme.darkNavy,
+                Icons.restaurant,
+              ),
+              _buildMetricCard(
+                "Avg. Time",
+                "${avgMinutes.round()}m",
+                Colors.purple,
+                Icons.timer_outlined,
+              ),
+              _buildMetricCard(
+                "Stock Out",
+                "$stockOutCount",
+                Colors.redAccent,
+                Icons.inventory_2_outlined,
+              ),
             ],
           );
         }
 
         return Row(
           children: [
-            Expanded(child: _buildMetricCard("Incoming", "$incomingCount", Colors.orange, Icons.inbox)),
+            Expanded(
+              child: _buildMetricCard(
+                "Incoming",
+                "$incomingCount",
+                Colors.orange,
+                Icons.inbox,
+              ),
+            ),
             const SizedBox(width: 12),
-            Expanded(child: _buildMetricCard("Preparing", "$preparingCount", AdminTheme.royalBlue, Icons.soup_kitchen)),
+            Expanded(
+              child: _buildMetricCard(
+                "Preparing",
+                "$preparingCount",
+                AdminTheme.royalBlue,
+                Icons.soup_kitchen,
+              ),
+            ),
             const SizedBox(width: 12),
-            Expanded(child: _buildMetricCard("Ready", "$readyCount", AdminTheme.emeraldGreen, Icons.check_circle_outline)),
+            Expanded(
+              child: _buildMetricCard(
+                "Ready",
+                "$readyCount",
+                AdminTheme.emeraldGreen,
+                Icons.check_circle_outline,
+              ),
+            ),
             const SizedBox(width: 12),
-            Expanded(child: _buildMetricCard("Total Active", "$totalActiveCount", AdminTheme.darkNavy, Icons.restaurant)),
+            Expanded(
+              child: _buildMetricCard(
+                "Total Active",
+                "$totalActiveCount",
+                AdminTheme.darkNavy,
+                Icons.restaurant,
+              ),
+            ),
             const SizedBox(width: 12),
-            Expanded(child: _buildMetricCard("Avg. Time", "${avgMinutes.round()}m", Colors.purple, Icons.timer_outlined)),
+            Expanded(
+              child: _buildMetricCard(
+                "Avg. Time",
+                "${avgMinutes.round()}m",
+                Colors.purple,
+                Icons.timer_outlined,
+              ),
+            ),
             const SizedBox(width: 12),
-            Expanded(child: _buildMetricCard("Stock Out", "$stockOutCount", Colors.redAccent, Icons.inventory_2_outlined)),
+            Expanded(
+              child: _buildMetricCard(
+                "Stock Out",
+                "$stockOutCount",
+                Colors.redAccent,
+                Icons.inventory_2_outlined,
+              ),
+            ),
           ],
         );
       },
     );
   }
 
-  Widget _buildMetricCard(String label, String value, Color color, IconData icon) {
+  Widget _buildMetricCard(
+    String label,
+    String value,
+    Color color,
+    IconData icon,
+  ) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -286,11 +400,27 @@ class _ProductionDashboardScreenState extends State<ProductionDashboardScreen> {
             children: [
               Icon(icon, size: 16, color: color),
               const SizedBox(width: 6),
-              Text(value, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: color)),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                  color: color,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 4),
-          Text(label, style: const TextStyle(color: Colors.grey, fontSize: 10, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.grey,
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
         ],
       ),
     );
@@ -304,7 +434,12 @@ class _ProductionDashboardScreenState extends State<ProductionDashboardScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: AdminTheme.softShadow,
-        border: Border.all(color: _searchQuery.isNotEmpty ? AdminTheme.royalBlue : Colors.grey.shade200, width: 1.5),
+        border: Border.all(
+          color: _searchQuery.isNotEmpty
+              ? AdminTheme.royalBlue
+              : Colors.grey.shade200,
+          width: 1.5,
+        ),
       ),
       child: TextField(
         controller: _searchController,
@@ -314,7 +449,8 @@ class _ProductionDashboardScreenState extends State<ProductionDashboardScreen> {
           });
         },
         decoration: InputDecoration(
-          hintText: "Search Order ID, Table # (e.g. 105, T-12), or Customer Name...",
+          hintText:
+              "Search Order ID, Table # (e.g. 105, T-12), or Customer Name...",
           hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
           icon: const Icon(Icons.search, color: AdminTheme.royalBlue, size: 22),
           border: InputBorder.none,
@@ -334,15 +470,23 @@ class _ProductionDashboardScreenState extends State<ProductionDashboardScreen> {
 
   // --- 3. SEARCH RESULTS & QUEUE POSITION TRACKER ---
   Widget _buildSearchResultsSection() {
-    final q = _searchQuery.toLowerCase().replaceAll('#', '').replaceAll('t-', '').replaceAll('t', '');
+    final q = _searchQuery
+        .toLowerCase()
+        .replaceAll('#', '')
+        .replaceAll('t-', '')
+        .replaceAll('t', '');
 
     // Combine active & history orders
     final allCombined = [..._liveOrders, ..._historyOrders];
 
     final matches = allCombined.where((o) {
       final idStr = (o['id'] ?? o['order_id'] ?? '').toString().toLowerCase();
-      final tblStr = (o['table_id'] ?? o['table_number'] ?? o['table'] ?? '').toString().toLowerCase();
-      final custStr = (o['customer_name'] ?? o['customer'] ?? '').toString().toLowerCase();
+      final tblStr = (o['table_id'] ?? o['table_number'] ?? o['table'] ?? '')
+          .toString()
+          .toLowerCase();
+      final custStr = (o['customer_name'] ?? o['customer'] ?? '')
+          .toString()
+          .toLowerCase();
 
       return idStr.contains(q) || tblStr.contains(q) || custStr.contains(q);
     }).toList();
@@ -362,7 +506,11 @@ class _ProductionDashboardScreenState extends State<ProductionDashboardScreen> {
             Expanded(
               child: Text(
                 "No order found matching \"$_searchQuery\". Check the Order ID or Table Number and try again.",
-                style: TextStyle(color: Colors.amber.shade900, fontWeight: FontWeight.bold, fontSize: 13),
+                style: TextStyle(
+                  color: Colors.amber.shade900,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
               ),
             ),
           ],
@@ -375,11 +523,19 @@ class _ProductionDashboardScreenState extends State<ProductionDashboardScreen> {
       children: [
         Row(
           children: [
-            const Icon(Icons.my_location, size: 18, color: AdminTheme.royalBlue),
+            const Icon(
+              Icons.my_location,
+              size: 18,
+              color: AdminTheme.royalBlue,
+            ),
             const SizedBox(width: 8),
             Text(
               "Order Tracking Results (${matches.length} found)",
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AdminTheme.darkNavy),
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+                color: AdminTheme.darkNavy,
+              ),
             ),
           ],
         ),
@@ -399,16 +555,22 @@ class _ProductionDashboardScreenState extends State<ProductionDashboardScreen> {
 
   Widget _buildOrderTrackerCard(Map<String, dynamic> order) {
     final orderId = order['id'] ?? order['order_id'] ?? 'N/A';
-    final tableId = order['table_id'] ?? order['table_number'] ?? order['table'] ?? 'N/A';
-    final customer = order['customer_name'] ?? order['customer'] ?? 'Dine-In Customer';
+    final tableId =
+        order['table_id'] ?? order['table_number'] ?? order['table'] ?? 'N/A';
+    final customer =
+        order['customer_name'] ?? order['customer'] ?? 'Dine-In Customer';
     final stage = _getOrderStage(order);
     final elapsedMins = _getElapsedMinutes(order);
 
     // Calculate queue position if order is active
     int queuePos = -1;
     if (stage != 'Completed' && stage != 'Cancelled') {
-      final sameStageOrders = _liveOrders.where((o) => _getOrderStage(o) == stage).toList();
-      queuePos = sameStageOrders.indexWhere((o) => (o['id'] ?? o['order_id']) == orderId);
+      final sameStageOrders = _liveOrders
+          .where((o) => _getOrderStage(o) == stage)
+          .toList();
+      queuePos = sameStageOrders.indexWhere(
+        (o) => (o['id'] ?? o['order_id']) == orderId,
+      );
       if (queuePos != -1) queuePos += 1;
     }
 
@@ -443,7 +605,10 @@ class _ProductionDashboardScreenState extends State<ProductionDashboardScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: AdminTheme.softShadow,
-        border: Border.all(color: stageColor.withValues(alpha: 0.4), width: 1.5),
+        border: Border.all(
+          color: stageColor.withValues(alpha: 0.4),
+          width: 1.5,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -466,8 +631,20 @@ class _ProductionDashboardScreenState extends State<ProductionDashboardScreen> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text("ORDER #$orderId", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
-                      Text("Table T-$tableId • $customer", style: const TextStyle(color: Colors.grey, fontSize: 11)),
+                      Text(
+                        "ORDER #$orderId",
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 16,
+                        ),
+                      ),
+                      Text(
+                        "Table T-$tableId • $customer",
+                        style: const TextStyle(
+                          color: Colors.grey,
+                          fontSize: 11,
+                        ),
+                      ),
                     ],
                   ),
                 ],
@@ -476,18 +653,32 @@ class _ProductionDashboardScreenState extends State<ProductionDashboardScreen> {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: stageColor,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
                       stage.toUpperCase(),
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 11),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 11,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Text("$elapsedMins mins elapsed", style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)),
+                  Text(
+                    "$elapsedMins mins elapsed",
+                    style: const TextStyle(
+                      fontSize: 10,
+                      color: Colors.grey,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ],
               ),
             ],
@@ -502,15 +693,25 @@ class _ProductionDashboardScreenState extends State<ProductionDashboardScreen> {
               decoration: BoxDecoration(
                 color: AdminTheme.royalBlue.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: AdminTheme.royalBlue.withValues(alpha: 0.2)),
+                border: Border.all(
+                  color: AdminTheme.royalBlue.withValues(alpha: 0.2),
+                ),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.format_list_numbered_outlined, size: 16, color: AdminTheme.royalBlue),
+                  const Icon(
+                    Icons.format_list_numbered_outlined,
+                    size: 16,
+                    color: AdminTheme.royalBlue,
+                  ),
                   const SizedBox(width: 8),
                   Text(
                     "Current Position in $stage Queue: Position #$queuePos",
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AdminTheme.royalBlue),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                      color: AdminTheme.royalBlue,
+                    ),
                   ),
                 ],
               ),
@@ -521,7 +722,14 @@ class _ProductionDashboardScreenState extends State<ProductionDashboardScreen> {
           const SizedBox(height: 16),
 
           // Items summary
-          const Text("Ordered Items:", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
+          const Text(
+            "Ordered Items:",
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey,
+            ),
+          ),
           const SizedBox(height: 6),
           _buildOrderItemsList(order['items']),
 
@@ -541,7 +749,11 @@ class _ProductionDashboardScreenState extends State<ProductionDashboardScreen> {
                 const SizedBox(width: 8),
                 Text(
                   "STATUS: ${stage.toUpperCase()} (Kitchen View-Only)",
-                  style: TextStyle(color: stageColor, fontWeight: FontWeight.bold, fontSize: 11),
+                  style: TextStyle(
+                    color: stageColor,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 11,
+                  ),
                 ),
               ],
             ),
@@ -555,8 +767,18 @@ class _ProductionDashboardScreenState extends State<ProductionDashboardScreen> {
     if (isCancelled) {
       return Container(
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-        decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(8)),
-        child: const Text("Order Cancelled", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 12)),
+        decoration: BoxDecoration(
+          color: Colors.red.shade50,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: const Text(
+          "Order Cancelled",
+          style: TextStyle(
+            color: Colors.red,
+            fontWeight: FontWeight.bold,
+            fontSize: 12,
+          ),
+        ),
       );
     }
 
@@ -612,7 +834,9 @@ class _ProductionDashboardScreenState extends State<ProductionDashboardScreen> {
                   child: Container(
                     height: 3,
                     margin: const EdgeInsets.only(bottom: 14),
-                    color: (stepNum < currentStep) ? AdminTheme.emeraldGreen : Colors.grey.shade300,
+                    color: (stepNum < currentStep)
+                        ? AdminTheme.emeraldGreen
+                        : Colors.grey.shade300,
                   ),
                 ),
             ],
@@ -623,7 +847,11 @@ class _ProductionDashboardScreenState extends State<ProductionDashboardScreen> {
   }
 
   Widget _buildOrderItemsList(dynamic itemsData) {
-    if (itemsData == null) return const Text("- No item details -", style: TextStyle(fontSize: 11, color: Colors.grey));
+    if (itemsData == null)
+      return const Text(
+        "- No item details -",
+        style: TextStyle(fontSize: 11, color: Colors.grey),
+      );
 
     List itemsList = [];
     if (itemsData is List) {
@@ -632,7 +860,11 @@ class _ProductionDashboardScreenState extends State<ProductionDashboardScreen> {
       itemsList = [itemsData];
     }
 
-    if (itemsList.isEmpty) return const Text("- Empty order -", style: TextStyle(fontSize: 11, color: Colors.grey));
+    if (itemsList.isEmpty)
+      return const Text(
+        "- Empty order -",
+        style: TextStyle(fontSize: 11, color: Colors.grey),
+      );
 
     return Column(
       children: itemsList.map((item) {
@@ -641,7 +873,8 @@ class _ProductionDashboardScreenState extends State<ProductionDashboardScreen> {
         String notes = '';
 
         if (item is Map) {
-          name = item['name'] ?? item['title'] ?? item['product_name'] ?? 'Item';
+          name =
+              item['name'] ?? item['title'] ?? item['product_name'] ?? 'Item';
           qty = int.tryParse(item['quantity']?.toString() ?? '1') ?? 1;
           notes = item['notes'] ?? item['customization'] ?? '';
         } else if (item is String) {
@@ -654,18 +887,37 @@ class _ProductionDashboardScreenState extends State<ProductionDashboardScreen> {
             children: [
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(4)),
-                child: Text("${qty}x", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  "${qty}x",
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 11,
+                  ),
+                ),
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   name,
-                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
               if (notes.isNotEmpty)
-                Text("($notes)", style: const TextStyle(fontSize: 10, color: Colors.orange, fontStyle: FontStyle.italic)),
+                Text(
+                  "($notes)",
+                  style: const TextStyle(
+                    fontSize: 10,
+                    color: Colors.orange,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
             ],
           ),
         );
@@ -711,7 +963,10 @@ class _ProductionDashboardScreenState extends State<ProductionDashboardScreen> {
               onTap: () => setState(() => _selectedTab = label),
               borderRadius: BorderRadius.circular(12),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
                 decoration: BoxDecoration(
                   color: isSelected ? badgeColor : Colors.white,
                   borderRadius: BorderRadius.circular(12),
@@ -726,15 +981,22 @@ class _ProductionDashboardScreenState extends State<ProductionDashboardScreen> {
                       label,
                       style: TextStyle(
                         color: isSelected ? Colors.white : AdminTheme.darkNavy,
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                        fontWeight: isSelected
+                            ? FontWeight.bold
+                            : FontWeight.w600,
                         fontSize: 12,
                       ),
                     ),
                     const SizedBox(width: 8),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
-                        color: isSelected ? Colors.white.withValues(alpha: 0.25) : badgeColor.withValues(alpha: 0.1),
+                        color: isSelected
+                            ? Colors.white.withValues(alpha: 0.25)
+                            : badgeColor.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
@@ -763,11 +1025,17 @@ class _ProductionDashboardScreenState extends State<ProductionDashboardScreen> {
     if (_selectedTab == "All Active") {
       displayList = _liveOrders;
     } else if (_selectedTab == "Incoming") {
-      displayList = _liveOrders.where((o) => _getOrderStage(o) == 'Incoming').toList();
+      displayList = _liveOrders
+          .where((o) => _getOrderStage(o) == 'Incoming')
+          .toList();
     } else if (_selectedTab == "Preparing") {
-      displayList = _liveOrders.where((o) => _getOrderStage(o) == 'Preparing').toList();
+      displayList = _liveOrders
+          .where((o) => _getOrderStage(o) == 'Preparing')
+          .toList();
     } else if (_selectedTab == "Ready") {
-      displayList = _liveOrders.where((o) => _getOrderStage(o) == 'Ready').toList();
+      displayList = _liveOrders
+          .where((o) => _getOrderStage(o) == 'Ready')
+          .toList();
     } else if (_selectedTab == "History") {
       displayList = _historyOrders;
     }
@@ -783,11 +1051,19 @@ class _ProductionDashboardScreenState extends State<ProductionDashboardScreen> {
         ),
         child: Column(
           children: [
-            Icon(Icons.restaurant_outlined, size: 48, color: Colors.grey.shade300),
+            Icon(
+              Icons.restaurant_outlined,
+              size: 48,
+              color: Colors.grey.shade300,
+            ),
             const SizedBox(height: 12),
             Text(
               "No orders in \"$_selectedTab\" stage right now.",
-              style: const TextStyle(fontSize: 14, color: Colors.grey, fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                fontSize: 14,
+                color: Colors.grey,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 4),
             const Text(
@@ -817,7 +1093,8 @@ class _ProductionDashboardScreenState extends State<ProductionDashboardScreen> {
 
   Widget _buildKitchenTicketCard(Map<String, dynamic> order) {
     final orderId = order['id'] ?? order['order_id'] ?? '0';
-    final tableId = order['table_id'] ?? order['table_number'] ?? order['table'] ?? '1';
+    final tableId =
+        order['table_id'] ?? order['table_number'] ?? order['table'] ?? '1';
     final stage = _getOrderStage(order);
     final elapsed = _getElapsedMinutes(order);
 
@@ -846,7 +1123,9 @@ class _ProductionDashboardScreenState extends State<ProductionDashboardScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
               color: headerColor,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(20),
+              ),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -856,27 +1135,46 @@ class _ProductionDashboardScreenState extends State<ProductionDashboardScreen> {
                   children: [
                     Text(
                       "TABLE T-$tableId",
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 15),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 15,
+                      ),
                     ),
                     Text(
                       "ORDER #$orderId",
-                      style: const TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ],
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.black.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.timer_outlined, size: 12, color: Colors.white),
+                      const Icon(
+                        Icons.timer_outlined,
+                        size: 12,
+                        color: Colors.white,
+                      ),
                       const SizedBox(width: 4),
                       Text(
                         "${elapsed}M",
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 11),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 11,
+                        ),
                       ),
                     ],
                   ),
@@ -950,7 +1248,11 @@ class _ProductionDashboardScreenState extends State<ProductionDashboardScreen> {
           const SizedBox(width: 6),
           Text(
             label,
-            style: TextStyle(color: badgeText, fontSize: 11, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              color: badgeText,
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ],
       ),
@@ -970,11 +1272,19 @@ class _ProductionDashboardScreenState extends State<ProductionDashboardScreen> {
         ),
         child: const Column(
           children: [
-            Icon(Icons.check_circle_outline, size: 48, color: AdminTheme.emeraldGreen),
+            Icon(
+              Icons.check_circle_outline,
+              size: 48,
+              color: AdminTheme.emeraldGreen,
+            ),
             SizedBox(height: 12),
             Text(
               "All kitchen ingredients are in stock!",
-              style: TextStyle(fontSize: 14, color: AdminTheme.darkNavy, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: 14,
+                color: AdminTheme.darkNavy,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             SizedBox(height: 4),
             Text(
@@ -996,7 +1306,14 @@ class _ProductionDashboardScreenState extends State<ProductionDashboardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text("Stock Out / Low Quantity Items", style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AdminTheme.darkNavy)),
+          const Text(
+            "Stock Out / Low Quantity Items",
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+              color: AdminTheme.darkNavy,
+            ),
+          ),
           const SizedBox(height: 12),
           ListView.separated(
             shrinkWrap: true,
@@ -1005,21 +1322,48 @@ class _ProductionDashboardScreenState extends State<ProductionDashboardScreen> {
             separatorBuilder: (_, __) => const Divider(height: 1),
             itemBuilder: (context, index) {
               final item = _stockReports[index];
-              final name = item['ingredient_name'] ?? item['name'] ?? 'Ingredient';
+              final name =
+                  item['ingredient_name'] ?? item['name'] ?? 'Ingredient';
               final stock = item['current_stock'] ?? '0';
               final unit = item['unit'] ?? 'kg';
 
               return ListTile(
                 leading: const CircleAvatar(
                   backgroundColor: Colors.redAccent,
-                  child: Icon(Icons.warning_amber_rounded, color: Colors.white, size: 18),
+                  child: Icon(
+                    Icons.warning_amber_rounded,
+                    color: Colors.white,
+                    size: 18,
+                  ),
                 ),
-                title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                subtitle: Text("Current Stock: $stock $unit", style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                title: Text(
+                  name,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
+                ),
+                subtitle: Text(
+                  "Current Stock: $stock $unit",
+                  style: const TextStyle(fontSize: 11, color: Colors.grey),
+                ),
                 trailing: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(8)),
-                  child: const Text("STOCK OUT", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 10)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Text(
+                    "STOCK OUT",
+                    style: TextStyle(
+                      color: Colors.red,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 10,
+                    ),
+                  ),
                 ),
               );
             },

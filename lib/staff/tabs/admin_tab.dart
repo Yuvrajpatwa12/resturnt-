@@ -23,11 +23,18 @@ class _AdminTabState extends State<AdminTab> {
               _buildTimeFilter("Today"),
               _buildTimeFilter("Yesterday"),
               const Spacer(),
-              const Text("STATS HUB", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey)),
+              const Text(
+                "STATS HUB",
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.grey,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 24),
-          
+
           // --- SALES & REVENUE PROGRESS ---
           Row(
             children: [
@@ -36,28 +43,47 @@ class _AdminTabState extends State<AdminTab> {
               _buildRevenueTargetCard(),
             ],
           ),
-          
+
           const SizedBox(height: 32),
-          const Text("Peak Hours", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+          const Text(
+            "Peak Hours",
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+          ),
           const SizedBox(height: 16),
           _buildPeakHoursChart(),
 
           const SizedBox(height: 32),
           Row(
             children: [
-              _buildStatCard("Avg Prep Time", "12:45", Icons.timer, Colors.blue),
+              _buildStatCard(
+                "Avg Prep Time",
+                "12:45",
+                Icons.timer,
+                Colors.blue,
+              ),
               const SizedBox(width: 16),
-              _buildStatCard("Staff Rating", "4.9/5", Icons.star, Colors.indigo),
+              _buildStatCard(
+                "Staff Rating",
+                "4.9/5",
+                Icons.star,
+                Colors.indigo,
+              ),
             ],
           ),
 
           const SizedBox(height: 32),
-          const Text("Urgent Deliveries", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+          const Text(
+            "Urgent Deliveries",
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+          ),
           const SizedBox(height: 16),
           _buildUrgentTablesList(),
-          
+
           const SizedBox(height: 32),
-          const Text("Monthly Performance", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+          const Text(
+            "Monthly Performance",
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+          ),
           const SizedBox(height: 16),
           _buildMockCalendar(),
           const SizedBox(height: 40),
@@ -68,11 +94,24 @@ class _AdminTabState extends State<AdminTab> {
 
   Widget _buildPeakHoursChart() {
     final List<double> heights = [20, 40, 70, 90, 100, 80, 50, 30, 20];
-    final List<String> labels = ["9AM", "11AM", "1PM", "3PM", "5PM", "7PM", "9PM", "11PM", "1AM"];
-    
+    final List<String> labels = [
+      "9AM",
+      "11AM",
+      "1PM",
+      "3PM",
+      "5PM",
+      "7PM",
+      "9PM",
+      "11PM",
+      "1AM",
+    ];
+
     return Container(
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24)),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+      ),
       child: Column(
         children: [
           Row(
@@ -87,7 +126,10 @@ class _AdminTabState extends State<AdminTab> {
                     height: heights[i],
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
-                        colors: [const Color(0xFFFF5C00), const Color(0xFFFF5C00).withValues(alpha: 0.3)],
+                        colors: [
+                          const Color(0xFFFF5C00),
+                          const Color(0xFFFF5C00).withValues(alpha: 0.3),
+                        ],
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                       ),
@@ -95,7 +137,14 @@ class _AdminTabState extends State<AdminTab> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Text(labels[i], style: const TextStyle(fontSize: 7, fontWeight: FontWeight.bold, color: Colors.grey)),
+                  Text(
+                    labels[i],
+                    style: const TextStyle(
+                      fontSize: 7,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey,
+                    ),
+                  ),
                 ],
               );
             }),
@@ -109,16 +158,27 @@ class _AdminTabState extends State<AdminTab> {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+        ),
         child: Column(
           children: [
-            const Text("Revenue vs Target", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black54)),
+            const Text(
+              "Revenue vs Target",
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                color: Colors.black54,
+              ),
+            ),
             const SizedBox(height: 15),
             Stack(
               alignment: Alignment.center,
               children: [
                 const SizedBox(
-                  width: 60, height: 60,
+                  width: 60,
+                  height: 60,
                   child: CircularProgressIndicator(
                     value: 0.82,
                     strokeWidth: 6,
@@ -126,29 +186,57 @@ class _AdminTabState extends State<AdminTab> {
                     backgroundColor: Color(0xFFF7F8FA),
                   ),
                 ),
-                const Text("82%", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900)),
+                const Text(
+                  "82%",
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900),
+                ),
               ],
             ),
             const SizedBox(height: 10),
-            const Text("Target: NPR 180K", style: TextStyle(fontSize: 8, color: Colors.grey, fontWeight: FontWeight.bold)),
+            const Text(
+              "Target: NPR 180K",
+              style: TextStyle(
+                fontSize: 8,
+                color: Colors.grey,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildStatCard(String label, String value, IconData icon, Color color) {
+  Widget _buildStatCard(
+    String label,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Icon(icon, color: color, size: 20),
             const SizedBox(height: 12),
-            Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
-            Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)),
+            Text(
+              value,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+            ),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 10,
+                color: Colors.grey,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ],
         ),
       ),
@@ -159,25 +247,52 @@ class _AdminTabState extends State<AdminTab> {
     return ValueListenableBuilder<Map<int, int>>(
       valueListenable: ShopManager.instance.tableCountdownTimers,
       builder: (context, timers, child) {
-        final urgent = timers.entries.where((e) => e.value > 0 && e.value < 120).toList();
+        final urgent = timers.entries
+            .where((e) => e.value > 0 && e.value < 120)
+            .toList();
         if (urgent.isEmpty) {
-          return const Center(child: Text("No urgent tables at the moment", style: TextStyle(color: Colors.grey, fontSize: 12)));
+          return const Center(
+            child: Text(
+              "No urgent tables at the moment",
+              style: TextStyle(color: Colors.grey, fontSize: 12),
+            ),
+          );
         }
         return Column(
-          children: urgent.map((e) => Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            padding: const EdgeInsets.all(15),
-            decoration: BoxDecoration(color: Colors.red[50], borderRadius: BorderRadius.circular(15)),
-            child: Row(
-              children: [
-                const Icon(Icons.timer_outlined, color: Colors.red, size: 18),
-                const SizedBox(width: 12),
-                Text("Table 1F-0${e.key % 100}", style: const TextStyle(fontWeight: FontWeight.bold)),
-                const Spacer(),
-                Text("${(e.value / 60).floor()}:${(e.value % 60).toString().padLeft(2, '0')} LEFT", style: const TextStyle(color: Colors.red, fontWeight: FontWeight.w900)),
-              ],
-            ),
-          )).toList(),
+          children: urgent
+              .map(
+                (e) => Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.all(15),
+                  decoration: BoxDecoration(
+                    color: Colors.red[50],
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.timer_outlined,
+                        color: Colors.red,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        "Table 1F-0${e.key % 100}",
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      const Spacer(),
+                      Text(
+                        "${(e.value / 60).floor()}:${(e.value % 60).toString().padLeft(2, '0')} LEFT",
+                        style: const TextStyle(
+                          color: Colors.red,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+              .toList(),
         );
       },
     );
@@ -194,12 +309,24 @@ class _AdminTabState extends State<AdminTab> {
           color: isSelected ? Colors.black87 : Colors.grey[200],
           borderRadius: BorderRadius.circular(15),
         ),
-        child: Text(label, style: TextStyle(color: isSelected ? Colors.white : Colors.grey, fontSize: 10, fontWeight: FontWeight.bold)),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? Colors.white : Colors.grey,
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ),
     );
   }
 
-  Widget _buildSalesCard(String label, String value, String change, Color color) {
+  Widget _buildSalesCard(
+    String label,
+    String value,
+    String change,
+    Color color,
+  ) {
     bool isPositive = change.startsWith('+');
     return Expanded(
       child: Container(
@@ -211,15 +338,35 @@ class _AdminTabState extends State<AdminTab> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.black54)),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: Colors.black54,
+              ),
+            ),
             const SizedBox(height: 8),
-            Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+            Text(
+              value,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+            ),
             const SizedBox(height: 4),
             Row(
               children: [
-                Text(change, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: isPositive ? Colors.orange : Colors.red)),
+                Text(
+                  change,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: isPositive ? Colors.orange : Colors.red,
+                  ),
+                ),
                 const SizedBox(width: 4),
-                Text("vs last week", style: TextStyle(fontSize: 8, color: Colors.grey[400])),
+                Text(
+                  "vs last week",
+                  style: TextStyle(fontSize: 8, color: Colors.grey[400]),
+                ),
               ],
             ),
           ],
@@ -231,31 +378,68 @@ class _AdminTabState extends State<AdminTab> {
   Widget _buildMockCalendar() {
     return Container(
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+      ),
       child: Column(
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"].map((d) => Text(d, style: const TextStyle(fontSize: 9, color: Colors.grey, fontWeight: FontWeight.bold))).toList(),
+            children: ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"]
+                .map(
+                  (d) => Text(
+                    d,
+                    style: const TextStyle(
+                      fontSize: 9,
+                      color: Colors.grey,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                )
+                .toList(),
           ),
           const SizedBox(height: 15),
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 7, mainAxisSpacing: 10, crossAxisSpacing: 10),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 7,
+              mainAxisSpacing: 10,
+              crossAxisSpacing: 10,
+            ),
             itemCount: 31,
             itemBuilder: (context, index) {
               bool isHighlight = index == 8 || index == 9 || index == 10;
               return Center(
                 child: Column(
                   children: [
-                    Text("${index + 1}", style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                    Text(
+                      "${index + 1}",
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     if (isHighlight)
                       Container(
                         margin: const EdgeInsets.only(top: 2),
-                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                        decoration: BoxDecoration(color: const Color(0xFFFF5C00).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)),
-                        child: Text("NPR ${800 + index}", style: const TextStyle(fontSize: 6, fontWeight: FontWeight.bold, color: Color(0xFFFF5C00))),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 4,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFF5C00).withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          "NPR ${800 + index}",
+                          style: const TextStyle(
+                            fontSize: 6,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFFFF5C00),
+                          ),
+                        ),
                       ),
                   ],
                 ),

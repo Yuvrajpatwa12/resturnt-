@@ -14,10 +14,19 @@ class ClaimDetailsModal extends StatelessWidget {
     final String dateStr = claim['created_at'] ?? DateTime.now().toString();
     final String statusStr = (claim['status'] ?? '').toString().toLowerCase();
     final String redAt = (claim['redeemed_at'] ?? '').toString().trim();
-    final bool isClaimed = statusStr == 'claimed' || statusStr == 'redeemed' || statusStr == 'verified' || statusStr == 'claimed_by_staff' || (redAt.isNotEmpty && redAt != 'null');
-    
+    final bool isClaimed =
+        statusStr == 'claimed' ||
+        statusStr == 'redeemed' ||
+        statusStr == 'verified' ||
+        statusStr == 'claimed_by_staff' ||
+        (redAt.isNotEmpty && redAt != 'null');
+
     DateTime date;
-    try { date = DateTime.parse(dateStr); } catch (e) { date = DateTime.now(); }
+    try {
+      date = DateTime.parse(dateStr);
+    } catch (e) {
+      date = DateTime.now();
+    }
 
     return SingleChildScrollView(
       child: Container(
@@ -30,50 +39,83 @@ class ClaimDetailsModal extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             // Drag Handle
-            Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2))),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
             const SizedBox(height: 32),
-    
+
             // Reward Title
             Text(
-              title, 
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF1E293B)),
+              title,
+              style: const TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w900,
+                color: Color(0xFF1E293B),
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 4),
             Text(
-              "Claimed on ${DateFormat('MMM dd, yyyy').format(date)}", 
-              style: const TextStyle(color: Colors.grey, fontSize: 13, fontWeight: FontWeight.bold),
+              "Claimed on ${DateFormat('MMM dd, yyyy').format(date)}",
+              style: const TextStyle(
+                color: Colors.grey,
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-    
+
             const SizedBox(height: 32),
-    
+
             // Status Badge
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
-                color: isClaimed ? Colors.blue.withValues(alpha: 0.1) : Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                color: isClaimed
+                    ? Colors.blue.withValues(alpha: 0.1)
+                    : Theme.of(context).primaryColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(30),
-                border: Border.all(color: isClaimed ? Colors.blue : Theme.of(context).primaryColor, width: 1.5),
+                border: Border.all(
+                  color: isClaimed
+                      ? Colors.blue
+                      : Theme.of(context).primaryColor,
+                  width: 1.5,
+                ),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(isClaimed ? Icons.check_circle_outline : Icons.pending_actions_rounded, 
-                       color: isClaimed ? Colors.blue : Theme.of(context).primaryColor, size: 16),
+                  Icon(
+                    isClaimed
+                        ? Icons.check_circle_outline
+                        : Icons.pending_actions_rounded,
+                    color: isClaimed
+                        ? Colors.blue
+                        : Theme.of(context).primaryColor,
+                    size: 16,
+                  ),
                   const SizedBox(width: 8),
                   Text(
-                    isClaimed ? "SERVED" : "ACTIVE", 
+                    isClaimed ? "SERVED" : "ACTIVE",
                     style: TextStyle(
-                      color: isClaimed ? Colors.blue : Theme.of(context).primaryColor, 
-                      fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1
-                    )
+                      color: isClaimed
+                          ? Colors.blue
+                          : Theme.of(context).primaryColor,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 12,
+                      letterSpacing: 1,
+                    ),
                   ),
                 ],
               ),
             ),
-    
+
             const SizedBox(height: 32),
-    
+
             // QR CODE SECTION
             if (!isClaimed)
               Column(
@@ -83,25 +125,46 @@ class ClaimDetailsModal extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(24),
-                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 20)],
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.05),
+                          blurRadius: 20,
+                        ),
+                      ],
                     ),
                     child: QrImageView(
                       data: code,
-                    version: QrVersions.auto,
-                    size: 180.0,
-                    eyeStyle: const QrEyeStyle(eyeShape: QrEyeShape.square, color: Color(0xFF1E293B)),
-                    dataModuleStyle: const QrDataModuleStyle(dataModuleShape: QrDataModuleShape.square, color: Color(0xFF1E293B)),
-                  ),
+                      version: QrVersions.auto,
+                      size: 180.0,
+                      eyeStyle: const QrEyeStyle(
+                        eyeShape: QrEyeShape.square,
+                        color: Color(0xFF1E293B),
+                      ),
+                      dataModuleStyle: const QrDataModuleStyle(
+                        dataModuleShape: QrDataModuleShape.square,
+                        color: Color(0xFF1E293B),
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 24),
                   const Text(
-                    "SHOW THIS TO WAITER", 
-                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 2, color: Colors.grey)
+                    "SHOW THIS TO WAITER",
+                    style: TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 10,
+                      letterSpacing: 2,
+                      color: Colors.grey,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    code, 
-                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, letterSpacing: 4, color: Color(0xFF1E293B))
+                    code,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 4,
+                      color: Color(0xFF1E293B),
+                    ),
                   ),
                 ],
               )
@@ -110,24 +173,32 @@ class ClaimDetailsModal extends StatelessWidget {
                 padding: const EdgeInsets.all(20),
                 child: Column(
                   children: const [
-                    Icon(Icons.check_circle_rounded, color: Colors.green, size: 80),
+                    Icon(
+                      Icons.check_circle_rounded,
+                      color: Colors.green,
+                      size: 80,
+                    ),
                     SizedBox(height: 16),
                     Text(
-                      "REWARD SERVED", 
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.green)
+                      "REWARD SERVED",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.green,
+                      ),
                     ),
                     SizedBox(height: 8),
                     Text(
-                      "You have already enjoyed this reward.", 
+                      "You have already enjoyed this reward.",
                       style: TextStyle(color: Colors.grey, fontSize: 13),
                       textAlign: TextAlign.center,
                     ),
                   ],
                 ),
               ),
-    
+
             const SizedBox(height: 40),
-    
+
             // Close Button
             SizedBox(
               width: double.infinity,
@@ -137,10 +208,18 @@ class ClaimDetailsModal extends StatelessWidget {
                   backgroundColor: Colors.black87,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 18),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                   elevation: 0,
                 ),
-                child: const Text("CLOSE", style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1)),
+                child: const Text(
+                  "CLOSE",
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1,
+                  ),
+                ),
               ),
             ),
           ],

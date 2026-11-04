@@ -364,7 +364,9 @@ class _ChatPageState extends State<ChatPage> {
           Expanded(
             child: _isLoading
                 ? Center(
-                    child: CircularProgressIndicator(color: Theme.of(context).primaryColor),
+                    child: CircularProgressIndicator(
+                      color: Theme.of(context).primaryColor,
+                    ),
                   )
                 : _messages.isEmpty
                 ? _buildEmptyState()
@@ -422,7 +424,9 @@ class _ChatPageState extends State<ChatPage> {
                                         color: isMe
                                             ? (isDeleted
                                                   ? Colors.grey[200]
-                                                  : Theme.of(context).primaryColor)
+                                                  : Theme.of(
+                                                      context,
+                                                    ).primaryColor)
                                             : Colors.white,
                                         borderRadius: BorderRadius.only(
                                           topLeft: const Radius.circular(20),
@@ -728,16 +732,18 @@ class _ChatPageState extends State<ChatPage> {
                     controller: _controller,
                     focusNode: _focusNode,
                     onChanged: canSend ? _onTyping : null,
-                    onSubmitted: canSend ? (value) {
-                      final text = value.trim();
-                      if (text.isNotEmpty) {
-                        _controller.clear();
-                        setState(() {
-                          _textFieldKey++;
-                        });
-                        _sendMessage(textParam: text);
-                      }
-                    } : null,
+                    onSubmitted: canSend
+                        ? (value) {
+                            final text = value.trim();
+                            if (text.isNotEmpty) {
+                              _controller.clear();
+                              setState(() {
+                                _textFieldKey++;
+                              });
+                              _sendMessage(textParam: text);
+                            }
+                          }
+                        : null,
                     enabled: canSend,
                     decoration: const InputDecoration(
                       hintText: 'Type a message...',
@@ -753,7 +759,9 @@ class _ChatPageState extends State<ChatPage> {
                 child: Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: canSend ? Theme.of(context).primaryColor : Colors.grey,
+                    color: canSend
+                        ? Theme.of(context).primaryColor
+                        : Colors.grey,
                     shape: BoxShape.circle,
                   ),
                   child: _isSending

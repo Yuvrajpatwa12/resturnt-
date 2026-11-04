@@ -17,22 +17,26 @@ class AppData {
     {
       'title': 'Smokehouse Brisket',
       'price': 'NPR 899',
-      'image': 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500&auto=format&fit=crop&q=60',
+      'image':
+          'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500&auto=format&fit=crop&q=60',
     },
     {
       'title': 'Curly Fries',
       'price': 'NPR 349',
-      'image': 'https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=500&auto=format&fit=crop&q=60',
+      'image':
+          'https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=500&auto=format&fit=crop&q=60',
     },
     {
       'title': 'Jamocha Shake',
       'price': 'NPR 450',
-      'image': 'https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=500&auto=format&fit=crop&q=60',
+      'image':
+          'https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=500&auto=format&fit=crop&q=60',
     },
     {
       'title': 'Beef \'N Cheddar',
       'price': 'NPR 720',
-      'image': 'https://images.unsplash.com/photo-1586190848861-99aa4a171e90?w=500&auto=format&fit=crop&q=60',
+      'image':
+          'https://images.unsplash.com/photo-1586190848861-99aa4a171e90?w=500&auto=format&fit=crop&q=60',
     },
   ];
 
@@ -43,10 +47,12 @@ class AppData {
       'discount': '-10%',
       'tag': 'BESTSELLER',
       'rating': '4.9 (320)',
-      'image': 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500&auto=format&fit=crop&q=60',
+      'image':
+          'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500&auto=format&fit=crop&q=60',
       'cardHeight': 300.0,
       'model_url': 'https://modelviewer.dev/shared-assets/models/Astronaut.glb',
-      'ios_model_url': 'https://modelviewer.dev/shared-assets/models/Astronaut.usdz',
+      'ios_model_url':
+          'https://modelviewer.dev/shared-assets/models/Astronaut.usdz',
     },
     {
       'title': 'Classic Roast Beef Sandwich Combo',
@@ -54,7 +60,8 @@ class AppData {
       'discount': '-5%',
       'tag': 'NEW',
       'rating': '4.6 (88)',
-      'image': 'https://images.unsplash.com/photo-1586190848861-99aa4a171e90?w=500&auto=format&fit=crop&q=60',
+      'image':
+          'https://images.unsplash.com/photo-1586190848861-99aa4a171e90?w=500&auto=format&fit=crop&q=60',
       'cardHeight': 235.0,
     },
     {
@@ -63,7 +70,8 @@ class AppData {
       'discount': '-12%',
       'tag': 'POPULAR',
       'rating': '4.8 (210)',
-      'image': 'https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=500&auto=format&fit=crop&q=60',
+      'image':
+          'https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=500&auto=format&fit=crop&q=60',
       'cardHeight': 275.0,
     },
     {
@@ -72,7 +80,8 @@ class AppData {
       'discount': '',
       'tag': 'SWEET',
       'rating': '4.9 (95)',
-      'image': 'https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=500&auto=format&fit=crop&q=60',
+      'image':
+          'https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=500&auto=format&fit=crop&q=60',
       'cardHeight': 220.0,
     },
     {
@@ -81,7 +90,8 @@ class AppData {
       'discount': '-8%',
       'tag': 'SPICY',
       'rating': '4.5 (150)',
-      'image': 'https://images.unsplash.com/photo-1626645738196-c2a7c87a8f58?w=500&auto=format&fit=crop&q=60',
+      'image':
+          'https://images.unsplash.com/photo-1626645738196-c2a7c87a8f58?w=500&auto=format&fit=crop&q=60',
       'cardHeight': 290.0,
     },
     {
@@ -90,7 +100,8 @@ class AppData {
       'discount': '',
       'tag': 'SNACK',
       'rating': '4.3 (78)',
-      'image': 'https://images.unsplash.com/photo-1541592106381-b31e9677c0e5?w=500&auto=format&fit=crop&q=60',
+      'image':
+          'https://images.unsplash.com/photo-1541592106381-b31e9677c0e5?w=500&auto=format&fit=crop&q=60',
       'cardHeight': 230.0,
     },
     {
@@ -99,10 +110,12 @@ class AppData {
       'discount': '-10%',
       'tag': 'DESSERT',
       'rating': '5.0 (64)',
-      'image': 'https://images.unsplash.com/photo-1606313564200-e75d5e30476c?w=500&auto=format&fit=crop&q=60',
+      'image':
+          'https://images.unsplash.com/photo-1606313564200-e75d5e30476c?w=500&auto=format&fit=crop&q=60',
       'cardHeight': 265.0,
       'model_url': 'https://modelviewer.dev/shared-assets/models/Astronaut.glb',
-      'ios_model_url': 'https://modelviewer.dev/shared-assets/models/Astronaut.usdz',
+      'ios_model_url':
+          'https://modelviewer.dev/shared-assets/models/Astronaut.usdz',
     },
     {
       'title': 'Spicy Buffalo Chicken Wings (8pcs)',
@@ -110,7 +123,8 @@ class AppData {
       'discount': '-15%',
       'tag': 'SPICY',
       'rating': '4.8 (112)',
-      'image': 'https://images.unsplash.com/photo-1527477396000-e27163b481c2?w=500&auto=format&fit=crop&q=60',
+      'image':
+          'https://images.unsplash.com/photo-1527477396000-e27163b481c2?w=500&auto=format&fit=crop&q=60',
       'cardHeight': 250.0,
     },
     {
@@ -119,7 +133,8 @@ class AppData {
       'discount': '',
       'tag': 'DRINK',
       'rating': '4.7 (89)',
-      'image': 'https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=500&auto=format&fit=crop&q=60',
+      'image':
+          'https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=500&auto=format&fit=crop&q=60',
       'cardHeight': 240.0,
     },
     {
@@ -128,7 +143,8 @@ class AppData {
       'discount': '-5%',
       'tag': 'SAVORY',
       'rating': '4.6 (50)',
-      'image': 'https://images.unsplash.com/photo-1573140402232-37e3c66f9f1e?w=500&auto=format&fit=crop&q=60',
+      'image':
+          'https://images.unsplash.com/photo-1573140402232-37e3c66f9f1e?w=500&auto=format&fit=crop&q=60',
       'cardHeight': 230.0,
     },
     {
@@ -137,7 +153,8 @@ class AppData {
       'discount': '-8%',
       'tag': 'HOT',
       'rating': '4.5 (62)',
-      'image': 'https://images.unsplash.com/photo-1619740455993-9e612b1af08a?w=500&auto=format&fit=crop&q=60',
+      'image':
+          'https://images.unsplash.com/photo-1619740455993-9e612b1af08a?w=500&auto=format&fit=crop&q=60',
       'cardHeight': 255.0,
     },
     {
@@ -146,10 +163,12 @@ class AppData {
       'discount': '-18%',
       'tag': 'MEGA',
       'rating': '4.9 (410)',
-      'image': 'https://images.unsplash.com/photo-1586190848861-99aa4a171e90?w=500&auto=format&fit=crop&q=60',
+      'image':
+          'https://images.unsplash.com/photo-1586190848861-99aa4a171e90?w=500&auto=format&fit=crop&q=60',
       'cardHeight': 310.0,
       'model_url': 'https://modelviewer.dev/shared-assets/models/Astronaut.glb',
-      'ios_model_url': 'https://modelviewer.dev/shared-assets/models/Astronaut.usdz',
+      'ios_model_url':
+          'https://modelviewer.dev/shared-assets/models/Astronaut.usdz',
     },
     {
       'title': 'Crispy Onion Rings Basket',
@@ -157,7 +176,8 @@ class AppData {
       'discount': '-5%',
       'tag': 'CRISPY',
       'rating': '4.4 (53)',
-      'image': 'https://images.unsplash.com/photo-1639024471283-03518883512d?w=500&auto=format&fit=crop&q=60',
+      'image':
+          'https://images.unsplash.com/photo-1639024471283-03518883512d?w=500&auto=format&fit=crop&q=60',
       'cardHeight': 210.0,
     },
     {
@@ -166,7 +186,8 @@ class AppData {
       'discount': '',
       'tag': 'FRESH',
       'rating': '4.6 (67)',
-      'image': 'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?w=500&auto=format&fit=crop&q=60',
+      'image':
+          'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?w=500&auto=format&fit=crop&q=60',
       'cardHeight': 260.0,
     },
     {
@@ -175,7 +196,8 @@ class AppData {
       'discount': '-10%',
       'tag': 'SPECIAL',
       'rating': '4.9 (180)',
-      'image': 'https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=500&auto=format&fit=crop&q=60',
+      'image':
+          'https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=500&auto=format&fit=crop&q=60',
       'cardHeight': 285.0,
     },
   ];
@@ -200,7 +222,7 @@ class AppData {
     "Prices are way too high for such subpar quality. Absolutely do not recommend.",
     "Cold food, delayed service, and an indifferent attitude from the staff. Zero stars.",
     "The order was incomplete, and when we pointed it out, they argued with us.",
-    "A completely chaotic and frustrating dining experience. Will not return."
+    "A completely chaotic and frustrating dining experience. Will not return.",
   ];
 
   static const List<String> twoStarReviews = [
@@ -223,7 +245,7 @@ class AppData {
     "The cleanliness of the washrooms was poor, which ruined the overall vibe.",
     "The food arrived warm, not hot. Tasted like it sat on the counter for a while.",
     "Not the worst place, but there are far better options nearby for this price.",
-    "The menu layout is confusing, and the actual dishes look nothing like the pictures."
+    "The menu layout is confusing, and the actual dishes look nothing like the pictures.",
   ];
 
   static const List<String> threeStarReviews = [
@@ -246,7 +268,7 @@ class AppData {
     "Clean tables and polite staff. The food was satisfactory but simple.",
     "The pizza was decent, but the crust was a bit too doughy and thick.",
     "Standard cafe vibes. Nothing extraordinary, but it gets the job done safely.",
-    "Portions are generous, though the seasoning could use a bit more balance."
+    "Portions are generous, though the seasoning could use a bit more balance.",
   ];
 
   static const List<String> fourStarReviews = [
@@ -269,7 +291,7 @@ class AppData {
     "Bright, energetic vibe with quick ordering. The food didn't disappoint at all.",
     "Very clean restaurant with a diverse menu. Everything we ordered tasted great.",
     "Highly satisfying meal. Quick turnaround time from ordering to serving.",
-    "Great music, comfortable seating, and consistently delicious food items."
+    "Great music, comfortable seating, and consistently delicious food items.",
   ];
 
   static const List<String> fiveStarReviews = [
@@ -322,6 +344,6 @@ class AppData {
     "A beautifully curated menu where every item feels unique and well-crafted.",
     "Impeccable hygiene standards. The kitchen view is spotless and reassuring.",
     "The aroma alone when you walk in tells you you're in for a magical meal.",
-    "An absolute masterclass in restaurant management and food preparation. Perfect!"
+    "An absolute masterclass in restaurant management and food preparation. Perfect!",
   ];
 }

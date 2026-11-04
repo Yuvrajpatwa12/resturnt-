@@ -3,13 +3,18 @@ import '../admin_theme.dart';
 
 class ShippingMethodSettingScreen extends StatefulWidget {
   final String mode;
-  const ShippingMethodSettingScreen({super.key, this.mode = "Shipping Method Setting"});
+  const ShippingMethodSettingScreen({
+    super.key,
+    this.mode = "Shipping Method Setting",
+  });
 
   @override
-  State<ShippingMethodSettingScreen> createState() => _ShippingMethodSettingScreenState();
+  State<ShippingMethodSettingScreen> createState() =>
+      _ShippingMethodSettingScreenState();
 }
 
-class _ShippingMethodSettingScreenState extends State<ShippingMethodSettingScreen> {
+class _ShippingMethodSettingScreenState
+    extends State<ShippingMethodSettingScreen> {
   final List<Map<String, dynamic>> _shippingMethods = [
     {
       'id': 'dine_in',
@@ -23,7 +28,8 @@ class _ShippingMethodSettingScreenState extends State<ShippingMethodSettingScree
       'minOrder': 'NPR 0',
       'estTime': '10 - 20 Mins',
       'maxRadius': 'Inside Restaurant',
-      'description': 'Direct table dining service delivered by restaurant waiters.',
+      'description':
+          'Direct table dining service delivered by restaurant waiters.',
     },
     {
       'id': 'takeaway',
@@ -51,7 +57,8 @@ class _ShippingMethodSettingScreenState extends State<ShippingMethodSettingScree
       'minOrder': 'NPR 300',
       'estTime': '25 - 40 Mins',
       'maxRadius': '8 KM',
-      'description': 'Delivered directly by restaurant riders with hot bag containers.',
+      'description':
+          'Delivered directly by restaurant riders with hot bag containers.',
     },
     {
       'id': 'pathao_courier',
@@ -65,7 +72,8 @@ class _ShippingMethodSettingScreenState extends State<ShippingMethodSettingScree
       'minOrder': 'NPR 250',
       'estTime': '20 - 35 Mins',
       'maxRadius': '12 KM',
-      'description': 'Automated rider dispatch via Pathao / Foodmandu logistics network.',
+      'description':
+          'Automated rider dispatch via Pathao / Foodmandu logistics network.',
     },
     {
       'id': 'express_delivery',
@@ -134,7 +142,11 @@ class _ShippingMethodSettingScreenState extends State<ShippingMethodSettingScree
               color: Colors.white.withValues(alpha: 0.15),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.local_shipping_rounded, color: Colors.white, size: 36),
+            child: const Icon(
+              Icons.local_shipping_rounded,
+              color: Colors.white,
+              size: 36,
+            ),
           ),
           const SizedBox(width: 20),
           Expanded(
@@ -143,7 +155,11 @@ class _ShippingMethodSettingScreenState extends State<ShippingMethodSettingScree
               children: const [
                 Text(
                   "Shipping & Delivery Settings",
-                  style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 SizedBox(height: 4),
                 Text(
@@ -159,10 +175,15 @@ class _ShippingMethodSettingScreenState extends State<ShippingMethodSettingScree
               backgroundColor: AdminTheme.emeraldGreen,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
             icon: const Icon(Icons.add_location_alt_rounded, size: 20),
-            label: const Text("ADD SHIPPING METHOD", style: TextStyle(fontWeight: FontWeight.bold)),
+            label: const Text(
+              "ADD SHIPPING METHOD",
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),
@@ -186,7 +207,11 @@ class _ShippingMethodSettingScreenState extends State<ShippingMethodSettingScree
               SizedBox(width: 10),
               Text(
                 "Global Delivery Calculation Engine",
-                style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AdminTheme.darkNavy),
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.bold,
+                  color: AdminTheme.darkNavy,
+                ),
               ),
             ],
           ),
@@ -200,10 +225,16 @@ class _ShippingMethodSettingScreenState extends State<ShippingMethodSettingScree
                   controller: _freeShippingThresholdCtrl,
                   decoration: InputDecoration(
                     labelText: "Free Delivery Minimum Threshold (NPR)",
-                    prefixIcon: const Icon(Icons.shopping_bag_outlined, color: AdminTheme.royalBlue),
+                    prefixIcon: const Icon(
+                      Icons.shopping_bag_outlined,
+                      color: AdminTheme.royalBlue,
+                    ),
                     filled: true,
                     fillColor: AdminTheme.pearlWhite,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
                   ),
                 ),
               ),
@@ -213,10 +244,16 @@ class _ShippingMethodSettingScreenState extends State<ShippingMethodSettingScree
                   controller: _defaultBaseDeliveryFeeCtrl,
                   decoration: InputDecoration(
                     labelText: "Base Delivery Charge (0 - 3 KM)",
-                    prefixIcon: const Icon(Icons.payments_outlined, color: AdminTheme.royalBlue),
+                    prefixIcon: const Icon(
+                      Icons.payments_outlined,
+                      color: AdminTheme.royalBlue,
+                    ),
                     filled: true,
                     fillColor: AdminTheme.pearlWhite,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
                   ),
                 ),
               ),
@@ -226,10 +263,16 @@ class _ShippingMethodSettingScreenState extends State<ShippingMethodSettingScree
                   controller: _perKmRateCtrl,
                   decoration: InputDecoration(
                     labelText: "Additional Rate / KM (NPR)",
-                    prefixIcon: const Icon(Icons.add_road_rounded, color: AdminTheme.royalBlue),
+                    prefixIcon: const Icon(
+                      Icons.add_road_rounded,
+                      color: AdminTheme.royalBlue,
+                    ),
                     filled: true,
                     fillColor: AdminTheme.pearlWhite,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
                   ),
                 ),
               ),
@@ -246,11 +289,19 @@ class _ShippingMethodSettingScreenState extends State<ShippingMethodSettingScree
       children: const [
         Text(
           "Available Delivery Channels & Rates",
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AdminTheme.darkNavy),
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: AdminTheme.darkNavy,
+          ),
         ),
         Text(
           "5 Channels Configured",
-          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey),
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            color: Colors.grey,
+          ),
         ),
       ],
     );
@@ -291,18 +342,29 @@ class _ShippingMethodSettingScreenState extends State<ShippingMethodSettingScree
                   children: [
                     Text(
                       method['name'],
-                      style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AdminTheme.darkNavy),
+                      style: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                        color: AdminTheme.darkNavy,
+                      ),
                     ),
                     const SizedBox(width: 10),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
                       decoration: BoxDecoration(
                         color: color.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
                         method['type'],
-                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: color),
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: color,
+                        ),
                       ),
                     ),
                   ],
@@ -317,10 +379,26 @@ class _ShippingMethodSettingScreenState extends State<ShippingMethodSettingScree
                   spacing: 16,
                   runSpacing: 8,
                   children: [
-                    _buildMetaChip("Pricing Model", method['feeType'], Icons.style_rounded),
-                    _buildMetaChip("Min Order", method['minOrder'], Icons.shopping_bag_outlined),
-                    _buildMetaChip("Est. Time", method['estTime'], Icons.timer_outlined),
-                    _buildMetaChip("Max Radius", method['maxRadius'], Icons.map_outlined),
+                    _buildMetaChip(
+                      "Pricing Model",
+                      method['feeType'],
+                      Icons.style_rounded,
+                    ),
+                    _buildMetaChip(
+                      "Min Order",
+                      method['minOrder'],
+                      Icons.shopping_bag_outlined,
+                    ),
+                    _buildMetaChip(
+                      "Est. Time",
+                      method['estTime'],
+                      Icons.timer_outlined,
+                    ),
+                    _buildMetaChip(
+                      "Max Radius",
+                      method['maxRadius'],
+                      Icons.map_outlined,
+                    ),
                   ],
                 ),
               ],
@@ -358,11 +436,19 @@ class _ShippingMethodSettingScreenState extends State<ShippingMethodSettingScree
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AdminTheme.royalBlue,
                   side: const BorderSide(color: AdminTheme.royalBlue),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
                 ),
                 icon: const Icon(Icons.edit_rounded, size: 16),
-                label: const Text("EDIT RATES", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                label: const Text(
+                  "EDIT RATES",
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                ),
               ),
             ],
           ),
@@ -383,8 +469,18 @@ class _ShippingMethodSettingScreenState extends State<ShippingMethodSettingScree
         children: [
           Icon(icon, size: 13, color: Colors.grey.shade600),
           const SizedBox(width: 6),
-          Text("$label: ", style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
-          Text(value, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AdminTheme.darkNavy)),
+          Text(
+            "$label: ",
+            style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+          ),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              color: AdminTheme.darkNavy,
+            ),
+          ),
         ],
       ),
     );
@@ -417,8 +513,18 @@ class _ShippingMethodSettingScreenState extends State<ShippingMethodSettingScree
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text("Add New Delivery Channel", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AdminTheme.darkNavy)),
-                IconButton(onPressed: () => Navigator.pop(ctx), icon: const Icon(Icons.close_rounded)),
+                const Text(
+                  "Add New Delivery Channel",
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: AdminTheme.darkNavy,
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  icon: const Icon(Icons.close_rounded),
+                ),
               ],
             ),
             const Divider(),
@@ -428,7 +534,9 @@ class _ShippingMethodSettingScreenState extends State<ShippingMethodSettingScree
               decoration: InputDecoration(
                 labelText: "Channel Name",
                 hintText: "e.g. Express Drone Delivery / Area Courier",
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
             ),
             const SizedBox(height: 12),
@@ -437,7 +545,9 @@ class _ShippingMethodSettingScreenState extends State<ShippingMethodSettingScree
               decoration: InputDecoration(
                 labelText: "Estimated Delivery Time",
                 hintText: "e.g. 20 - 30 Mins",
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
             ),
             const SizedBox(height: 12),
@@ -446,7 +556,9 @@ class _ShippingMethodSettingScreenState extends State<ShippingMethodSettingScree
               decoration: InputDecoration(
                 labelText: "Minimum Order Amount",
                 hintText: "e.g. NPR 200",
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
             ),
             const SizedBox(height: 24),
@@ -468,21 +580,32 @@ class _ShippingMethodSettingScreenState extends State<ShippingMethodSettingScree
                         'minOrder': minOrderCtrl.text.trim(),
                         'estTime': estTimeCtrl.text.trim(),
                         'maxRadius': '10 KM',
-                        'description': 'Custom shipping channel configured by admin.',
+                        'description':
+                            'Custom shipping channel configured by admin.',
                       });
                     });
                     Navigator.pop(ctx);
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("New Shipping Channel Added!")),
+                      const SnackBar(
+                        content: Text("New Shipping Channel Added!"),
+                      ),
                     );
                   }
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AdminTheme.royalBlue,
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
-                child: const Text("CREATE SHIPPING METHOD", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                child: const Text(
+                  "CREATE SHIPPING METHOD",
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
               ),
             ),
           ],
@@ -491,7 +614,10 @@ class _ShippingMethodSettingScreenState extends State<ShippingMethodSettingScree
     );
   }
 
-  void _showEditShippingModal(BuildContext context, Map<String, dynamic> method) {
+  void _showEditShippingModal(
+    BuildContext context,
+    Map<String, dynamic> method,
+  ) {
     final estTimeCtrl = TextEditingController(text: method['estTime']);
     final minOrderCtrl = TextEditingController(text: method['minOrder']);
     final maxRadiusCtrl = TextEditingController(text: method['maxRadius']);
@@ -500,28 +626,43 @@ class _ShippingMethodSettingScreenState extends State<ShippingMethodSettingScree
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text("Edit ${method['name']} Rates", style: const TextStyle(fontWeight: FontWeight.bold, color: AdminTheme.darkNavy)),
+        title: Text(
+          "Edit ${method['name']} Rates",
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            color: AdminTheme.darkNavy,
+          ),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
               controller: estTimeCtrl,
-              decoration: const InputDecoration(labelText: "Estimated Delivery Duration"),
+              decoration: const InputDecoration(
+                labelText: "Estimated Delivery Duration",
+              ),
             ),
             const SizedBox(height: 10),
             TextField(
               controller: minOrderCtrl,
-              decoration: const InputDecoration(labelText: "Minimum Order Amount"),
+              decoration: const InputDecoration(
+                labelText: "Minimum Order Amount",
+              ),
             ),
             const SizedBox(height: 10),
             TextField(
               controller: maxRadiusCtrl,
-              decoration: const InputDecoration(labelText: "Maximum Service Radius"),
+              decoration: const InputDecoration(
+                labelText: "Maximum Service Radius",
+              ),
             ),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("CANCEL")),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("CANCEL"),
+          ),
           ElevatedButton(
             onPressed: () {
               setState(() {
@@ -534,8 +675,16 @@ class _ShippingMethodSettingScreenState extends State<ShippingMethodSettingScree
                 SnackBar(content: Text("${method['name']} rates updated!")),
               );
             },
-            style: ElevatedButton.styleFrom(backgroundColor: AdminTheme.royalBlue),
-            child: const Text("SAVE CHANGES", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AdminTheme.royalBlue,
+            ),
+            child: const Text(
+              "SAVE CHANGES",
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),

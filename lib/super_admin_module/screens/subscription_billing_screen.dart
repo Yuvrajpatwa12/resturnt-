@@ -6,7 +6,8 @@ class SubscriptionBillingScreen extends StatefulWidget {
   const SubscriptionBillingScreen({super.key});
 
   @override
-  State<SubscriptionBillingScreen> createState() => _SubscriptionBillingScreenState();
+  State<SubscriptionBillingScreen> createState() =>
+      _SubscriptionBillingScreenState();
 }
 
 class _SubscriptionBillingScreenState extends State<SubscriptionBillingScreen> {
@@ -35,7 +36,8 @@ class _SubscriptionBillingScreenState extends State<SubscriptionBillingScreen> {
     if (tenants != null) {
       final now = DateTime.now();
       for (var t in tenants) {
-        final name = (t['restaurant_name'] ?? t['name'] ?? 'Restaurant').toString();
+        final name = (t['restaurant_name'] ?? t['name'] ?? 'Restaurant')
+            .toString();
         final plan = (t['plan'] ?? 'Basic').toString();
         final expStr = t['subscription_end'] ?? t['expiry_date'] ?? t['expiry'];
         final subStatus = (t['subscription_status'] ?? '').toString();
@@ -53,7 +55,8 @@ class _SubscriptionBillingScreenState extends State<SubscriptionBillingScreen> {
         }
 
         bool isExpired = daysLeft < 0;
-        bool isTrial = subStatus.toLowerCase() == 'trial' || plan == '3 Days Free Trial';
+        bool isTrial =
+            subStatus.toLowerCase() == 'trial' || plan == '3 Days Free Trial';
 
         String statusLabel = isExpired ? 'Expired' : 'Active';
         String typeLabel = isTrial ? 'Trial' : 'Paid';
@@ -84,15 +87,27 @@ class _SubscriptionBillingScreenState extends State<SubscriptionBillingScreen> {
   Future<void> _editPackageModal(Map<String, dynamic>? pkg) async {
     final isNew = pkg == null;
     final id = pkg?['id'];
-    final nameCtrl = TextEditingController(text: pkg?['name']?.toString() ?? '');
-    final durationCtrl = TextEditingController(text: pkg?['duration_days']?.toString() ?? '30');
-    final priceCtrl = TextEditingController(text: pkg?['price']?.toString() ?? '999.00');
-    final perksCtrl = TextEditingController(text: pkg?['perks']?.toString() ?? 'Full POS & Multi-User Access');
+    final nameCtrl = TextEditingController(
+      text: pkg?['name']?.toString() ?? '',
+    );
+    final durationCtrl = TextEditingController(
+      text: pkg?['duration_days']?.toString() ?? '30',
+    );
+    final priceCtrl = TextEditingController(
+      text: pkg?['price']?.toString() ?? '999.00',
+    );
+    final perksCtrl = TextEditingController(
+      text: pkg?['perks']?.toString() ?? 'Full POS & Multi-User Access',
+    );
 
     await showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(isNew ? "Create Subscription Package" : "Edit Package: ${pkg['name']}"),
+        title: Text(
+          isNew
+              ? "Create Subscription Package"
+              : "Edit Package: ${pkg['name']}",
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -104,12 +119,16 @@ class _SubscriptionBillingScreenState extends State<SubscriptionBillingScreen> {
             TextField(
               controller: durationCtrl,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: "Duration in Days * (e.g. 28, 84, 168)"),
+              decoration: const InputDecoration(
+                labelText: "Duration in Days * (e.g. 28, 84, 168)",
+              ),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: priceCtrl,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               decoration: const InputDecoration(labelText: "Price in NPR *"),
             ),
             const SizedBox(height: 12),
@@ -120,9 +139,15 @@ class _SubscriptionBillingScreenState extends State<SubscriptionBillingScreen> {
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("Cancel"),
+          ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: SAMStyles.royalBlue, foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: SAMStyles.royalBlue,
+              foregroundColor: Colors.white,
+            ),
             onPressed: () async {
               final payload = {
                 if (id != null) 'id': id,
@@ -139,7 +164,9 @@ class _SubscriptionBillingScreenState extends State<SubscriptionBillingScreen> {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(res['message'] ?? 'Package saved'),
-                    backgroundColor: res['success'] == true ? SAMStyles.emeraldGreen : Colors.red,
+                    backgroundColor: res['success'] == true
+                        ? SAMStyles.emeraldGreen
+                        : Colors.red,
                   ),
                 );
                 _loadAllSubscriptionData();
@@ -164,11 +191,22 @@ class _SubscriptionBillingScreenState extends State<SubscriptionBillingScreen> {
           "Approve subscription request for '${req['restaurant_name'] ?? req['tenant_id']}'?\n\nPackage: ${req['package_name']} (${req['duration_days']} days).\n\nThis will immediately extend the tenant's active subscription_end date.",
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("CANCEL")),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text("CANCEL"),
+          ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(backgroundColor: SAMStyles.emeraldGreen),
-            child: const Text("APPROVE NOW", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: SAMStyles.emeraldGreen,
+            ),
+            child: const Text(
+              "APPROVE NOW",
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
@@ -182,7 +220,9 @@ class _SubscriptionBillingScreenState extends State<SubscriptionBillingScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(res['message'] ?? 'Action completed'),
-          backgroundColor: res['success'] == true ? SAMStyles.emeraldGreen : Colors.red,
+          backgroundColor: res['success'] == true
+              ? SAMStyles.emeraldGreen
+              : Colors.red,
         ),
       );
       _loadAllSubscriptionData();
@@ -193,7 +233,9 @@ class _SubscriptionBillingScreenState extends State<SubscriptionBillingScreen> {
     final reqId = int.tryParse(req['id']?.toString() ?? '0') ?? 0;
     if (reqId <= 0) return;
 
-    final noteCtrl = TextEditingController(text: "Payment not verified / invalid request.");
+    final noteCtrl = TextEditingController(
+      text: "Payment not verified / invalid request.",
+    );
 
     await showDialog(
       context: context,
@@ -203,7 +245,9 @@ class _SubscriptionBillingScreenState extends State<SubscriptionBillingScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("Reject subscription request for '${req['restaurant_name'] ?? req['tenant_id']}'?"),
+            Text(
+              "Reject subscription request for '${req['restaurant_name'] ?? req['tenant_id']}'?",
+            ),
             const SizedBox(height: 16),
             TextField(
               controller: noteCtrl,
@@ -215,24 +259,38 @@ class _SubscriptionBillingScreenState extends State<SubscriptionBillingScreen> {
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("CANCEL")),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("CANCEL"),
+          ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
             onPressed: () async {
               Navigator.pop(ctx);
-              final res = await ApiService.rejectSubscriptionRequest(reqId, note: noteCtrl.text.trim());
+              final res = await ApiService.rejectSubscriptionRequest(
+                reqId,
+                note: noteCtrl.text.trim(),
+              );
 
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(res['message'] ?? 'Rejected'),
-                    backgroundColor: res['success'] == true ? SAMStyles.emeraldGreen : Colors.red,
+                    backgroundColor: res['success'] == true
+                        ? SAMStyles.emeraldGreen
+                        : Colors.red,
                   ),
                 );
                 _loadAllSubscriptionData();
               }
             },
-            child: const Text("REJECT REQUEST", style: TextStyle(fontWeight: FontWeight.bold)),
+            child: const Text(
+              "REJECT REQUEST",
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),
@@ -263,13 +321,22 @@ class _SubscriptionBillingScreenState extends State<SubscriptionBillingScreen> {
               const Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text("Subscription & Plan Manager", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-                  Text("Manage pricing tiers, approve pending requests, and monitor all restaurant subscription cycles.", style: TextStyle(color: SAMStyles.textGrey)),
+                  Text(
+                    "Subscription & Plan Manager",
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                  ),
+                  Text(
+                    "Manage pricing tiers, approve pending requests, and monitor all restaurant subscription cycles.",
+                    style: TextStyle(color: SAMStyles.textGrey),
+                  ),
                 ],
               ),
               ElevatedButton.icon(
                 onPressed: _loadAllSubscriptionData,
-                style: ElevatedButton.styleFrom(backgroundColor: SAMStyles.royalBlue, foregroundColor: Colors.white),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: SAMStyles.royalBlue,
+                  foregroundColor: Colors.white,
+                ),
                 icon: const Icon(Icons.refresh_rounded, size: 18),
                 label: const Text("REFRESH LIVE DATA"),
               ),
@@ -284,7 +351,10 @@ class _SubscriptionBillingScreenState extends State<SubscriptionBillingScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text("Configured Package Tiers", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const Text(
+                "Configured Package Tiers",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
               OutlinedButton.icon(
                 onPressed: () => _editPackageModal(null),
                 icon: const Icon(Icons.add_rounded, size: 18),
@@ -305,7 +375,12 @@ class _SubscriptionBillingScreenState extends State<SubscriptionBillingScreen> {
   // ================= PENDING REQUESTS SECTION =================
   Widget _buildPendingRequestsSection() {
     if (_isLoading) {
-      return const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator()));
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(20),
+          child: CircularProgressIndicator(),
+        ),
+      );
     }
 
     if (_pendingRequests.isEmpty) {
@@ -318,12 +393,20 @@ class _SubscriptionBillingScreenState extends State<SubscriptionBillingScreen> {
         ),
         child: const Row(
           children: [
-            Icon(Icons.check_circle_outline_rounded, color: Colors.green, size: 24),
+            Icon(
+              Icons.check_circle_outline_rounded,
+              color: Colors.green,
+              size: 24,
+            ),
             SizedBox(width: 12),
             Expanded(
               child: Text(
                 "No pending subscription activation requests right now. All tenant plans are up to date!",
-                style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 13),
+                style: TextStyle(
+                  color: Colors.green,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
               ),
             ),
           ],
@@ -344,11 +427,19 @@ class _SubscriptionBillingScreenState extends State<SubscriptionBillingScreen> {
         children: [
           Row(
             children: [
-              const Icon(Icons.pending_actions_rounded, color: Colors.amber, size: 28),
+              const Icon(
+                Icons.pending_actions_rounded,
+                color: Colors.amber,
+                size: 28,
+              ),
               const SizedBox(width: 12),
               Text(
                 "Pending Subscription Activation Requests (${_pendingRequests.length})",
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF78350F)),
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                  color: Color(0xFF78350F),
+                ),
               ),
             ],
           ),
@@ -360,7 +451,8 @@ class _SubscriptionBillingScreenState extends State<SubscriptionBillingScreen> {
             separatorBuilder: (_, __) => const Divider(height: 16),
             itemBuilder: (ctx, idx) {
               final req = _pendingRequests[idx];
-              final storeName = req['restaurant_name'] ?? req['tenant_id'] ?? 'Store';
+              final storeName =
+                  req['restaurant_name'] ?? req['tenant_id'] ?? 'Store';
               final domain = req['custom_domain'] ?? req['tenant_id'] ?? '';
               final pkgName = req['package_name'] ?? 'Package';
               final duration = req['duration_days']?.toString() ?? '30';
@@ -375,11 +467,18 @@ class _SubscriptionBillingScreenState extends State<SubscriptionBillingScreen> {
                       children: [
                         Text(
                           "$storeName ($domain)",
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF78350F)),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                            color: Color(0xFF78350F),
+                          ),
                         ),
                         Text(
                           "Requested Package: $pkgName ($duration Days) • Price: NPR $price • Time: $reqAt",
-                          style: const TextStyle(fontSize: 12, color: Color(0xFF92400E)),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF92400E),
+                          ),
                         ),
                       ],
                     ),
@@ -390,10 +489,18 @@ class _SubscriptionBillingScreenState extends State<SubscriptionBillingScreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: SAMStyles.emeraldGreen,
                       foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                     ),
                     icon: const Icon(Icons.check_rounded, size: 16),
-                    label: const Text("APPROVE", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                    label: const Text(
+                      "APPROVE",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11,
+                      ),
+                    ),
                   ),
                   const SizedBox(width: 8),
                   OutlinedButton.icon(
@@ -401,10 +508,18 @@ class _SubscriptionBillingScreenState extends State<SubscriptionBillingScreen> {
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.red,
                       side: const BorderSide(color: Colors.red),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                     ),
                     icon: const Icon(Icons.close_rounded, size: 16),
-                    label: const Text("REJECT", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                    label: const Text(
+                      "REJECT",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11,
+                      ),
+                    ),
                   ),
                 ],
               );
@@ -434,23 +549,57 @@ class _SubscriptionBillingScreenState extends State<SubscriptionBillingScreen> {
 
             return Expanded(
               child: Container(
-                margin: EdgeInsets.only(right: index < _packages.length - 1 ? 16 : 0),
+                margin: EdgeInsets.only(
+                  right: index < _packages.length - 1 ? 16 : 0,
+                ),
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: SAMStyles.softShadow,
-                  border: Border.all(color: SAMStyles.royalBlue.withValues(alpha: 0.2), width: 1.5),
+                  border: Border.all(
+                    color: SAMStyles.royalBlue.withValues(alpha: 0.2),
+                    width: 1.5,
+                  ),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(name, style: const TextStyle(color: SAMStyles.royalBlue, fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+                    Text(
+                      name,
+                      style: const TextStyle(
+                        color: SAMStyles.royalBlue,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
                     const SizedBox(height: 10),
-                    Text(price, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
-                    Text(duration, style: const TextStyle(color: SAMStyles.textGrey, fontSize: 12, fontWeight: FontWeight.bold)),
+                    Text(
+                      price,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    Text(
+                      duration,
+                      style: const TextStyle(
+                        color: SAMStyles.textGrey,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     const SizedBox(height: 12),
-                    Text(perks, style: const TextStyle(color: SAMStyles.textGrey, fontSize: 11), maxLines: 2, overflow: TextOverflow.ellipsis),
+                    Text(
+                      perks,
+                      style: const TextStyle(
+                        color: SAMStyles.textGrey,
+                        fontSize: 11,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                     const SizedBox(height: 16),
                     SizedBox(
                       width: double.infinity,
@@ -459,7 +608,9 @@ class _SubscriptionBillingScreenState extends State<SubscriptionBillingScreen> {
                         style: OutlinedButton.styleFrom(
                           side: const BorderSide(color: SAMStyles.royalBlue),
                           foregroundColor: SAMStyles.royalBlue,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
                         ),
                         icon: const Icon(Icons.edit, size: 14),
                         label: const Text("EDIT TIER"),
@@ -476,7 +627,9 @@ class _SubscriptionBillingScreenState extends State<SubscriptionBillingScreen> {
   }
 
   // ================= RESTAURANT SUBSCRIPTION MONITORING WITH FILTER =================
-  Widget _buildActiveRestaurantsSubscriptionList(List<Map<String, dynamic>> filteredStores) {
+  Widget _buildActiveRestaurantsSubscriptionList(
+    List<Map<String, dynamic>> filteredStores,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -486,19 +639,30 @@ class _SubscriptionBillingScreenState extends State<SubscriptionBillingScreen> {
             const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text("Restaurant Subscription Monitoring", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                Text("Filter by running, expired, or free trial users.", style: TextStyle(color: SAMStyles.textGrey, fontSize: 12)),
+                Text(
+                  "Restaurant Subscription Monitoring",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  "Filter by running, expired, or free trial users.",
+                  style: TextStyle(color: SAMStyles.textGrey, fontSize: 12),
+                ),
               ],
             ),
             Wrap(
               spacing: 8,
-              children: ['All', 'Active', 'Expired', 'Free Trial'].map((filterName) {
+              children: ['All', 'Active', 'Expired', 'Free Trial'].map((
+                filterName,
+              ) {
                 final isSelected = _selectedFilter == filterName;
                 return ChoiceChip(
                   label: Text(filterName),
                   selected: isSelected,
                   selectedColor: SAMStyles.royalBlue,
-                  labelStyle: TextStyle(color: isSelected ? Colors.white : Colors.black, fontWeight: FontWeight.bold),
+                  labelStyle: TextStyle(
+                    color: isSelected ? Colors.white : Colors.black,
+                    fontWeight: FontWeight.bold,
+                  ),
                   onSelected: (selected) {
                     setState(() {
                       _selectedFilter = filterName;
@@ -511,42 +675,82 @@ class _SubscriptionBillingScreenState extends State<SubscriptionBillingScreen> {
         ),
         const SizedBox(height: 16),
         Container(
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: SAMStyles.softShadow),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: SAMStyles.softShadow,
+          ),
           child: filteredStores.isEmpty
               ? const Padding(
                   padding: EdgeInsets.all(32.0),
-                  child: Center(child: Text("No restaurants found for this filter.", style: TextStyle(color: SAMStyles.textGrey))),
+                  child: Center(
+                    child: Text(
+                      "No restaurants found for this filter.",
+                      style: TextStyle(color: SAMStyles.textGrey),
+                    ),
+                  ),
                 )
               : ListView.separated(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   itemCount: filteredStores.length,
-                  separatorBuilder: (context, index) => const Divider(height: 1, color: Color(0xFFE2E8F0)),
+                  separatorBuilder: (context, index) =>
+                      const Divider(height: 1, color: Color(0xFFE2E8F0)),
                   itemBuilder: (context, index) {
                     final store = filteredStores[index];
                     final isExpired = store['status'] == 'Expired';
                     final isTrial = store['type'] == 'Trial';
 
                     return ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 12,
+                      ),
                       leading: CircleAvatar(
-                        backgroundColor: isExpired ? Colors.red.withValues(alpha: 0.1) : (isTrial ? Colors.teal.withValues(alpha: 0.1) : SAMStyles.royalBlue.withValues(alpha: 0.1)),
-                        child: Icon(Icons.store, color: isExpired ? Colors.red : (isTrial ? Colors.teal : SAMStyles.royalBlue)),
+                        backgroundColor: isExpired
+                            ? Colors.red.withValues(alpha: 0.1)
+                            : (isTrial
+                                  ? Colors.teal.withValues(alpha: 0.1)
+                                  : SAMStyles.royalBlue.withValues(alpha: 0.1)),
+                        child: Icon(
+                          Icons.store,
+                          color: isExpired
+                              ? Colors.red
+                              : (isTrial ? Colors.teal : SAMStyles.royalBlue),
+                        ),
                       ),
                       title: Row(
                         children: [
-                          Text(store['name']!, style: const TextStyle(fontWeight: FontWeight.bold)),
+                          Text(
+                            store['name']!,
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
                           if (isTrial) ...[
                             const SizedBox(width: 8),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(color: Colors.teal.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
-                              child: const Text("TRIAL", style: TextStyle(color: Colors.teal, fontSize: 9, fontWeight: FontWeight.bold)),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.teal.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: const Text(
+                                "TRIAL",
+                                style: TextStyle(
+                                  color: Colors.teal,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ),
                           ],
                         ],
                       ),
-                      subtitle: Text("Domain: ${store['domain']} • Plan: ${store['plan']}"),
+                      subtitle: Text(
+                        "Domain: ${store['domain']} • Plan: ${store['plan']}",
+                      ),
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -554,18 +758,49 @@ class _SubscriptionBillingScreenState extends State<SubscriptionBillingScreen> {
                             crossAxisAlignment: CrossAxisAlignment.end,
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Text("Passed: ${store['daysPassed']}", style: const TextStyle(fontSize: 12, color: SAMStyles.textGrey)),
-                              Text("Left: ${store['daysLeft']}", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: isExpired ? Colors.red : SAMStyles.emeraldGreen)),
+                              Text(
+                                "Passed: ${store['daysPassed']}",
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: SAMStyles.textGrey,
+                                ),
+                              ),
+                              Text(
+                                "Left: ${store['daysLeft']}",
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: isExpired
+                                      ? Colors.red
+                                      : SAMStyles.emeraldGreen,
+                                ),
+                              ),
                             ],
                           ),
                           const SizedBox(width: 20),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
-                              color: (isExpired ? Colors.red : SAMStyles.emeraldGreen).withValues(alpha: 0.1),
+                              color:
+                                  (isExpired
+                                          ? Colors.red
+                                          : SAMStyles.emeraldGreen)
+                                      .withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            child: Text(store['status']!, style: TextStyle(color: isExpired ? Colors.red : SAMStyles.emeraldGreen, fontSize: 10, fontWeight: FontWeight.bold)),
+                            child: Text(
+                              store['status']!,
+                              style: TextStyle(
+                                color: isExpired
+                                    ? Colors.red
+                                    : SAMStyles.emeraldGreen,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
                         ],
                       ),

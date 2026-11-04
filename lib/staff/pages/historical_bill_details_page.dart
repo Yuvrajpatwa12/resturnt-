@@ -25,8 +25,12 @@ class HistoricalBillDetailsPage extends StatelessWidget {
           child: Material(
             color: Colors.transparent,
             child: Text(
-              "Order #${bill['id']}", 
-              style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.w900, fontSize: 18)
+              "Order #${bill['id']}",
+              style: const TextStyle(
+                color: Colors.black87,
+                fontWeight: FontWeight.w900,
+                fontSize: 18,
+              ),
             ),
           ),
         ),
@@ -42,9 +46,14 @@ class HistoricalBillDetailsPage extends StatelessWidget {
             child: Column(
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
-                    color: isActive ? const Color(0xFFFF5C00).withValues(alpha: 0.1) : Colors.green.withValues(alpha: 0.1),
+                    color: isActive
+                        ? const Color(0xFFFF5C00).withValues(alpha: 0.1)
+                        : Colors.green.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
@@ -76,7 +85,12 @@ class HistoricalBillDetailsPage extends StatelessWidget {
               alignment: Alignment.centerLeft,
               child: Text(
                 "ORDER BREAKDOWN",
-                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.5, color: Colors.grey),
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.5,
+                  color: Colors.grey,
+                ),
               ),
             ),
           ),
@@ -99,22 +113,35 @@ class HistoricalBillDetailsPage extends StatelessWidget {
                     children: [
                       Container(
                         padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(color: Colors.grey[100], shape: BoxShape.circle),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[100],
+                          shape: BoxShape.circle,
+                        ),
                         child: Text(
-                          "${item['qty']}x", 
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFFFF5C00))
+                          "${item['qty']}x",
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                            color: Color(0xFFFF5C00),
+                          ),
                         ),
                       ),
                       const SizedBox(width: 15),
                       Expanded(
                         child: Text(
-                          item['name'], 
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)
+                          item['name'],
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
                         ),
                       ),
                       Text(
-                        item['price'], 
-                        style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14)
+                        item['price'],
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 14,
+                        ),
                       ),
                     ],
                   ),
@@ -136,44 +163,73 @@ class HistoricalBillDetailsPage extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text("TOTAL BILL", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Colors.grey)),
+                    const Text(
+                      "TOTAL BILL",
+                      style: TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 12,
+                        color: Colors.grey,
+                      ),
+                    ),
                     Hero(
                       tag: "order_total_${bill['id']}",
                       child: Material(
                         color: Colors.transparent,
                         child: Text(
-                          bill['total'], 
-                          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFFFF5C00))
+                          bill['total'],
+                          style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                            color: Color(0xFFFF5C00),
+                          ),
                         ),
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 30),
-                
+
                 if (isActive)
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
                       onPressed: () {
                         // For mock demo, we'll try to use the existing receipt page
-                        // Since receipt page currently uses Table ID orders, 
-                        // we'll just show the receipt for Table 7 (mock ID 146) 
-                        // or similar logic. 
-                        int tableNum = int.tryParse(bill['table'].replaceAll('Table ', '')) ?? 1;
+                        // Since receipt page currently uses Table ID orders,
+                        // we'll just show the receipt for Table 7 (mock ID 146)
+                        // or similar logic.
+                        int tableNum =
+                            int.tryParse(
+                              bill['table'].replaceAll('Table ', ''),
+                            ) ??
+                            1;
                         Navigator.push(
-                          context, 
-                          MaterialPageRoute(builder: (context) => StaffFinalReceiptPage(tableId: tableNum))
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                StaffFinalReceiptPage(tableId: tableNum),
+                          ),
                         );
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFFF5C00),
                         padding: const EdgeInsets.symmetric(vertical: 20),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15),
+                        ),
                         elevation: 10,
-                        shadowColor: const Color(0xFFFF5C00).withValues(alpha: 0.3),
+                        shadowColor: const Color(
+                          0xFFFF5C00,
+                        ).withValues(alpha: 0.3),
                       ),
-                      child: const Text("CREATE FINAL BILL", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                      child: const Text(
+                        "CREATE FINAL BILL",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1,
+                        ),
+                      ),
                     ),
                   )
                 else if (isBilled)
@@ -182,21 +238,39 @@ class HistoricalBillDetailsPage extends StatelessWidget {
                     child: OutlinedButton(
                       onPressed: () {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text("Payment recorded! Order archived.")),
+                          const SnackBar(
+                            content: Text("Payment recorded! Order archived."),
+                          ),
                         );
                         Navigator.pop(context);
                       },
                       style: OutlinedButton.styleFrom(
                         side: const BorderSide(color: Colors.green, width: 2),
                         padding: const EdgeInsets.symmetric(vertical: 20),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15),
+                        ),
                       ),
-                      child: const Text("MARK AS PAID", style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                      child: const Text(
+                        "MARK AS PAID",
+                        style: TextStyle(
+                          color: Colors.green,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1,
+                        ),
+                      ),
                     ),
                   ),
-                
+
                 const SizedBox(height: 10),
-                const Text("Handled by Server: Catherine", style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)),
+                const Text(
+                  "Handled by Server: Catherine",
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: Colors.grey,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ],
             ),
           ),
@@ -208,9 +282,20 @@ class HistoricalBillDetailsPage extends StatelessWidget {
   Widget _buildMetaInfo(String label, String value) {
     return Column(
       children: [
-        Text(label, style: const TextStyle(fontSize: 9, color: Colors.grey, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 9,
+            color: Colors.grey,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 0.5,
+          ),
+        ),
         const SizedBox(height: 4),
-        Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900)),
+        Text(
+          value,
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900),
+        ),
       ],
     );
   }

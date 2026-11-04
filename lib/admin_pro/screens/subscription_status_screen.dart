@@ -7,7 +7,8 @@ class SubscriptionStatusScreen extends StatefulWidget {
   const SubscriptionStatusScreen({super.key});
 
   @override
-  State<SubscriptionStatusScreen> createState() => _SubscriptionStatusScreenState();
+  State<SubscriptionStatusScreen> createState() =>
+      _SubscriptionStatusScreenState();
 }
 
 class _SubscriptionStatusScreenState extends State<SubscriptionStatusScreen> {
@@ -48,11 +49,15 @@ class _SubscriptionStatusScreenState extends State<SubscriptionStatusScreen> {
     if (pkgId <= 0) return;
 
     // Strict single pending request check
-    final hasPending = _myRequests.any((r) => r['status']?.toString() == 'Pending');
+    final hasPending = _myRequests.any(
+      (r) => r['status']?.toString() == 'Pending',
+    );
     if (hasPending) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("You already have a pending subscription request. Please cancel it or wait for approval."),
+          content: Text(
+            "You already have a pending subscription request. Please cancel it or wait for approval.",
+          ),
           backgroundColor: Colors.red,
         ),
       );
@@ -70,11 +75,20 @@ class _SubscriptionStatusScreenState extends State<SubscriptionStatusScreen> {
             "You already have an active plan with $daysLeft days remaining. Are you sure you want to request a plan extension for '${pkg['name']}'?",
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("CANCEL")),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text("CANCEL"),
+            ),
             ElevatedButton(
               onPressed: () => Navigator.pop(ctx, true),
               style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
-              child: const Text("PROCEED", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              child: const Text(
+                "PROCEED",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ],
         ),
@@ -90,11 +104,22 @@ class _SubscriptionStatusScreenState extends State<SubscriptionStatusScreen> {
           "Are you sure you want to request activation for '${pkg['name']}' (${pkg['duration_days']} days at NPR ${pkg['price']})?\n\nThis will send a request to Super Admin for approval.",
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("CANCEL")),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text("CANCEL"),
+          ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(backgroundColor: AdminTheme.royalBlue),
-            child: const Text("SUBMIT REQUEST", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AdminTheme.royalBlue,
+            ),
+            child: const Text(
+              "SUBMIT REQUEST",
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
@@ -108,7 +133,9 @@ class _SubscriptionStatusScreenState extends State<SubscriptionStatusScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(result['message'] ?? 'Request processed'),
-          backgroundColor: result['success'] == true ? AdminTheme.emeraldGreen : Colors.red,
+          backgroundColor: result['success'] == true
+              ? AdminTheme.emeraldGreen
+              : Colors.red,
         ),
       );
       _loadSubscriptionData();
@@ -123,13 +150,24 @@ class _SubscriptionStatusScreenState extends State<SubscriptionStatusScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text("Cancel Subscription Request"),
-        content: const Text("Are you sure you want to cancel this pending subscription request?"),
+        content: const Text(
+          "Are you sure you want to cancel this pending subscription request?",
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("NO")),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text("NO"),
+          ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text("YES, CANCEL", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            child: const Text(
+              "YES, CANCEL",
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
@@ -137,13 +175,18 @@ class _SubscriptionStatusScreenState extends State<SubscriptionStatusScreen> {
 
     if (confirm != true) return;
 
-    final result = await ApiService.cancelSubscriptionRequest(tenantId, requestId);
+    final result = await ApiService.cancelSubscriptionRequest(
+      tenantId,
+      requestId,
+    );
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(result['message'] ?? 'Request processed'),
-          backgroundColor: result['success'] == true ? AdminTheme.emeraldGreen : Colors.red,
+          backgroundColor: result['success'] == true
+              ? AdminTheme.emeraldGreen
+              : Colors.red,
         ),
       );
       _loadSubscriptionData();
@@ -175,10 +218,18 @@ class _SubscriptionStatusScreenState extends State<SubscriptionStatusScreen> {
         startDate ??= now.subtract(const Duration(days: 3));
         expiryDate ??= now.add(Duration(days: tenant.daysRemaining));
 
-        final int totalDays = expiryDate.difference(startDate).inDays.clamp(1, 365);
-        final int daysPassed = now.difference(startDate).inDays.clamp(0, totalDays);
+        final int totalDays = expiryDate
+            .difference(startDate)
+            .inDays
+            .clamp(1, 365);
+        final int daysPassed = now
+            .difference(startDate)
+            .inDays
+            .clamp(0, totalDays);
         final int daysLeft = tenant.daysRemaining;
-        final double progress = totalDays > 0 ? (daysPassed / totalDays).clamp(0.0, 1.0) : 0.0;
+        final double progress = totalDays > 0
+            ? (daysPassed / totalDays).clamp(0.0, 1.0)
+            : 0.0;
 
         return SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -193,16 +244,27 @@ class _SubscriptionStatusScreenState extends State<SubscriptionStatusScreen> {
                     children: [
                       Text(
                         "Subscription & Plan Center",
-                        style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: AdminTheme.darkNavy),
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w900,
+                          color: AdminTheme.darkNavy,
+                        ),
                       ),
                       Text(
                         "Monitor real-time SaaS status and request plan extensions.",
-                        style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ],
                   ),
                   IconButton(
-                    icon: const Icon(Icons.refresh_rounded, color: AdminTheme.royalBlue),
+                    icon: const Icon(
+                      Icons.refresh_rounded,
+                      color: AdminTheme.royalBlue,
+                    ),
                     onPressed: _loadSubscriptionData,
                     tooltip: "Refresh Data",
                   ),
@@ -213,12 +275,22 @@ class _SubscriptionStatusScreenState extends State<SubscriptionStatusScreen> {
               _buildPlanCard(tenant, daysLeft),
               const SizedBox(height: 24),
 
-              _buildLifecycleCard(daysPassed, daysLeft, progress, startDate, expiryDate),
+              _buildLifecycleCard(
+                daysPassed,
+                daysLeft,
+                progress,
+                startDate,
+                expiryDate,
+              ),
               const SizedBox(height: 32),
 
               const Text(
                 "Available Subscription Packages",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AdminTheme.darkNavy),
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AdminTheme.darkNavy,
+                ),
               ),
               const SizedBox(height: 12),
               _buildPackageSelectorGrid(),
@@ -226,7 +298,11 @@ class _SubscriptionStatusScreenState extends State<SubscriptionStatusScreen> {
 
               const Text(
                 "Submitted Activation Requests History",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AdminTheme.darkNavy),
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AdminTheme.darkNavy,
+                ),
               ),
               const SizedBox(height: 12),
               _buildSubmittedRequestsList(),
@@ -239,18 +315,29 @@ class _SubscriptionStatusScreenState extends State<SubscriptionStatusScreen> {
 
   Widget _buildPlanCard(Tenant tenant, int daysLeft) {
     final bool isExpired = daysLeft < 0;
-    final bool isTrial = tenant.subscriptionStatus == 'Trial' || tenant.plan == '3 Days Free Trial';
+    final bool isTrial =
+        tenant.subscriptionStatus == 'Trial' ||
+        tenant.plan == '3 Days Free Trial';
 
-    List<Color> gradientColors = [const Color(0xFF2563EB), const Color(0xFF1D4ED8)]; // Vibrant Royal Blue
+    List<Color> gradientColors = [
+      const Color(0xFF2563EB),
+      const Color(0xFF1D4ED8),
+    ]; // Vibrant Royal Blue
     String statusTag = "ACTIVE PLAN";
     Color badgeColor = Colors.white;
 
     if (isExpired) {
-      gradientColors = [const Color(0xFF334155), const Color(0xFF1E293B)]; // Compact Sleek Slate
+      gradientColors = [
+        const Color(0xFF334155),
+        const Color(0xFF1E293B),
+      ]; // Compact Sleek Slate
       statusTag = "EXPIRED PLAN";
       badgeColor = const Color(0xFFF87171);
     } else if (isTrial) {
-      gradientColors = [const Color(0xFF0D9488), const Color(0xFF0F766E)]; // Teal
+      gradientColors = [
+        const Color(0xFF0D9488),
+        const Color(0xFF0F766E),
+      ]; // Teal
       statusTag = "3-DAY FREE TRIAL";
       badgeColor = const Color(0xFF5EEAD4);
     }
@@ -283,30 +370,51 @@ class _SubscriptionStatusScreenState extends State<SubscriptionStatusScreen> {
                     Container(
                       width: 6,
                       height: 6,
-                      decoration: BoxDecoration(color: badgeColor, shape: BoxShape.circle),
+                      decoration: BoxDecoration(
+                        color: badgeColor,
+                        shape: BoxShape.circle,
+                      ),
                     ),
                     const SizedBox(width: 6),
                     Text(
                       statusTag,
-                      style: TextStyle(color: badgeColor, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1),
+                      style: TextStyle(
+                        color: badgeColor,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1,
+                      ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 6),
                 Text(
                   tenant.plan,
-                  style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
                 const SizedBox(height: 6),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    isExpired ? "Expired ($daysLeft Days Ago)" : "$daysLeft Days Remaining",
-                    style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold),
+                    isExpired
+                        ? "Expired ($daysLeft Days Ago)"
+                        : "$daysLeft Days Remaining",
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ],
@@ -319,7 +427,11 @@ class _SubscriptionStatusScreenState extends State<SubscriptionStatusScreen> {
               shape: BoxShape.circle,
             ),
             child: Icon(
-              isExpired ? Icons.warning_amber_rounded : (isTrial ? Icons.hourglass_top_rounded : Icons.verified_rounded),
+              isExpired
+                  ? Icons.warning_amber_rounded
+                  : (isTrial
+                        ? Icons.hourglass_top_rounded
+                        : Icons.verified_rounded),
               color: badgeColor,
               size: 28,
             ),
@@ -329,7 +441,13 @@ class _SubscriptionStatusScreenState extends State<SubscriptionStatusScreen> {
     );
   }
 
-  Widget _buildLifecycleCard(int passed, int left, double progress, DateTime start, DateTime end) {
+  Widget _buildLifecycleCard(
+    int passed,
+    int left,
+    double progress,
+    DateTime start,
+    DateTime end,
+  ) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -343,8 +461,16 @@ class _SubscriptionStatusScreenState extends State<SubscriptionStatusScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildStatItem("Days Elapsed", "$passed Days", AdminTheme.royalBlue),
-              _buildStatItem("Days Remaining", "${left < 0 ? 0 : left} Days", left <= 3 ? const Color(0xFFEF4444) : AdminTheme.emeraldGreen),
+              _buildStatItem(
+                "Days Elapsed",
+                "$passed Days",
+                AdminTheme.royalBlue,
+              ),
+              _buildStatItem(
+                "Days Remaining",
+                "${left < 0 ? 0 : left} Days",
+                left <= 3 ? const Color(0xFFEF4444) : AdminTheme.emeraldGreen,
+              ),
             ],
           ),
           const SizedBox(height: 20),
@@ -361,8 +487,14 @@ class _SubscriptionStatusScreenState extends State<SubscriptionStatusScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildDateInfo("Start Date", "${start.day}/${start.month}/${start.year}"),
-              _buildDateInfo("Expiry Date", "${end.day}/${end.month}/${end.year}"),
+              _buildDateInfo(
+                "Start Date",
+                "${start.day}/${start.month}/${start.year}",
+              ),
+              _buildDateInfo(
+                "Expiry Date",
+                "${end.day}/${end.month}/${end.year}",
+              ),
             ],
           ),
         ],
@@ -374,9 +506,23 @@ class _SubscriptionStatusScreenState extends State<SubscriptionStatusScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.bold)),
+        Text(
+          label,
+          style: const TextStyle(
+            color: Colors.grey,
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         const SizedBox(height: 4),
-        Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: color)),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w900,
+            color: color,
+          ),
+        ),
       ],
     );
   }
@@ -385,22 +531,46 @@ class _SubscriptionStatusScreenState extends State<SubscriptionStatusScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(color: Colors.grey, fontSize: 10, fontWeight: FontWeight.bold)),
-        Text(date, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AdminTheme.darkNavy)),
+        Text(
+          label,
+          style: const TextStyle(
+            color: Colors.grey,
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        Text(
+          date,
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.bold,
+            color: AdminTheme.darkNavy,
+          ),
+        ),
       ],
     );
   }
 
   Widget _buildPackageSelectorGrid() {
     if (_isLoading) {
-      return const Center(child: Padding(padding: EdgeInsets.all(32), child: CircularProgressIndicator()));
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(32),
+          child: CircularProgressIndicator(),
+        ),
+      );
     }
 
     if (_packages.isEmpty) {
       return Container(
         padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
-        child: const Center(child: Text("No subscription packages available currently.")),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: const Center(
+          child: Text("No subscription packages available currently."),
+        ),
       );
     }
 
@@ -430,7 +600,9 @@ class _SubscriptionStatusScreenState extends State<SubscriptionStatusScreen> {
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: AdminTheme.softShadow,
-                border: Border.all(color: AdminTheme.royalBlue.withValues(alpha: 0.2)),
+                border: Border.all(
+                  color: AdminTheme.royalBlue.withValues(alpha: 0.2),
+                ),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -439,12 +611,41 @@ class _SubscriptionStatusScreenState extends State<SubscriptionStatusScreen> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AdminTheme.darkNavy)),
+                      Text(
+                        name,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                          color: AdminTheme.darkNavy,
+                        ),
+                      ),
                       const SizedBox(height: 6),
-                      Text("NPR $price", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 20, color: AdminTheme.royalBlue)),
-                      Text("$duration Days Duration", style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.bold)),
+                      Text(
+                        "NPR $price",
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 20,
+                          color: AdminTheme.royalBlue,
+                        ),
+                      ),
+                      Text(
+                        "$duration Days Duration",
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                       const SizedBox(height: 10),
-                      Text(perks, style: TextStyle(fontSize: 11, color: Colors.grey.shade700), maxLines: 2, overflow: TextOverflow.ellipsis),
+                      Text(
+                        perks,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey.shade700,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ],
                   ),
                   SizedBox(
@@ -455,9 +656,18 @@ class _SubscriptionStatusScreenState extends State<SubscriptionStatusScreen> {
                         backgroundColor: AdminTheme.royalBlue,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 10),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                       ),
-                      child: const Text("REQUEST ACTIVATION", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10, letterSpacing: 0.5)),
+                      child: const Text(
+                        "REQUEST ACTIVATION",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 10,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -502,7 +712,8 @@ class _SubscriptionStatusScreenState extends State<SubscriptionStatusScreen> {
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         itemCount: _myRequests.length,
-        separatorBuilder: (_, __) => const Divider(height: 1, color: Color(0xFFE2E8F0)),
+        separatorBuilder: (_, __) =>
+            const Divider(height: 1, color: Color(0xFFE2E8F0)),
         itemBuilder: (context, index) {
           final req = _myRequests[index];
           final pkgName = req['package_name'] ?? 'Package';
@@ -515,25 +726,43 @@ class _SubscriptionStatusScreenState extends State<SubscriptionStatusScreen> {
           if (status == 'Rejected') badgeColor = Colors.red;
 
           return ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 20,
+              vertical: 12,
+            ),
             leading: CircleAvatar(
               backgroundColor: badgeColor.withValues(alpha: 0.12),
               child: Icon(
                 status == 'Approved'
                     ? Icons.check_circle_rounded
-                    : (status == 'Rejected' ? Icons.cancel_rounded : Icons.pending_rounded),
+                    : (status == 'Rejected'
+                          ? Icons.cancel_rounded
+                          : Icons.pending_rounded),
                 color: badgeColor,
                 size: 22,
               ),
             ),
-            title: Text("Request: $pkgName", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+            title: Text(
+              "Request: $pkgName",
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+            ),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text("Requested on: $reqAt", style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                Text(
+                  "Requested on: $reqAt",
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                ),
                 if (status == 'Rejected' && note.isNotEmpty) ...[
                   const SizedBox(height: 4),
-                  Text("Rejection Note: $note", style: const TextStyle(fontSize: 12, color: Colors.red, fontWeight: FontWeight.bold)),
+                  Text(
+                    "Rejection Note: $note",
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Colors.red,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ],
               ],
             ),
@@ -543,28 +772,42 @@ class _SubscriptionStatusScreenState extends State<SubscriptionStatusScreen> {
                 if (status == 'Pending') ...[
                   OutlinedButton.icon(
                     onPressed: () {
-                      final reqId = int.tryParse(req['id']?.toString() ?? '0') ?? 0;
+                      final reqId =
+                          int.tryParse(req['id']?.toString() ?? '0') ?? 0;
                       if (reqId > 0) _cancelRequest(reqId);
                     },
                     icon: const Icon(Icons.close, size: 14, color: Colors.red),
-                    label: const Text("Cancel", style: TextStyle(color: Colors.red, fontSize: 11)),
+                    label: const Text(
+                      "Cancel",
+                      style: TextStyle(color: Colors.red, fontSize: 11),
+                    ),
                     style: OutlinedButton.styleFrom(
                       side: const BorderSide(color: Colors.red),
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       minimumSize: Size.zero,
                     ),
                   ),
                   const SizedBox(width: 8),
                 ],
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: badgeColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
                     status.toUpperCase(),
-                    style: TextStyle(color: badgeColor, fontWeight: FontWeight.bold, fontSize: 11),
+                    style: TextStyle(
+                      color: badgeColor,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 11,
+                    ),
                   ),
                 ),
               ],

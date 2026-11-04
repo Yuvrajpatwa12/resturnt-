@@ -19,21 +19,86 @@ class _StateSettingScreenState extends State<StateSettingScreen> {
   // Strictly Nepal & India state/province data
   final Map<String, List<Map<String, String>>> _stateData = {
     'Nepal': [
-      {'name': 'Bagmati Province', 'code': 'P3', 'capital': 'Hetauda', 'type': 'Province'},
-      {'name': 'Gandaki Province', 'code': 'P4', 'capital': 'Pokhara', 'type': 'Province'},
-      {'name': 'Koshi Province', 'code': 'P1', 'capital': 'Biratnagar', 'type': 'Province'},
-      {'name': 'Lumbini Province', 'code': 'P5', 'capital': 'Deukhuri', 'type': 'Province'},
-      {'name': 'Madhesh Province', 'code': 'P2', 'capital': 'Janakpur', 'type': 'Province'},
-      {'name': 'Karnali Province', 'code': 'P6', 'capital': 'Birendranagar', 'type': 'Province'},
-      {'name': 'Sudurpashchim Province', 'code': 'P7', 'capital': 'Godawari', 'type': 'Province'},
+      {
+        'name': 'Bagmati Province',
+        'code': 'P3',
+        'capital': 'Hetauda',
+        'type': 'Province',
+      },
+      {
+        'name': 'Gandaki Province',
+        'code': 'P4',
+        'capital': 'Pokhara',
+        'type': 'Province',
+      },
+      {
+        'name': 'Koshi Province',
+        'code': 'P1',
+        'capital': 'Biratnagar',
+        'type': 'Province',
+      },
+      {
+        'name': 'Lumbini Province',
+        'code': 'P5',
+        'capital': 'Deukhuri',
+        'type': 'Province',
+      },
+      {
+        'name': 'Madhesh Province',
+        'code': 'P2',
+        'capital': 'Janakpur',
+        'type': 'Province',
+      },
+      {
+        'name': 'Karnali Province',
+        'code': 'P6',
+        'capital': 'Birendranagar',
+        'type': 'Province',
+      },
+      {
+        'name': 'Sudurpashchim Province',
+        'code': 'P7',
+        'capital': 'Godawari',
+        'type': 'Province',
+      },
     ],
     'India': [
-      {'name': 'Delhi (NCT)', 'code': 'DL', 'capital': 'New Delhi', 'type': 'Union Territory'},
-      {'name': 'Maharashtra', 'code': 'MH', 'capital': 'Mumbai', 'type': 'State'},
-      {'name': 'Karnataka', 'code': 'KA', 'capital': 'Bengaluru', 'type': 'State'},
-      {'name': 'Tamil Nadu', 'code': 'TN', 'capital': 'Chennai', 'type': 'State'},
-      {'name': 'Uttar Pradesh', 'code': 'UP', 'capital': 'Lucknow', 'type': 'State'},
-      {'name': 'West Bengal', 'code': 'WB', 'capital': 'Kolkata', 'type': 'State'},
+      {
+        'name': 'Delhi (NCT)',
+        'code': 'DL',
+        'capital': 'New Delhi',
+        'type': 'Union Territory',
+      },
+      {
+        'name': 'Maharashtra',
+        'code': 'MH',
+        'capital': 'Mumbai',
+        'type': 'State',
+      },
+      {
+        'name': 'Karnataka',
+        'code': 'KA',
+        'capital': 'Bengaluru',
+        'type': 'State',
+      },
+      {
+        'name': 'Tamil Nadu',
+        'code': 'TN',
+        'capital': 'Chennai',
+        'type': 'State',
+      },
+      {
+        'name': 'Uttar Pradesh',
+        'code': 'UP',
+        'capital': 'Lucknow',
+        'type': 'State',
+      },
+      {
+        'name': 'West Bengal',
+        'code': 'WB',
+        'capital': 'Kolkata',
+        'type': 'State',
+      },
     ],
   };
 
@@ -88,7 +153,11 @@ class _StateSettingScreenState extends State<StateSettingScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Row(
                 children: [
-                  const Icon(Icons.public_rounded, color: AppTheme.primaryPurple, size: 22),
+                  const Icon(
+                    Icons.public_rounded,
+                    color: AppTheme.primaryPurple,
+                    size: 22,
+                  ),
                   const SizedBox(width: 12),
                   const Text(
                     "Country:",
@@ -103,7 +172,10 @@ class _StateSettingScreenState extends State<StateSettingScreen> {
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<String>(
                         value: _selectedCountry,
-                        icon: const Icon(Icons.arrow_drop_down_rounded, color: AppTheme.primaryPurple),
+                        icon: const Icon(
+                          Icons.arrow_drop_down_rounded,
+                          color: AppTheme.primaryPurple,
+                        ),
                         isExpanded: true,
                         style: const TextStyle(
                           color: AppTheme.textPrimary,
@@ -120,7 +192,8 @@ class _StateSettingScreenState extends State<StateSettingScreen> {
                           if (val != null) {
                             setState(() {
                               _selectedCountry = val;
-                              final firstState = _stateData[val]?.first['name'] ?? "";
+                              final firstState =
+                                  _stateData[val]?.first['name'] ?? "";
                               _selectedState = firstState;
                             });
                           }
@@ -143,7 +216,10 @@ class _StateSettingScreenState extends State<StateSettingScreen> {
                 onChanged: (val) => setState(() => _searchQuery = val),
                 decoration: InputDecoration(
                   hintText: "Search state or province in $_selectedCountry...",
-                  prefixIcon: const Icon(Icons.search_rounded, color: AppTheme.primaryPurple),
+                  prefixIcon: const Icon(
+                    Icons.search_rounded,
+                    color: AppTheme.primaryPurple,
+                  ),
                   suffixIcon: _searchQuery.isNotEmpty
                       ? IconButton(
                           icon: const Icon(Icons.clear_rounded, size: 20),
@@ -207,12 +283,15 @@ class _StateSettingScreenState extends State<StateSettingScreen> {
                                   _selectedState = stateItem['name']!;
                                 });
                                 final messenger = ScaffoldMessenger.of(context);
-                                final tenantId = TenantService().currentTenant.value?.id;
+                                final tenantId =
+                                    TenantService().currentTenant.value?.id;
                                 messenger.showSnackBar(
                                   SnackBar(
                                     content: Text(
                                       "Active State set to ${stateItem['name']} ($_selectedCountry) (Synced)",
-                                      style: const TextStyle(fontWeight: FontWeight.w500),
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w500,
+                                      ),
                                     ),
                                     backgroundColor: AppTheme.primaryPurple,
                                     behavior: SnackBarBehavior.floating,
@@ -256,7 +335,8 @@ class _StateSettingScreenState extends State<StateSettingScreen> {
                                     const SizedBox(width: 14),
                                     Expanded(
                                       child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
                                           Row(
                                             children: [
@@ -272,18 +352,21 @@ class _StateSettingScreenState extends State<StateSettingScreen> {
                                               ),
                                               const SizedBox(width: 8),
                                               Container(
-                                                padding: const EdgeInsets.symmetric(
-                                                  horizontal: 6,
-                                                  vertical: 2,
-                                                ),
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 6,
+                                                      vertical: 2,
+                                                    ),
                                                 decoration: BoxDecoration(
                                                   color: AppTheme.cardBorder,
-                                                  borderRadius: BorderRadius.circular(4),
+                                                  borderRadius:
+                                                      BorderRadius.circular(4),
                                                 ),
                                                 child: Text(
                                                   stateItem['code']!,
                                                   style: const TextStyle(
-                                                    color: AppTheme.textSecondary,
+                                                    color:
+                                                        AppTheme.textSecondary,
                                                     fontSize: 10,
                                                     fontWeight: FontWeight.bold,
                                                   ),

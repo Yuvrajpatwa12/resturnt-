@@ -42,7 +42,13 @@ class _UnitMeasurementScreenState extends State<UnitMeasurementScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(unit == null ? "Add Measurement Unit" : "Edit Unit", style: const TextStyle(fontWeight: FontWeight.bold, color: AdminTheme.darkNavy)),
+        title: Text(
+          unit == null ? "Add Measurement Unit" : "Edit Unit",
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            color: AdminTheme.darkNavy,
+          ),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -52,7 +58,10 @@ class _UnitMeasurementScreenState extends State<UnitMeasurementScreen> {
                 labelText: "Unit Name (e.g. Kilogram)",
                 filled: true,
                 fillColor: AdminTheme.pearlWhite,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
               ),
             ),
             const SizedBox(height: 16),
@@ -62,13 +71,19 @@ class _UnitMeasurementScreenState extends State<UnitMeasurementScreen> {
                 labelText: "Symbol (e.g. kg, ltr, pcs)",
                 filled: true,
                 fillColor: AdminTheme.pearlWhite,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
               ),
             ),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("CANCEL")),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("CANCEL"),
+          ),
           ElevatedButton(
             onPressed: () async {
               if (nameController.text.trim().isEmpty) return;
@@ -83,14 +98,28 @@ class _UnitMeasurementScreenState extends State<UnitMeasurementScreen> {
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text(success ? "Unit saved to database successfully!" : "Failed to save unit to database."),
-                    backgroundColor: success ? AdminTheme.emeraldGreen : Colors.redAccent,
+                    content: Text(
+                      success
+                          ? "Unit saved to database successfully!"
+                          : "Failed to save unit to database.",
+                    ),
+                    backgroundColor: success
+                        ? AdminTheme.emeraldGreen
+                        : Colors.redAccent,
                   ),
                 );
               }
             },
-            style: ElevatedButton.styleFrom(backgroundColor: AdminTheme.royalBlue),
-            child: const Text("SAVE", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AdminTheme.royalBlue,
+            ),
+            child: const Text(
+              "SAVE",
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
@@ -101,7 +130,9 @@ class _UnitMeasurementScreenState extends State<UnitMeasurementScreen> {
     await ApiService.deleteUnit(id);
     _loadUnits();
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Unit removed.")));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Unit removed.")));
     }
   }
 
@@ -118,20 +149,38 @@ class _UnitMeasurementScreenState extends State<UnitMeasurementScreen> {
               const Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text("Unit Measurement List", style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: AdminTheme.darkNavy)),
+                  Text(
+                    "Unit Measurement List",
+                    style: TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.w900,
+                      color: AdminTheme.darkNavy,
+                    ),
+                  ),
                   SizedBox(height: 4),
-                  Text("Manage standard measurement units for inventory and kitchen stock tracking.", style: TextStyle(color: Colors.grey, fontSize: 13)),
+                  Text(
+                    "Manage standard measurement units for inventory and kitchen stock tracking.",
+                    style: TextStyle(color: Colors.grey, fontSize: 13),
+                  ),
                 ],
               ),
               ElevatedButton.icon(
                 onPressed: () => _openUnitDialog(),
                 icon: const Icon(Icons.add_rounded, size: 18),
-                label: const Text("ADD UNIT", style: TextStyle(fontWeight: FontWeight.bold)),
+                label: const Text(
+                  "ADD UNIT",
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFFF5C00),
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 14,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
               ),
             ],
@@ -139,7 +188,12 @@ class _UnitMeasurementScreenState extends State<UnitMeasurementScreen> {
           const SizedBox(height: 28),
 
           _isLoading
-              ? const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator()))
+              ? const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(40),
+                    child: CircularProgressIndicator(),
+                  ),
+                )
               : Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
@@ -156,45 +210,133 @@ class _UnitMeasurementScreenState extends State<UnitMeasurementScreen> {
                       headingRowHeight: 45,
                       dataRowMinHeight: 60,
                       dataRowMaxHeight: 60,
-                      headingRowColor: WidgetStateProperty.all(Colors.grey.shade50),
+                      headingRowColor: WidgetStateProperty.all(
+                        Colors.grey.shade50,
+                      ),
                       columns: const [
-                        DataColumn(label: Text("SN", style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, fontSize: 11))),
-                        DataColumn(label: Text("Unit Name", style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, fontSize: 11))),
-                        DataColumn(label: Text("Symbol", style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, fontSize: 11))),
-                        DataColumn(label: Text("Actions", style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, fontSize: 11))),
+                        DataColumn(
+                          label: Text(
+                            "SN",
+                            style: TextStyle(
+                              fontWeight: FontWeight.w900,
+                              color: Colors.grey,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ),
+                        DataColumn(
+                          label: Text(
+                            "Unit Name",
+                            style: TextStyle(
+                              fontWeight: FontWeight.w900,
+                              color: Colors.grey,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ),
+                        DataColumn(
+                          label: Text(
+                            "Symbol",
+                            style: TextStyle(
+                              fontWeight: FontWeight.w900,
+                              color: Colors.grey,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ),
+                        DataColumn(
+                          label: Text(
+                            "Actions",
+                            style: TextStyle(
+                              fontWeight: FontWeight.w900,
+                              color: Colors.grey,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ),
                       ],
                       rows: List.generate(_units.length, (index) {
                         final u = _units[index];
                         return DataRow(
                           cells: [
-                            DataCell(Text("${index + 1}", style: const TextStyle(color: Colors.grey, fontSize: 13))),
-                            DataCell(Text(u['name'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AdminTheme.darkNavy))),
-                            DataCell(Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                              decoration: BoxDecoration(color: AdminTheme.royalBlue.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
-                              child: Text(u['symbol'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AdminTheme.royalBlue)),
-                            )),
-                            DataCell(Row(
-                              children: [
-                                InkWell(
-                                  onTap: () => _openUnitDialog(unit: u),
-                                  child: Container(
-                                    padding: const EdgeInsets.all(8),
-                                    decoration: BoxDecoration(color: Colors.cyan, borderRadius: BorderRadius.circular(8)),
-                                    child: const Icon(Icons.edit_outlined, color: Colors.white, size: 14),
+                            DataCell(
+                              Text(
+                                "${index + 1}",
+                                style: const TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                            DataCell(
+                              Text(
+                                u['name'],
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                  color: AdminTheme.darkNavy,
+                                ),
+                              ),
+                            ),
+                            DataCell(
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AdminTheme.royalBlue.withValues(
+                                    alpha: 0.1,
+                                  ),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  u['symbol'],
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                    color: AdminTheme.royalBlue,
                                   ),
                                 ),
-                                const SizedBox(width: 8),
-                                InkWell(
-                                  onTap: () => _deleteUnit(u['id']),
-                                  child: Container(
-                                    padding: const EdgeInsets.all(8),
-                                    decoration: BoxDecoration(color: Colors.redAccent, borderRadius: BorderRadius.circular(8)),
-                                    child: const Icon(Icons.delete_outline_rounded, color: Colors.white, size: 14),
+                              ),
+                            ),
+                            DataCell(
+                              Row(
+                                children: [
+                                  InkWell(
+                                    onTap: () => _openUnitDialog(unit: u),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: Colors.cyan,
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: const Icon(
+                                        Icons.edit_outlined,
+                                        color: Colors.white,
+                                        size: 14,
+                                      ),
+                                    ),
                                   ),
-                                ),
-                              ],
-                            )),
+                                  const SizedBox(width: 8),
+                                  InkWell(
+                                    onTap: () => _deleteUnit(u['id']),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: Colors.redAccent,
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: const Icon(
+                                        Icons.delete_outline_rounded,
+                                        color: Colors.white,
+                                        size: 14,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ],
                         );
                       }),

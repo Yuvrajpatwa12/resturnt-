@@ -52,7 +52,7 @@ class AppTheme {
       border: Border.all(color: borderColor, width: 1.0),
       boxShadow: [
         BoxShadow(
-          color: const Color(0xFF101828).withOpacity(shadowOpacity),
+          color: const Color(0xFF101828).withValues(alpha: shadowOpacity),
           blurRadius: 10,
           offset: const Offset(0, 4),
         ),
@@ -71,12 +71,12 @@ class AppTheme {
         primary: primaryPurple,
         secondary: primaryPurpleDark,
         surface: cardBackground,
-        background: scaffoldBackground,
+        surfaceContainerHighest: scaffoldBackground,
         error: danger,
         onPrimary: Colors.white,
         onSecondary: Colors.white,
         onSurface: textPrimary,
-        onBackground: textPrimary,
+        onSurfaceVariant: textPrimary,
       ),
       appBarTheme: const AppBarTheme(
         backgroundColor: scaffoldBackground,
@@ -100,7 +100,10 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: cardBackground,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: cardBorder),

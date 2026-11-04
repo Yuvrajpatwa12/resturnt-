@@ -15,7 +15,7 @@ class GroupChatPage extends StatefulWidget {
 
 class _GroupChatPageState extends State<GroupChatPage> {
   final TextEditingController _controller = TextEditingController();
-  
+
   static const Color primaryBlue = Color(0xFF1E3A8A);
   static const Color accentOrange = Color(0xFFF97316);
 
@@ -28,14 +28,18 @@ class _GroupChatPageState extends State<GroupChatPage> {
     final sid = ShopManager.instance.activeSessionId.value;
     if (sid == null) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Uploading Payment QR...")));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text("Uploading Payment QR...")));
     final url = await ApiService.uploadGroupQR(sid, bytes, image.name);
 
     if (url != null) {
       ShopManager.instance.activeSessionQr.value = url;
       ShopManager.instance.isSessionLocked.value = true;
       ShopManager.instance.syncSessionData();
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Payment Request Sent!")));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Payment Request Sent!")));
     }
   }
 
@@ -49,8 +53,15 @@ class _GroupChatPageState extends State<GroupChatPage> {
     final uid = ShopManager.instance.currentUserId;
     if (sid == null || uid.isEmpty) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Uploading Payment Proof...")));
-    final url = await ApiService.submitGroupPayment(sid, uid, bytes, image.name);
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text("Uploading Payment Proof...")));
+    final url = await ApiService.submitGroupPayment(
+      sid,
+      uid,
+      bytes,
+      image.name,
+    );
 
     if (url != null) {
       ShopManager.instance.syncSessionData();
@@ -63,17 +74,44 @@ class _GroupChatPageState extends State<GroupChatPage> {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: const Text("Payment Done?", style: TextStyle(fontWeight: FontWeight.w900)),
-        content: const Text("Has your transaction been successfully completed? This will notify the host."),
+        title: const Text(
+          "Payment Done?",
+          style: TextStyle(fontWeight: FontWeight.w900),
+        ),
+        content: const Text(
+          "Has your transaction been successfully completed? This will notify the host.",
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("NO", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold))),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              "NO",
+              style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold),
+            ),
+          ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.green, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
             onPressed: () {
               Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Host has been notified!"), backgroundColor: Colors.green));
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text("Host has been notified!"),
+                  backgroundColor: Colors.green,
+                ),
+              );
             },
-            child: const Text("YES, PAID", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            child: const Text(
+              "YES, PAID",
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
@@ -93,24 +131,42 @@ class _GroupChatPageState extends State<GroupChatPage> {
             backgroundColor: Colors.white,
             elevation: 0.5,
             automaticallyImplyLeading: false,
-            leading: widget.showBackButton ? IconButton(
-              icon: const Icon(Icons.arrow_back, color: Colors.black87),
-              onPressed: () => Navigator.pop(context),
-            ) : null,
+            leading: widget.showBackButton
+                ? IconButton(
+                    icon: const Icon(Icons.arrow_back, color: Colors.black87),
+                    onPressed: () => Navigator.pop(context),
+                  )
+                : null,
             title: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text("GROUP SETTLEMENT", style: TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 1)),
+                const Text(
+                  "GROUP SETTLEMENT",
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1,
+                  ),
+                ),
                 Text(
-                  "Table #04 • ${members.length} Diners Active", 
-                  style: const TextStyle(color: Colors.green, fontSize: 10, fontWeight: FontWeight.bold)
+                  "Table #04 • ${members.length} Diners Active",
+                  style: const TextStyle(
+                    color: Colors.green,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
             ),
             actions: [
               if (session.isSessionHost.value && !session.isSessionLocked.value)
                 IconButton(
-                  icon: const Icon(Icons.qr_code_scanner_rounded, color: accentOrange, size: 24),
+                  icon: const Icon(
+                    Icons.qr_code_scanner_rounded,
+                    color: accentOrange,
+                    size: 24,
+                  ),
                   tooltip: "Request Payment",
                   onPressed: _requestPayment,
                 ),
@@ -125,15 +181,26 @@ class _GroupChatPageState extends State<GroupChatPage> {
               final myId = session.currentUserId;
               final myEmail = session.customerEmail.value;
               final currentUserMember = members.firstWhere(
-                (m) => m['user_id']?.toString() == myId || m['email']?.toString() == myEmail || m['name']?.toString() == session.customerName.value,
+                (m) =>
+                    m['user_id']?.toString() == myId ||
+                    m['email']?.toString() == myEmail ||
+                    m['name']?.toString() == session.customerName.value,
                 orElse: () => {},
               );
-              final bool hasPaid = currentUserMember['is_paid'] == 1 || currentUserMember['is_paid'] == true;
+              final bool hasPaid =
+                  currentUserMember['is_paid'] == 1 ||
+                  currentUserMember['is_paid'] == true;
 
               if (hasPaid) {
                 return FloatingActionButton.small(
                   onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Payment proof already uploaded & verified!")));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          "Payment proof already uploaded & verified!",
+                        ),
+                      ),
+                    );
                   },
                   backgroundColor: Colors.green,
                   tooltip: "Already Paid & Verified",
@@ -144,8 +211,17 @@ class _GroupChatPageState extends State<GroupChatPage> {
               return FloatingActionButton.extended(
                 onPressed: _uploadPaymentSS,
                 backgroundColor: primaryBlue,
-                icon: const Icon(Icons.cloud_upload_rounded, color: Colors.white),
-                label: const Text("UPLOAD PROOF", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                icon: const Icon(
+                  Icons.cloud_upload_rounded,
+                  color: Colors.white,
+                ),
+                label: const Text(
+                  "UPLOAD PROOF",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               );
             },
           ),
@@ -179,7 +255,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
             },
           ),
         );
-      }
+      },
     );
   }
 
@@ -188,19 +264,32 @@ class _GroupChatPageState extends State<GroupChatPage> {
       padding: const EdgeInsets.fromLTRB(20, 10, 20, 30),
       decoration: BoxDecoration(
         color: Colors.white,
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, -5))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, -5),
+          ),
+        ],
       ),
       child: Row(
         children: [
           Expanded(
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              decoration: BoxDecoration(color: const Color(0xFFF1F5F9), borderRadius: BorderRadius.circular(25)),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1F5F9),
+                borderRadius: BorderRadius.circular(25),
+              ),
               child: TextField(
                 controller: _controller,
                 decoration: const InputDecoration(
                   hintText: 'Message everyone...',
-                  hintStyle: TextStyle(fontSize: 14, color: Colors.grey, fontWeight: FontWeight.w500),
+                  hintStyle: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey,
+                    fontWeight: FontWeight.w500,
+                  ),
                   border: InputBorder.none,
                 ),
               ),
@@ -210,7 +299,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
           IconButton(
             icon: const Icon(Icons.send, color: primaryBlue),
             onPressed: () {
-               // Texting logic disabled per settlement requirements
+              // Texting logic disabled per settlement requirements
             },
           ),
         ],
@@ -227,7 +316,12 @@ class _GroupChatPageState extends State<GroupChatPage> {
         const SizedBox(height: 24),
         const Text(
           "WAITING FOR HOST...",
-          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Colors.grey, letterSpacing: 1.2),
+          style: TextStyle(
+            fontWeight: FontWeight.w900,
+            fontSize: 16,
+            color: Colors.grey,
+            letterSpacing: 1.2,
+          ),
         ),
         const SizedBox(height: 8),
         const Text(
@@ -243,34 +337,81 @@ class _GroupChatPageState extends State<GroupChatPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text("MEMBER PAYMENT STATUS", style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, fontSize: 11, letterSpacing: 1)),
+        const Text(
+          "MEMBER PAYMENT STATUS",
+          style: TextStyle(
+            fontWeight: FontWeight.w900,
+            color: Colors.grey,
+            fontSize: 11,
+            letterSpacing: 1,
+          ),
+        ),
         const SizedBox(height: 16),
-        ...members.map((m) => Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10)],
-          ),
-          child: Row(
-            children: [
-              CircleAvatar(
-                radius: 18,
-                backgroundColor: (m['gender'] == 'Female' ? Colors.pink : Colors.blue).withValues(alpha: 0.1),
-                child: Text(m['name'] != null && m['name'].isNotEmpty ? m['name'][0] : "?", style: TextStyle(color: m['gender'] == 'Female' ? Colors.pink : Colors.blue, fontWeight: FontWeight.bold, fontSize: 12)),
+        ...members
+            .map(
+              (m) => Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.02),
+                      blurRadius: 10,
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 18,
+                      backgroundColor:
+                          (m['gender'] == 'Female' ? Colors.pink : Colors.blue)
+                              .withValues(alpha: 0.1),
+                      child: Text(
+                        m['name'] != null && m['name'].isNotEmpty
+                            ? m['name'][0]
+                            : "?",
+                        style: TextStyle(
+                          color: m['gender'] == 'Female'
+                              ? Colors.pink
+                              : Colors.blue,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        m['name'] ?? "Guest",
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                    if (m['is_paid'] == 1 || m['is_paid'] == true)
+                      const Icon(
+                        Icons.check_circle_rounded,
+                        color: Colors.green,
+                        size: 20,
+                      )
+                    else
+                      const Text(
+                        "Pending",
+                        style: TextStyle(
+                          color: Colors.orange,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 10,
+                        ),
+                      ),
+                  ],
+                ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(m['name'] ?? "Guest", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-              ),
-              if (m['is_paid'] == 1 || m['is_paid'] == true)
-                const Icon(Icons.check_circle_rounded, color: Colors.green, size: 20)
-              else
-                const Text("Pending", style: TextStyle(color: Colors.orange, fontWeight: FontWeight.w900, fontSize: 10)),
-            ],
-          ),
-        )).toList(),
+            )
+            .toList(),
       ],
     );
   }
@@ -284,7 +425,9 @@ class _GroupChatPageState extends State<GroupChatPage> {
     final String myId = session.currentUserId;
 
     // Calculate individual share
-    final int flatPay = memberCount == 0 ? 0 : (totalBill / memberCount).floor();
+    final int flatPay = memberCount == 0
+        ? 0
+        : (totalBill / memberCount).floor();
     final double remainder = totalBill - (flatPay * memberCount);
     final int myShare = (myId == vId) ? (flatPay + remainder.toInt()) : flatPay;
 
@@ -292,9 +435,17 @@ class _GroupChatPageState extends State<GroupChatPage> {
       width: double.infinity,
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(colors: [primaryBlue, Color(0xFF2563EB)]),
+        gradient: const LinearGradient(
+          colors: [primaryBlue, Color(0xFF2563EB)],
+        ),
         borderRadius: BorderRadius.circular(28),
-        boxShadow: [BoxShadow(color: primaryBlue.withValues(alpha: 0.3), blurRadius: 20, offset: const Offset(0, 10))],
+        boxShadow: [
+          BoxShadow(
+            color: primaryBlue.withValues(alpha: 0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
       child: Column(
         children: [
@@ -302,8 +453,15 @@ class _GroupChatPageState extends State<GroupChatPage> {
             children: [
               Container(
                 padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.1), shape: BoxShape.circle),
-                child: const Icon(Icons.account_balance_wallet_rounded, color: Colors.white, size: 24),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.account_balance_wallet_rounded,
+                  color: Colors.white,
+                  size: 24,
+                ),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -312,11 +470,22 @@ class _GroupChatPageState extends State<GroupChatPage> {
                   children: [
                     Text(
                       isHost ? "PAYMENT TRACKER ACTIVE" : "YOUR SHARE DETAILS",
-                      style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 1),
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.7),
+                        fontWeight: FontWeight.w900,
+                        fontSize: 10,
+                        letterSpacing: 1,
+                      ),
                     ),
                     Text(
-                      isHost ? "Group Total: Rs. ${totalBill.toInt()}" : "Amount: Rs. $myShare",
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20),
+                      isHost
+                          ? "Group Total: Rs. ${totalBill.toInt()}"
+                          : "Amount: Rs. $myShare",
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 20,
+                      ),
                     ),
                   ],
                 ),
@@ -327,13 +496,21 @@ class _GroupChatPageState extends State<GroupChatPage> {
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+            ),
             child: Column(
               children: [
                 if (qrUrl != null)
                   ClipRRect(
                     borderRadius: BorderRadius.circular(12),
-                    child: Image.network(qrUrl, height: 120, width: 120, fit: BoxFit.cover),
+                    child: Image.network(
+                      qrUrl,
+                      height: 120,
+                      width: 120,
+                      fit: BoxFit.cover,
+                    ),
                   )
                 else
                   Container(
@@ -347,27 +524,49 @@ class _GroupChatPageState extends State<GroupChatPage> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         const SizedBox(
-                          width: 20, height: 20,
-                          child: CircularProgressIndicator(color: primaryBlue, strokeWidth: 2),
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            color: primaryBlue,
+                            strokeWidth: 2,
+                          ),
                         ),
                         const SizedBox(height: 12),
                         Text(
                           isHost ? "UPLOADING..." : "WAITING...",
-                          style: const TextStyle(color: primaryBlue, fontWeight: FontWeight.bold, fontSize: 9),
+                          style: const TextStyle(
+                            color: primaryBlue,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 9,
+                          ),
                         ),
                       ],
                     ),
                   ),
                 const SizedBox(height: 12),
-                const Text("SCAN TO PAY", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11, color: primaryBlue, letterSpacing: 2)),
+                const Text(
+                  "SCAN TO PAY",
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 11,
+                    color: primaryBlue,
+                    letterSpacing: 2,
+                  ),
+                ),
               ],
             ),
           ),
           const SizedBox(height: 24),
           Text(
-            isHost ? "Review and verify payments from members" : "Pay via eSewa/Khalti and upload proof below",
+            isHost
+                ? "Review and verify payments from members"
+                : "Pay via eSewa/Khalti and upload proof below",
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 11, fontWeight: FontWeight.w500),
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.7),
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ],
       ),

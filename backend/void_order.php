@@ -142,11 +142,11 @@ try {
     }
 
     $audit = $conn->prepare(
-        'INSERT INTO order_voids (order_id, staff_id, reason, original_amount)
-         VALUES (?, ?, ?, ?)'
+        'INSERT INTO order_voids (order_id, tenant_id, staff_id, reason, original_amount)
+         VALUES (?, ?, ?, ?, ?)'
     );
     $originalAmount = number_format((float)$order['total_amount'], 2, '.', '');
-    $audit->bind_param('iiss', $orderId, $staffId, $reason, $originalAmount);
+    $audit->bind_param('sisss', $orderId, $tenantId, $staffId, $reason, $originalAmount);
     $audit->execute();
     $audit->close();
 

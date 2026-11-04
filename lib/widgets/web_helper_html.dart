@@ -14,7 +14,9 @@ bool isPwaStandalone() {
     final nav = web.window.navigator;
     // Check iOS standalone property or display-mode: standalone
     final standalone = (nav as dynamic).standalone == true;
-    final matchMedia = web.window.matchMedia('(display-mode: standalone)').matches;
+    final matchMedia = web.window
+        .matchMedia('(display-mode: standalone)')
+        .matches;
     return standalone || matchMedia;
   } catch (e) {
     return false;

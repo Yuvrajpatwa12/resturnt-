@@ -74,11 +74,8 @@ class _WaiterAssistanceModalState extends State<WaiterAssistanceModal> {
         ? ShopManager.instance.customerName.value
         : "Guest Diner";
 
-    final String requestText = "$_selectedOption - ${
-        _notesController.text.trim().isNotEmpty
-            ? _notesController.text.trim()
-            : 'Immediate assistance requested'
-    }";
+    final String requestText =
+        "$_selectedOption - ${_notesController.text.trim().isNotEmpty ? _notesController.text.trim() : 'Immediate assistance requested'}";
 
     await ApiService.uploadVoiceOrder(
       tenantId: tenant.id,
@@ -98,13 +95,17 @@ class _WaiterAssistanceModalState extends State<WaiterAssistanceModal> {
               const Icon(Icons.check_circle_rounded, color: Colors.white),
               const SizedBox(width: 12),
               Expanded(
-                child: Text("Waiter notified for Table $tableNum ($_selectedOption)!"),
+                child: Text(
+                  "Waiter notified for Table $tableNum ($_selectedOption)!",
+                ),
               ),
             ],
           ),
           backgroundColor: const Color(0xFF002D62),
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
       );
     }
@@ -164,7 +165,11 @@ class _WaiterAssistanceModalState extends State<WaiterAssistanceModal> {
                     color: Colors.white.withValues(alpha: 0.15),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.support_agent_rounded, color: Colors.white, size: 28),
+                  child: const Icon(
+                    Icons.support_agent_rounded,
+                    color: Colors.white,
+                    size: 28,
+                  ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -173,7 +178,11 @@ class _WaiterAssistanceModalState extends State<WaiterAssistanceModal> {
                     children: const [
                       Text(
                         "Need Waiter Assistance?",
-                        style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 17,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       SizedBox(height: 2),
                       Text(
@@ -184,14 +193,21 @@ class _WaiterAssistanceModalState extends State<WaiterAssistanceModal> {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 5,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
                     "Table #$tableNum",
-                    style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ],
@@ -207,22 +223,32 @@ class _WaiterAssistanceModalState extends State<WaiterAssistanceModal> {
                 children: [
                   const Text(
                     "SELECT ASSISTANCE TYPE:",
-                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1),
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.grey,
+                      letterSpacing: 1,
+                    ),
                   ),
                   const SizedBox(height: 12),
                   ..._assistanceOptions.map((opt) {
                     final isSelected = _selectedOption == opt['title'];
                     return GestureDetector(
-                      onTap: () => setState(() => _selectedOption = opt['title']!),
+                      onTap: () =>
+                          setState(() => _selectedOption = opt['title']!),
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 200),
                         margin: const EdgeInsets.only(bottom: 10),
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: isSelected ? const Color(0xFF002D62).withValues(alpha: 0.05) : Colors.white,
+                          color: isSelected
+                              ? const Color(0xFF002D62).withValues(alpha: 0.05)
+                              : Colors.white,
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
-                            color: isSelected ? const Color(0xFF002D62) : const Color(0xFFE2E8F0),
+                            color: isSelected
+                                ? const Color(0xFF002D62)
+                                : const Color(0xFFE2E8F0),
                             width: isSelected ? 2 : 1,
                           ),
                           boxShadow: [
@@ -234,7 +260,10 @@ class _WaiterAssistanceModalState extends State<WaiterAssistanceModal> {
                         ),
                         child: Row(
                           children: [
-                            Text(opt['icon']!, style: const TextStyle(fontSize: 22)),
+                            Text(
+                              opt['icon']!,
+                              style: const TextStyle(fontSize: 22),
+                            ),
                             const SizedBox(width: 14),
                             Expanded(
                               child: Column(
@@ -245,12 +274,17 @@ class _WaiterAssistanceModalState extends State<WaiterAssistanceModal> {
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 14,
-                                      color: isSelected ? const Color(0xFF002D62) : Colors.black87,
+                                      color: isSelected
+                                          ? const Color(0xFF002D62)
+                                          : Colors.black87,
                                     ),
                                   ),
                                   Text(
                                     opt['subtitle']!,
-                                    style: const TextStyle(fontSize: 11, color: Colors.grey),
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      color: Colors.grey,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -260,7 +294,8 @@ class _WaiterAssistanceModalState extends State<WaiterAssistanceModal> {
                               groupValue: _selectedOption,
                               activeColor: const Color(0xFF002D62),
                               onChanged: (val) {
-                                if (val != null) setState(() => _selectedOption = val);
+                                if (val != null)
+                                  setState(() => _selectedOption = val);
                               },
                             ),
                           ],
@@ -274,10 +309,19 @@ class _WaiterAssistanceModalState extends State<WaiterAssistanceModal> {
                   TextField(
                     controller: _notesController,
                     decoration: InputDecoration(
-                      hintText: "Optional note (e.g. Please bring 2 extra glasses...)",
-                      hintStyle: const TextStyle(fontSize: 12, color: Colors.grey),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      hintText:
+                          "Optional note (e.g. Please bring 2 extra glasses...)",
+                      hintStyle: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                     ),
                   ),
 
@@ -292,18 +336,29 @@ class _WaiterAssistanceModalState extends State<WaiterAssistanceModal> {
                           ? const SizedBox(
                               width: 18,
                               height: 18,
-                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
                             )
                           : const Icon(Icons.notifications_active_rounded),
                       label: Text(
-                        _isSending ? "NOTIFYING WAITER..." : "NOTIFY WAITER NOW",
-                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, letterSpacing: 0.8),
+                        _isSending
+                            ? "NOTIFYING WAITER..."
+                            : "NOTIFY WAITER NOW",
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.8,
+                        ),
                       ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF002D62),
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
                         elevation: 4,
                       ),
                     ),

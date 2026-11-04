@@ -12,7 +12,7 @@ class SuperAdminDashboard extends StatefulWidget {
 class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
   final Color pearlWhite = const Color(0xFFF8FAFC);
   final Color royalBlue = const Color(0xFF0047AB);
-  
+
   List<Tenant> _tenants = [];
   bool _isLoading = true;
 
@@ -38,7 +38,10 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
     return Scaffold(
       backgroundColor: pearlWhite,
       appBar: AppBar(
-        title: const Text('Chiyalaa Super Admin', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: const Text(
+          'Chiyalaa Super Admin',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
         backgroundColor: royalBlue,
         elevation: 0,
         leading: IconButton(
@@ -56,26 +59,26 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
               backgroundColor: Colors.white24,
               child: Icon(Icons.person, color: Colors.white),
             ),
-          )
+          ),
         ],
       ),
-      body: _isLoading 
-        ? const Center(child: CircularProgressIndicator())
-        : SingleChildScrollView(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildHeader(),
-                const SizedBox(height: 32),
-                _buildMetricsGrid(),
-                const SizedBox(height: 32),
-                _buildTenantTable(),
-                const SizedBox(height: 32),
-                _buildAuditLogs(),
-              ],
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildHeader(),
+                  const SizedBox(height: 32),
+                  _buildMetricsGrid(),
+                  const SizedBox(height: 32),
+                  _buildTenantTable(),
+                  const SizedBox(height: 32),
+                  _buildAuditLogs(),
+                ],
+              ),
             ),
-          ),
     );
   }
 
@@ -83,8 +86,18 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('System Overview', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: royalBlue)),
-        const Text('Manage tenants and monitor global system performance', style: TextStyle(color: Colors.grey)),
+        Text(
+          'System Overview',
+          style: TextStyle(
+            fontSize: 28,
+            fontWeight: FontWeight.bold,
+            color: royalBlue,
+          ),
+        ),
+        const Text(
+          'Manage tenants and monitor global system performance',
+          style: TextStyle(color: Colors.grey),
+        ),
       ],
     );
   }
@@ -98,21 +111,47 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
       mainAxisSpacing: 16,
       childAspectRatio: 1.5,
       children: [
-        _buildMetricCard('Total Revenue', 'NPR 1.2M', Icons.payments, Colors.green),
-        _buildMetricCard('Active Tenants', _tenants.length.toString(), Icons.business, Colors.blue),
-        _buildMetricCard('Storage Used', '850 GB', Icons.storage, Colors.orange),
+        _buildMetricCard(
+          'Total Revenue',
+          'NPR 1.2M',
+          Icons.payments,
+          Colors.green,
+        ),
+        _buildMetricCard(
+          'Active Tenants',
+          _tenants.length.toString(),
+          Icons.business,
+          Colors.blue,
+        ),
+        _buildMetricCard(
+          'Storage Used',
+          '850 GB',
+          Icons.storage,
+          Colors.orange,
+        ),
         _buildMetricCard('System Health', '99.9%', Icons.speed, Colors.purple),
       ],
     );
   }
 
-  Widget _buildMetricCard(String title, String value, IconData icon, Color color) {
+  Widget _buildMetricCard(
+    String title,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -122,8 +161,17 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title, style: const TextStyle(color: Colors.grey, fontSize: 14)),
-              Text(value, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+              Text(
+                title,
+                style: const TextStyle(color: Colors.grey, fontSize: 14),
+              ),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ],
           ),
         ],
@@ -137,14 +185,23 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Padding(
             padding: EdgeInsets.all(20),
-            child: Text('Client Manager', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            child: Text(
+              'Client Manager',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
           ),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
@@ -157,31 +214,54 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
                 DataColumn(label: Text('Status')),
                 DataColumn(label: Text('Actions')),
               ],
-              rows: _tenants.map((tenant) => DataRow(cells: [
-                DataCell(Text(tenant.name, style: const TextStyle(fontWeight: FontWeight.w500))),
-                DataCell(Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: royalBlue.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(tenant.plan, style: TextStyle(color: royalBlue, fontSize: 12)),
-                )),
-                DataCell(Text(tenant.expiry ?? 'N/A')),
-                DataCell(Text(tenant.storage ?? '0.0 GB')),
-                DataCell(Switch(
-                  value: tenant.isActive,
-                  activeTrackColor: royalBlue,
-                  onChanged: (val) {
-                    // Update locally for UI feedback
-                    _loadData(); // Re-fetch to sync
-                  },
-                )),
-                DataCell(IconButton(
-                  icon: const Icon(Icons.edit, size: 20),
-                  onPressed: () => _showSubscriptionModal(tenant),
-                )),
-              ])).toList(),
+              rows: _tenants
+                  .map(
+                    (tenant) => DataRow(
+                      cells: [
+                        DataCell(
+                          Text(
+                            tenant.name,
+                            style: const TextStyle(fontWeight: FontWeight.w500),
+                          ),
+                        ),
+                        DataCell(
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: royalBlue.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              tenant.plan,
+                              style: TextStyle(color: royalBlue, fontSize: 12),
+                            ),
+                          ),
+                        ),
+                        DataCell(Text(tenant.expiry ?? 'N/A')),
+                        DataCell(Text(tenant.storage ?? '0.0 GB')),
+                        DataCell(
+                          Switch(
+                            value: tenant.isActive,
+                            activeTrackColor: royalBlue,
+                            onChanged: (val) {
+                              // Update locally for UI feedback
+                              _loadData(); // Re-fetch to sync
+                            },
+                          ),
+                        ),
+                        DataCell(
+                          IconButton(
+                            icon: const Icon(Icons.edit, size: 20),
+                            onPressed: () => _showSubscriptionModal(tenant),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                  .toList(),
             ),
           ),
         ],
@@ -203,7 +283,9 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
               DropdownButtonFormField<String>(
                 initialValue: selectedPlan,
                 decoration: const InputDecoration(labelText: 'Plan'),
-                items: ['Basic', 'Pro', 'Enterprise'].map((p) => DropdownMenuItem(value: p, child: Text(p))).toList(),
+                items: ['Basic', 'Pro', 'Enterprise']
+                    .map((p) => DropdownMenuItem(value: p, child: Text(p)))
+                    .toList(),
                 onChanged: (val) => setModalState(() => selectedPlan = val!),
               ),
               const SizedBox(height: 16),
@@ -214,14 +296,20 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: royalBlue),
               onPressed: () {
                 Navigator.pop(context);
                 _loadData();
               },
-              child: const Text('Save Changes', style: TextStyle(color: Colors.white)),
+              child: const Text(
+                'Save Changes',
+                style: TextStyle(color: Colors.white),
+              ),
             ),
           ],
         ),
@@ -231,8 +319,18 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
 
   Widget _buildAuditLogs() {
     final logs = [
-      {'action': 'New Client', 'tenant': 'Everest Momo', 'user': 'Root Admin', 'time': 'Just now'},
-      {'action': 'Suspended', 'tenant': 'Mountain Cafe', 'user': 'System', 'time': '2h ago'},
+      {
+        'action': 'New Client',
+        'tenant': 'Everest Momo',
+        'user': 'Root Admin',
+        'time': 'Just now',
+      },
+      {
+        'action': 'Suspended',
+        'tenant': 'Mountain Cafe',
+        'user': 'System',
+        'time': '2h ago',
+      },
     ];
     return Container(
       width: double.infinity,
@@ -240,12 +338,21 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Recent Audit Logs', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const Text(
+            'Recent Audit Logs',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 16),
           ListView.separated(
             shrinkWrap: true,
@@ -255,10 +362,15 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
             itemBuilder: (context, index) {
               final log = logs[index];
               return ListTile(
-                leading: const CircleAvatar(child: Icon(Icons.history, size: 18)),
+                leading: const CircleAvatar(
+                  child: Icon(Icons.history, size: 18),
+                ),
                 title: Text('${log['action']} - ${log['tenant']}'),
                 subtitle: Text('By ${log['user']}'),
-                trailing: Text(log['time']!, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                trailing: Text(
+                  log['time']!,
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                ),
               );
             },
           ),

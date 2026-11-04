@@ -49,9 +49,7 @@ class Responsive {
             minWidth: minTouchTarget,
             minHeight: minTouchTarget,
           ),
-          child: Center(
-            child: child,
-          ),
+          child: Center(child: child),
         );
       },
     );
@@ -65,7 +63,9 @@ class Responsive {
   }) {
     return Center(
       child: ConstrainedBox(
-        constraints: BoxConstraints(maxWidth: isDesktop(context) ? maxWidth : double.infinity),
+        constraints: BoxConstraints(
+          maxWidth: isDesktop(context) ? maxWidth : double.infinity,
+        ),
         child: child,
       ),
     );

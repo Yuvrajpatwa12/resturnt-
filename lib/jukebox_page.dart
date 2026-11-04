@@ -10,7 +10,8 @@ class JukeboxPage extends StatefulWidget {
   State<JukeboxPage> createState() => _JukeboxPageState();
 }
 
-class _JukeboxPageState extends State<JukeboxPage> with TickerProviderStateMixin {
+class _JukeboxPageState extends State<JukeboxPage>
+    with TickerProviderStateMixin {
   final TextEditingController _searchController = TextEditingController();
   final TextEditingController _dedicationController = TextEditingController();
   late AnimationController _visualizerController;
@@ -46,7 +47,11 @@ class _JukeboxPageState extends State<JukeboxPage> with TickerProviderStateMixin
             height: double.infinity,
             decoration: const BoxDecoration(
               gradient: LinearGradient(
-                colors: [Color(0xFFFFFAF0), Color(0xFFF8FAFC), Color(0xFFF1F5F9)],
+                colors: [
+                  Color(0xFFFFFAF0),
+                  Color(0xFFF8FAFC),
+                  Color(0xFFF1F5F9),
+                ],
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
               ),
@@ -94,22 +99,58 @@ class _JukeboxPageState extends State<JukeboxPage> with TickerProviderStateMixin
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          IconButton(icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.black87, size: 32), onPressed: () => Navigator.pop(context)),
+          IconButton(
+            icon: const Icon(
+              Icons.keyboard_arrow_down_rounded,
+              color: Colors.black87,
+              size: 32,
+            ),
+            onPressed: () => Navigator.pop(context),
+          ),
           Column(
             children: [
-              const Text("COMMUNITY JUKEBOX", style: TextStyle(color: Color(0xFF64748B), fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 2)),
+              const Text(
+                "COMMUNITY JUKEBOX",
+                style: TextStyle(
+                  color: Color(0xFF64748B),
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 2,
+                ),
+              ),
               const SizedBox(height: 4),
               ValueListenableBuilder<int>(
                 valueListenable: ShopManager.instance.vibeScore,
                 builder: (context, score, child) => Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(color: Theme.of(context).primaryColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
-                  child: Text("VIBE SCORE: $score%", style: TextStyle(color: Theme.of(context).primaryColor, fontSize: 9, fontWeight: FontWeight.bold)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Theme.of(
+                      context,
+                    ).primaryColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    "VIBE SCORE: $score%",
+                    style: TextStyle(
+                      color: Theme.of(context).primaryColor,
+                      fontSize: 9,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ),
             ],
           ),
-          IconButton(icon: const Icon(Icons.more_vert_rounded, color: Colors.black87), onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const CreatePollPage()))),
+          IconButton(
+            icon: const Icon(Icons.more_vert_rounded, color: Colors.black87),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const CreatePollPage()),
+            ),
+          ),
         ],
       ),
     );
@@ -136,18 +177,24 @@ class _JukeboxPageState extends State<JukeboxPage> with TickerProviderStateMixin
         alignment: Alignment.center,
         children: [
           Container(
-            width: 240, height: 240,
+            width: 240,
+            height: 240,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: Theme.of(context).primaryColor.withValues(alpha: 0.15),
             ),
           ),
           Container(
-            width: 220, height: 220,
+            width: 220,
+            height: 220,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               boxShadow: [
-                BoxShadow(color: Theme.of(context).primaryColor.withValues(alpha: 0.25), blurRadius: 40, spreadRadius: 5),
+                BoxShadow(
+                  color: Theme.of(context).primaryColor.withValues(alpha: 0.25),
+                  blurRadius: 40,
+                  spreadRadius: 5,
+                ),
               ],
             ),
             child: ClipOval(
@@ -156,7 +203,11 @@ class _JukeboxPageState extends State<JukeboxPage> with TickerProviderStateMixin
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) => Container(
                   color: const Color(0xFFF1F5F9),
-                  child: const Icon(Icons.music_note_rounded, size: 80, color: Color(0xFF94A3B8)),
+                  child: const Icon(
+                    Icons.music_note_rounded,
+                    size: 80,
+                    color: Color(0xFF94A3B8),
+                  ),
                 ),
               ),
             ),
@@ -168,21 +219,35 @@ class _JukeboxPageState extends State<JukeboxPage> with TickerProviderStateMixin
 
   Widget _buildDedication(Map<String, dynamic> song) {
     final dedication = song['dedication'];
-    if (dedication == null || dedication.toString().isEmpty) return const SizedBox.shrink();
+    if (dedication == null || dedication.toString().isEmpty)
+      return const SizedBox.shrink();
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           const Icon(Icons.favorite_rounded, color: Colors.red, size: 14),
           const SizedBox(width: 8),
-          Text(dedication.toString(), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF334155))),
+          Text(
+            dedication.toString(),
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF334155),
+            ),
+          ),
         ],
       ),
     );
@@ -191,9 +256,23 @@ class _JukeboxPageState extends State<JukeboxPage> with TickerProviderStateMixin
   Widget _buildSongInfo(Map<String, dynamic> song) {
     return Column(
       children: [
-        Text(song['title'] ?? "No Song Playing", style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.black)),
+        Text(
+          song['title'] ?? "No Song Playing",
+          style: const TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w900,
+            color: Colors.black,
+          ),
+        ),
         const SizedBox(height: 6),
-        Text(song['artist'] ?? "Select a song from queue below", style: const TextStyle(fontSize: 14, color: Color(0xFF64748B), fontWeight: FontWeight.w500)),
+        Text(
+          song['artist'] ?? "Select a song from queue below",
+          style: const TextStyle(
+            fontSize: 14,
+            color: Color(0xFF64748B),
+            fontWeight: FontWeight.w500,
+          ),
+        ),
       ],
     );
   }
@@ -205,11 +284,19 @@ class _JukeboxPageState extends State<JukeboxPage> with TickerProviderStateMixin
         return Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: List.generate(7, (index) {
-            final double height = 10 + (index % 3 == 0 ? _visualizerController.value * 25 : (1 - _visualizerController.value) * 20);
+            final double height =
+                10 +
+                (index % 3 == 0
+                    ? _visualizerController.value * 25
+                    : (1 - _visualizerController.value) * 20);
             return Container(
               margin: const EdgeInsets.symmetric(horizontal: 3),
-              width: 4, height: height,
-              decoration: BoxDecoration(color: Theme.of(context).primaryColor, borderRadius: BorderRadius.circular(2)),
+              width: 4,
+              height: height,
+              decoration: BoxDecoration(
+                color: Theme.of(context).primaryColor,
+                borderRadius: BorderRadius.circular(2),
+              ),
             );
           }),
         );
@@ -218,7 +305,8 @@ class _JukeboxPageState extends State<JukeboxPage> with TickerProviderStateMixin
   }
 
   Widget _buildProgress(Map<String, dynamic> song) {
-    final double progress = double.tryParse(song['progress']?.toString() ?? '0.3') ?? 0.3;
+    final double progress =
+        double.tryParse(song['progress']?.toString() ?? '0.3') ?? 0.3;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 30),
@@ -231,7 +319,9 @@ class _JukeboxPageState extends State<JukeboxPage> with TickerProviderStateMixin
               inactiveTrackColor: const Color(0xFFE2E8F0),
               thumbColor: Theme.of(context).primaryColor,
               thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-              overlayColor: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+              overlayColor: Theme.of(
+                context,
+              ).primaryColor.withValues(alpha: 0.1),
             ),
             child: Slider(value: progress, onChanged: (v) {}),
           ),
@@ -240,8 +330,22 @@ class _JukeboxPageState extends State<JukeboxPage> with TickerProviderStateMixin
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text("1:12", style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8), fontWeight: FontWeight.bold)),
-                Text("3:45", style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8), fontWeight: FontWeight.bold)),
+                Text(
+                  "1:12",
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Color(0xFF94A3B8),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  "3:45",
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Color(0xFF94A3B8),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ],
             ),
           ),
@@ -256,7 +360,13 @@ class _JukeboxPageState extends State<JukeboxPage> with TickerProviderStateMixin
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(40)),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 20, offset: const Offset(0, -10))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 20,
+            offset: const Offset(0, -10),
+          ),
+        ],
       ),
       padding: const EdgeInsets.all(30),
       child: Column(
@@ -265,15 +375,27 @@ class _JukeboxPageState extends State<JukeboxPage> with TickerProviderStateMixin
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text("Up Next 🗳️", style: TextStyle(color: Colors.black, fontSize: 20, fontWeight: FontWeight.bold)),
+              const Text(
+                "Up Next 🗳️",
+                style: TextStyle(
+                  color: Colors.black,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               ElevatedButton.icon(
                 onPressed: _showRequestModal,
                 icon: const Icon(Icons.add, size: 16),
-                label: const Text("Request", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                label: const Text(
+                  "Request",
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Theme.of(context).primaryColor,
                   foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                 ),
@@ -285,7 +407,10 @@ class _JukeboxPageState extends State<JukeboxPage> with TickerProviderStateMixin
             valueListenable: ShopManager.instance.musicQueue,
             builder: (context, queue, child) {
               final activeQueue = queue.where((item) {
-                final st = (item['status'] ?? 'queued').toString().toLowerCase().trim();
+                final st = (item['status'] ?? 'queued')
+                    .toString()
+                    .toLowerCase()
+                    .trim();
                 return st != 'deleted';
               }).toList();
 
@@ -299,7 +424,10 @@ class _JukeboxPageState extends State<JukeboxPage> with TickerProviderStateMixin
                 return const Padding(
                   padding: EdgeInsets.symmetric(vertical: 20),
                   child: Center(
-                    child: Text("No song requests active. Tap 'Request' above!", style: TextStyle(color: Colors.grey)),
+                    child: Text(
+                      "No song requests active. Tap 'Request' above!",
+                      style: TextStyle(color: Colors.grey),
+                    ),
                   ),
                 );
               }
@@ -320,17 +448,30 @@ class _JukeboxPageState extends State<JukeboxPage> with TickerProviderStateMixin
                     child: Row(
                       children: [
                         Container(
-                          width: 55, height: 55,
+                          width: 55,
+                          height: 55,
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(16),
-                            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))],
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.05),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
                           ),
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(16),
                             child: Image.network(
                               item['image'] ?? '',
                               fit: BoxFit.cover,
-                              errorBuilder: (c, e, s) => Container(color: const Color(0xFFF1F5F9), child: const Icon(Icons.music_note, color: Colors.grey)),
+                              errorBuilder: (c, e, s) => Container(
+                                color: const Color(0xFFF1F5F9),
+                                child: const Icon(
+                                  Icons.music_note,
+                                  color: Colors.grey,
+                                ),
+                              ),
                             ),
                           ),
                         ),
@@ -339,39 +480,67 @@ class _JukeboxPageState extends State<JukeboxPage> with TickerProviderStateMixin
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(item['title'] ?? "Untitled", style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16)),
-                              Text(item['artist'] ?? "Unknown Artist", style: const TextStyle(color: Color(0xFF64748B), fontSize: 13)),
+                              Text(
+                                item['title'] ?? "Untitled",
+                                style: const TextStyle(
+                                  color: Colors.black,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              Text(
+                                item['artist'] ?? "Unknown Artist",
+                                style: const TextStyle(
+                                  color: Color(0xFF64748B),
+                                  fontSize: 13,
+                                ),
+                              ),
                             ],
                           ),
                         ),
                         GestureDetector(
                           onTap: () async {
-                            final res = await ShopManager.instance.toggleMusicVote(songId);
+                            final res = await ShopManager.instance
+                                .toggleMusicVote(songId);
                             if (res['success'] == false && context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text(res['message']), backgroundColor: Colors.red),
+                                SnackBar(
+                                  content: Text(res['message']),
+                                  backgroundColor: Colors.red,
+                                ),
                               );
                             }
                           },
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 300),
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 8,
+                            ),
                             decoration: BoxDecoration(
-                              color: userLiked ? Colors.red.withValues(alpha: 0.1) : const Color(0xFFF1F5F9),
+                              color: userLiked
+                                  ? Colors.red.withValues(alpha: 0.1)
+                                  : const Color(0xFFF1F5F9),
                               borderRadius: BorderRadius.circular(14),
                             ),
                             child: Row(
                               children: [
                                 Icon(
-                                  userLiked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                                  color: userLiked ? Colors.red : const Color(0xFF64748B),
+                                  userLiked
+                                      ? Icons.favorite_rounded
+                                      : Icons.favorite_border_rounded,
+                                  color: userLiked
+                                      ? Colors.red
+                                      : const Color(0xFF64748B),
                                   size: 16,
                                 ),
                                 const SizedBox(width: 8),
                                 Text(
                                   (item['votes'] ?? 0).toString(),
                                   style: TextStyle(
-                                    color: userLiked ? Colors.red : const Color(0xFF64748B),
+                                    color: userLiked
+                                        ? Colors.red
+                                        : const Color(0xFF64748B),
                                     fontWeight: FontWeight.bold,
                                     fontSize: 13,
                                   ),
@@ -400,14 +569,28 @@ class _JukeboxPageState extends State<JukeboxPage> with TickerProviderStateMixin
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(32))),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+      ),
       builder: (context) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 24, right: 24, top: 24),
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+          left: 24,
+          right: 24,
+          top: 24,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text("Request a Song", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black)),
+            const Text(
+              "Request a Song",
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
+              ),
+            ),
             const SizedBox(height: 16),
             TextField(
               controller: _searchController,
@@ -415,7 +598,10 @@ class _JukeboxPageState extends State<JukeboxPage> with TickerProviderStateMixin
                 hintText: "Song title...",
                 filled: true,
                 fillColor: const Color(0xFFF8FAFC),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide.none,
+                ),
               ),
             ),
             const SizedBox(height: 12),
@@ -425,7 +611,10 @@ class _JukeboxPageState extends State<JukeboxPage> with TickerProviderStateMixin
                 hintText: "Special message / dedication (optional)...",
                 filled: true,
                 fillColor: const Color(0xFFF8FAFC),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide.none,
+                ),
               ),
             ),
             const SizedBox(height: 20),
@@ -438,10 +627,17 @@ class _JukeboxPageState extends State<JukeboxPage> with TickerProviderStateMixin
                   final dedication = _dedicationController.text.trim();
 
                   Navigator.pop(context);
-                  final res = await ShopManager.instance.requestSong(title, "Requested", dedication.isNotEmpty ? dedication : null);
+                  final res = await ShopManager.instance.requestSong(
+                    title,
+                    "Requested",
+                    dedication.isNotEmpty ? dedication : null,
+                  );
                   if (res['success'] == true && context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: const Text("Song Requested Successfully! 🔥"), backgroundColor: Theme.of(context).primaryColor),
+                      SnackBar(
+                        content: const Text("Song Requested Successfully! 🔥"),
+                        backgroundColor: Theme.of(context).primaryColor,
+                      ),
                     );
                   }
                 },
@@ -449,10 +645,15 @@ class _JukeboxPageState extends State<JukeboxPage> with TickerProviderStateMixin
                   backgroundColor: Theme.of(context).primaryColor,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                   elevation: 0,
                 ),
-                child: const Text("SUBMIT REQUEST", style: TextStyle(fontWeight: FontWeight.bold)),
+                child: const Text(
+                  "SUBMIT REQUEST",
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
               ),
             ),
             const SizedBox(height: 20),

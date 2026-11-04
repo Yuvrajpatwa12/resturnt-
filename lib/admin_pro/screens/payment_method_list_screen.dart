@@ -8,7 +8,8 @@ class PaymentMethodListScreen extends StatefulWidget {
   const PaymentMethodListScreen({super.key, this.mode = "Payment Method List"});
 
   @override
-  State<PaymentMethodListScreen> createState() => _PaymentMethodListScreenState();
+  State<PaymentMethodListScreen> createState() =>
+      _PaymentMethodListScreenState();
 }
 
 class _PaymentMethodListScreenState extends State<PaymentMethodListScreen> {
@@ -46,8 +47,14 @@ class _PaymentMethodListScreenState extends State<PaymentMethodListScreen> {
               'bankProvider': item['bank_provider'] ?? '',
               'icon': _getIconForMethod(mId, item['category']),
               'color': _getColorForMethod(mId, item['category']),
-              'isActive': item['is_active'] == true || item['is_active'] == 1 || item['is_active'] == '1',
-              'isDefault': item['is_default'] == true || item['is_default'] == 1 || item['is_default'] == '1',
+              'isActive':
+                  item['is_active'] == true ||
+                  item['is_active'] == 1 ||
+                  item['is_active'] == '1',
+              'isDefault':
+                  item['is_default'] == true ||
+                  item['is_default'] == 1 ||
+                  item['is_default'] == '1',
               'surcharge': item['surcharge'] ?? '0%',
               'minLimit': item['min_limit'] ?? 'NPR 0',
               'maxLimit': item['max_limit'] ?? 'No Limit',
@@ -112,7 +119,10 @@ class _PaymentMethodListScreenState extends State<PaymentMethodListScreen> {
     }
   }
 
-  Future<void> _toggleMethodStatus(Map<String, dynamic> method, bool newValue) async {
+  Future<void> _toggleMethodStatus(
+    Map<String, dynamic> method,
+    bool newValue,
+  ) async {
     final tenant = TenantService().currentTenant.value;
     final tenantId = tenant?.id ?? 'startups_main';
     final methodId = method['id'].toString();
@@ -121,13 +131,19 @@ class _PaymentMethodListScreenState extends State<PaymentMethodListScreen> {
       method['isActive'] = newValue;
     });
 
-    final success = await ApiService.togglePaymentMethodStatus(tenantId, methodId, newValue);
+    final success = await ApiService.togglePaymentMethodStatus(
+      tenantId,
+      methodId,
+      newValue,
+    );
 
     if (mounted) {
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text("${method['name']} is now ${newValue ? 'ACTIVE' : 'DISABLED'} in POS & Database!"),
+            content: Text(
+              "${method['name']} is now ${newValue ? 'ACTIVE' : 'DISABLED'} in POS & Database!",
+            ),
             backgroundColor: newValue ? AdminTheme.emeraldGreen : Colors.grey,
             duration: const Duration(seconds: 2),
           ),
@@ -146,10 +162,18 @@ class _PaymentMethodListScreenState extends State<PaymentMethodListScreen> {
   @override
   Widget build(BuildContext context) {
     final filtered = _paymentMethods.where((method) {
-      final matchesCat = _selectedCategory == "ALL" || method['category'] == _selectedCategory;
-      final matchesSearch = method['name'].toString().toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          method['type'].toString().toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          method['accountHolder'].toString().toLowerCase().contains(_searchQuery.toLowerCase());
+      final matchesCat =
+          _selectedCategory == "ALL" || method['category'] == _selectedCategory;
+      final matchesSearch =
+          method['name'].toString().toLowerCase().contains(
+            _searchQuery.toLowerCase(),
+          ) ||
+          method['type'].toString().toLowerCase().contains(
+            _searchQuery.toLowerCase(),
+          ) ||
+          method['accountHolder'].toString().toLowerCase().contains(
+            _searchQuery.toLowerCase(),
+          );
       return matchesCat && matchesSearch;
     }).toList();
 
@@ -208,7 +232,11 @@ class _PaymentMethodListScreenState extends State<PaymentMethodListScreen> {
               color: Colors.white.withValues(alpha: 0.15),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.payments_rounded, color: Colors.white, size: 36),
+            child: const Icon(
+              Icons.payments_rounded,
+              color: Colors.white,
+              size: 36,
+            ),
           ),
           const SizedBox(width: 20),
           Expanded(
@@ -217,7 +245,11 @@ class _PaymentMethodListScreenState extends State<PaymentMethodListScreen> {
               children: const [
                 Text(
                   "Payment Method & Account List",
-                  style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 SizedBox(height: 4),
                 Text(
@@ -240,7 +272,11 @@ class _PaymentMethodListScreenState extends State<PaymentMethodListScreen> {
                 SizedBox(width: 8),
                 Text(
                   "REGISTER ACCOUNTS IN PAYMENT SETUP",
-                  style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
             ),
@@ -251,23 +287,58 @@ class _PaymentMethodListScreenState extends State<PaymentMethodListScreen> {
   }
 
   Widget _buildStatsRow() {
-    final activeCount = _paymentMethods.where((m) => m['isActive'] == true).length;
+    final activeCount = _paymentMethods
+        .where((m) => m['isActive'] == true)
+        .length;
     final totalCount = _paymentMethods.length;
 
     return Row(
       children: [
-        Expanded(child: _buildStatCard("Active Gateways", "$activeCount / $totalCount", Icons.check_circle_outline_rounded, AdminTheme.emeraldGreen)),
+        Expanded(
+          child: _buildStatCard(
+            "Active Gateways",
+            "$activeCount / $totalCount",
+            Icons.check_circle_outline_rounded,
+            AdminTheme.emeraldGreen,
+          ),
+        ),
         const SizedBox(width: 16),
-        Expanded(child: _buildStatCard("QR / Digital Wallets", "${_paymentMethods.where((m) => m['category'] == 'QR' && m['isActive'] == true).length} Active", Icons.qr_code_2_rounded, AdminTheme.royalBlue)),
+        Expanded(
+          child: _buildStatCard(
+            "QR / Digital Wallets",
+            "${_paymentMethods.where((m) => m['category'] == 'QR' && m['isActive'] == true).length} Active",
+            Icons.qr_code_2_rounded,
+            AdminTheme.royalBlue,
+          ),
+        ),
         const SizedBox(width: 16),
-        Expanded(child: _buildStatCard("Card Terminals", "${_paymentMethods.where((m) => m['category'] == 'CARD' && m['isActive'] == true).length} Active", Icons.credit_card_rounded, Colors.orange)),
+        Expanded(
+          child: _buildStatCard(
+            "Card Terminals",
+            "${_paymentMethods.where((m) => m['category'] == 'CARD' && m['isActive'] == true).length} Active",
+            Icons.credit_card_rounded,
+            Colors.orange,
+          ),
+        ),
         const SizedBox(width: 16),
-        Expanded(child: _buildStatCard("Default Method", "Cash", Icons.star_rounded, Colors.purple)),
+        Expanded(
+          child: _buildStatCard(
+            "Default Method",
+            "Cash",
+            Icons.star_rounded,
+            Colors.purple,
+          ),
+        ),
       ],
     );
   }
 
-  Widget _buildStatCard(String title, String value, IconData icon, Color color) {
+  Widget _buildStatCard(
+    String title,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -289,9 +360,23 @@ class _PaymentMethodListScreenState extends State<PaymentMethodListScreen> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title, style: TextStyle(color: Colors.grey.shade600, fontSize: 12, fontWeight: FontWeight.bold)),
+              Text(
+                title,
+                style: TextStyle(
+                  color: Colors.grey.shade600,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               const SizedBox(height: 4),
-              Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: AdminTheme.darkNavy)),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
+                  color: AdminTheme.darkNavy,
+                ),
+              ),
             ],
           ),
         ],
@@ -324,11 +409,20 @@ class _PaymentMethodListScreenState extends State<PaymentMethodListScreen> {
                   onChanged: (v) => setState(() => _searchQuery = v),
                   decoration: InputDecoration(
                     hintText: "Search method, account holder name, or type...",
-                    prefixIcon: const Icon(Icons.search_rounded, color: Colors.grey),
+                    prefixIcon: const Icon(
+                      Icons.search_rounded,
+                      color: Colors.grey,
+                    ),
                     filled: true,
                     fillColor: AdminTheme.pearlWhite,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
                   ),
                 ),
               ),
@@ -345,7 +439,8 @@ class _PaymentMethodListScreenState extends State<PaymentMethodListScreen> {
                   child: ChoiceChip(
                     label: Text(cat['label']!),
                     selected: isSelected,
-                    onSelected: (_) => setState(() => _selectedCategory = cat['key']!),
+                    onSelected: (_) =>
+                        setState(() => _selectedCategory = cat['key']!),
                     selectedColor: AdminTheme.royalBlue,
                     labelStyle: TextStyle(
                       color: isSelected ? Colors.white : AdminTheme.darkNavy,
@@ -353,7 +448,9 @@ class _PaymentMethodListScreenState extends State<PaymentMethodListScreen> {
                       fontSize: 12,
                     ),
                     backgroundColor: AdminTheme.pearlWhite,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                   ),
                 );
               }).toList(),
@@ -402,19 +499,30 @@ class _PaymentMethodListScreenState extends State<PaymentMethodListScreen> {
                   children: [
                     Text(
                       method['name'],
-                      style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AdminTheme.darkNavy),
+                      style: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                        color: AdminTheme.darkNavy,
+                      ),
                     ),
                     const SizedBox(width: 10),
                     if (isDefault)
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.amber.shade100,
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: const Text(
                           "DEFAULT",
-                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.amber),
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.amber,
+                          ),
                         ),
                       ),
                   ],
@@ -423,25 +531,43 @@ class _PaymentMethodListScreenState extends State<PaymentMethodListScreen> {
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
                       decoration: BoxDecoration(
                         color: AdminTheme.royalBlue.withValues(alpha: 0.08),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.person_rounded, size: 12, color: AdminTheme.royalBlue),
+                          const Icon(
+                            Icons.person_rounded,
+                            size: 12,
+                            color: AdminTheme.royalBlue,
+                          ),
                           const SizedBox(width: 4),
                           Text(
                             "Account Holder: $holder",
-                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AdminTheme.royalBlue),
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: AdminTheme.royalBlue,
+                            ),
                           ),
                         ],
                       ),
                     ),
                     if (number.isNotEmpty) ...[
                       const SizedBox(width: 8),
-                      Text("• No: $number", style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.bold)),
+                      Text(
+                        "• No: $number",
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ],
                   ],
                 ),
@@ -455,9 +581,21 @@ class _PaymentMethodListScreenState extends State<PaymentMethodListScreen> {
                   spacing: 16,
                   runSpacing: 8,
                   children: [
-                    _buildMetaChip("Surcharge", method['surcharge'], Icons.percent_rounded),
-                    _buildMetaChip("Min Limit", method['minLimit'], Icons.arrow_downward_rounded),
-                    _buildMetaChip("Max Limit", method['maxLimit'], Icons.arrow_upward_rounded),
+                    _buildMetaChip(
+                      "Surcharge",
+                      method['surcharge'],
+                      Icons.percent_rounded,
+                    ),
+                    _buildMetaChip(
+                      "Min Limit",
+                      method['minLimit'],
+                      Icons.arrow_downward_rounded,
+                    ),
+                    _buildMetaChip(
+                      "Max Limit",
+                      method['maxLimit'],
+                      Icons.arrow_upward_rounded,
+                    ),
                   ],
                 ),
               ],
@@ -491,11 +629,19 @@ class _PaymentMethodListScreenState extends State<PaymentMethodListScreen> {
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AdminTheme.royalBlue,
                   side: const BorderSide(color: AdminTheme.royalBlue),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
                 ),
                 icon: const Icon(Icons.settings_rounded, size: 16),
-                label: const Text("CONFIGURE", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                label: const Text(
+                  "CONFIGURE",
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                ),
               ),
             ],
           ),
@@ -516,8 +662,18 @@ class _PaymentMethodListScreenState extends State<PaymentMethodListScreen> {
         children: [
           Icon(icon, size: 13, color: Colors.grey.shade600),
           const SizedBox(width: 6),
-          Text("$label: ", style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
-          Text(value, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AdminTheme.darkNavy)),
+          Text(
+            "$label: ",
+            style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+          ),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              color: AdminTheme.darkNavy,
+            ),
+          ),
         ],
       ),
     );
@@ -536,9 +692,15 @@ class _PaymentMethodListScreenState extends State<PaymentMethodListScreen> {
         children: const [
           Icon(Icons.search_off_rounded, size: 48, color: Colors.grey),
           SizedBox(height: 12),
-          Text("No Payment Methods Found", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          Text(
+            "No Payment Methods Found",
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
           SizedBox(height: 4),
-          Text("Try searching with different terms or select 'All Methods'.", style: TextStyle(color: Colors.grey, fontSize: 13)),
+          Text(
+            "Try searching with different terms or select 'All Methods'.",
+            style: TextStyle(color: Colors.grey, fontSize: 13),
+          ),
         ],
       ),
     );
@@ -546,42 +708,65 @@ class _PaymentMethodListScreenState extends State<PaymentMethodListScreen> {
 
   void _showEditMethodModal(BuildContext context, Map<String, dynamic> method) {
     final holderNameCtrl = TextEditingController(text: method['accountHolder']);
-    final accountNumberCtrl = TextEditingController(text: method['accountNumber']);
+    final accountNumberCtrl = TextEditingController(
+      text: method['accountNumber'],
+    );
     final surchargeCtrl = TextEditingController(text: method['surcharge']);
 
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text("Configure ${method['name']}", style: const TextStyle(fontWeight: FontWeight.bold, color: AdminTheme.darkNavy)),
+        title: Text(
+          "Configure ${method['name']}",
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            color: AdminTheme.darkNavy,
+          ),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
               controller: holderNameCtrl,
-              decoration: const InputDecoration(labelText: "Account Holder Name"),
+              decoration: const InputDecoration(
+                labelText: "Account Holder Name",
+              ),
             ),
             const SizedBox(height: 10),
             TextField(
               controller: accountNumberCtrl,
-              decoration: const InputDecoration(labelText: "Account / Mobile Number"),
+              decoration: const InputDecoration(
+                labelText: "Account / Mobile Number",
+              ),
             ),
             const SizedBox(height: 10),
             TextField(
               controller: surchargeCtrl,
-              decoration: const InputDecoration(labelText: "Surcharge Rate (e.g. 0% or 1.5%)"),
+              decoration: const InputDecoration(
+                labelText: "Surcharge Rate (e.g. 0% or 1.5%)",
+              ),
             ),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("CANCEL")),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("CANCEL"),
+          ),
           ElevatedButton(
             onPressed: () async {
               final tenant = TenantService().currentTenant.value;
               final tenantId = tenant?.id ?? 'startups_main';
 
-              final bool isActiveBool = method['isActive'] == true || method['isActive'] == 1 || method['isActive'] == '1';
-              final bool isDefaultBool = method['isDefault'] == true || method['isDefault'] == 1 || method['isDefault'] == '1';
+              final bool isActiveBool =
+                  method['isActive'] == true ||
+                  method['isActive'] == 1 ||
+                  method['isActive'] == '1';
+              final bool isDefaultBool =
+                  method['isDefault'] == true ||
+                  method['isDefault'] == 1 ||
+                  method['isDefault'] == '1';
 
               final methodData = {
                 'method_id': method['id'],
@@ -607,17 +792,31 @@ class _PaymentMethodListScreenState extends State<PaymentMethodListScreen> {
               });
 
               Navigator.pop(ctx);
-              ApiService.savePaymentMethod(tenantId, methodData).then((success) {
+              ApiService.savePaymentMethod(tenantId, methodData).then((
+                success,
+              ) {
                 messenger.showSnackBar(
                   SnackBar(
-                    content: Text(success ? "${method['name']} account profile saved to Database!" : "Saved locally."),
+                    content: Text(
+                      success
+                          ? "${method['name']} account profile saved to Database!"
+                          : "Saved locally.",
+                    ),
                     backgroundColor: AdminTheme.emeraldGreen,
                   ),
                 );
               });
             },
-            style: ElevatedButton.styleFrom(backgroundColor: AdminTheme.royalBlue),
-            child: const Text("SAVE CHANGES", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AdminTheme.royalBlue,
+            ),
+            child: const Text(
+              "SAVE CHANGES",
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),

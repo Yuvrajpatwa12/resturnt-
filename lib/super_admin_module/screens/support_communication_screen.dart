@@ -7,10 +7,12 @@ class SupportCommunicationScreen extends StatefulWidget {
   const SupportCommunicationScreen({super.key});
 
   @override
-  State<SupportCommunicationScreen> createState() => _SupportCommunicationScreenState();
+  State<SupportCommunicationScreen> createState() =>
+      _SupportCommunicationScreenState();
 }
 
-class _SupportCommunicationScreenState extends State<SupportCommunicationScreen> with SingleTickerProviderStateMixin {
+class _SupportCommunicationScreenState extends State<SupportCommunicationScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   Timer? _pollTimer;
 
@@ -59,14 +61,23 @@ class _SupportCommunicationScreenState extends State<SupportCommunicationScreen>
           _tickets = data;
           if (_tickets.isNotEmpty) {
             if (_selectedTicket != null) {
-              final match = _tickets.where((t) => t['id'].toString() == _selectedTicket!['id'].toString()).toList();
+              final match = _tickets
+                  .where(
+                    (t) =>
+                        t['id'].toString() == _selectedTicket!['id'].toString(),
+                  )
+                  .toList();
               if (match.isNotEmpty) {
                 _selectedTicket = match.first;
               } else {
-                _selectedTicket = _filteredTickets.isNotEmpty ? _filteredTickets.first : _tickets.first;
+                _selectedTicket = _filteredTickets.isNotEmpty
+                    ? _filteredTickets.first
+                    : _tickets.first;
               }
             } else {
-              _selectedTicket = _filteredTickets.isNotEmpty ? _filteredTickets.first : _tickets.first;
+              _selectedTicket = _filteredTickets.isNotEmpty
+                  ? _filteredTickets.first
+                  : _tickets.first;
             }
           }
         });
@@ -75,9 +86,14 @@ class _SupportCommunicationScreenState extends State<SupportCommunicationScreen>
     }
   }
 
-  Future<void> _loadChatHistory(dynamic ticketId, {bool showLoading = true}) async {
+  Future<void> _loadChatHistory(
+    dynamic ticketId, {
+    bool showLoading = true,
+  }) async {
     if (showLoading) setState(() => _isChatLoading = true);
-    final data = await ApiService.fetchTicketHistory(int.parse(ticketId.toString()));
+    final data = await ApiService.fetchTicketHistory(
+      int.parse(ticketId.toString()),
+    );
     if (mounted) {
       if (data != null) {
         setState(() => _chatHistory = data);
@@ -117,7 +133,10 @@ class _SupportCommunicationScreenState extends State<SupportCommunicationScreen>
     if (_selectedTicket == null) return;
     final ticketId = int.parse(_selectedTicket!['id'].toString());
 
-    final success = await ApiService.updateTicketStatus(ticketId: ticketId, status: newStatus);
+    final success = await ApiService.updateTicketStatus(
+      ticketId: ticketId,
+      status: newStatus,
+    );
     if (success && mounted) {
       setState(() {
         _selectedTicket!['status'] = newStatus;
@@ -126,7 +145,9 @@ class _SupportCommunicationScreenState extends State<SupportCommunicationScreen>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text("Ticket #$ticketId marked as $newStatus."),
-          backgroundColor: newStatus == 'Resolved' || newStatus == 'Closed' ? Colors.green : SAMStyles.royalBlue,
+          backgroundColor: newStatus == 'Resolved' || newStatus == 'Closed'
+              ? Colors.green
+              : SAMStyles.royalBlue,
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -160,21 +181,43 @@ class _SupportCommunicationScreenState extends State<SupportCommunicationScreen>
               const Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text("Support & CRM Center", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: SAMStyles.darkNavy)),
+                  Text(
+                    "Support & CRM Center",
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w900,
+                      color: SAMStyles.darkNavy,
+                    ),
+                  ),
                   SizedBox(height: 2),
-                  Text("Live chat with restaurant owners. Tickets stay active until resolved or closed.", style: TextStyle(color: SAMStyles.textGrey, fontSize: 12, fontWeight: FontWeight.w500)),
+                  Text(
+                    "Live chat with restaurant owners. Tickets stay active until resolved or closed.",
+                    style: TextStyle(
+                      color: SAMStyles.textGrey,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
                 ],
               ),
               ElevatedButton.icon(
                 onPressed: () => _loadTickets(showLoading: true),
                 icon: const Icon(Icons.refresh_rounded, size: 16),
-                label: const Text("REFRESH TICKETS", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                label: const Text(
+                  "REFRESH TICKETS",
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: SAMStyles.royalBlue,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                   elevation: 1,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
               ),
             ],
@@ -192,8 +235,14 @@ class _SupportCommunicationScreenState extends State<SupportCommunicationScreen>
                   unselectedLabelColor: Colors.grey,
                   indicatorColor: SAMStyles.royalBlue,
                   indicatorWeight: 3,
-                  labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                  tabs: const [Tab(text: "Live Tickets"), Tab(text: "Global Broadcast")],
+                  labelStyle: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
+                  tabs: const [
+                    Tab(text: "Live Tickets"),
+                    Tab(text: "Global Broadcast"),
+                  ],
                 ),
               ),
               const Spacer(),
@@ -213,12 +262,24 @@ class _SupportCommunicationScreenState extends State<SupportCommunicationScreen>
           // Main Split Content View
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator(color: SAMStyles.royalBlue))
+                ? const Center(
+                    child: CircularProgressIndicator(
+                      color: SAMStyles.royalBlue,
+                    ),
+                  )
                 : TabBarView(
                     controller: _tabController,
                     children: [
                       _buildTicketSplitView(),
-                      const Center(child: Text("Broadcast Center Ready.", style: TextStyle(color: SAMStyles.textGrey, fontWeight: FontWeight.bold))),
+                      const Center(
+                        child: Text(
+                          "Broadcast Center Ready.",
+                          style: TextStyle(
+                            color: SAMStyles.textGrey,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
                     ],
                   ),
           ),
@@ -230,10 +291,24 @@ class _SupportCommunicationScreenState extends State<SupportCommunicationScreen>
   Widget _buildFilterChip(String filterKey, String labelText) {
     bool isSel = _statusFilter == filterKey;
     int count = filterKey == 'Active'
-        ? _tickets.where((t) => (t['status'] ?? '').toString().toLowerCase() != 'resolved' && (t['status'] ?? '').toString().toLowerCase() != 'closed').length
+        ? _tickets
+              .where(
+                (t) =>
+                    (t['status'] ?? '').toString().toLowerCase() !=
+                        'resolved' &&
+                    (t['status'] ?? '').toString().toLowerCase() != 'closed',
+              )
+              .length
         : filterKey == 'Resolved'
-            ? _tickets.where((t) => (t['status'] ?? '').toString().toLowerCase() == 'resolved' || (t['status'] ?? '').toString().toLowerCase() == 'closed').length
-            : _tickets.length;
+        ? _tickets
+              .where(
+                (t) =>
+                    (t['status'] ?? '').toString().toLowerCase() ==
+                        'resolved' ||
+                    (t['status'] ?? '').toString().toLowerCase() == 'closed',
+              )
+              .length
+        : _tickets.length;
 
     return ChoiceChip(
       label: Text(
@@ -253,7 +328,9 @@ class _SupportCommunicationScreenState extends State<SupportCommunicationScreen>
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(8),
-        side: BorderSide(color: isSel ? SAMStyles.royalBlue : Colors.grey.shade300),
+        side: BorderSide(
+          color: isSel ? SAMStyles.royalBlue : Colors.grey.shade300,
+        ),
       ),
     );
   }
@@ -266,13 +343,21 @@ class _SupportCommunicationScreenState extends State<SupportCommunicationScreen>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.mark_email_read_outlined, size: 56, color: Colors.grey.shade300),
+            Icon(
+              Icons.mark_email_read_outlined,
+              size: 56,
+              color: Colors.grey.shade300,
+            ),
             const SizedBox(height: 12),
             Text(
               _statusFilter == 'Active'
                   ? "No active support tickets."
                   : "No tickets found under '$_statusFilter'",
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: SAMStyles.darkNavy),
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 15,
+                color: SAMStyles.darkNavy,
+              ),
             ),
             const SizedBox(height: 4),
             const Text(
@@ -283,12 +368,20 @@ class _SupportCommunicationScreenState extends State<SupportCommunicationScreen>
             OutlinedButton.icon(
               onPressed: () => _loadTickets(showLoading: true),
               icon: const Icon(Icons.refresh_rounded, size: 16),
-              label: const Text("RECHECK TICKETS", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+              label: const Text(
+                "RECHECK TICKETS",
+                style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+              ),
               style: OutlinedButton.styleFrom(
                 foregroundColor: SAMStyles.royalBlue,
                 side: const BorderSide(color: SAMStyles.royalBlue),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
               ),
             ),
           ],
@@ -316,19 +409,28 @@ class _SupportCommunicationScreenState extends State<SupportCommunicationScreen>
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
                   child: Text(
                     "Tickets (${filtered.length})",
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                      color: Colors.grey,
+                    ),
                   ),
                 ),
                 const Divider(height: 1),
                 Expanded(
                   child: ListView.separated(
                     itemCount: filtered.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1, indent: 16, endIndent: 16),
+                    separatorBuilder: (_, __) =>
+                        const Divider(height: 1, indent: 16, endIndent: 16),
                     itemBuilder: (context, index) {
                       final t = filtered[index];
-                      bool isSel = _selectedTicket?['id'].toString() == t['id'].toString();
+                      bool isSel =
+                          _selectedTicket?['id'].toString() ==
+                          t['id'].toString();
                       Color stColor = _getStatusColor(t['status']);
-                      String resName = (t['restaurant_name'] != null && t['restaurant_name'].toString().isNotEmpty)
+                      String resName =
+                          (t['restaurant_name'] != null &&
+                              t['restaurant_name'].toString().isNotEmpty)
                           ? t['restaurant_name'].toString()
                           : 'Restaurant #${t['tenant_id']}';
 
@@ -337,14 +439,23 @@ class _SupportCommunicationScreenState extends State<SupportCommunicationScreen>
                           setState(() => _selectedTicket = t);
                           _loadChatHistory(t['id']);
                         },
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                        tileColor: isSel ? SAMStyles.royalBlue.withValues(alpha: 0.08) : null,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 6,
+                        ),
+                        tileColor: isSel
+                            ? SAMStyles.royalBlue.withValues(alpha: 0.08)
+                            : null,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                         leading: CircleAvatar(
                           radius: 16,
                           backgroundColor: stColor.withValues(alpha: 0.12),
                           child: Icon(
-                            t['priority'] == 'Urgent' ? Icons.flash_on_rounded : Icons.confirmation_num_outlined,
+                            t['priority'] == 'Urgent'
+                                ? Icons.flash_on_rounded
+                                : Icons.confirmation_num_outlined,
                             color: stColor,
                             size: 16,
                           ),
@@ -354,9 +465,13 @@ class _SupportCommunicationScreenState extends State<SupportCommunicationScreen>
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            fontWeight: isSel ? FontWeight.w900 : FontWeight.bold,
+                            fontWeight: isSel
+                                ? FontWeight.w900
+                                : FontWeight.bold,
                             fontSize: 13,
-                            color: isSel ? SAMStyles.royalBlue : SAMStyles.darkNavy,
+                            color: isSel
+                                ? SAMStyles.royalBlue
+                                : SAMStyles.darkNavy,
                           ),
                         ),
                         subtitle: Padding(
@@ -365,7 +480,11 @@ class _SupportCommunicationScreenState extends State<SupportCommunicationScreen>
                             t['subject'] ?? 'No Subject',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: Colors.black87),
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.black87,
+                            ),
                           ),
                         ),
                         trailing: Column(
@@ -373,20 +492,34 @@ class _SupportCommunicationScreenState extends State<SupportCommunicationScreen>
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
                               decoration: BoxDecoration(
                                 color: stColor.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(
-                                (t['status'] ?? 'Open').toString().toUpperCase(),
-                                style: TextStyle(color: stColor, fontSize: 8, fontWeight: FontWeight.w900),
+                                (t['status'] ?? 'Open')
+                                    .toString()
+                                    .toUpperCase(),
+                                style: TextStyle(
+                                  color: stColor,
+                                  fontSize: 8,
+                                  fontWeight: FontWeight.w900,
+                                ),
                               ),
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              t['created_at'] != null ? t['created_at'].toString().split(' ')[0] : '',
-                              style: const TextStyle(fontSize: 9, color: Colors.grey),
+                              t['created_at'] != null
+                                  ? t['created_at'].toString().split(' ')[0]
+                                  : '',
+                              style: const TextStyle(
+                                fontSize: 9,
+                                color: Colors.grey,
+                              ),
                             ),
                           ],
                         ),
@@ -427,7 +560,9 @@ class _SupportCommunicationScreenState extends State<SupportCommunicationScreen>
 
   Widget _buildChatHeader() {
     if (_selectedTicket == null) return const SizedBox();
-    String resName = (_selectedTicket!['restaurant_name'] != null && _selectedTicket!['restaurant_name'].toString().isNotEmpty)
+    String resName =
+        (_selectedTicket!['restaurant_name'] != null &&
+            _selectedTicket!['restaurant_name'].toString().isNotEmpty)
         ? _selectedTicket!['restaurant_name'].toString()
         : 'Restaurant #${_selectedTicket!['tenant_id']}';
     String currentStatus = _selectedTicket!['status'] ?? 'Open';
@@ -442,7 +577,11 @@ class _SupportCommunicationScreenState extends State<SupportCommunicationScreen>
             backgroundColor: SAMStyles.royalBlue.withValues(alpha: 0.1),
             child: Text(
               resName.isNotEmpty ? resName[0].toUpperCase() : 'R',
-              style: const TextStyle(color: SAMStyles.royalBlue, fontWeight: FontWeight.bold, fontSize: 14),
+              style: const TextStyle(
+                color: SAMStyles.royalBlue,
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+              ),
             ),
           ),
           const SizedBox(width: 12),
@@ -451,13 +590,24 @@ class _SupportCommunicationScreenState extends State<SupportCommunicationScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(resName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: SAMStyles.darkNavy)),
+                Text(
+                  resName,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                    color: SAMStyles.darkNavy,
+                  ),
+                ),
                 const SizedBox(height: 2),
                 Text(
                   "Subject: ${_selectedTicket!['subject'] ?? 'No Subject'} • Priority: ${_selectedTicket!['priority'] ?? 'Medium'}",
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: SAMStyles.textGrey, fontSize: 11, fontWeight: FontWeight.w500),
+                  style: const TextStyle(
+                    color: SAMStyles.textGrey,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ],
             ),
@@ -467,22 +617,35 @@ class _SupportCommunicationScreenState extends State<SupportCommunicationScreen>
           PopupMenuButton<String>(
             tooltip: "Change Ticket Status",
             onSelected: (newSt) => _updateTicketStatus(newSt),
-            itemBuilder: (ctx) => ['Open', 'In Progress', 'Urgent', 'Resolved', 'Closed'].map((st) {
-              return PopupMenuItem(
-                value: st,
-                child: Row(
-                  children: [
-                    Icon(
-                      st == currentStatus ? Icons.check_circle : Icons.circle_outlined,
-                      size: 16,
-                      color: _getStatusColor(st),
+            itemBuilder: (ctx) =>
+                ['Open', 'In Progress', 'Urgent', 'Resolved', 'Closed'].map((
+                  st,
+                ) {
+                  return PopupMenuItem(
+                    value: st,
+                    child: Row(
+                      children: [
+                        Icon(
+                          st == currentStatus
+                              ? Icons.check_circle
+                              : Icons.circle_outlined,
+                          size: 16,
+                          color: _getStatusColor(st),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          st,
+                          style: TextStyle(
+                            fontWeight: st == currentStatus
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 8),
-                    Text(st, style: TextStyle(fontWeight: st == currentStatus ? FontWeight.bold : FontWeight.normal, fontSize: 12)),
-                  ],
-                ),
-              );
-            }).toList(),
+                  );
+                }).toList(),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
@@ -497,7 +660,11 @@ class _SupportCommunicationScreenState extends State<SupportCommunicationScreen>
                   const SizedBox(width: 6),
                   Text(
                     currentStatus.toUpperCase(),
-                    style: TextStyle(color: stColor, fontSize: 10, fontWeight: FontWeight.w900),
+                    style: TextStyle(
+                      color: stColor,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                   const SizedBox(width: 4),
                   Icon(Icons.arrow_drop_down, size: 16, color: stColor),
@@ -513,11 +680,16 @@ class _SupportCommunicationScreenState extends State<SupportCommunicationScreen>
   Widget _buildChatBody() {
     if (_selectedTicket == null) {
       return const Center(
-        child: Text("Select a ticket to view details.", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+        child: Text(
+          "Select a ticket to view details.",
+          style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold),
+        ),
       );
     }
     if (_isChatLoading && _chatHistory.isEmpty) {
-      return const Center(child: CircularProgressIndicator(color: SAMStyles.royalBlue));
+      return const Center(
+        child: CircularProgressIndicator(color: SAMStyles.royalBlue),
+      );
     }
 
     return ListView(
@@ -526,10 +698,17 @@ class _SupportCommunicationScreenState extends State<SupportCommunicationScreen>
         Center(
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(color: const Color(0xFFF1F5F9), borderRadius: BorderRadius.circular(16)),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF1F5F9),
+              borderRadius: BorderRadius.circular(16),
+            ),
             child: Text(
               "Ticket Created on ${_selectedTicket!['created_at'] ?? 'N/A'}",
-              style: const TextStyle(color: Colors.grey, fontSize: 10, fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                color: Colors.grey,
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ),
@@ -549,7 +728,12 @@ class _SupportCommunicationScreenState extends State<SupportCommunicationScreen>
             child: Center(
               child: Text(
                 "CHAT HISTORY & REPLIES",
-                style: TextStyle(color: Colors.grey, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 1),
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontSize: 9,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1,
+                ),
               ),
             ),
           ),
@@ -567,35 +751,58 @@ class _SupportCommunicationScreenState extends State<SupportCommunicationScreen>
     );
   }
 
-  Widget _buildMessageBubble({required String text, required bool isMe, required String subtitle}) {
+  Widget _buildMessageBubble({
+    required String text,
+    required bool isMe,
+    required String subtitle,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12.0),
       child: Row(
-        mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment: isMe
+            ? MainAxisAlignment.end
+            : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (!isMe)
             CircleAvatar(
               radius: 12,
               backgroundColor: Colors.grey[200],
-              child: const Icon(Icons.store_rounded, size: 12, color: Colors.grey),
+              child: const Icon(
+                Icons.store_rounded,
+                size: 12,
+                color: Colors.grey,
+              ),
             ),
           if (!isMe) const SizedBox(width: 8),
           Flexible(
             child: Column(
-              crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+              crossAxisAlignment: isMe
+                  ? CrossAxisAlignment.end
+                  : CrossAxisAlignment.start,
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
                   decoration: BoxDecoration(
                     color: isMe ? SAMStyles.royalBlue : const Color(0xFFF8FAFC),
                     borderRadius: BorderRadius.only(
                       topLeft: const Radius.circular(14),
                       topRight: const Radius.circular(14),
-                      bottomLeft: isMe ? const Radius.circular(14) : Radius.zero,
-                      bottomRight: isMe ? Radius.zero : const Radius.circular(14),
+                      bottomLeft: isMe
+                          ? const Radius.circular(14)
+                          : Radius.zero,
+                      bottomRight: isMe
+                          ? Radius.zero
+                          : const Radius.circular(14),
                     ),
-                    border: Border.all(color: isMe ? SAMStyles.royalBlue : const Color(0xFFE2E8F0)),
+                    border: Border.all(
+                      color: isMe
+                          ? SAMStyles.royalBlue
+                          : const Color(0xFFE2E8F0),
+                    ),
                   ),
                   child: Text(
                     text,
@@ -607,7 +814,14 @@ class _SupportCommunicationScreenState extends State<SupportCommunicationScreen>
                   ),
                 ),
                 const SizedBox(height: 3),
-                Text(subtitle, style: const TextStyle(color: Colors.grey, fontSize: 9, fontWeight: FontWeight.w500)),
+                Text(
+                  subtitle,
+                  style: const TextStyle(
+                    color: Colors.grey,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
               ],
             ),
           ),
@@ -616,7 +830,11 @@ class _SupportCommunicationScreenState extends State<SupportCommunicationScreen>
             CircleAvatar(
               radius: 12,
               backgroundColor: SAMStyles.royalBlue.withValues(alpha: 0.1),
-              child: const Icon(Icons.admin_panel_settings_rounded, size: 12, color: SAMStyles.royalBlue),
+              child: const Icon(
+                Icons.admin_panel_settings_rounded,
+                size: 12,
+                color: SAMStyles.royalBlue,
+              ),
             ),
         ],
       ),
@@ -655,10 +873,17 @@ class _SupportCommunicationScreenState extends State<SupportCommunicationScreen>
           Container(
             height: 40,
             width: 40,
-            decoration: const BoxDecoration(color: SAMStyles.royalBlue, shape: BoxShape.circle),
+            decoration: const BoxDecoration(
+              color: SAMStyles.royalBlue,
+              shape: BoxShape.circle,
+            ),
             child: IconButton(
               onPressed: _handleSendReply,
-              icon: const Icon(Icons.send_rounded, size: 16, color: Colors.white),
+              icon: const Icon(
+                Icons.send_rounded,
+                size: 16,
+                color: Colors.white,
+              ),
               tooltip: "Send Reply",
             ),
           ),

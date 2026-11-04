@@ -233,81 +233,121 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  void _showExitConfirmation() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          "Exit App?",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        content: const Text("Do you want to exit the restaurant app?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("CANCEL"),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              // Allow browser to handle the back button (close tab)
+            },
+            child: const Text(
+              "EXIT",
+              style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return ScrollConfiguration(
-      behavior: MyCustomScrollBehavior(),
-      child: ValueListenableBuilder<int>(
-        valueListenable: ShopManager.instance.currentTabIndex,
-        builder: (context, currentIndex, child) {
-          return Stack(
-            children: [
-              Scaffold(
-                backgroundColor: const Color(0xFFF7F8FA),
-                body: IndexedStack(
-                  index: currentIndex,
-                  children: [
-                    _buildHomeContent(),
-                    const MenuPage(),
-                    const NearbyPage(),
-                    const CartPage(),
-                    const ProfilePage(),
-                  ],
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        // Show exit confirmation on back button press
+        _showExitConfirmation();
+      },
+      child: ScrollConfiguration(
+        behavior: MyCustomScrollBehavior(),
+        child: ValueListenableBuilder<int>(
+          valueListenable: ShopManager.instance.currentTabIndex,
+          builder: (context, currentIndex, child) {
+            return Stack(
+              children: [
+                Scaffold(
+                  backgroundColor: const Color(0xFFF7F8FA),
+                  body: IndexedStack(
+                    index: currentIndex,
+                    children: [
+                      _buildHomeContent(),
+                      const MenuPage(),
+                      const NearbyPage(),
+                      const CartPage(),
+                      const ProfilePage(),
+                    ],
+                  ),
+                  bottomNavigationBar: _buildBottomNav(currentIndex),
                 ),
-                bottomNavigationBar: _buildBottomNav(currentIndex),
-              ),
-              ValueListenableBuilder<bool>(
-                valueListenable: ShopManager.instance.isOnboardingComplete,
-                builder: (context, complete, _) {
-                  if (!complete) return const OnboardingModal();
+                ValueListenableBuilder<bool>(
+                  valueListenable: ShopManager.instance.isOnboardingComplete,
+                  builder: (context, complete, _) {
+                    if (!complete) return const OnboardingModal();
 
-                  return ValueListenableBuilder<bool>(
-                    valueListenable: ShopManager.instance.needsPin,
-                    builder: (context, needs, _) => needs
-                        ? const SmartAuthOverlay()
-                        : const SizedBox.shrink(),
-                  );
-                },
-              ),
-              ValueListenableBuilder<bool>(
-                valueListenable: ShopManager.instance.showNotificationPrompt,
-                builder: (context, show, _) {
-                  if (!show) return const SizedBox.shrink();
-                  return Material(
-                    color: Colors.black.withValues(alpha: 0.5),
-                    child: InkWell(
-                      onTap: () =>
-                          ShopManager.instance.showNotificationPrompt.value =
-                              false,
-                      overlayColor: WidgetStateProperty.all(Colors.transparent),
-                      child: const NotificationPrompt(),
-                    ),
-                  );
-                },
-              ),
-              const IosPwaPrompt(),
-              ValueListenableBuilder<bool>(
-                valueListenable: ShopManager.instance.isNearbyOfferVisible,
-                builder: (context, visible, _) {
-                  final isPremium =
-                      TenantService().currentTenant.value?.isPremiumEnabled ??
-                      false;
-                  if (!visible || !isPremium) return const SizedBox.shrink();
-                  return Container(
-                    color: Colors.black.withValues(alpha: 0.6),
-                    child: ProximityOfferDialog(
-                      restaurantName:
-                          TenantService().currentTenant.value?.name ?? "Us",
-                      onDismiss: () =>
-                          ShopManager.instance.isNearbyOfferVisible.value =
-                              false,
-                    ),
-                  );
-                },
-              ),
-            ],
-          );
-        },
+                    return ValueListenableBuilder<bool>(
+                      valueListenable: ShopManager.instance.needsPin,
+                      builder: (context, needs, _) => needs
+                          ? const SmartAuthOverlay()
+                          : const SizedBox.shrink(),
+                    );
+                  },
+                ),
+                ValueListenableBuilder<bool>(
+                  valueListenable: ShopManager.instance.showNotificationPrompt,
+                  builder: (context, show, _) {
+                    if (!show) return const SizedBox.shrink();
+                    return Material(
+                      color: Colors.black.withValues(alpha: 0.5),
+                      child: InkWell(
+                        onTap: () =>
+                            ShopManager.instance.showNotificationPrompt.value =
+                                false,
+                        overlayColor: WidgetStateProperty.all(
+                          Colors.transparent,
+                        ),
+                        child: const NotificationPrompt(),
+                      ),
+                    );
+                  },
+                ),
+                const IosPwaPrompt(),
+                ValueListenableBuilder<bool>(
+                  valueListenable: ShopManager.instance.isNearbyOfferVisible,
+                  builder: (context, visible, _) {
+                    final isPremium =
+                        TenantService().currentTenant.value?.isPremiumEnabled ??
+                        false;
+                    if (!visible || !isPremium) return const SizedBox.shrink();
+                    return Container(
+                      color: Colors.black.withValues(alpha: 0.6),
+                      child: ProximityOfferDialog(
+                        restaurantName:
+                            TenantService().currentTenant.value?.name ?? "Us",
+                        onDismiss: () =>
+                            ShopManager.instance.isNearbyOfferVisible.value =
+                                false,
+                      ),
+                    );
+                  },
+                ),
+              ],
+            );
+          },
+        ),
       ),
     );
   }
@@ -647,6 +687,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildHeader() {
+    final tenant = TenantService().currentTenant.value;
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -654,7 +695,7 @@ class _HomePageState extends State<HomePage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              "ChiyaBreak",
+              tenant?.name ?? "Restaurant",
               style: TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.w900,
@@ -1462,7 +1503,9 @@ class _HomePageState extends State<HomePage> {
                 children: [
                   Icon(
                     isSelected ? activeIcon : icon,
-                    color: isSelected ? Theme.of(context).primaryColor : Colors.grey,
+                    color: isSelected
+                        ? Theme.of(context).primaryColor
+                        : Colors.grey,
                     size: 24,
                   ),
                   if (badgeCount > 0)
@@ -1497,7 +1540,9 @@ class _HomePageState extends State<HomePage> {
                 LanguageService().translate(label),
                 style: TextStyle(
                   fontSize: 10,
-                  color: isSelected ? Theme.of(context).primaryColor : Colors.grey,
+                  color: isSelected
+                      ? Theme.of(context).primaryColor
+                      : Colors.grey,
                   fontWeight: FontWeight.w600,
                 ),
               ),

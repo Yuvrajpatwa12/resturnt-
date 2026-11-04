@@ -32,11 +32,14 @@ class _AddDivisionScreenState extends State<AddDivisionScreen> {
     'Management & Admin',
   ];
 
-  List<String> _supervisors = [
-    'Unassigned',
-  ];
+  List<String> _supervisors = ['Unassigned'];
 
-  final List<String> _availableShifts = ['Morning', 'Evening', 'Night', 'Full Day'];
+  final List<String> _availableShifts = [
+    'Morning',
+    'Evening',
+    'Night',
+    'Full Day',
+  ];
   final Set<String> _selectedShifts = {'Morning', 'Evening'};
 
   @override
@@ -55,7 +58,9 @@ class _AddDivisionScreenState extends State<AddDivisionScreen> {
 
   Future<void> _loadDepartments() async {
     final tenant = TenantService().currentTenant.value;
-    final String tenantId = (tenant != null && tenant.id.isNotEmpty) ? tenant.id : 'startups_main';
+    final String tenantId = (tenant != null && tenant.id.isNotEmpty)
+        ? tenant.id
+        : 'startups_main';
 
     final depts = await ApiService.fetchDepartments(tenantId);
     final staffData = await ApiService.fetchStaff(tenantId);
@@ -63,8 +68,12 @@ class _AddDivisionScreenState extends State<AddDivisionScreen> {
     if (mounted) {
       setState(() {
         if (depts != null && depts.isNotEmpty) {
-          _departments = depts.map((d) => (d['name'] ?? '').toString()).where((n) => n.isNotEmpty).toList();
-          if (!_departments.contains(_selectedDepartment) && _departments.isNotEmpty) {
+          _departments = depts
+              .map((d) => (d['name'] ?? '').toString())
+              .where((n) => n.isNotEmpty)
+              .toList();
+          if (!_departments.contains(_selectedDepartment) &&
+              _departments.isNotEmpty) {
             _selectedDepartment = _departments.first;
           }
         }
@@ -87,7 +96,9 @@ class _AddDivisionScreenState extends State<AddDivisionScreen> {
   Future<void> _submitForm() async {
     if (!_formKey.currentState!.validate()) return;
     final tenant = TenantService().currentTenant.value;
-    final String tenantId = (tenant != null && tenant.id.isNotEmpty) ? tenant.id : 'startups_main';
+    final String tenantId = (tenant != null && tenant.id.isNotEmpty)
+        ? tenant.id
+        : 'startups_main';
 
     setState(() => _isSaving = true);
 
@@ -107,7 +118,11 @@ class _AddDivisionScreenState extends State<AddDivisionScreen> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(success ? "Division '${_nameCtrl.text.trim()}' saved successfully!" : "Failed to save division"),
+          content: Text(
+            success
+                ? "Division '${_nameCtrl.text.trim()}' saved successfully!"
+                : "Failed to save division",
+          ),
           backgroundColor: success ? Colors.green : Colors.red,
         ),
       );
@@ -129,16 +144,29 @@ class _AddDivisionScreenState extends State<AddDivisionScreen> {
             children: [
               IconButton(
                 onPressed: () => widget.onNavigateMode?.call("Manage Division"),
-                icon: const Icon(Icons.arrow_back_rounded, color: Color(0xFF1F2937)),
+                icon: const Icon(
+                  Icons.arrow_back_rounded,
+                  color: Color(0xFF1F2937),
+                ),
                 tooltip: "Back to Manage Division",
               ),
               const SizedBox(width: 8),
               const Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text("Add Division", style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: Color(0xFF1F2937))),
+                  Text(
+                    "Add Division",
+                    style: TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.w900,
+                      color: Color(0xFF1F2937),
+                    ),
+                  ),
                   SizedBox(height: 2),
-                  Text("Create operational sub-stations and assign supervisors under departments.", style: TextStyle(color: Color(0xFF6B7280), fontSize: 13)),
+                  Text(
+                    "Create operational sub-stations and assign supervisors under departments.",
+                    style: TextStyle(color: Color(0xFF6B7280), fontSize: 13),
+                  ),
                 ],
               ),
             ],
@@ -163,17 +191,50 @@ class _AddDivisionScreenState extends State<AddDivisionScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // DEPARTMENT SELECTION
-                      const Text("PARENT DEPARTMENT *", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Color(0xFF6B7280), letterSpacing: 0.5)),
+                      const Text(
+                        "PARENT DEPARTMENT *",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 11,
+                          color: Color(0xFF6B7280),
+                          letterSpacing: 0.5,
+                        ),
+                      ),
                       const SizedBox(height: 8),
                       DropdownButtonFormField<String>(
                         value: _selectedDepartment,
-                        items: _departments.map((d) => DropdownMenuItem(value: d, child: Text(d, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)))).toList(),
-                        onChanged: (val) => setState(() => _selectedDepartment = val!),
+                        items: _departments
+                            .map(
+                              (d) => DropdownMenuItem(
+                                value: d,
+                                child: Text(
+                                  d,
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (val) =>
+                            setState(() => _selectedDepartment = val!),
                         decoration: InputDecoration(
                           filled: true,
                           fillColor: const Color(0xFFF8FAFC),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
-                          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF2563EB), width: 1.5)),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                              color: Color(0xFFE5E7EB),
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                              color: Color(0xFF2563EB),
+                              width: 1.5,
+                            ),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 20),
@@ -186,19 +247,48 @@ class _AddDivisionScreenState extends State<AddDivisionScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text("DIVISION NAME *", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Color(0xFF6B7280), letterSpacing: 0.5)),
+                                const Text(
+                                  "DIVISION NAME *",
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 11,
+                                    color: Color(0xFF6B7280),
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
                                 const SizedBox(height: 8),
                                 TextFormField(
                                   controller: _nameCtrl,
-                                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF1F2937)),
-                                  validator: (v) => (v == null || v.trim().isEmpty) ? "Division name required" : null,
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFF1F2937),
+                                  ),
+                                  validator: (v) =>
+                                      (v == null || v.trim().isEmpty)
+                                      ? "Division name required"
+                                      : null,
                                   decoration: InputDecoration(
                                     hintText: "e.g. Hot Kitchen / Salad Bar",
-                                    hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 13),
+                                    hintStyle: const TextStyle(
+                                      color: Color(0xFF9CA3AF),
+                                      fontSize: 13,
+                                    ),
                                     filled: true,
                                     fillColor: const Color(0xFFF8FAFC),
-                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
-                                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF2563EB), width: 1.5)),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: const BorderSide(
+                                        color: Color(0xFFE5E7EB),
+                                      ),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: const BorderSide(
+                                        color: Color(0xFF2563EB),
+                                        width: 1.5,
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ],
@@ -209,19 +299,48 @@ class _AddDivisionScreenState extends State<AddDivisionScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text("SHORT CODE *", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Color(0xFF6B7280), letterSpacing: 0.5)),
+                                const Text(
+                                  "SHORT CODE *",
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 11,
+                                    color: Color(0xFF6B7280),
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
                                 const SizedBox(height: 8),
                                 TextFormField(
                                   controller: _codeCtrl,
-                                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF1F2937)),
-                                  validator: (v) => (v == null || v.trim().isEmpty) ? "Code required" : null,
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFF1F2937),
+                                  ),
+                                  validator: (v) =>
+                                      (v == null || v.trim().isEmpty)
+                                      ? "Code required"
+                                      : null,
                                   decoration: InputDecoration(
                                     hintText: "e.g. KIT-HOT",
-                                    hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 13),
+                                    hintStyle: const TextStyle(
+                                      color: Color(0xFF9CA3AF),
+                                      fontSize: 13,
+                                    ),
                                     filled: true,
                                     fillColor: const Color(0xFFF8FAFC),
-                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
-                                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF2563EB), width: 1.5)),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: const BorderSide(
+                                        color: Color(0xFFE5E7EB),
+                                      ),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: const BorderSide(
+                                        color: Color(0xFF2563EB),
+                                        width: 1.5,
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ],
@@ -232,22 +351,57 @@ class _AddDivisionScreenState extends State<AddDivisionScreen> {
                       const SizedBox(height: 20),
 
                       // SUPERVISOR / IN-CHARGE
-                      const Text("SUPERVISOR / LEAD *", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Color(0xFF6B7280), letterSpacing: 0.5)),
+                      const Text(
+                        "SUPERVISOR / LEAD *",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 11,
+                          color: Color(0xFF6B7280),
+                          letterSpacing: 0.5,
+                        ),
+                      ),
                       const SizedBox(height: 8),
                       DropdownButtonFormField<String>(
                         value: _selectedSupervisor,
-                        items: _supervisors.map((s) => DropdownMenuItem(value: s, child: Text(s, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)))).toList(),
-                        onChanged: (val) => setState(() => _selectedSupervisor = val!),
+                        items: _supervisors
+                            .map(
+                              (s) => DropdownMenuItem(
+                                value: s,
+                                child: Text(
+                                  s,
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (val) =>
+                            setState(() => _selectedSupervisor = val!),
                         decoration: InputDecoration(
                           filled: true,
                           fillColor: const Color(0xFFF8FAFC),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                              color: Color(0xFFE5E7EB),
+                            ),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 20),
 
                       // OPERATIONAL SHIFTS
-                      const Text("OPERATIONAL SHIFTS", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Color(0xFF6B7280), letterSpacing: 0.5)),
+                      const Text(
+                        "OPERATIONAL SHIFTS",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 11,
+                          color: Color(0xFF6B7280),
+                          letterSpacing: 0.5,
+                        ),
+                      ),
                       const SizedBox(height: 10),
                       Wrap(
                         spacing: 10,
@@ -255,18 +409,37 @@ class _AddDivisionScreenState extends State<AddDivisionScreen> {
                         children: _availableShifts.map((shift) {
                           final isSelected = _selectedShifts.contains(shift);
                           return FilterChip(
-                            label: Text(shift, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: isSelected ? const Color(0xFF2563EB) : const Color(0xFF4B5563))),
+                            label: Text(
+                              shift,
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                                color: isSelected
+                                    ? const Color(0xFF2563EB)
+                                    : const Color(0xFF4B5563),
+                              ),
+                            ),
                             selected: isSelected,
-                            selectedColor: const Color(0xFF2563EB).withValues(alpha: 0.12),
+                            selectedColor: const Color(
+                              0xFF2563EB,
+                            ).withValues(alpha: 0.12),
                             backgroundColor: const Color(0xFFF8FAFC),
                             checkmarkColor: const Color(0xFF2563EB),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10), side: BorderSide(color: isSelected ? const Color(0xFF2563EB) : const Color(0xFFE5E7EB))),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              side: BorderSide(
+                                color: isSelected
+                                    ? const Color(0xFF2563EB)
+                                    : const Color(0xFFE5E7EB),
+                              ),
+                            ),
                             onSelected: (val) {
                               setState(() {
                                 if (val) {
                                   _selectedShifts.add(shift);
                                 } else {
-                                  if (_selectedShifts.length > 1) _selectedShifts.remove(shift);
+                                  if (_selectedShifts.length > 1)
+                                    _selectedShifts.remove(shift);
                                 }
                               });
                             },
@@ -276,26 +449,55 @@ class _AddDivisionScreenState extends State<AddDivisionScreen> {
                       const SizedBox(height: 20),
 
                       // DESCRIPTION TEXTAREA
-                      const Text("DESCRIPTION & STATION DUTIES", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Color(0xFF6B7280), letterSpacing: 0.5)),
+                      const Text(
+                        "DESCRIPTION & STATION DUTIES",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 11,
+                          color: Color(0xFF6B7280),
+                          letterSpacing: 0.5,
+                        ),
+                      ),
                       const SizedBox(height: 8),
                       TextFormField(
                         controller: _descCtrl,
                         maxLines: 3,
-                        style: const TextStyle(fontSize: 14, color: Color(0xFF1F2937)),
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Color(0xFF1F2937),
+                        ),
                         decoration: InputDecoration(
-                          hintText: "Specify station responsibilities, equipment, or operational guidelines...",
-                          hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 13),
+                          hintText:
+                              "Specify station responsibilities, equipment, or operational guidelines...",
+                          hintStyle: const TextStyle(
+                            color: Color(0xFF9CA3AF),
+                            fontSize: 13,
+                          ),
                           filled: true,
                           fillColor: const Color(0xFFF8FAFC),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
-                          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF2563EB), width: 1.5)),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                              color: Color(0xFFE5E7EB),
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                              color: Color(0xFF2563EB),
+                              width: 1.5,
+                            ),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 24),
 
                       // STATUS TOGGLE
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFFF8FAFC),
                           borderRadius: BorderRadius.circular(12),
@@ -307,14 +509,28 @@ class _AddDivisionScreenState extends State<AddDivisionScreen> {
                             const Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text("Division Status", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF1F2937))),
-                                Text("Active divisions can receive orders and staff assignments.", style: TextStyle(color: Color(0xFF6B7280), fontSize: 11)),
+                                Text(
+                                  "Division Status",
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                    color: Color(0xFF1F2937),
+                                  ),
+                                ),
+                                Text(
+                                  "Active divisions can receive orders and staff assignments.",
+                                  style: TextStyle(
+                                    color: Color(0xFF6B7280),
+                                    fontSize: 11,
+                                  ),
+                                ),
                               ],
                             ),
                             Switch(
                               value: _isActive,
                               activeColor: const Color(0xFF2563EB),
-                              onChanged: (val) => setState(() => _isActive = val),
+                              onChanged: (val) =>
+                                  setState(() => _isActive = val),
                             ),
                           ],
                         ),
@@ -326,26 +542,59 @@ class _AddDivisionScreenState extends State<AddDivisionScreen> {
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
                           OutlinedButton(
-                            onPressed: _isSaving ? null : () => widget.onNavigateMode?.call("Manage Division"),
+                            onPressed: _isSaving
+                                ? null
+                                : () => widget.onNavigateMode?.call(
+                                    "Manage Division",
+                                  ),
                             style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24,
+                                vertical: 16,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                               side: const BorderSide(color: Color(0xFFE5E7EB)),
                             ),
-                            child: const Text("Cancel", style: TextStyle(color: Color(0xFF6B7280), fontWeight: FontWeight.bold)),
+                            child: const Text(
+                              "Cancel",
+                              style: TextStyle(
+                                color: Color(0xFF6B7280),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
                           const SizedBox(width: 14),
                           ElevatedButton.icon(
                             onPressed: _isSaving ? null : _submitForm,
                             icon: const Icon(Icons.check_rounded, size: 18),
                             label: _isSaving
-                                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                                : const Text("Save Division", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Text(
+                                    "Save Division",
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
+                                  ),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF2563EB),
                               foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 28,
+                                vertical: 16,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                               elevation: 2,
                             ),
                           ),

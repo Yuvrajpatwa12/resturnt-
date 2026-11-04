@@ -42,7 +42,9 @@ class KitchenTheme {
           backgroundColor: royalBlue,
           foregroundColor: pureWhite,
           padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           textStyle: const TextStyle(fontWeight: FontWeight.bold),
         ),
       ),

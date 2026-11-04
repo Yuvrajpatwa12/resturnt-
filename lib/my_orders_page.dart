@@ -72,7 +72,9 @@ class _MyOrdersPageState extends State<MyOrdersPage>
     final orderIdsStr = orderIdsSet.isNotEmpty ? orderIdsSet.join(',') : null;
 
     final cachedOrders = await ApiService.getCachedUserOrders(tenant.id, uid);
-    final cachedEmailOrders = email.isNotEmpty ? await ApiService.getCachedUserOrders(tenant.id, email) : <Map<String, dynamic>>[];
+    final cachedEmailOrders = email.isNotEmpty
+        ? await ApiService.getCachedUserOrders(tenant.id, email)
+        : <Map<String, dynamic>>[];
     final allCached = [...cachedOrders, ...cachedEmailOrders];
     final mergedCachedById = <String, Map<String, dynamic>>{
       for (final order in allCached)
@@ -525,7 +527,9 @@ class _MyOrdersPageState extends State<MyOrdersPage>
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                    color: Theme.of(
+                      context,
+                    ).primaryColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(

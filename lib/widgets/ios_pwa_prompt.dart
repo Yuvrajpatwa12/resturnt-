@@ -59,7 +59,7 @@ class _IosPwaPromptState extends State<IosPwaPrompt> {
                   color: Colors.black26,
                   blurRadius: 20,
                   offset: Offset(0, 10),
-                )
+                ),
               ],
             ),
             child: Column(
@@ -90,10 +90,14 @@ class _IosPwaPromptState extends State<IosPwaPrompt> {
                 const Text(
                   "To receive instant push notifications for Waves & Orders on your iPhone, add this app to your Home Screen:",
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey, fontSize: 13, height: 1.4),
+                  style: TextStyle(
+                    color: Colors.grey,
+                    fontSize: 13,
+                    height: 1.4,
+                  ),
                 ),
                 const SizedBox(height: 20),
-                
+
                 // Step 1
                 Container(
                   padding: const EdgeInsets.all(12),
@@ -104,19 +108,27 @@ class _IosPwaPromptState extends State<IosPwaPrompt> {
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.ios_share_rounded, color: primaryColor, size: 22),
+                      Icon(
+                        Icons.ios_share_rounded,
+                        color: primaryColor,
+                        size: 22,
+                      ),
                       const SizedBox(width: 12),
                       const Expanded(
                         child: Text(
                           "1. Tap the Share button at the bottom of Safari/Chrome",
-                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.black87),
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
+                          ),
                         ),
                       ),
                     ],
                   ),
                 ),
                 const SizedBox(height: 10),
-                
+
                 // Step 2
                 Container(
                   padding: const EdgeInsets.all(12),
@@ -127,12 +139,20 @@ class _IosPwaPromptState extends State<IosPwaPrompt> {
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.add_box_outlined, color: primaryColor, size: 22),
+                      Icon(
+                        Icons.add_box_outlined,
+                        color: primaryColor,
+                        size: 22,
+                      ),
                       const SizedBox(width: 12),
                       const Expanded(
                         child: Text(
                           "2. Scroll down & select 'Add to Home Screen'",
-                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.black87),
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
+                          ),
                         ),
                       ),
                     ],
@@ -159,7 +179,10 @@ class _IosPwaPromptState extends State<IosPwaPrompt> {
                     ),
                     child: const Text(
                       "Got It!",
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                      ),
                     ),
                   ),
                 ),

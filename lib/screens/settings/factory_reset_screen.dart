@@ -15,22 +15,26 @@ class _FactoryResetScreenState extends State<FactoryResetScreen> {
   final List<Map<String, String>> _resetDataItems = [
     {
       'title': 'Local Storage & Preferences',
-      'subtitle': 'All customized app settings, language preferences, and dark/light mode toggles.',
+      'subtitle':
+          'All customized app settings, language preferences, and dark/light mode toggles.',
       'icon': 'storage',
     },
     {
       'title': 'Cached Images & Translation Packs',
-      'subtitle': 'Offline cached menu images, asset previews, and downloaded language files.',
+      'subtitle':
+          'Offline cached menu images, asset previews, and downloaded language files.',
       'icon': 'cached',
     },
     {
       'title': 'Authentication & Session Tokens',
-      'subtitle': 'Active login credentials, tenant session tokens, and saved user profiles.',
+      'subtitle':
+          'Active login credentials, tenant session tokens, and saved user profiles.',
       'icon': 'lock_reset',
     },
     {
       'title': 'Offline Order Buffers',
-      'subtitle': 'Locally queued unsynced transaction logs and temporary cart state.',
+      'subtitle':
+          'Locally queued unsynced transaction logs and temporary cart state.',
       'icon': 'receipt_long',
     },
   ];
@@ -47,7 +51,11 @@ class _FactoryResetScreenState extends State<FactoryResetScreen> {
           backgroundColor: AppTheme.cardBackground,
           title: const Row(
             children: [
-              Icon(Icons.warning_amber_rounded, color: AppTheme.danger, size: 28),
+              Icon(
+                Icons.warning_amber_rounded,
+                color: AppTheme.danger,
+                size: 28,
+              ),
               SizedBox(width: 10),
               Text(
                 "Confirm Factory Reset",
@@ -61,15 +69,25 @@ class _FactoryResetScreenState extends State<FactoryResetScreen> {
           ),
           content: const Text(
             "Are you absolutely sure you want to perform a factory reset? All local configuration, cached assets, and saved tokens will be permanently erased.",
-            style: TextStyle(color: AppTheme.textSecondary, fontSize: 14, height: 1.4),
+            style: TextStyle(
+              color: AppTheme.textSecondary,
+              fontSize: 14,
+              height: 1.4,
+            ),
           ),
-          actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          actionsPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 12,
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
               child: const Text(
                 "Cancel",
-                style: TextStyle(color: AppTheme.textSecondary, fontWeight: FontWeight.w600),
+                style: TextStyle(
+                  color: AppTheme.textSecondary,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
             ElevatedButton.icon(
@@ -80,7 +98,10 @@ class _FactoryResetScreenState extends State<FactoryResetScreen> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
               ),
               onPressed: () async {
                 Navigator.pop(ctx);
@@ -93,7 +114,9 @@ class _FactoryResetScreenState extends State<FactoryResetScreen> {
 
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: const Text("Factory Reset Completed. All settings restored to defaults."),
+                    content: const Text(
+                      "Factory Reset Completed. All settings restored to defaults.",
+                    ),
                     backgroundColor: AppTheme.success,
                     behavior: SnackBarBehavior.floating,
                     shape: RoundedRectangleBorder(
@@ -199,8 +222,10 @@ class _FactoryResetScreenState extends State<FactoryResetScreen> {
           ..._resetDataItems.map((item) {
             IconData iconData = Icons.storage_rounded;
             if (item['icon'] == 'cached') iconData = Icons.cached_rounded;
-            if (item['icon'] == 'lock_reset') iconData = Icons.lock_reset_rounded;
-            if (item['icon'] == 'receipt_long') iconData = Icons.receipt_long_rounded;
+            if (item['icon'] == 'lock_reset')
+              iconData = Icons.lock_reset_rounded;
+            if (item['icon'] == 'receipt_long')
+              iconData = Icons.receipt_long_rounded;
 
             return Container(
               margin: const EdgeInsets.only(bottom: 10),
@@ -250,13 +275,18 @@ class _FactoryResetScreenState extends State<FactoryResetScreen> {
           // Checkbox Acknowledgement
           Container(
             decoration: AppTheme.cardDecoration(
-              borderColor: _understandWarning ? AppTheme.danger : AppTheme.cardBorder,
-              backgroundColor: _understandWarning ? AppTheme.dangerSubtle.withOpacity(0.5) : AppTheme.cardBackground,
+              borderColor: _understandWarning
+                  ? AppTheme.danger
+                  : AppTheme.cardBorder,
+              backgroundColor: _understandWarning
+                  ? AppTheme.dangerSubtle.withOpacity(0.5)
+                  : AppTheme.cardBackground,
             ),
             child: CheckboxListTile(
               activeColor: AppTheme.danger,
               value: _understandWarning,
-              onChanged: (val) => setState(() => _understandWarning = val ?? false),
+              onChanged: (val) =>
+                  setState(() => _understandWarning = val ?? false),
               title: const Text(
                 "I understand that this action is permanent and cannot be undone.",
                 style: TextStyle(
@@ -266,7 +296,10 @@ class _FactoryResetScreenState extends State<FactoryResetScreen> {
                 ),
               ),
               controlAffinity: ListTileControlAffinity.leading,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 10,
+                vertical: 4,
+              ),
             ),
           ),
 
@@ -278,23 +311,32 @@ class _FactoryResetScreenState extends State<FactoryResetScreen> {
             height: 52,
             child: ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
-                backgroundColor: _understandWarning ? AppTheme.danger : AppTheme.cardBorder,
+                backgroundColor: _understandWarning
+                    ? AppTheme.danger
+                    : AppTheme.cardBorder,
                 foregroundColor: Colors.white,
                 elevation: _understandWarning ? 2 : 0,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
                 ),
               ),
-              onPressed: (_understandWarning && !_isResetting) ? _showConfirmationModal : null,
+              onPressed: (_understandWarning && !_isResetting)
+                  ? _showConfirmationModal
+                  : null,
               icon: _isResetting
                   ? const SizedBox(
                       width: 20,
                       height: 20,
-                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
                     )
                   : const Icon(Icons.restart_alt_rounded, size: 22),
               label: Text(
-                _isResetting ? "Resetting Application..." : "Reset All App Settings",
+                _isResetting
+                    ? "Resetting Application..."
+                    : "Reset All App Settings",
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,

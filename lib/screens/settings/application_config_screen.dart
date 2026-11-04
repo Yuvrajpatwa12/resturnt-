@@ -5,7 +5,8 @@ class ApplicationConfigScreen extends StatefulWidget {
   const ApplicationConfigScreen({super.key});
 
   @override
-  State<ApplicationConfigScreen> createState() => _ApplicationConfigScreenState();
+  State<ApplicationConfigScreen> createState() =>
+      _ApplicationConfigScreenState();
 }
 
 class _ApplicationConfigScreenState extends State<ApplicationConfigScreen> {
@@ -166,7 +167,9 @@ class _ApplicationConfigScreenState extends State<ApplicationConfigScreen> {
                             setState(() => _cacheSizeMb = 0.0);
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: const Text("Temporary application cache cleared successfully!"),
+                                content: const Text(
+                                  "Temporary application cache cleared successfully!",
+                                ),
                                 backgroundColor: AppTheme.primaryPurple,
                                 behavior: SnackBarBehavior.floating,
                                 shape: RoundedRectangleBorder(
@@ -175,9 +178,15 @@ class _ApplicationConfigScreenState extends State<ApplicationConfigScreen> {
                               ),
                             );
                           },
-                    icon: const Icon(Icons.delete_sweep_rounded, color: AppTheme.primaryPurple, size: 20),
+                    icon: const Icon(
+                      Icons.delete_sweep_rounded,
+                      color: AppTheme.primaryPurple,
+                      size: 20,
+                    ),
                     label: Text(
-                      _cacheSizeMb == 0 ? "Cache Cleared" : "Clear Application Cache",
+                      _cacheSizeMb == 0
+                          ? "Cache Cleared"
+                          : "Clear Application Cache",
                       style: const TextStyle(
                         color: AppTheme.primaryPurple,
                         fontWeight: FontWeight.w600,
@@ -217,7 +226,7 @@ class _ApplicationConfigScreenState extends State<ApplicationConfigScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        "ChiyaBreak Enterprise POS",
+                        "Restaurant Enterprise POS",
                         style: TextStyle(
                           color: AppTheme.textPrimary,
                           fontSize: 15,
@@ -236,7 +245,10 @@ class _ApplicationConfigScreenState extends State<ApplicationConfigScreen> {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: AppTheme.successLight,
                     borderRadius: BorderRadius.circular(8),

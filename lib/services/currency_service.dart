@@ -7,8 +7,12 @@ class CurrencyService extends ChangeNotifier {
   factory CurrencyService() => _instance;
   CurrencyService._internal();
 
-  final ValueNotifier<String> currentCurrencyCode = ValueNotifier<String>('NPR');
-  final ValueNotifier<String> currentCurrencySymbol = ValueNotifier<String>('Rs.');
+  final ValueNotifier<String> currentCurrencyCode = ValueNotifier<String>(
+    'NPR',
+  );
+  final ValueNotifier<String> currentCurrencySymbol = ValueNotifier<String>(
+    'Rs.',
+  );
   bool _isInitialized = false;
 
   static const List<Map<String, String>> availableCurrencies = [
@@ -72,7 +76,11 @@ class CurrencyService extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> setCurrency(String code, String symbol, {String? tenantId}) async {
+  Future<void> setCurrency(
+    String code,
+    String symbol, {
+    String? tenantId,
+  }) async {
     currentCurrencyCode.value = code;
     currentCurrencySymbol.value = symbol;
 

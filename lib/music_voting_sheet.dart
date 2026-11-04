@@ -35,8 +35,12 @@ class _MusicVotingSheetState extends State<MusicVotingSheet> {
           // Handle
           Center(
             child: Container(
-              width: 40, height: 4,
-              decoration: BoxDecoration(color: Colors.grey[200], borderRadius: BorderRadius.circular(2)),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[200],
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
           ),
           const SizedBox(height: 20),
@@ -50,14 +54,22 @@ class _MusicVotingSheetState extends State<MusicVotingSheet> {
                 children: [
                   const Text(
                     "Music Voting",
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black),
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   ValueListenableBuilder<int>(
                     valueListenable: ShopManager.instance.vibeScore,
                     builder: (context, score, child) => Text(
                       "Current Vibe Score: $score%",
-                      style: const TextStyle(fontSize: 12, color: Color(0xFFFF5C00), fontWeight: FontWeight.w600),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFFFF5C00),
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ],
@@ -65,12 +77,24 @@ class _MusicVotingSheetState extends State<MusicVotingSheet> {
               IconButton(
                 onPressed: () {
                   Navigator.pop(context);
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => const JukeboxPage()));
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const JukeboxPage(),
+                    ),
+                  );
                 },
                 icon: Container(
                   padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(color: const Color(0xFFF1F5F9), borderRadius: BorderRadius.circular(12)),
-                  child: const Icon(Icons.fullscreen_rounded, color: Colors.black87, size: 20),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.fullscreen_rounded,
+                    color: Colors.black87,
+                    size: 20,
+                  ),
                 ),
               ),
             ],
@@ -92,11 +116,19 @@ class _MusicVotingSheetState extends State<MusicVotingSheet> {
                 decoration: BoxDecoration(
                   color: Theme.of(context).primaryColor.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Theme.of(context).primaryColor.withValues(alpha: 0.2)),
+                  border: Border.all(
+                    color: Theme.of(
+                      context,
+                    ).primaryColor.withValues(alpha: 0.2),
+                  ),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.graphic_eq_rounded, color: Color(0xFFFF5C00), size: 20),
+                    const Icon(
+                      Icons.graphic_eq_rounded,
+                      color: Color(0xFFFF5C00),
+                      size: 20,
+                    ),
                     const SizedBox(width: 10),
                     if (image.isNotEmpty)
                       ClipRRect(
@@ -114,9 +146,26 @@ class _MusicVotingSheetState extends State<MusicVotingSheet> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text("NOW PLAYING 🎵", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Color(0xFFFF5C00), letterSpacing: 1)),
+                          const Text(
+                            "NOW PLAYING 🎵",
+                            style: TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w900,
+                              color: Color(0xFFFF5C00),
+                              letterSpacing: 1,
+                            ),
+                          ),
                           const SizedBox(height: 2),
-                          Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black), maxLines: 1, overflow: TextOverflow.ellipsis),
+                          Text(
+                            title,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                              color: Colors.black,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ],
                       ),
                     ),
@@ -131,7 +180,12 @@ class _MusicVotingSheetState extends State<MusicVotingSheet> {
           // Voting List
           const Text(
             "VOTE FOR NEXT 🗳️",
-            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1),
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w900,
+              color: Colors.grey,
+              letterSpacing: 1,
+            ),
           ),
           const SizedBox(height: 16),
 
@@ -141,13 +195,18 @@ class _MusicVotingSheetState extends State<MusicVotingSheet> {
               builder: (context, queue, child) {
                 // Filter out deleted items & sort by votes count descending
                 final activeQueue = queue.where((item) {
-                  final st = (item['status'] ?? 'queued').toString().toLowerCase().trim();
+                  final st = (item['status'] ?? 'queued')
+                      .toString()
+                      .toLowerCase()
+                      .trim();
                   return st != 'deleted';
                 }).toList();
 
                 activeQueue.sort((a, b) {
-                  final int vA = int.tryParse(a['votes']?.toString() ?? '0') ?? 0;
-                  final int vB = int.tryParse(b['votes']?.toString() ?? '0') ?? 0;
+                  final int vA =
+                      int.tryParse(a['votes']?.toString() ?? '0') ?? 0;
+                  final int vB =
+                      int.tryParse(b['votes']?.toString() ?? '0') ?? 0;
                   return vB.compareTo(vA);
                 });
 
@@ -170,8 +229,10 @@ class _MusicVotingSheetState extends State<MusicVotingSheet> {
                   itemCount: activeQueue.length,
                   itemBuilder: (context, index) {
                     final item = activeQueue[index];
-                    int songId = int.tryParse(item['id']?.toString() ?? '') ?? 0;
-                    if (songId == 0) return const SizedBox.shrink(); // Hide invalid items
+                    int songId =
+                        int.tryParse(item['id']?.toString() ?? '') ?? 0;
+                    if (songId == 0)
+                      return const SizedBox.shrink(); // Hide invalid items
                     bool userLiked = item['user_liked'] == true;
 
                     return Padding(
@@ -179,7 +240,8 @@ class _MusicVotingSheetState extends State<MusicVotingSheet> {
                       child: Row(
                         children: [
                           Container(
-                            width: 50, height: 50,
+                            width: 50,
+                            height: 50,
                             decoration: BoxDecoration(
                               color: Colors.grey[100],
                               borderRadius: BorderRadius.circular(12),
@@ -187,10 +249,16 @@ class _MusicVotingSheetState extends State<MusicVotingSheet> {
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(12),
                               child: Image.network(
-                                item['image'] ?? '', 
-                                width: 50, height: 50, 
+                                item['image'] ?? '',
+                                width: 50,
+                                height: 50,
                                 fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) => const Icon(Icons.music_note, color: Colors.grey, size: 20),
+                                errorBuilder: (context, error, stackTrace) =>
+                                    const Icon(
+                                      Icons.music_note,
+                                      color: Colors.grey,
+                                      size: 20,
+                                    ),
                               ),
                             ),
                           ),
@@ -199,40 +267,71 @@ class _MusicVotingSheetState extends State<MusicVotingSheet> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(item['title'] ?? 'Untitled', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15), maxLines: 1, overflow: TextOverflow.ellipsis),
-                                Text(item['artist'] ?? 'Unknown', style: TextStyle(color: Colors.grey[600], fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                Text(
+                                  item['title'] ?? 'Untitled',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 15,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                Text(
+                                  item['artist'] ?? 'Unknown',
+                                  style: TextStyle(
+                                    color: Colors.grey[600],
+                                    fontSize: 12,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ],
                             ),
                           ),
                           const SizedBox(width: 10),
                           GestureDetector(
                             onTap: () async {
-                              final res = await ShopManager.instance.toggleMusicVote(songId);
+                              final res = await ShopManager.instance
+                                  .toggleMusicVote(songId);
                               if (res['success'] == false && context.mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text(res['message']), backgroundColor: Colors.red),
+                                  SnackBar(
+                                    content: Text(res['message']),
+                                    backgroundColor: Colors.red,
+                                  ),
                                 );
                               }
                             },
                             child: AnimatedContainer(
                               duration: const Duration(milliseconds: 300),
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
                               decoration: BoxDecoration(
-                                color: userLiked ? Colors.red.withValues(alpha: 0.1) : const Color(0xFFF8FAFC),
+                                color: userLiked
+                                    ? Colors.red.withValues(alpha: 0.1)
+                                    : const Color(0xFFF8FAFC),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Row(
                                 children: [
                                   Icon(
-                                    userLiked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                                    color: userLiked ? Colors.red : Colors.grey[400],
+                                    userLiked
+                                        ? Icons.favorite_rounded
+                                        : Icons.favorite_border_rounded,
+                                    color: userLiked
+                                        ? Colors.red
+                                        : Colors.grey[400],
                                     size: 14,
                                   ),
                                   const SizedBox(width: 6),
                                   Text(
                                     item['votes'].toString(),
                                     style: TextStyle(
-                                      color: userLiked ? Colors.red : Colors.black87,
+                                      color: userLiked
+                                          ? Colors.red
+                                          : Colors.black87,
                                       fontWeight: FontWeight.bold,
                                       fontSize: 12,
                                     ),
@@ -258,16 +357,27 @@ class _MusicVotingSheetState extends State<MusicVotingSheet> {
             child: ElevatedButton(
               onPressed: () {
                 Navigator.pop(context);
-                Navigator.push(context, MaterialPageRoute(builder: (context) => const JukeboxPage()));
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const JukeboxPage()),
+                );
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Theme.of(context).primaryColor,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 18),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
                 elevation: 0,
               ),
-              child: const Text("REQUEST A SONG", style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+              child: const Text(
+                "REQUEST A SONG",
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.5,
+                ),
+              ),
             ),
           ),
           const SizedBox(height: 10),

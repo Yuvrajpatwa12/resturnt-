@@ -33,7 +33,10 @@ class _PassportPageState extends State<PassportPage> {
             ),
             title: const Text(
               "Meat Master Passport",
-              style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                color: Colors.black87,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             centerTitle: true,
           ),
@@ -49,9 +52,14 @@ class _PassportPageState extends State<PassportPage> {
                   child: Column(
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
                         decoration: BoxDecoration(
-                          color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                          color: Theme.of(
+                            context,
+                          ).primaryColor.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
@@ -67,13 +75,21 @@ class _PassportPageState extends State<PassportPage> {
                       const SizedBox(height: 20),
                       const Text(
                         "Your Journey to Meat Mastery",
-                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Colors.black87),
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.black87,
+                        ),
                       ),
                       const SizedBox(height: 8),
                       const Text(
                         "Earn one digital stamp for every order. Reach 20 stamps to unlock your Grand Master reward!",
                         textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.grey, fontSize: 13, height: 1.4),
+                        style: TextStyle(
+                          color: Colors.grey,
+                          fontSize: 13,
+                          height: 1.4,
+                        ),
                       ),
                     ],
                   ),
@@ -87,12 +103,13 @@ class _PassportPageState extends State<PassportPage> {
                   child: GridView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 4,
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 12,
-                      mainAxisExtent: 85,
-                    ),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 4,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                          mainAxisExtent: 85,
+                        ),
                     itemCount: 20,
                     itemBuilder: (context, index) {
                       bool isStamped = index < collectedCount;
@@ -105,7 +122,7 @@ class _PassportPageState extends State<PassportPage> {
 
                 // --- 3. GRAND MASTER REWARD ---
                 _buildGrandMasterCard(context, isGrandMaster),
-                
+
                 const SizedBox(height: 60),
               ],
             ),
@@ -118,7 +135,9 @@ class _PassportPageState extends State<PassportPage> {
   Widget _buildSmallStamp(int number, bool isStamped) {
     return Container(
       decoration: BoxDecoration(
-        color: isStamped ? Theme.of(context).primaryColor.withValues(alpha: 0.05) : Colors.white,
+        color: isStamped
+            ? Theme.of(context).primaryColor.withValues(alpha: 0.05)
+            : Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isStamped ? Theme.of(context).primaryColor : Colors.grey[200]!,
@@ -126,22 +145,34 @@ class _PassportPageState extends State<PassportPage> {
         ),
       ),
       child: Center(
-        child: isStamped 
-          ? Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.check_circle, color: Theme.of(context).primaryColor, size: 18),
-                const SizedBox(height: 2),
-                Text(
-                  "$number", 
-                  style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Theme.of(context).primaryColor)
+        child: isStamped
+            ? Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.check_circle,
+                    color: Theme.of(context).primaryColor,
+                    size: 18,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    "$number",
+                    style: TextStyle(
+                      fontSize: 9,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).primaryColor,
+                    ),
+                  ),
+                ],
+              )
+            : Text(
+                "$number",
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey[300],
                 ),
-              ],
-            )
-          : Text(
-              "$number", 
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey[300])
-            ),
+              ),
       ),
     );
   }
@@ -165,7 +196,7 @@ class _PassportPageState extends State<PassportPage> {
                 color: const Color(0xFFD4AF37).withValues(alpha: 0.2),
                 blurRadius: 20,
                 spreadRadius: 2,
-              )
+              ),
           ],
         ),
         child: Column(
@@ -187,11 +218,15 @@ class _PassportPageState extends State<PassportPage> {
             ),
             const SizedBox(height: 12),
             Text(
-              isUnlocked 
-                ? "Congratulations! You've reached 20 orders. Your ultimate mystery reward is now available."
-                : "Unlock this exclusive title and a massive mystery reward by reaching 20 stamps.",
+              isUnlocked
+                  ? "Congratulations! You've reached 20 orders. Your ultimate mystery reward is now available."
+                  : "Unlock this exclusive title and a massive mystery reward by reaching 20 stamps.",
               textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.black54, fontSize: 12, height: 1.4),
+              style: const TextStyle(
+                color: Colors.black54,
+                fontSize: 12,
+                height: 1.4,
+              ),
             ),
             const SizedBox(height: 24),
             SizedBox(
@@ -199,14 +234,21 @@ class _PassportPageState extends State<PassportPage> {
               child: ElevatedButton(
                 onPressed: isUnlocked ? () => _showMasterReward(context) : null,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: isUnlocked ? Theme.of(context).primaryColor : Colors.grey[300],
+                  backgroundColor: isUnlocked
+                      ? Theme.of(context).primaryColor
+                      : Colors.grey[300],
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15),
+                  ),
                   elevation: 0,
                 ),
                 child: Text(
                   isUnlocked ? "CLAIM MASTER REWARD" : "LOCKED (Reach 20)",
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),
@@ -226,21 +268,52 @@ class _PassportPageState extends State<PassportPage> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text("🏆 THE ULTIMATE PRIZE", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.amber, letterSpacing: 1.5, fontSize: 10)),
+              const Text(
+                "🏆 THE ULTIMATE PRIZE",
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.amber,
+                  letterSpacing: 1.5,
+                  fontSize: 10,
+                ),
+              ),
               const SizedBox(height: 12),
-              Text("MASTER OF MEATS", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Theme.of(context).primaryColor)),
+              Text(
+                "MASTER OF MEATS",
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                  color: Theme.of(context).primaryColor,
+                ),
+              ),
               const Divider(height: 40),
-              const Text("FREE SIGNATURE PLATTER", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const Text(
+                "FREE SIGNATURE PLATTER",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
               const SizedBox(height: 20),
               Container(
                 padding: const EdgeInsets.all(15),
-                decoration: BoxDecoration(border: Border.all(color: Colors.grey[200]!), borderRadius: BorderRadius.circular(20)),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey[200]!),
+                  borderRadius: BorderRadius.circular(20),
+                ),
                 child: const Icon(Icons.qr_code_2_rounded, size: 150),
               ),
               const SizedBox(height: 24),
-              const Text("Show this to our staff to claim your mastery.", textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: Colors.grey)),
+              const Text(
+                "Show this to our staff to claim your mastery.",
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 12, color: Colors.grey),
+              ),
               const SizedBox(height: 30),
-              TextButton(onPressed: () => Navigator.pop(context), child: const Text("CLOSE", style: TextStyle(fontWeight: FontWeight.bold))),
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text(
+                  "CLOSE",
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
             ],
           ),
         ),

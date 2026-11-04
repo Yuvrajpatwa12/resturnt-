@@ -12,7 +12,8 @@ class VoiceOrderPage extends StatefulWidget {
   State<VoiceOrderPage> createState() => _VoiceOrderPageState();
 }
 
-class _VoiceOrderPageState extends State<VoiceOrderPage> with TickerProviderStateMixin {
+class _VoiceOrderPageState extends State<VoiceOrderPage>
+    with TickerProviderStateMixin {
   late AnimationController _orbAnimationController;
   late AnimationController _rippleAnimationController;
   late stt.SpeechToText _speech;
@@ -88,7 +89,8 @@ class _VoiceOrderPageState extends State<VoiceOrderPage> with TickerProviderStat
       try {
         _isSpeechAvailable = await _speech.initialize(
           onStatus: (status) {
-            if ((status == 'done' || status == 'notListening') && _isListening) {
+            if ((status == 'done' || status == 'notListening') &&
+                _isListening) {
               _stopListeningAndSend();
             }
           },
@@ -144,7 +146,7 @@ class _VoiceOrderPageState extends State<VoiceOrderPage> with TickerProviderStat
         ? ShopManager.instance.customerName.value
         : "Guest Diner";
 
-    final res = await ApiService.uploadVoiceOrder(
+    await ApiService.uploadVoiceOrder(
       tenantId: tenant.id,
       tableNumber: tableNum,
       customerName: name,
@@ -168,7 +170,9 @@ class _VoiceOrderPageState extends State<VoiceOrderPage> with TickerProviderStat
           ),
           backgroundColor: const Color(0xFF4C6FFF),
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
       );
     }
@@ -183,11 +187,7 @@ class _VoiceOrderPageState extends State<VoiceOrderPage> with TickerProviderStat
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFFF7FAFF),
-              Color(0xFFE8EFFD),
-              Color(0xFFDDE6F9),
-            ],
+            colors: [Color(0xFFF7FAFF), Color(0xFFE8EFFD), Color(0xFFDDE6F9)],
           ),
         ),
         child: SafeArea(
@@ -202,7 +202,10 @@ class _VoiceOrderPageState extends State<VoiceOrderPage> with TickerProviderStat
                       children: [
                         // --- 1. TOP HEADER ---
                         Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
@@ -213,7 +216,11 @@ class _VoiceOrderPageState extends State<VoiceOrderPage> with TickerProviderStat
                                     color: Colors.white.withValues(alpha: 0.8),
                                     shape: BoxShape.circle,
                                   ),
-                                  child: const Icon(Icons.arrow_back, color: Color(0xFF2C3E50), size: 20),
+                                  child: const Icon(
+                                    Icons.arrow_back,
+                                    color: Color(0xFF2C3E50),
+                                    size: 20,
+                                  ),
                                 ),
                                 onPressed: () => Navigator.pop(context),
                               ),
@@ -250,7 +257,12 @@ class _VoiceOrderPageState extends State<VoiceOrderPage> with TickerProviderStat
                           animation: _orbAnimationController,
                           builder: (context, child) {
                             final double floatOffset = _isListening
-                                ? math.sin(_orbAnimationController.value * math.pi * 2) * 8.0
+                                ? math.sin(
+                                        _orbAnimationController.value *
+                                            math.pi *
+                                            2,
+                                      ) *
+                                      8.0
                                 : 0.0;
                             return Transform.translate(
                               offset: Offset(0, floatOffset),
@@ -261,12 +273,16 @@ class _VoiceOrderPageState extends State<VoiceOrderPage> with TickerProviderStat
                                   shape: BoxShape.circle,
                                   boxShadow: [
                                     BoxShadow(
-                                      color: const Color(0xFF6B8AFF).withValues(alpha: _isListening ? 0.4 : 0.15),
+                                      color: const Color(0xFF6B8AFF).withValues(
+                                        alpha: _isListening ? 0.4 : 0.15,
+                                      ),
                                       blurRadius: _isListening ? 40 : 20,
                                       spreadRadius: _isListening ? 10 : 2,
                                     ),
                                     BoxShadow(
-                                      color: const Color(0xFFB0C6FF).withValues(alpha: _isListening ? 0.5 : 0.2),
+                                      color: const Color(0xFFB0C6FF).withValues(
+                                        alpha: _isListening ? 0.5 : 0.2,
+                                      ),
                                       blurRadius: _isListening ? 60 : 30,
                                       spreadRadius: _isListening ? 15 : 5,
                                     ),
@@ -274,7 +290,9 @@ class _VoiceOrderPageState extends State<VoiceOrderPage> with TickerProviderStat
                                 ),
                                 child: CustomPaint(
                                   painter: IridescentOrbPainter(
-                                    progress: _isListening ? _orbAnimationController.value : 0.0,
+                                    progress: _isListening
+                                        ? _orbAnimationController.value
+                                        : 0.0,
                                   ),
                                 ),
                               ),
@@ -304,9 +322,13 @@ class _VoiceOrderPageState extends State<VoiceOrderPage> with TickerProviderStat
                                       : "Tap the microphone below to start speaking...",
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
-                                    color: _isListening ? const Color(0xFF4C70FF) : Colors.grey[500],
+                                    color: _isListening
+                                        ? const Color(0xFF4C70FF)
+                                        : Colors.grey[500],
                                     fontSize: 18,
-                                    fontWeight: _isListening ? FontWeight.bold : FontWeight.w500,
+                                    fontWeight: _isListening
+                                        ? FontWeight.bold
+                                        : FontWeight.w500,
                                     fontStyle: FontStyle.italic,
                                   ),
                                 ),
@@ -319,10 +341,14 @@ class _VoiceOrderPageState extends State<VoiceOrderPage> with TickerProviderStat
                           _isSending
                               ? "Sending voice order to Waiter Pro..."
                               : (_isSent
-                                  ? "Order sent! Tap mic to record another."
-                                  : (_isListening ? "Go ahead, I'm listening..." : "Mic is Off")),
+                                    ? "Order sent! Tap mic to record another."
+                                    : (_isListening
+                                          ? "Go ahead, I'm listening..."
+                                          : "Mic is Off")),
                           style: TextStyle(
-                            color: _isListening ? const Color(0xFF4C70FF) : const Color(0xFF718096),
+                            color: _isListening
+                                ? const Color(0xFF4C70FF)
+                                : const Color(0xFF718096),
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
                             letterSpacing: 0.2,
@@ -333,13 +359,20 @@ class _VoiceOrderPageState extends State<VoiceOrderPage> with TickerProviderStat
 
                         // --- 5. BOTTOM CONTROLS BAR ---
                         Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 16),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 36,
+                            vertical: 16,
+                          ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               // Chat/Keyboard Icon
                               IconButton(
-                                icon: const Icon(Icons.chat_bubble_outline_rounded, color: Color(0xFF718096), size: 24),
+                                icon: const Icon(
+                                  Icons.chat_bubble_outline_rounded,
+                                  color: Color(0xFF718096),
+                                  size: 24,
+                                ),
                                 onPressed: () {
                                   _showTextPromptDialog(context);
                                 },
@@ -370,13 +403,24 @@ class _VoiceOrderPageState extends State<VoiceOrderPage> with TickerProviderStat
                                               begin: Alignment.topLeft,
                                               end: Alignment.bottomRight,
                                               colors: _isListening
-                                                  ? [const Color(0xFF6B8CFF), const Color(0xFF4C6FFF)]
-                                                  : [const Color(0xFFA0AEC0), const Color(0xFF718096)],
+                                                  ? [
+                                                      const Color(0xFF6B8CFF),
+                                                      const Color(0xFF4C6FFF),
+                                                    ]
+                                                  : [
+                                                      const Color(0xFFA0AEC0),
+                                                      const Color(0xFF718096),
+                                                    ],
                                             ),
                                             boxShadow: [
                                               BoxShadow(
-                                                color: (_isListening ? const Color(0xFF4C6FFF) : Colors.grey)
-                                                    .withValues(alpha: 0.4),
+                                                color:
+                                                    (_isListening
+                                                            ? const Color(
+                                                                0xFF4C6FFF,
+                                                              )
+                                                            : Colors.grey)
+                                                        .withValues(alpha: 0.4),
                                                 blurRadius: 14,
                                                 offset: const Offset(0, 5),
                                               ),
@@ -385,7 +429,9 @@ class _VoiceOrderPageState extends State<VoiceOrderPage> with TickerProviderStat
                                           child: Icon(
                                             _isSending
                                                 ? Icons.hourglass_top_rounded
-                                                : (_isListening ? Icons.mic_rounded : Icons.mic_none_rounded),
+                                                : (_isListening
+                                                      ? Icons.mic_rounded
+                                                      : Icons.mic_none_rounded),
                                             color: Colors.white,
                                             size: 28,
                                           ),
@@ -398,7 +444,11 @@ class _VoiceOrderPageState extends State<VoiceOrderPage> with TickerProviderStat
 
                               // Close Button
                               IconButton(
-                                icon: const Icon(Icons.close_rounded, color: Color(0xFF718096), size: 24),
+                                icon: const Icon(
+                                  Icons.close_rounded,
+                                  color: Color(0xFF718096),
+                                  size: 24,
+                                ),
                                 onPressed: () => Navigator.pop(context),
                               ),
                             ],
@@ -449,7 +499,10 @@ class _VoiceOrderPageState extends State<VoiceOrderPage> with TickerProviderStat
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
           ElevatedButton(
             onPressed: () {
               setState(() {
@@ -517,16 +570,22 @@ class IridescentOrbPainter extends CustomPainter {
     canvas.drawCircle(center, radius * 0.85, mainSpherePaint);
 
     // Holographic Specular Reflection / Pearl Crescent Highlight
-    final Offset highlightCenter = Offset(center.dx - radius * 0.22, center.dy - radius * 0.25);
+    final Offset highlightCenter = Offset(
+      center.dx - radius * 0.22,
+      center.dy - radius * 0.25,
+    );
     final highlightPaint = Paint()
-      ..shader = RadialGradient(
-        colors: [
-          Colors.white.withValues(alpha: 0.85),
-          Colors.white.withValues(alpha: 0.3),
-          Colors.white.withValues(alpha: 0.0),
-        ],
-        stops: const [0.0, 0.45, 1.0],
-      ).createShader(Rect.fromCircle(center: highlightCenter, radius: radius * 0.4));
+      ..shader =
+          RadialGradient(
+            colors: [
+              Colors.white.withValues(alpha: 0.85),
+              Colors.white.withValues(alpha: 0.3),
+              Colors.white.withValues(alpha: 0.0),
+            ],
+            stops: const [0.0, 0.45, 1.0],
+          ).createShader(
+            Rect.fromCircle(center: highlightCenter, radius: radius * 0.4),
+          );
 
     canvas.drawCircle(highlightCenter, radius * 0.35, highlightPaint);
   }

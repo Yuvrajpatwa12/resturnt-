@@ -29,11 +29,19 @@ class _MessagesListPageState extends State<MessagesListPage> {
         ),
         title: const Text(
           "Messages",
-          style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 20),
+          style: TextStyle(
+            color: Colors.black87,
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+          ),
         ),
         actions: [
           IconButton(
-            icon: Icon(Icons.refresh, color: Theme.of(context).primaryColor, size: 20),
+            icon: Icon(
+              Icons.refresh,
+              color: Theme.of(context).primaryColor,
+              size: 20,
+            ),
             onPressed: () => ShopManager.instance.refreshConversations(),
           ),
         ],
@@ -59,7 +67,7 @@ class _MessagesListPageState extends State<MessagesListPage> {
               ),
             ),
           ),
-          
+
           Expanded(
             child: ValueListenableBuilder<List<Map<String, dynamic>>>(
               valueListenable: ShopManager.instance.conversations,
@@ -71,11 +79,18 @@ class _MessagesListPageState extends State<MessagesListPage> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.chat_bubble_outline, size: 64, color: Colors.grey[300]),
+                          Icon(
+                            Icons.chat_bubble_outline,
+                            size: 64,
+                            color: Colors.grey[300],
+                          ),
                           const SizedBox(height: 16),
                           const Text(
                             "No Mutual Friends Yet",
-                            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey),
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey,
+                            ),
                           ),
                           const SizedBox(height: 8),
                           const Text(
@@ -98,17 +113,25 @@ class _MessagesListPageState extends State<MessagesListPage> {
                         ? 'https://img.freepik.com/free-vector/beauty-woman-face-concept_23-2148679462.jpg'
                         : 'https://img.freepik.com/free-vector/businessman-character-avatar-isolated_24877-60111.jpg';
 
-                    final bool hasUnread = (int.tryParse(chat['unread']?.toString() ?? '0') ?? 0) > 0;
+                    final bool hasUnread =
+                        (int.tryParse(chat['unread']?.toString() ?? '0') ?? 0) >
+                        0;
 
                     return ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 5,
+                      ),
                       leading: CircleAvatar(
                         radius: 28,
                         backgroundImage: NetworkImage(avatarUrl),
                       ),
                       title: Text(
                         chat['name'] ?? 'Guest',
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
                       ),
                       subtitle: Text(
                         chat['last_msg'] ?? 'Start a conversation',
@@ -116,7 +139,9 @@ class _MessagesListPageState extends State<MessagesListPage> {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: hasUnread ? Colors.black87 : Colors.grey,
-                          fontWeight: hasUnread ? FontWeight.bold : FontWeight.normal,
+                          fontWeight: hasUnread
+                              ? FontWeight.bold
+                              : FontWeight.normal,
                         ),
                       ),
                       trailing: Column(
@@ -126,19 +151,29 @@ class _MessagesListPageState extends State<MessagesListPage> {
                           if (chat['last_time'] != null)
                             Text(
                               _formatChatTime(chat['last_time']),
-                              style: TextStyle(color: Colors.grey[500], fontSize: 10),
+                              style: TextStyle(
+                                color: Colors.grey[500],
+                                fontSize: 10,
+                              ),
                             ),
                           const SizedBox(height: 4),
                           if (hasUnread)
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
                               decoration: BoxDecoration(
                                 color: Theme.of(context).primaryColor,
                                 shape: BoxShape.circle,
                               ),
                               child: Text(
                                 chat['unread'].toString(),
-                                style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
                         ],
@@ -175,6 +210,8 @@ class _MessagesListPageState extends State<MessagesListPage> {
         return "${dt.hour}:${dt.minute.toString().padLeft(2, '0')}";
       }
       return "${dt.day}/${dt.month}";
-    } catch (e) { return ""; }
+    } catch (e) {
+      return "";
+    }
   }
 }

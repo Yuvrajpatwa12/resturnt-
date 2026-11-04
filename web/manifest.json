@@ -1,11 +1,11 @@
 {
-    "name": "chiyabreak",
-    "short_name": "chiyabreak",
+    "name": "Restaurant SaaS",
+    "short_name": "Restaurant",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "Restaurant Management System",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

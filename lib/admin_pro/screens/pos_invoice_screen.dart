@@ -1102,10 +1102,7 @@ class _POSInvoiceScreenState extends State<POSInvoiceScreen>
           children: [
             Text(
               t('pos.current_items'),
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             if (_currentTableOrders.isNotEmpty)
               Container(
@@ -1144,7 +1141,9 @@ class _POSInvoiceScreenState extends State<POSInvoiceScreen>
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 10),
                     decoration: BoxDecoration(
-                      color: _cartViewTab == 0 ? Colors.white : Colors.transparent,
+                      color: _cartViewTab == 0
+                          ? Colors.white
+                          : Colors.transparent,
                       borderRadius: BorderRadius.circular(10),
                       boxShadow: _cartViewTab == 0
                           ? [
@@ -1152,7 +1151,7 @@ class _POSInvoiceScreenState extends State<POSInvoiceScreen>
                                 color: Colors.black.withValues(alpha: 0.05),
                                 blurRadius: 4,
                                 offset: const Offset(0, 2),
-                              )
+                              ),
                             ]
                           : [],
                     ),
@@ -1172,9 +1171,13 @@ class _POSInvoiceScreenState extends State<POSInvoiceScreen>
                         const SizedBox(width: 6),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
-                            color: AdminTheme.emeraldGreen.withValues(alpha: 0.1),
+                            color: AdminTheme.emeraldGreen.withValues(
+                              alpha: 0.1,
+                            ),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
@@ -1198,7 +1201,9 @@ class _POSInvoiceScreenState extends State<POSInvoiceScreen>
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 10),
                     decoration: BoxDecoration(
-                      color: _cartViewTab == 1 ? Colors.white : Colors.transparent,
+                      color: _cartViewTab == 1
+                          ? Colors.white
+                          : Colors.transparent,
                       borderRadius: BorderRadius.circular(10),
                       boxShadow: _cartViewTab == 1
                           ? [
@@ -1206,7 +1211,7 @@ class _POSInvoiceScreenState extends State<POSInvoiceScreen>
                                 color: Colors.black.withValues(alpha: 0.05),
                                 blurRadius: 4,
                                 offset: const Offset(0, 2),
-                              )
+                              ),
                             ]
                           : [],
                     ),
@@ -1226,7 +1231,9 @@ class _POSInvoiceScreenState extends State<POSInvoiceScreen>
                         const SizedBox(width: 6),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.orange.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(6),
@@ -1257,77 +1264,79 @@ class _POSInvoiceScreenState extends State<POSInvoiceScreen>
           ),
           child: _cartViewTab == 0
               ? (items.isEmpty
-                  ? Padding(
-                      padding: const EdgeInsets.all(32.0),
-                      child: Center(
-                        child: Column(
-                          children: [
-                            Icon(
-                              Icons.receipt_long_outlined,
-                              size: 40,
-                              color: Colors.grey.shade300,
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              _tables.isEmpty
-                                  ? "No tables configured."
-                                  : "No served items ready for billing.",
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: Colors.grey.shade500,
-                                fontWeight: FontWeight.w600,
+                    ? Padding(
+                        padding: const EdgeInsets.all(32.0),
+                        child: Center(
+                          child: Column(
+                            children: [
+                              Icon(
+                                Icons.receipt_long_outlined,
+                                size: 40,
+                                color: Colors.grey.shade300,
                               ),
-                            ),
-                          ],
+                              const SizedBox(height: 8),
+                              Text(
+                                _tables.isEmpty
+                                    ? "No tables configured."
+                                    : "No served items ready for billing.",
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.grey.shade500,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                    )
-                  : ListView.separated(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: items.length,
-                      separatorBuilder: (_, __) =>
-                          const Divider(height: 1, indent: 20, endIndent: 20),
-                      itemBuilder: (context, index) {
-                        final item = items[index];
-                        return _buildCartItemRow(item);
-                      },
-                    ))
+                      )
+                    : ListView.separated(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: items.length,
+                        separatorBuilder: (_, __) =>
+                            const Divider(height: 1, indent: 20, endIndent: 20),
+                        itemBuilder: (context, index) {
+                          final item = items[index];
+                          return _buildCartItemRow(item);
+                        },
+                      ))
               : (unbilledItems.isEmpty
-                  ? Padding(
-                      padding: const EdgeInsets.all(32.0),
-                      child: Center(
-                        child: Column(
-                          children: [
-                            Icon(
-                              Icons.hourglass_empty_rounded,
-                              size: 40,
-                              color: Colors.grey.shade300,
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              "No remaining or pending kitchen items.",
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: Colors.grey.shade500,
-                                fontWeight: FontWeight.w600,
+                    ? Padding(
+                        padding: const EdgeInsets.all(32.0),
+                        child: Center(
+                          child: Column(
+                            children: [
+                              Icon(
+                                Icons.hourglass_empty_rounded,
+                                size: 40,
+                                color: Colors.grey.shade300,
                               ),
-                            ),
-                          ],
+                              const SizedBox(height: 8),
+                              Text(
+                                "No remaining or pending kitchen items.",
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.grey.shade500,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                    )
-                  : ListView.separated(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: unbilledItems.length,
-                      separatorBuilder: (_, __) =>
-                          const Divider(height: 1, indent: 20, endIndent: 20),
-                      itemBuilder: (context, index) {
-                        final item = Map<String, dynamic>.from(unbilledItems[index] as Map);
-                        return _buildRemainingItemRow(item);
-                      },
-                    )),
+                      )
+                    : ListView.separated(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: unbilledItems.length,
+                        separatorBuilder: (_, __) =>
+                            const Divider(height: 1, indent: 20, endIndent: 20),
+                        itemBuilder: (context, index) {
+                          final item = Map<String, dynamic>.from(
+                            unbilledItems[index] as Map,
+                          );
+                          return _buildRemainingItemRow(item);
+                        },
+                      )),
         ),
       ],
     );
@@ -1380,7 +1389,10 @@ class _POSInvoiceScreenState extends State<POSInvoiceScreen>
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: statusColor.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(4),

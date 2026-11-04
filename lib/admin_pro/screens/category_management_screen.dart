@@ -8,7 +8,8 @@ class CategoryManagementScreen extends StatefulWidget {
   const CategoryManagementScreen({super.key, required this.mode});
 
   @override
-  State<CategoryManagementScreen> createState() => _CategoryManagementScreenState();
+  State<CategoryManagementScreen> createState() =>
+      _CategoryManagementScreenState();
 }
 
 class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
@@ -30,8 +31,10 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (widget.mode == "Add Category") _buildAddCategoryForm()
-          else _buildCategoryListView(),
+          if (widget.mode == "Add Category")
+            _buildAddCategoryForm()
+          else
+            _buildCategoryListView(),
         ],
       ),
     );
@@ -47,19 +50,28 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text("All Categories", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const Text(
+                  "All Categories",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
                 IconButton(
                   onPressed: () {
                     final tenant = TenantService().currentTenant.value;
-                    if (tenant != null) TenantService().fetchMenuData(tenant.id);
-                  }, 
-                  icon: const Icon(Icons.refresh, color: AdminTheme.royalBlue)
+                    if (tenant != null)
+                      TenantService().fetchMenuData(tenant.id);
+                  },
+                  icon: const Icon(Icons.refresh, color: AdminTheme.royalBlue),
                 ),
               ],
             ),
             const SizedBox(height: 16),
             if (categories.isEmpty)
-              const Center(child: Padding(padding: EdgeInsets.all(40), child: Text("No categories found.")))
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(40),
+                  child: Text("No categories found."),
+                ),
+              )
             else
               GridView.builder(
                 shrinkWrap: true,
@@ -88,22 +100,54 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
                           children: [
                             IconButton(
                               onPressed: () => _showEditCategoryModal(cat),
-                              icon: const Icon(Icons.edit_outlined, color: AdminTheme.royalBlue, size: 18),
+                              icon: const Icon(
+                                Icons.edit_outlined,
+                                color: AdminTheme.royalBlue,
+                                size: 18,
+                              ),
                             ),
                             Container(
                               padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(color: AdminTheme.royalBlue.withValues(alpha: 0.1), shape: BoxShape.circle),
-                              child: Icon(_getIconData(cat['icon']), color: AdminTheme.royalBlue, size: 20),
+                              decoration: BoxDecoration(
+                                color: AdminTheme.royalBlue.withValues(
+                                  alpha: 0.1,
+                                ),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                _getIconData(cat['icon']),
+                                color: AdminTheme.royalBlue,
+                                size: 20,
+                              ),
                             ),
                             IconButton(
-                              onPressed: () => _deleteCategory(cat['id'].toString()),
-                              icon: const Icon(Icons.delete_outline, color: Colors.red, size: 18),
+                              onPressed: () =>
+                                  _deleteCategory(cat['id'].toString()),
+                              icon: const Icon(
+                                Icons.delete_outline,
+                                color: Colors.red,
+                                size: 18,
+                              ),
                             ),
                           ],
                         ),
                         const SizedBox(height: 12),
-                        Text(cat['title'] ?? 'Untitled', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14), textAlign: TextAlign.center),
-                        Text("Rank: ${cat['rank'] ?? '0'}", style: const TextStyle(color: Colors.grey, fontSize: 10, fontWeight: FontWeight.bold)),
+                        Text(
+                          cat['title'] ?? 'Untitled',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        Text(
+                          "Rank: ${cat['rank'] ?? '0'}",
+                          style: const TextStyle(
+                            color: Colors.grey,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ],
                     ),
                   );
@@ -117,17 +161,28 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
 
   IconData _getIconData(dynamic iconName) {
     switch (iconName?.toString()) {
-      case 'lunch_dining': return Icons.lunch_dining;
-      case 'local_cafe': return Icons.local_cafe;
-      case 'local_drink': return Icons.local_drink;
-      case 'icecream': return Icons.icecream;
-      case 'local_pizza': return Icons.local_pizza;
-      case 'fastfood': return Icons.fastfood;
-      case 'kebab_dining': return Icons.kebab_dining;
-      case 'cake': return Icons.cake;
-      case 'restaurant_menu': return Icons.restaurant_menu;
-      case 'breakfast_dining': return Icons.breakfast_dining;
-      default: return Icons.category_rounded;
+      case 'lunch_dining':
+        return Icons.lunch_dining;
+      case 'local_cafe':
+        return Icons.local_cafe;
+      case 'local_drink':
+        return Icons.local_drink;
+      case 'icecream':
+        return Icons.icecream;
+      case 'local_pizza':
+        return Icons.local_pizza;
+      case 'fastfood':
+        return Icons.fastfood;
+      case 'kebab_dining':
+        return Icons.kebab_dining;
+      case 'cake':
+        return Icons.cake;
+      case 'restaurant_menu':
+        return Icons.restaurant_menu;
+      case 'breakfast_dining':
+        return Icons.breakfast_dining;
+      default:
+        return Icons.category_rounded;
     }
   }
 
@@ -148,7 +203,9 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
 
   void _showEditCategoryModal(Map<String, dynamic> category) {
     final editNameCtrl = TextEditingController(text: category['title']);
-    final editRankCtrl = TextEditingController(text: category['rank'].toString());
+    final editRankCtrl = TextEditingController(
+      text: category['rank'].toString(),
+    );
     String editIcon = category['icon'] ?? 'restaurant_menu';
 
     showDialog(
@@ -164,49 +221,72 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
                 const SizedBox(height: 16),
                 _buildTextField("Display Rank", editRankCtrl),
                 const SizedBox(height: 16),
-                const Text("Choose Icon", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
+                const Text(
+                  "Choose Icon",
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey,
+                  ),
+                ),
                 const SizedBox(height: 12),
                 Wrap(
                   spacing: 12,
                   runSpacing: 12,
-                  children: _iconList.map((i) => GestureDetector(
-                    onTap: () => setModalState(() => editIcon = i['name']),
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: editIcon == i['name'] ? AdminTheme.royalBlue : Colors.grey[100],
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(i['icon'], color: editIcon == i['name'] ? Colors.white : Colors.grey[600], size: 20),
-                    ),
-                  )).toList(),
+                  children: _iconList
+                      .map(
+                        (i) => GestureDetector(
+                          onTap: () =>
+                              setModalState(() => editIcon = i['name']),
+                          child: Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: editIcon == i['name']
+                                  ? AdminTheme.royalBlue
+                                  : Colors.grey[100],
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              i['icon'],
+                              color: editIcon == i['name']
+                                  ? Colors.white
+                                  : Colors.grey[600],
+                              size: 20,
+                            ),
+                          ),
+                        ),
+                      )
+                      .toList(),
                 ),
               ],
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text("CANCEL")),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("CANCEL"),
+            ),
             ElevatedButton(
               onPressed: () async {
                 final tenant = TenantService().currentTenant.value;
                 if (tenant == null) return;
                 Navigator.pop(context);
                 setState(() => _isSubmitting = true);
-                
+
                 final res = await ApiService.updateCategory(
-                  tenantId: tenant.id, 
-                  categoryId: category['id'].toString(), 
-                  title: editNameCtrl.text, 
-                  rank: int.tryParse(editRankCtrl.text) ?? 1, 
-                  icon: editIcon
+                  tenantId: tenant.id,
+                  categoryId: category['id'].toString(),
+                  title: editNameCtrl.text,
+                  rank: int.tryParse(editRankCtrl.text) ?? 1,
+                  icon: editIcon,
                 );
-                
+
                 setState(() => _isSubmitting = false);
                 if (res['success']) {
-                   TenantService().fetchMenuData(tenant.id);
+                  TenantService().fetchMenuData(tenant.id);
                 }
-              }, 
-              child: const Text("SAVE CHANGES")
+              },
+              child: const Text("SAVE CHANGES"),
             ),
           ],
         ),
@@ -222,10 +302,18 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text("Delete Category?"),
-        content: const Text("This will remove the category. Make sure no products are assigned to it."),
+        content: const Text(
+          "This will remove the category. Make sure no products are assigned to it.",
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("CANCEL")),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text("DELETE", style: TextStyle(color: Colors.red))),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text("CANCEL"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text("DELETE", style: TextStyle(color: Colors.red)),
+          ),
         ],
       ),
     );
@@ -234,7 +322,10 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
       final res = await ApiService.deleteCategory(tenant.id, id);
       if (res['success'] == true) {
         TenantService().fetchMenuData(tenant.id);
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Category deleted.")));
+        if (mounted)
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text("Category deleted.")));
       }
     }
   }
@@ -243,29 +334,55 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text("Create New Category", style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+        const Text(
+          "Create New Category",
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+        ),
         const SizedBox(height: 24),
-        _buildTextField("Category Name", _nameController, hint: "e.g. Beverages"),
+        _buildTextField(
+          "Category Name",
+          _nameController,
+          hint: "e.g. Beverages",
+        ),
         const SizedBox(height: 16),
         _buildTextField("Display Rank", _rankController, hint: "1"),
         const SizedBox(height: 16),
-        const Text("Choose Icon", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
+        const Text(
+          "Choose Icon",
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            color: Colors.grey,
+          ),
+        ),
         const SizedBox(height: 12),
         Wrap(
           spacing: 12,
           runSpacing: 12,
-          children: _iconList.map((i) => GestureDetector(
-            onTap: () => setState(() => _selectedIcon = i['name']),
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: _selectedIcon == i['name'] ? AdminTheme.royalBlue : Colors.white,
-                shape: BoxShape.circle,
-                boxShadow: AdminTheme.softShadow,
-              ),
-              child: Icon(i['icon'], color: _selectedIcon == i['name'] ? Colors.white : Colors.grey[600], size: 20),
-            ),
-          )).toList(),
+          children: _iconList
+              .map(
+                (i) => GestureDetector(
+                  onTap: () => setState(() => _selectedIcon = i['name']),
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: _selectedIcon == i['name']
+                          ? AdminTheme.royalBlue
+                          : Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: AdminTheme.softShadow,
+                    ),
+                    child: Icon(
+                      i['icon'],
+                      color: _selectedIcon == i['name']
+                          ? Colors.white
+                          : Colors.grey[600],
+                      size: 20,
+                    ),
+                  ),
+                ),
+              )
+              .toList(),
         ),
         const SizedBox(height: 32),
         if (_isSubmitting)
@@ -273,7 +390,9 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
         else
           ElevatedButton(
             onPressed: _submitCategory,
-            style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 54)),
+            style: ElevatedButton.styleFrom(
+              minimumSize: const Size(double.infinity, 54),
+            ),
             child: const Text("SAVE CATEGORY TO DATABASE"),
           ),
       ],
@@ -287,7 +406,10 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
     if (tenant == null) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Error: Tenant data not loaded properly!"), backgroundColor: Colors.red),
+          const SnackBar(
+            content: Text("Error: Tenant data not loaded properly!"),
+            backgroundColor: Colors.red,
+          ),
         );
       }
       return;
@@ -296,8 +418,8 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
     setState(() => _isSubmitting = true);
     try {
       final success = await ApiService.addCategory(
-        tenant.id, 
-        _nameController.text, 
+        tenant.id,
+        _nameController.text,
         int.tryParse(_rankController.text) ?? 1,
         icon: _selectedIcon,
       );
@@ -305,12 +427,30 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
       if (success) {
         _nameController.clear();
         await TenantService().fetchMenuData(tenant.id);
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Category added successfully!"), backgroundColor: Colors.green));
+        if (mounted)
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Category added successfully!"),
+              backgroundColor: Colors.green,
+            ),
+          );
       } else {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Failed to add category."), backgroundColor: Colors.red));
+        if (mounted)
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Failed to add category."),
+              backgroundColor: Colors.red,
+            ),
+          );
       }
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("An error occurred: $e"), backgroundColor: Colors.red));
+      if (mounted)
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("An error occurred: $e"),
+            backgroundColor: Colors.red,
+          ),
+        );
     } finally {
       if (mounted) {
         setState(() => _isSubmitting = false);
@@ -318,11 +458,22 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
     }
   }
 
-  Widget _buildTextField(String label, TextEditingController controller, {String? hint}) {
+  Widget _buildTextField(
+    String label,
+    TextEditingController controller, {
+    String? hint,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey)),
+        Text(
+          label,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 12,
+            color: Colors.grey,
+          ),
+        ),
         const SizedBox(height: 8),
         TextField(
           controller: controller,
@@ -331,7 +482,10 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
             hintStyle: const TextStyle(fontSize: 13),
             filled: true,
             fillColor: Colors.white,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
           ),
         ),
       ],

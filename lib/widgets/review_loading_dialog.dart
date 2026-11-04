@@ -7,7 +7,8 @@ class ReviewLoadingDialog extends StatefulWidget {
   State<ReviewLoadingDialog> createState() => _ReviewLoadingDialogState();
 }
 
-class _ReviewLoadingDialogState extends State<ReviewLoadingDialog> with SingleTickerProviderStateMixin {
+class _ReviewLoadingDialogState extends State<ReviewLoadingDialog>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _animation;
 
@@ -58,26 +59,16 @@ class _ReviewLoadingDialogState extends State<ReviewLoadingDialog> with SingleTi
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
-              Icons.stars_rounded,
-              color: Colors.orange,
-              size: 64,
-            ),
+            const Icon(Icons.stars_rounded, color: Colors.orange, size: 64),
             const SizedBox(height: 24),
             const Text(
               "Saving your review...",
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(
               "Preparing Google Maps redirect",
-              style: TextStyle(
-                color: Colors.grey[600],
-                fontSize: 14,
-              ),
+              style: TextStyle(color: Colors.grey[600], fontSize: 14),
             ),
             const SizedBox(height: 32),
             Stack(

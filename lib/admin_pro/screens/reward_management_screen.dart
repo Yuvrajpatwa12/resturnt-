@@ -69,7 +69,8 @@ class _RewardManagementScreenState extends State<RewardManagementScreen> {
           _searchCodeError = null;
         } else {
           _searchedClaimData = null;
-          _searchCodeError = res['message'] ?? "Invalid or non-existent claim code!";
+          _searchCodeError =
+              res['message'] ?? "Invalid or non-existent claim code!";
         }
       });
     }
@@ -86,15 +87,19 @@ class _RewardManagementScreenState extends State<RewardManagementScreen> {
     if (tenant == null) return;
 
     setState(() => _isLoading = true);
-    
+
     if (widget.mode == "Rewards Config") {
       _settings = await ApiService.fetchLoyaltySettings(tenant.id);
       if (_settings != null) {
         setState(() {
-          _fixedPointsCtrl.text = _settings!['points_per_order_fixed']?.toString() ?? '50';
-          _ptsPer100Ctrl.text = (_settings!['points_per_amount'] ?? 0.05).toString();
-          _groupBonusCtrl.text = _settings!['group_join_bonus']?.toString() ?? '200';
-          _minRedeemCtrl.text = _settings!['min_redeem_points']?.toString() ?? '100';
+          _fixedPointsCtrl.text =
+              _settings!['points_per_order_fixed']?.toString() ?? '50';
+          _ptsPer100Ctrl.text = (_settings!['points_per_amount'] ?? 0.05)
+              .toString();
+          _groupBonusCtrl.text =
+              _settings!['group_join_bonus']?.toString() ?? '200';
+          _minRedeemCtrl.text =
+              _settings!['min_redeem_points']?.toString() ?? '100';
           _mboxEnabled = _settings!['mystery_box_enabled'] == 1;
         });
       }
@@ -108,13 +113,17 @@ class _RewardManagementScreenState extends State<RewardManagementScreen> {
         final code = (c['claim_code'] ?? '').toString().trim().toLowerCase();
         final id = (c['id'] ?? '').toString().trim();
         final redeemedAt = (c['redeemed_at'] ?? '').toString().trim();
-        if ((redeemedAt.isNotEmpty && redeemedAt != 'null') || _locallyRedeemedCodes.contains(code) || _locallyRedeemedIds.contains(id)) {
+        if ((redeemedAt.isNotEmpty && redeemedAt != 'null') ||
+            _locallyRedeemedCodes.contains(code) ||
+            _locallyRedeemedIds.contains(id)) {
           c['status'] = 'redeemed';
         }
       }
       _claims = fetched;
     } else if (widget.mode == "Marketing Banners") {
-      _rewards = await ApiService.fetchOffers(tenant.id) ?? []; // Reusing _rewards list for simplicity
+      _rewards =
+          await ApiService.fetchOffers(tenant.id) ??
+          []; // Reusing _rewards list for simplicity
     }
 
     if (mounted) setState(() => _isLoading = false);
@@ -136,21 +145,42 @@ class _RewardManagementScreenState extends State<RewardManagementScreen> {
       });
 
       if (res['status'] == 'success' && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("✅ Settings Saved Successfully!"), backgroundColor: Colors.green));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("✅ Settings Saved Successfully!"),
+            backgroundColor: Colors.green,
+          ),
+        );
         _loadData();
       } else if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text("❌ Save Failed: ${res['message'] ?? 'Unknown Error'}"), 
-          backgroundColor: Colors.redAccent,
-          duration: const Duration(seconds: 5),
-          action: SnackBarAction(label: "DETAILS", textColor: Colors.white, onPressed: () {
-             _showDetailsDialog(res['message'] ?? 'No details', res['raw']?.toString() ?? '');
-          }),
-        ));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              "❌ Save Failed: ${res['message'] ?? 'Unknown Error'}",
+            ),
+            backgroundColor: Colors.redAccent,
+            duration: const Duration(seconds: 5),
+            action: SnackBarAction(
+              label: "DETAILS",
+              textColor: Colors.white,
+              onPressed: () {
+                _showDetailsDialog(
+                  res['message'] ?? 'No details',
+                  res['raw']?.toString() ?? '',
+                );
+              },
+            ),
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("⚠️ System Error: ${e.toString()}"), backgroundColor: Colors.red));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("⚠️ System Error: ${e.toString()}"),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     }
     setState(() => _isLoading = false);
@@ -161,8 +191,15 @@ class _RewardManagementScreenState extends State<RewardManagementScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text("Error Details"),
-        content: SingleChildScrollView(child: Text("Message: $msg\n\nRaw Response: $raw")),
-        actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("CLOSE"))],
+        content: SingleChildScrollView(
+          child: Text("Message: $msg\n\nRaw Response: $raw"),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("CLOSE"),
+          ),
+        ],
       ),
     );
   }
@@ -171,7 +208,7 @@ class _RewardManagementScreenState extends State<RewardManagementScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F6FA),
-      body: _isLoading 
+      body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _buildBody(),
       bottomNavigationBar: (widget.mode == "Rewards Config" && !_isLoading)
@@ -179,16 +216,31 @@ class _RewardManagementScreenState extends State<RewardManagementScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
               decoration: const BoxDecoration(
                 color: Colors.white,
-                boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, -2))],
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black12,
+                    blurRadius: 10,
+                    offset: Offset(0, -2),
+                  ),
+                ],
               ),
               child: ElevatedButton.icon(
-                onPressed: _saveSettings, 
-                icon: const Icon(Icons.save_rounded, color: Colors.white), 
-                label: const Text("SAVE LOYALTY SETTINGS", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                onPressed: _saveSettings,
+                icon: const Icon(Icons.save_rounded, color: Colors.white),
+                label: const Text(
+                  "SAVE LOYALTY SETTINGS",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1,
+                  ),
+                ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFFF5C00), 
+                  backgroundColor: const Color(0xFFFF5C00),
                   padding: const EdgeInsets.symmetric(vertical: 24),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                 ),
               ),
             )
@@ -198,12 +250,18 @@ class _RewardManagementScreenState extends State<RewardManagementScreen> {
 
   Widget _buildBody() {
     switch (widget.mode) {
-      case "Rewards Config": return _buildConfigView();
-      case "Redeem Items": return _buildRewardsListView();
-      case "Mystery Box": return _buildMysteryBoxView();
-      case "Claim History": return _buildHistoryView();
-      case "Marketing Banners": return _buildBannersListView();
-      default: return const Center(child: Text("Select a loyalty mode"));
+      case "Rewards Config":
+        return _buildConfigView();
+      case "Redeem Items":
+        return _buildRewardsListView();
+      case "Mystery Box":
+        return _buildMysteryBoxView();
+      case "Claim History":
+        return _buildHistoryView();
+      case "Marketing Banners":
+        return _buildBannersListView();
+      default:
+        return const Center(child: Text("Select a loyalty mode"));
     }
   }
 
@@ -213,16 +271,37 @@ class _RewardManagementScreenState extends State<RewardManagementScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text("Loyalty Engine Configuration", style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900)),
-          const Text("Control how users earn points and interact with rewards.", style: TextStyle(color: Colors.grey)),
+          const Text(
+            "Loyalty Engine Configuration",
+            style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900),
+          ),
+          const Text(
+            "Control how users earn points and interact with rewards.",
+            style: TextStyle(color: Colors.grey),
+          ),
           const SizedBox(height: 40),
           _buildSettingCard(
             title: "Point Earning Logic",
             icon: Icons.monetization_on_outlined,
             children: [
-              _buildEditableSettingRow("Fixed Points per Order", "Points given on every order checkout", _fixedPointsCtrl, isDecimal: false),
-              _buildEditableSettingRow("Points per NPR 100 Spent", "Percentage points (0.05 = 5 pts per 100)", _ptsPer100Ctrl, isDecimal: true),
-              _buildEditableSettingRow("Group Join Bonus", "Points for joining a group table", _groupBonusCtrl, isDecimal: false),
+              _buildEditableSettingRow(
+                "Fixed Points per Order",
+                "Points given on every order checkout",
+                _fixedPointsCtrl,
+                isDecimal: false,
+              ),
+              _buildEditableSettingRow(
+                "Points per NPR 100 Spent",
+                "Percentage points (0.05 = 5 pts per 100)",
+                _ptsPer100Ctrl,
+                isDecimal: true,
+              ),
+              _buildEditableSettingRow(
+                "Group Join Bonus",
+                "Points for joining a group table",
+                _groupBonusCtrl,
+                isDecimal: false,
+              ),
             ],
           ),
           const SizedBox(height: 24),
@@ -230,9 +309,19 @@ class _RewardManagementScreenState extends State<RewardManagementScreen> {
             title: "Redemption Rules",
             icon: Icons.shopping_bag_outlined,
             children: [
-              _buildToggleRow("Enable Mystery Box", "Allow users to unlock surprise rewards", _mboxEnabled, (v) => setState(() => _mboxEnabled = v)),
+              _buildToggleRow(
+                "Enable Mystery Box",
+                "Allow users to unlock surprise rewards",
+                _mboxEnabled,
+                (v) => setState(() => _mboxEnabled = v),
+              ),
               const SizedBox(height: 16),
-              _buildEditableSettingRow("Min Redeem Balance", "User needs at least this much to redeem", _minRedeemCtrl, isDecimal: false),
+              _buildEditableSettingRow(
+                "Min Redeem Balance",
+                "User needs at least this much to redeem",
+                _minRedeemCtrl,
+                isDecimal: false,
+              ),
             ],
           ),
           const SizedBox(height: 100), // Space for bottom bar
@@ -253,20 +342,31 @@ class _RewardManagementScreenState extends State<RewardManagementScreen> {
               const Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text("Redeemable Items", style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900)),
+                  Text(
+                    "Redeemable Items",
+                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900),
+                  ),
                   SizedBox(height: 4),
-                  Text("Manage customer redeemable rewards and verify claim codes.", style: TextStyle(color: Colors.grey, fontSize: 13)),
+                  Text(
+                    "Manage customer redeemable rewards and verify claim codes.",
+                    style: TextStyle(color: Colors.grey, fontSize: 13),
+                  ),
                 ],
               ),
               ElevatedButton.icon(
-                onPressed: _showAddRewardDialog, 
-                icon: const Icon(Icons.add), 
+                onPressed: _showAddRewardDialog,
+                icon: const Icon(Icons.add),
                 label: const Text("ADD REWARD"),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF4C49ED),
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 16,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
               ),
             ],
@@ -283,7 +383,9 @@ class _RewardManagementScreenState extends State<RewardManagementScreen> {
               border: Border.all(
                 color: _searchCodeError != null
                     ? Colors.red.shade300
-                    : (_searchedClaimData != null ? Colors.green.shade300 : const Color(0xFF4C49ED).withValues(alpha: 0.2)),
+                    : (_searchedClaimData != null
+                          ? Colors.green.shade300
+                          : const Color(0xFF4C49ED).withValues(alpha: 0.2)),
                 width: 1.5,
               ),
             ),
@@ -302,18 +404,36 @@ class _RewardManagementScreenState extends State<RewardManagementScreen> {
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF4C49ED).withValues(alpha: 0.1),
+                            color: const Color(
+                              0xFF4C49ED,
+                            ).withValues(alpha: 0.1),
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.qr_code_scanner_rounded, color: Color(0xFF4C49ED), size: 24),
+                          child: const Icon(
+                            Icons.qr_code_scanner_rounded,
+                            color: Color(0xFF4C49ED),
+                            size: 24,
+                          ),
                         ),
                         const SizedBox(width: 16),
                         const Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text("Quick Code Verifier & Redemption", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                            Text(
+                              "Quick Code Verifier & Redemption",
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
                             SizedBox(height: 2),
-                            Text("Type claim code (e.g. 55391 or MYS-A2BAF) to preview member & confirm redemption.", style: TextStyle(color: Colors.grey, fontSize: 12)),
+                            Text(
+                              "Type claim code (e.g. 55391 or MYS-A2BAF) to preview member & confirm redemption.",
+                              style: TextStyle(
+                                color: Colors.grey,
+                                fontSize: 12,
+                              ),
+                            ),
                           ],
                         ),
                       ],
@@ -326,17 +446,29 @@ class _RewardManagementScreenState extends State<RewardManagementScreen> {
                           height: 46,
                           child: TextField(
                             controller: _codeVerifyCtrl,
-                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                            ),
                             onSubmitted: (_) => _lookupClaimCode(),
                             decoration: InputDecoration(
                               hintText: "Enter Code (e.g. 55391)...",
                               filled: true,
                               fillColor: const Color(0xFFF8FAFC),
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide.none,
+                              ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(color: Color(0xFF4C49ED), width: 2),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFF4C49ED),
+                                  width: 2,
+                                ),
                               ),
                             ),
                           ),
@@ -345,14 +477,32 @@ class _RewardManagementScreenState extends State<RewardManagementScreen> {
                         ElevatedButton.icon(
                           onPressed: _isSearchingCode ? null : _lookupClaimCode,
                           icon: _isSearchingCode
-                              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
+                                  ),
+                                )
                               : const Icon(Icons.search_rounded, size: 18),
-                          label: const Text("SEARCH CODE", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                          label: const Text(
+                            "SEARCH CODE",
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF4C49ED),
                             foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 15,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
                         ),
                       ],
@@ -368,27 +518,59 @@ class _RewardManagementScreenState extends State<RewardManagementScreen> {
                     decoration: BoxDecoration(
                       color: const Color(0xFFF8FAFC),
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.green.shade200, width: 1.5),
+                      border: Border.all(
+                        color: Colors.green.shade200,
+                        width: 1.5,
+                      ),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
                           children: [
-                            const Icon(Icons.verified_user_rounded, color: Colors.green, size: 20),
+                            const Icon(
+                              Icons.verified_user_rounded,
+                              color: Colors.green,
+                              size: 20,
+                            ),
                             const SizedBox(width: 8),
-                            const Text("MATCHED CLAIM RECORD FOUND", style: TextStyle(fontWeight: FontWeight.w900, color: Colors.green, fontSize: 12, letterSpacing: 0.5)),
+                            const Text(
+                              "MATCHED CLAIM RECORD FOUND",
+                              style: TextStyle(
+                                fontWeight: FontWeight.w900,
+                                color: Colors.green,
+                                fontSize: 12,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
                             const Spacer(),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
                               decoration: BoxDecoration(
-                                color: (_searchedClaimData!['status'] ?? '').toString().toLowerCase() == 'redeemed' ? Colors.green.shade100 : Colors.orange.shade100,
+                                color:
+                                    (_searchedClaimData!['status'] ?? '')
+                                            .toString()
+                                            .toLowerCase() ==
+                                        'redeemed'
+                                    ? Colors.green.shade100
+                                    : Colors.orange.shade100,
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
-                                ((_searchedClaimData!['status'] ?? '').toString().toUpperCase()),
+                                ((_searchedClaimData!['status'] ?? '')
+                                    .toString()
+                                    .toUpperCase()),
                                 style: TextStyle(
-                                  color: (_searchedClaimData!['status'] ?? '').toString().toLowerCase() == 'redeemed' ? Colors.green.shade800 : Colors.orange.shade900,
+                                  color:
+                                      (_searchedClaimData!['status'] ?? '')
+                                              .toString()
+                                              .toLowerCase() ==
+                                          'redeemed'
+                                      ? Colors.green.shade800
+                                      : Colors.orange.shade900,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 11,
                                 ),
@@ -404,10 +586,33 @@ class _RewardManagementScreenState extends State<RewardManagementScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text("CLAIM MEMBER", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)),
+                                  const Text(
+                                    "CLAIM MEMBER",
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
                                   const SizedBox(height: 2),
-                                  Text(_formatUserName(_searchedClaimData!['user_name'], _searchedClaimData!['user_id']), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF1E293B))),
-                                  Text("Email: ${_searchedClaimData!['user_email'] ?? _searchedClaimData!['user_id'] ?? 'N/A'}", style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                                  Text(
+                                    _formatUserName(
+                                      _searchedClaimData!['user_name'],
+                                      _searchedClaimData!['user_id'],
+                                    ),
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 15,
+                                      color: Color(0xFF1E293B),
+                                    ),
+                                  ),
+                                  Text(
+                                    "Email: ${_searchedClaimData!['user_email'] ?? _searchedClaimData!['user_id'] ?? 'N/A'}",
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
@@ -415,19 +620,48 @@ class _RewardManagementScreenState extends State<RewardManagementScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text("REWARD ITEM", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)),
+                                  const Text(
+                                    "REWARD ITEM",
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
                                   const SizedBox(height: 2),
-                                  Text(_searchedClaimData!['reward_title'] ?? _searchedClaimData!['reward_name'] ?? 'Mystery Prize', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF4C49ED))),
-                                  Text("Code: ${_searchedClaimData!['claim_code']}", style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                                  Text(
+                                    _searchedClaimData!['reward_title'] ??
+                                        _searchedClaimData!['reward_name'] ??
+                                        'Mystery Prize',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 15,
+                                      color: Color(0xFF4C49ED),
+                                    ),
+                                  ),
+                                  Text(
+                                    "Code: ${_searchedClaimData!['claim_code']}",
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
                             ElevatedButton.icon(
                               onPressed: () async {
-                                final tenant = TenantService().currentTenant.value;
+                                final tenant =
+                                    TenantService().currentTenant.value;
                                 if (tenant == null) return;
-                                final code = _searchedClaimData!['claim_code']?.toString() ?? '';
-                                final res = await ApiService.redeemClaimCode(tenant.id, code);
+                                final code =
+                                    _searchedClaimData!['claim_code']
+                                        ?.toString() ??
+                                    '';
+                                final res = await ApiService.redeemClaimCode(
+                                  tenant.id,
+                                  code,
+                                );
                                 if (res['status'] == 'success') {
                                   setState(() {
                                     _searchedClaimData = null;
@@ -436,24 +670,50 @@ class _RewardManagementScreenState extends State<RewardManagementScreen> {
                                   _loadData();
                                   if (mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(content: Text(res['message'] ?? "Reward code $code REDEEMED successfully!"), backgroundColor: Colors.green),
+                                      SnackBar(
+                                        content: Text(
+                                          res['message'] ??
+                                              "Reward code $code REDEEMED successfully!",
+                                        ),
+                                        backgroundColor: Colors.green,
+                                      ),
                                     );
                                   }
                                 } else {
                                   if (mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(content: Text(res['message'] ?? "Failed to redeem code!"), backgroundColor: Colors.red),
+                                      SnackBar(
+                                        content: Text(
+                                          res['message'] ??
+                                              "Failed to redeem code!",
+                                        ),
+                                        backgroundColor: Colors.red,
+                                      ),
                                     );
                                   }
                                 }
                               },
-                              icon: const Icon(Icons.check_circle_rounded, size: 18),
-                              label: const Text("CONFIRM & REDEEM REWARD", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                              icon: const Icon(
+                                Icons.check_circle_rounded,
+                                size: 18,
+                              ),
+                              label: const Text(
+                                "CONFIRM & REDEEM REWARD",
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                ),
+                              ),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.green,
                                 foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                  vertical: 14,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
                               ),
                             ),
                           ],
@@ -467,7 +727,10 @@ class _RewardManagementScreenState extends State<RewardManagementScreen> {
                 if (_searchCodeError != null) ...[
                   const SizedBox(height: 16),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.red.shade50,
                       borderRadius: BorderRadius.circular(12),
@@ -475,10 +738,21 @@ class _RewardManagementScreenState extends State<RewardManagementScreen> {
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 20),
+                        const Icon(
+                          Icons.error_outline_rounded,
+                          color: Colors.redAccent,
+                          size: 20,
+                        ),
                         const SizedBox(width: 10),
                         Expanded(
-                          child: Text(_searchCodeError!, style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 13)),
+                          child: Text(
+                            _searchCodeError!,
+                            style: const TextStyle(
+                              color: Colors.redAccent,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -489,23 +763,30 @@ class _RewardManagementScreenState extends State<RewardManagementScreen> {
           ),
           const SizedBox(height: 24),
 
-          _rewards.isEmpty 
-            ? const Center(child: Padding(padding: EdgeInsets.all(40), child: Text("No rewards configured. Tap '+ ADD REWARD' to start!")))
-            : GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                  maxCrossAxisExtent: 280, 
-                  mainAxisSpacing: 20, 
-                  crossAxisSpacing: 20, 
-                  childAspectRatio: 0.78,
+          _rewards.isEmpty
+              ? const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(40),
+                    child: Text(
+                      "No rewards configured. Tap '+ ADD REWARD' to start!",
+                    ),
+                  ),
+                )
+              : GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                    maxCrossAxisExtent: 280,
+                    mainAxisSpacing: 20,
+                    crossAxisSpacing: 20,
+                    childAspectRatio: 0.78,
+                  ),
+                  itemCount: _rewards.length,
+                  itemBuilder: (context, index) {
+                    final r = _rewards[index];
+                    return _buildRewardCard(r);
+                  },
                 ),
-                itemCount: _rewards.length,
-                itemBuilder: (context, index) {
-                  final r = _rewards[index];
-                  return _buildRewardCard(r);
-                },
-              ),
           const SizedBox(height: 60),
         ],
       ),
@@ -521,19 +802,35 @@ class _RewardManagementScreenState extends State<RewardManagementScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text("Mystery Box Contents", style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900)),
+              const Text(
+                "Mystery Box Contents",
+                style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900),
+              ),
               ElevatedButton.icon(
-                onPressed: _showAddMysteryDialog, 
-                icon: const Icon(Icons.add), 
+                onPressed: _showAddMysteryDialog,
+                icon: const Icon(Icons.add),
                 label: const Text("ADD PRIZE"),
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF4C49ED), padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF4C49ED),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 16,
+                  ),
+                ),
               ),
             ],
           ),
-          const Text("Define what users can win and their probabilities.", style: TextStyle(color: Colors.grey)),
+          const Text(
+            "Define what users can win and their probabilities.",
+            style: TextStyle(color: Colors.grey),
+          ),
           const SizedBox(height: 40),
           Container(
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: AdminTheme.softShadow),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: AdminTheme.softShadow,
+            ),
             child: ListView.separated(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -543,12 +840,17 @@ class _RewardManagementScreenState extends State<RewardManagementScreen> {
                 final p = _mysteryPrizes[i];
                 return ListTile(
                   contentPadding: const EdgeInsets.all(20),
-                  title: Text(p['reward_name'] ?? p['prize_name'] ?? p['title'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
+                  title: Text(
+                    p['reward_name'] ?? p['prize_name'] ?? p['title'] ?? '',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
                   subtitle: Text("Win Probability: ${p['probability']}%"),
                   trailing: IconButton(
-                    icon: const Icon(Icons.delete_outline, color: Colors.red), 
+                    icon: const Icon(Icons.delete_outline, color: Colors.red),
                     onPressed: () async {
-                      await ApiService.deleteMysteryPrize(int.parse(p['id'].toString()));
+                      await ApiService.deleteMysteryPrize(
+                        int.parse(p['id'].toString()),
+                      );
                       _loadData();
                     },
                   ),
@@ -570,40 +872,76 @@ class _RewardManagementScreenState extends State<RewardManagementScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text("Marketing Banners", style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900)),
+              const Text(
+                "Marketing Banners",
+                style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900),
+              ),
               ElevatedButton.icon(
-                onPressed: _showAddBannerDialog, 
-                icon: const Icon(Icons.add), 
+                onPressed: _showAddBannerDialog,
+                icon: const Icon(Icons.add),
                 label: const Text("ADD BANNER"),
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF4C49ED), padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF4C49ED),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 16,
+                  ),
+                ),
               ),
             ],
           ),
           const SizedBox(height: 32),
-          _rewards.isEmpty 
-            ? const Center(child: Text("No active banners. Add one to show on Homepage!"))
-            : Expanded(
-                child: ListView.builder(
-                  itemCount: _rewards.length,
-                  itemBuilder: (context, index) {
-                    final b = _rewards[index];
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.all(16),
-                        leading: ClipRRect(borderRadius: BorderRadius.circular(10), child: Image.network(b['image_url'] ?? '', width: 100, height: 60, fit: BoxFit.cover, errorBuilder: (_,__,___) => const Icon(Icons.image))),
-                        title: Text(b['title'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle: Text(b['subtitle'] ?? ''),
-                        trailing: IconButton(icon: const Icon(Icons.delete_outline, color: Colors.red), onPressed: () async {
-                           await ApiService.deleteOffer(int.parse(b['id'].toString()));
-                           _loadData();
-                        }),
-                      ),
-                    );
-                  },
+          _rewards.isEmpty
+              ? const Center(
+                  child: Text(
+                    "No active banners. Add one to show on Homepage!",
+                  ),
+                )
+              : Expanded(
+                  child: ListView.builder(
+                    itemCount: _rewards.length,
+                    itemBuilder: (context, index) {
+                      final b = _rewards[index];
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.all(16),
+                          leading: ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: Image.network(
+                              b['image_url'] ?? '',
+                              width: 100,
+                              height: 60,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) =>
+                                  const Icon(Icons.image),
+                            ),
+                          ),
+                          title: Text(
+                            b['title'] ?? '',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          subtitle: Text(b['subtitle'] ?? ''),
+                          trailing: IconButton(
+                            icon: const Icon(
+                              Icons.delete_outline,
+                              color: Colors.red,
+                            ),
+                            onPressed: () async {
+                              await ApiService.deleteOffer(
+                                int.parse(b['id'].toString()),
+                              );
+                              _loadData();
+                            },
+                          ),
+                        ),
+                      );
+                    },
+                  ),
                 ),
-              ),
         ],
       ),
     );
@@ -619,7 +957,10 @@ class _RewardManagementScreenState extends State<RewardManagementScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: const Text("New Marketing Banner", style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text(
+          "New Marketing Banner",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -633,7 +974,10 @@ class _RewardManagementScreenState extends State<RewardManagementScreen> {
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("CANCEL")),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("CANCEL"),
+          ),
           ElevatedButton(
             onPressed: () async {
               final tenant = TenantService().currentTenant.value;
@@ -648,7 +992,9 @@ class _RewardManagementScreenState extends State<RewardManagementScreen> {
               if (ctx.mounted) Navigator.pop(ctx);
               _loadData();
             },
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF4C49ED)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF4C49ED),
+            ),
             child: const Text("SAVE BANNER"),
           ),
         ],
@@ -663,7 +1009,9 @@ class _RewardManagementScreenState extends State<RewardManagementScreen> {
       final code = (c['claim_code'] ?? '').toString().toLowerCase();
       final title = (c['reward_title'] ?? '').toString().toLowerCase();
       final user = (c['user_id'] ?? '').toString().toLowerCase();
-      return code.contains(query) || title.contains(query) || user.contains(query);
+      return code.contains(query) ||
+          title.contains(query) ||
+          user.contains(query);
     }).toList();
 
     return Padding(
@@ -677,12 +1025,21 @@ class _RewardManagementScreenState extends State<RewardManagementScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: const [
-                  Text("Redemption History & Code Verification", style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900)),
-                  Text("Verify customer claim codes and redeem rewards.", style: TextStyle(color: Colors.grey)),
+                  Text(
+                    "Redemption History & Code Verification",
+                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900),
+                  ),
+                  Text(
+                    "Verify customer claim codes and redeem rewards.",
+                    style: TextStyle(color: Colors.grey),
+                  ),
                 ],
               ),
               IconButton(
-                icon: const Icon(Icons.refresh_rounded, color: Color(0xFF4C49ED)),
+                icon: const Icon(
+                  Icons.refresh_rounded,
+                  color: Color(0xFF4C49ED),
+                ),
                 onPressed: _loadData,
                 tooltip: "Refresh Claims",
               ),
@@ -693,7 +1050,11 @@ class _RewardManagementScreenState extends State<RewardManagementScreen> {
           // Code Verification Input for Waiters / Staff
           Container(
             padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: AdminTheme.softShadow),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: AdminTheme.softShadow,
+            ),
             child: Row(
               children: [
                 Expanded(
@@ -701,10 +1062,19 @@ class _RewardManagementScreenState extends State<RewardManagementScreen> {
                     controller: _codeVerifyCtrl,
                     onChanged: (v) => setState(() {}),
                     decoration: InputDecoration(
-                      hintText: "Enter 5-digit customer claim code (e.g. 83462)...",
-                      prefixIcon: const Icon(Icons.qr_code_rounded, color: Color(0xFF4C49ED)),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      hintText:
+                          "Enter 5-digit customer claim code (e.g. 83462)...",
+                      prefixIcon: const Icon(
+                        Icons.qr_code_rounded,
+                        color: Color(0xFF4C49ED),
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
                     ),
                   ),
                 ),
@@ -713,13 +1083,22 @@ class _RewardManagementScreenState extends State<RewardManagementScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF4C49ED),
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 16,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                   onPressed: () async {
                     final queryCode = _codeVerifyCtrl.text.trim().toLowerCase();
                     if (queryCode.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please enter a claim code first!")));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text("Please enter a claim code first!"),
+                        ),
+                      );
                       return;
                     }
 
@@ -729,39 +1108,62 @@ class _RewardManagementScreenState extends State<RewardManagementScreen> {
                     // Optimistically update matching claim in memory for instant visual feedback
                     _locallyRedeemedCodes.add(queryCode);
                     for (var c in _claims) {
-                      if ((c['claim_code'] ?? '').toString().toLowerCase() == queryCode) {
+                      if ((c['claim_code'] ?? '').toString().toLowerCase() ==
+                          queryCode) {
                         setState(() {
                           c['status'] = 'redeemed';
                         });
-                        if (c['id'] != null) _locallyRedeemedIds.add(c['id'].toString());
+                        if (c['id'] != null)
+                          _locallyRedeemedIds.add(c['id'].toString());
                       }
                     }
 
-                    final res = await ApiService.redeemClaimCode(tenant.id, queryCode);
+                    final res = await ApiService.redeemClaimCode(
+                      tenant.id,
+                      queryCode,
+                    );
                     if (res['status'] == 'success') {
                       _codeVerifyCtrl.clear();
                       await _loadData();
                       if (mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(res['message'] ?? "Reward code $queryCode REDEEMED successfully!"), backgroundColor: Colors.green),
+                          SnackBar(
+                            content: Text(
+                              res['message'] ??
+                                  "Reward code $queryCode REDEEMED successfully!",
+                            ),
+                            backgroundColor: Colors.green,
+                          ),
                         );
                       }
                     } else {
                       // Fallback: match by local claim ID
                       final match = _claims.firstWhere(
-                        (c) => (c['claim_code'] ?? '').toString().toLowerCase() == queryCode,
+                        (c) =>
+                            (c['claim_code'] ?? '').toString().toLowerCase() ==
+                            queryCode,
                         orElse: () => {},
                       );
                       if (match.isNotEmpty) {
-                        final claimId = int.tryParse(match['id']?.toString() ?? '0') ?? 0;
-                        if (claimId > 0) _locallyRedeemedIds.add(claimId.toString());
-                        final success = await ApiService.updateClaimStatus(claimId, 'redeemed');
+                        final claimId =
+                            int.tryParse(match['id']?.toString() ?? '0') ?? 0;
+                        if (claimId > 0)
+                          _locallyRedeemedIds.add(claimId.toString());
+                        final success = await ApiService.updateClaimStatus(
+                          claimId,
+                          'redeemed',
+                        );
                         if (success) {
                           _codeVerifyCtrl.clear();
                           await _loadData();
                           if (mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text("Code verified! Reward '${match['reward_title'] ?? match['reward_name']}' REDEEMED!"), backgroundColor: Colors.green),
+                              SnackBar(
+                                content: Text(
+                                  "Code verified! Reward '${match['reward_title'] ?? match['reward_name']}' REDEEMED!",
+                                ),
+                                backgroundColor: Colors.green,
+                              ),
                             );
                           }
                           return;
@@ -770,7 +1172,13 @@ class _RewardManagementScreenState extends State<RewardManagementScreen> {
                       await _loadData();
                       if (mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(res['message'] ?? "Invalid or non-existent claim code!"), backgroundColor: Colors.red),
+                          SnackBar(
+                            content: Text(
+                              res['message'] ??
+                                  "Invalid or non-existent claim code!",
+                            ),
+                            backgroundColor: Colors.red,
+                          ),
                         );
                       }
                     }
@@ -785,66 +1193,127 @@ class _RewardManagementScreenState extends State<RewardManagementScreen> {
 
           Expanded(
             child: Container(
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: AdminTheme.softShadow),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: AdminTheme.softShadow,
+              ),
               child: filteredClaims.isEmpty
-                ? const Center(child: Text("No claims found matching code or user.", style: TextStyle(color: Colors.grey)))
-                : ListView.separated(
-                    itemCount: filteredClaims.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1),
-                    itemBuilder: (ctx, i) {
-                      final c = filteredClaims[i];
-                      final st = (c['status'] ?? '').toString().toLowerCase();
-                      final redeemedAt = (c['redeemed_at'] ?? '').toString().trim();
-                      final isRedeemed = st == 'redeemed' || st == 'claimed' || st == 'verified' || st == 'claimed_by_staff' || (redeemedAt.isNotEmpty && redeemedAt != 'null');
-                      return ListTile(
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                        leading: CircleAvatar(
-                          backgroundColor: isRedeemed ? Colors.green.shade50 : const Color(0xFFF1F4F9),
-                          child: Icon(isRedeemed ? Icons.check_circle_rounded : Icons.person_rounded, color: isRedeemed ? Colors.green : const Color(0xFF4C49ED)),
-                        ),
-                        title: Text(_formatUserName(c['user_name'], c['user_id']), style: const TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle: Text("Reward: ${c['reward_title'] ?? 'Surprise Prize'} • Code: ${c['claim_code'] ?? 'N/A'}"),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: isRedeemed ? Colors.green.shade50 : Colors.orange.shade50,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text(
-                                isRedeemed ? "REDEEMED" : "PENDING",
-                                style: TextStyle(color: isRedeemed ? Colors.green.shade800 : Colors.orange.shade800, fontWeight: FontWeight.bold, fontSize: 11),
-                              ),
+                  ? const Center(
+                      child: Text(
+                        "No claims found matching code or user.",
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                    )
+                  : ListView.separated(
+                      itemCount: filteredClaims.length,
+                      separatorBuilder: (_, __) => const Divider(height: 1),
+                      itemBuilder: (ctx, i) {
+                        final c = filteredClaims[i];
+                        final st = (c['status'] ?? '').toString().toLowerCase();
+                        final redeemedAt = (c['redeemed_at'] ?? '')
+                            .toString()
+                            .trim();
+                        final isRedeemed =
+                            st == 'redeemed' ||
+                            st == 'claimed' ||
+                            st == 'verified' ||
+                            st == 'claimed_by_staff' ||
+                            (redeemedAt.isNotEmpty && redeemedAt != 'null');
+                        return ListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 12,
+                          ),
+                          leading: CircleAvatar(
+                            backgroundColor: isRedeemed
+                                ? Colors.green.shade50
+                                : const Color(0xFFF1F4F9),
+                            child: Icon(
+                              isRedeemed
+                                  ? Icons.check_circle_rounded
+                                  : Icons.person_rounded,
+                              color: isRedeemed
+                                  ? Colors.green
+                                  : const Color(0xFF4C49ED),
                             ),
-                            if (!isRedeemed) ...[
-                              const SizedBox(width: 8),
-                              IconButton(
-                                icon: const Icon(Icons.check_circle_outline, color: Colors.green),
-                                tooltip: "Mark as Redeemed",
-                                onPressed: () async {
-                                  final claimId = int.parse(c['id'].toString());
-                                  final code = (c['claim_code'] ?? '').toString().toLowerCase();
-                                  _locallyRedeemedIds.add(claimId.toString());
-                                  if (code.isNotEmpty) _locallyRedeemedCodes.add(code);
-                                  setState(() {
-                                    c['status'] = 'redeemed';
-                                  });
-                                  final success = await ApiService.updateClaimStatus(claimId, 'redeemed');
-                                  if (!success && code.isNotEmpty) {
-                                    final tenant = TenantService().currentTenant.value;
-                                    if (tenant != null) await ApiService.redeemClaimCode(tenant.id, code);
-                                  }
-                                  await _loadData();
-                                },
+                          ),
+                          title: Text(
+                            _formatUserName(c['user_name'], c['user_id']),
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          subtitle: Text(
+                            "Reward: ${c['reward_title'] ?? 'Surprise Prize'} • Code: ${c['claim_code'] ?? 'N/A'}",
+                          ),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: isRedeemed
+                                      ? Colors.green.shade50
+                                      : Colors.orange.shade50,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  isRedeemed ? "REDEEMED" : "PENDING",
+                                  style: TextStyle(
+                                    color: isRedeemed
+                                        ? Colors.green.shade800
+                                        : Colors.orange.shade800,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 11,
+                                  ),
+                                ),
                               ),
+                              if (!isRedeemed) ...[
+                                const SizedBox(width: 8),
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.check_circle_outline,
+                                    color: Colors.green,
+                                  ),
+                                  tooltip: "Mark as Redeemed",
+                                  onPressed: () async {
+                                    final claimId = int.parse(
+                                      c['id'].toString(),
+                                    );
+                                    final code = (c['claim_code'] ?? '')
+                                        .toString()
+                                        .toLowerCase();
+                                    _locallyRedeemedIds.add(claimId.toString());
+                                    if (code.isNotEmpty)
+                                      _locallyRedeemedCodes.add(code);
+                                    setState(() {
+                                      c['status'] = 'redeemed';
+                                    });
+                                    final success =
+                                        await ApiService.updateClaimStatus(
+                                          claimId,
+                                          'redeemed',
+                                        );
+                                    if (!success && code.isNotEmpty) {
+                                      final tenant =
+                                          TenantService().currentTenant.value;
+                                      if (tenant != null)
+                                        await ApiService.redeemClaimCode(
+                                          tenant.id,
+                                          code,
+                                        );
+                                    }
+                                    await _loadData();
+                                  },
+                                ),
+                              ],
                             ],
-                          ],
-                        ),
-                      );
-                    },
-                  ),
+                          ),
+                        );
+                      },
+                    ),
             ),
           ),
         ],
@@ -870,10 +1339,18 @@ class _RewardManagementScreenState extends State<RewardManagementScreen> {
     return uId;
   }
 
-  Widget _buildSettingCard({required String title, required IconData icon, required List<Widget> children}) {
+  Widget _buildSettingCard({
+    required String title,
+    required IconData icon,
+    required List<Widget> children,
+  }) {
     return Container(
       padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24), boxShadow: AdminTheme.softShadow),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: AdminTheme.softShadow,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -881,7 +1358,13 @@ class _RewardManagementScreenState extends State<RewardManagementScreen> {
             children: [
               Icon(icon, color: const Color(0xFF4C49ED)),
               const SizedBox(width: 12),
-              Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ],
           ),
           const Divider(height: 32),
@@ -891,7 +1374,12 @@ class _RewardManagementScreenState extends State<RewardManagementScreen> {
     );
   }
 
-  Widget _buildEditableSettingRow(String label, String sub, TextEditingController ctrl, {bool isDecimal = false}) {
+  Widget _buildEditableSettingRow(
+    String label,
+    String sub,
+    TextEditingController ctrl, {
+    bool isDecimal = false,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 20),
       child: Row(
@@ -900,8 +1388,14 @@ class _RewardManagementScreenState extends State<RewardManagementScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
-                Text(sub, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                Text(
+                  label,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  sub,
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                ),
               ],
             ),
           ),
@@ -912,9 +1406,13 @@ class _RewardManagementScreenState extends State<RewardManagementScreen> {
               textAlign: TextAlign.center,
               keyboardType: TextInputType.numberWithOptions(decimal: isDecimal),
               decoration: InputDecoration(
-                filled: true, fillColor: const Color(0xFFF1F4F9),
+                filled: true,
+                fillColor: const Color(0xFFF1F4F9),
                 contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
               ),
             ),
           ),
@@ -923,7 +1421,12 @@ class _RewardManagementScreenState extends State<RewardManagementScreen> {
     );
   }
 
-  Widget _buildToggleRow(String label, String sub, bool val, Function(bool) onChanged) {
+  Widget _buildToggleRow(
+    String label,
+    String sub,
+    bool val,
+    Function(bool) onChanged,
+  ) {
     return Row(
       children: [
         Expanded(
@@ -931,11 +1434,18 @@ class _RewardManagementScreenState extends State<RewardManagementScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
-              Text(sub, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+              Text(
+                sub,
+                style: const TextStyle(fontSize: 12, color: Colors.grey),
+              ),
             ],
           ),
         ),
-        Switch(value: val, onChanged: onChanged, activeThumbColor: const Color(0xFF4C49ED)),
+        Switch(
+          value: val,
+          onChanged: onChanged,
+          activeThumbColor: const Color(0xFF4C49ED),
+        ),
       ],
     );
   }
@@ -943,7 +1453,9 @@ class _RewardManagementScreenState extends State<RewardManagementScreen> {
   String _formatImageUrl(String? rawUrl) {
     if (rawUrl == null || rawUrl.trim().isEmpty) return "";
     final trimmed = rawUrl.trim();
-    if (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('data:image')) {
+    if (trimmed.startsWith('http://') ||
+        trimmed.startsWith('https://') ||
+        trimmed.startsWith('data:image')) {
       return trimmed;
     }
     return "${ApiService.baseUrl}/${trimmed.replaceFirst(RegExp(r'^\/'), '')}";
@@ -952,14 +1464,20 @@ class _RewardManagementScreenState extends State<RewardManagementScreen> {
   Widget _buildRewardCard(Map<String, dynamic> r) {
     final String formattedImg = _formatImageUrl(r['image_url']);
     return Container(
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: AdminTheme.softShadow),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: AdminTheme.softShadow,
+      ),
       child: Column(
         children: [
           Expanded(
             child: Stack(
               children: [
                 ClipRRect(
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(20),
+                  ),
                   child: formattedImg.isNotEmpty
                       ? Image.network(
                           formattedImg,
@@ -969,14 +1487,22 @@ class _RewardManagementScreenState extends State<RewardManagementScreen> {
                           errorBuilder: (_, __, ___) => Container(
                             color: const Color(0xFFF8FAFC),
                             child: const Center(
-                              child: Icon(Icons.fastfood_rounded, size: 44, color: Color(0xFFFF5C00)),
+                              child: Icon(
+                                Icons.fastfood_rounded,
+                                size: 44,
+                                color: Color(0xFFFF5C00),
+                              ),
                             ),
                           ),
                         )
                       : Container(
                           color: const Color(0xFFF8FAFC),
                           child: const Center(
-                            child: Icon(Icons.fastfood_rounded, size: 44, color: Color(0xFFFF5C00)),
+                            child: Icon(
+                              Icons.fastfood_rounded,
+                              size: 44,
+                              color: Color(0xFFFF5C00),
+                            ),
                           ),
                         ),
                 ),
@@ -989,7 +1515,11 @@ class _RewardManagementScreenState extends State<RewardManagementScreen> {
                         radius: 16,
                         backgroundColor: Colors.white.withValues(alpha: 0.95),
                         child: IconButton(
-                          icon: const Icon(Icons.edit, color: Color(0xFF4C49ED), size: 16),
+                          icon: const Icon(
+                            Icons.edit,
+                            color: Color(0xFF4C49ED),
+                            size: 16,
+                          ),
                           padding: EdgeInsets.zero,
                           tooltip: "Edit Reward",
                           onPressed: () => _showEditRewardDialog(r),
@@ -1000,11 +1530,17 @@ class _RewardManagementScreenState extends State<RewardManagementScreen> {
                         radius: 16,
                         backgroundColor: Colors.white.withValues(alpha: 0.95),
                         child: IconButton(
-                          icon: const Icon(Icons.delete, color: Colors.red, size: 16),
+                          icon: const Icon(
+                            Icons.delete,
+                            color: Colors.red,
+                            size: 16,
+                          ),
                           padding: EdgeInsets.zero,
                           tooltip: "Delete Reward",
                           onPressed: () async {
-                            await ApiService.deleteReward(int.parse(r['id'].toString()));
+                            await ApiService.deleteReward(
+                              int.parse(r['id'].toString()),
+                            );
                             _loadData();
                           },
                         ),
@@ -1021,21 +1557,31 @@ class _RewardManagementScreenState extends State<RewardManagementScreen> {
               children: [
                 Text(
                   r['title'] ?? '',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
                   textAlign: TextAlign.center,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 4),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFF4C49ED).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(
                     "${r['points_required']} Pts Required",
-                    style: const TextStyle(color: Color(0xFF4C49ED), fontWeight: FontWeight.bold, fontSize: 12),
+                    style: const TextStyle(
+                      color: Color(0xFF4C49ED),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
                   ),
                 ),
               ],
@@ -1058,8 +1604,13 @@ class _RewardManagementScreenState extends State<RewardManagementScreen> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setModalState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          title: const Text("New Redeemable Reward", style: TextStyle(fontWeight: FontWeight.bold)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          title: const Text(
+            "New Redeemable Reward",
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -1071,12 +1622,17 @@ class _RewardManagementScreenState extends State<RewardManagementScreen> {
                 const SizedBox(height: 16),
 
                 // Image File Picker Button
-                const Text("Reward Image (Pick from PC/Phone) *", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                const Text(
+                  "Reward Image (Pick from PC/Phone) *",
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                ),
                 const SizedBox(height: 8),
                 InkWell(
                   onTap: () async {
                     final picker = ImagePicker();
-                    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+                    final pickedFile = await picker.pickImage(
+                      source: ImageSource.gallery,
+                    );
                     if (pickedFile != null) {
                       final bytes = await pickedFile.readAsBytes();
                       setModalState(() {
@@ -1089,72 +1645,126 @@ class _RewardManagementScreenState extends State<RewardManagementScreen> {
                   child: Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: selectedImageBytes != null ? Colors.green.shade50 : const Color(0xFFF1F4F9),
+                      color: selectedImageBytes != null
+                          ? Colors.green.shade50
+                          : const Color(0xFFF1F4F9),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: selectedImageBytes != null ? Colors.green : Colors.black12),
+                      border: Border.all(
+                        color: selectedImageBytes != null
+                            ? Colors.green
+                            : Colors.black12,
+                      ),
                     ),
                     child: Row(
                       children: [
                         Icon(
-                          selectedImageBytes != null ? Icons.check_circle_rounded : Icons.cloud_upload_outlined,
-                          color: selectedImageBytes != null ? Colors.green : const Color(0xFF4C49ED),
+                          selectedImageBytes != null
+                              ? Icons.check_circle_rounded
+                              : Icons.cloud_upload_outlined,
+                          color: selectedImageBytes != null
+                              ? Colors.green
+                              : const Color(0xFF4C49ED),
                           size: 24,
                         ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            selectedImageBytes != null ? (selectedImageName ?? "Image Selected") : "Select Image from PC/Phone",
+                            selectedImageBytes != null
+                                ? (selectedImageName ?? "Image Selected")
+                                : "Select Image from PC/Phone",
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 12,
-                              color: selectedImageBytes != null ? Colors.green.shade800 : Colors.black87,
+                              color: selectedImageBytes != null
+                                  ? Colors.green.shade800
+                                  : Colors.black87,
                             ),
                           ),
                         ),
                         if (selectedImageBytes != null)
                           ClipRRect(
                             borderRadius: BorderRadius.circular(8),
-                            child: Image.memory(selectedImageBytes!, width: 36, height: 36, fit: BoxFit.cover),
+                            child: Image.memory(
+                              selectedImageBytes!,
+                              width: 36,
+                              height: 36,
+                              fit: BoxFit.cover,
+                            ),
                           ),
                       ],
                     ),
                   ),
                 ),
                 const SizedBox(height: 12),
-                const Center(child: Text("— OR PASTE IMAGE URL —", style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold))),
+                const Center(
+                  child: Text(
+                    "— OR PASTE IMAGE URL —",
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: Colors.grey,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
                 const SizedBox(height: 8),
-                _buildDialogField("Direct Image URL (Optional)", imageUrlCtrl, "https://..."),
+                _buildDialogField(
+                  "Direct Image URL (Optional)",
+                  imageUrlCtrl,
+                  "https://...",
+                ),
               ],
             ),
           ),
           actions: [
-            TextButton(onPressed: isUploading ? null : () => Navigator.pop(ctx), child: const Text("CANCEL")),
+            TextButton(
+              onPressed: isUploading ? null : () => Navigator.pop(ctx),
+              child: const Text("CANCEL"),
+            ),
             ElevatedButton(
-              onPressed: isUploading ? null : () async {
-                final tenant = TenantService().currentTenant.value;
-                if (tenant == null || titleCtrl.text.trim().isEmpty) return;
+              onPressed: isUploading
+                  ? null
+                  : () async {
+                      final tenant = TenantService().currentTenant.value;
+                      if (tenant == null || titleCtrl.text.trim().isEmpty)
+                        return;
 
-                setModalState(() => isUploading = true);
+                      setModalState(() => isUploading = true);
 
-                String imageUrl = imageUrlCtrl.text.trim();
-                if (selectedImageBytes != null && selectedImageName != null) {
-                  final uploadedUrl = await ApiService.uploadProductImage(selectedImageBytes!, selectedImageName!);
-                  if (uploadedUrl != null && uploadedUrl.isNotEmpty) imageUrl = uploadedUrl;
-                }
+                      String imageUrl = imageUrlCtrl.text.trim();
+                      if (selectedImageBytes != null &&
+                          selectedImageName != null) {
+                        final uploadedUrl = await ApiService.uploadProductImage(
+                          selectedImageBytes!,
+                          selectedImageName!,
+                        );
+                        if (uploadedUrl != null && uploadedUrl.isNotEmpty)
+                          imageUrl = uploadedUrl;
+                      }
 
-                await ApiService.addReward({
-                  "tenant_id": tenant.id,
-                  "title": titleCtrl.text.trim(),
-                  "points_required": int.tryParse(pointsCtrl.text.trim()) ?? 100,
-                  "image_url": imageUrl,
-                });
+                      await ApiService.addReward({
+                        "tenant_id": tenant.id,
+                        "title": titleCtrl.text.trim(),
+                        "points_required":
+                            int.tryParse(pointsCtrl.text.trim()) ?? 100,
+                        "image_url": imageUrl,
+                      });
 
-                if (ctx.mounted) Navigator.pop(ctx);
-                _loadData();
-              },
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF4C49ED), foregroundColor: Colors.white),
+                      if (ctx.mounted) Navigator.pop(ctx);
+                      _loadData();
+                    },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF4C49ED),
+                foregroundColor: Colors.white,
+              ),
               child: isUploading
-                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    )
                   : const Text("ADD ITEM"),
             ),
           ],
@@ -1165,7 +1775,9 @@ class _RewardManagementScreenState extends State<RewardManagementScreen> {
 
   void _showEditRewardDialog(Map<String, dynamic> r) {
     final titleCtrl = TextEditingController(text: r['title'] ?? '');
-    final pointsCtrl = TextEditingController(text: r['points_required']?.toString() ?? '100');
+    final pointsCtrl = TextEditingController(
+      text: r['points_required']?.toString() ?? '100',
+    );
     final imageUrlCtrl = TextEditingController(text: r['image_url'] ?? '');
     Uint8List? selectedImageBytes;
     String? selectedImageName;
@@ -1175,8 +1787,13 @@ class _RewardManagementScreenState extends State<RewardManagementScreen> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setModalState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          title: const Text("Edit Redeemable Reward", style: TextStyle(fontWeight: FontWeight.bold)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          title: const Text(
+            "Edit Redeemable Reward",
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -1188,12 +1805,17 @@ class _RewardManagementScreenState extends State<RewardManagementScreen> {
                 const SizedBox(height: 16),
 
                 // Image File Picker Button
-                const Text("Reward Image (Pick from PC/Phone)", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                const Text(
+                  "Reward Image (Pick from PC/Phone)",
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                ),
                 const SizedBox(height: 8),
                 InkWell(
                   onTap: () async {
                     final picker = ImagePicker();
-                    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+                    final pickedFile = await picker.pickImage(
+                      source: ImageSource.gallery,
+                    );
                     if (pickedFile != null) {
                       final bytes = await pickedFile.readAsBytes();
                       setModalState(() {
@@ -1206,73 +1828,127 @@ class _RewardManagementScreenState extends State<RewardManagementScreen> {
                   child: Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: selectedImageBytes != null ? Colors.green.shade50 : const Color(0xFFF1F4F9),
+                      color: selectedImageBytes != null
+                          ? Colors.green.shade50
+                          : const Color(0xFFF1F4F9),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: selectedImageBytes != null ? Colors.green : Colors.black12),
+                      border: Border.all(
+                        color: selectedImageBytes != null
+                            ? Colors.green
+                            : Colors.black12,
+                      ),
                     ),
                     child: Row(
                       children: [
                         Icon(
-                          selectedImageBytes != null ? Icons.check_circle_rounded : Icons.cloud_upload_outlined,
-                          color: selectedImageBytes != null ? Colors.green : const Color(0xFF4C49ED),
+                          selectedImageBytes != null
+                              ? Icons.check_circle_rounded
+                              : Icons.cloud_upload_outlined,
+                          color: selectedImageBytes != null
+                              ? Colors.green
+                              : const Color(0xFF4C49ED),
                           size: 24,
                         ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            selectedImageBytes != null ? (selectedImageName ?? "New Image Selected") : "Replace Image from PC/Phone",
+                            selectedImageBytes != null
+                                ? (selectedImageName ?? "New Image Selected")
+                                : "Replace Image from PC/Phone",
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 12,
-                              color: selectedImageBytes != null ? Colors.green.shade800 : Colors.black87,
+                              color: selectedImageBytes != null
+                                  ? Colors.green.shade800
+                                  : Colors.black87,
                             ),
                           ),
                         ),
                         if (selectedImageBytes != null)
                           ClipRRect(
                             borderRadius: BorderRadius.circular(8),
-                            child: Image.memory(selectedImageBytes!, width: 36, height: 36, fit: BoxFit.cover),
+                            child: Image.memory(
+                              selectedImageBytes!,
+                              width: 36,
+                              height: 36,
+                              fit: BoxFit.cover,
+                            ),
                           ),
                       ],
                     ),
                   ),
                 ),
                 const SizedBox(height: 12),
-                const Center(child: Text("— OR UPDATE IMAGE URL —", style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold))),
+                const Center(
+                  child: Text(
+                    "— OR UPDATE IMAGE URL —",
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: Colors.grey,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
                 const SizedBox(height: 8),
-                _buildDialogField("Direct Image URL", imageUrlCtrl, "https://..."),
+                _buildDialogField(
+                  "Direct Image URL",
+                  imageUrlCtrl,
+                  "https://...",
+                ),
               ],
             ),
           ),
           actions: [
-            TextButton(onPressed: isUploading ? null : () => Navigator.pop(ctx), child: const Text("CANCEL")),
+            TextButton(
+              onPressed: isUploading ? null : () => Navigator.pop(ctx),
+              child: const Text("CANCEL"),
+            ),
             ElevatedButton(
-              onPressed: isUploading ? null : () async {
-                final tenant = TenantService().currentTenant.value;
-                if (tenant == null || titleCtrl.text.trim().isEmpty) return;
+              onPressed: isUploading
+                  ? null
+                  : () async {
+                      final tenant = TenantService().currentTenant.value;
+                      if (tenant == null || titleCtrl.text.trim().isEmpty)
+                        return;
 
-                setModalState(() => isUploading = true);
+                      setModalState(() => isUploading = true);
 
-                String imageUrl = imageUrlCtrl.text.trim();
-                if (selectedImageBytes != null && selectedImageName != null) {
-                  final uploadedUrl = await ApiService.uploadProductImage(selectedImageBytes!, selectedImageName!);
-                  if (uploadedUrl != null && uploadedUrl.isNotEmpty) imageUrl = uploadedUrl;
-                }
+                      String imageUrl = imageUrlCtrl.text.trim();
+                      if (selectedImageBytes != null &&
+                          selectedImageName != null) {
+                        final uploadedUrl = await ApiService.uploadProductImage(
+                          selectedImageBytes!,
+                          selectedImageName!,
+                        );
+                        if (uploadedUrl != null && uploadedUrl.isNotEmpty)
+                          imageUrl = uploadedUrl;
+                      }
 
-                await ApiService.updateReward({
-                  "id": int.parse(r['id'].toString()),
-                  "tenant_id": tenant.id,
-                  "title": titleCtrl.text.trim(),
-                  "points_required": int.tryParse(pointsCtrl.text.trim()) ?? 100,
-                  "image_url": imageUrl,
-                });
+                      await ApiService.updateReward({
+                        "id": int.parse(r['id'].toString()),
+                        "tenant_id": tenant.id,
+                        "title": titleCtrl.text.trim(),
+                        "points_required":
+                            int.tryParse(pointsCtrl.text.trim()) ?? 100,
+                        "image_url": imageUrl,
+                      });
 
-                if (ctx.mounted) Navigator.pop(ctx);
-                _loadData();
-              },
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF4C49ED), foregroundColor: Colors.white),
+                      if (ctx.mounted) Navigator.pop(ctx);
+                      _loadData();
+                    },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF4C49ED),
+                foregroundColor: Colors.white,
+              ),
               child: isUploading
-                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    )
                   : const Text("SAVE CHANGES"),
             ),
           ],
@@ -1292,25 +1968,39 @@ class _RewardManagementScreenState extends State<RewardManagementScreen> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setModalState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          title: const Text("New Mystery Prize", style: TextStyle(fontWeight: FontWeight.bold)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          title: const Text(
+            "New Mystery Prize",
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildDialogField("Prize Name *", nameCtrl, "e.g. Free Jamocha Shake"),
+                _buildDialogField(
+                  "Prize Name *",
+                  nameCtrl,
+                  "e.g. Free Jamocha Shake",
+                ),
                 const SizedBox(height: 16),
                 _buildDialogField("Win Probability (%) *", probCtrl, "e.g. 10"),
                 const SizedBox(height: 16),
 
                 // Image File Picker Button
-                const Text("Prize Image *", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                const Text(
+                  "Prize Image *",
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                ),
                 const SizedBox(height: 8),
                 InkWell(
                   onTap: () async {
                     final picker = ImagePicker();
-                    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+                    final pickedFile = await picker.pickImage(
+                      source: ImageSource.gallery,
+                    );
                     if (pickedFile != null) {
                       final bytes = await pickedFile.readAsBytes();
                       setModalState(() {
@@ -1323,32 +2013,51 @@ class _RewardManagementScreenState extends State<RewardManagementScreen> {
                   child: Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: selectedImageBytes != null ? Colors.green.shade50 : const Color(0xFFF1F4F9),
+                      color: selectedImageBytes != null
+                          ? Colors.green.shade50
+                          : const Color(0xFFF1F4F9),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: selectedImageBytes != null ? Colors.green : Colors.black12),
+                      border: Border.all(
+                        color: selectedImageBytes != null
+                            ? Colors.green
+                            : Colors.black12,
+                      ),
                     ),
                     child: Row(
                       children: [
                         Icon(
-                          selectedImageBytes != null ? Icons.check_circle_rounded : Icons.cloud_upload_outlined,
-                          color: selectedImageBytes != null ? Colors.green : const Color(0xFF4C49ED),
+                          selectedImageBytes != null
+                              ? Icons.check_circle_rounded
+                              : Icons.cloud_upload_outlined,
+                          color: selectedImageBytes != null
+                              ? Colors.green
+                              : const Color(0xFF4C49ED),
                           size: 24,
                         ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            selectedImageBytes != null ? (selectedImageName ?? "Image Selected") : "Select Image from PC/Phone",
+                            selectedImageBytes != null
+                                ? (selectedImageName ?? "Image Selected")
+                                : "Select Image from PC/Phone",
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 12,
-                              color: selectedImageBytes != null ? Colors.green.shade800 : Colors.black87,
+                              color: selectedImageBytes != null
+                                  ? Colors.green.shade800
+                                  : Colors.black87,
                             ),
                           ),
                         ),
                         if (selectedImageBytes != null)
                           ClipRRect(
                             borderRadius: BorderRadius.circular(8),
-                            child: Image.memory(selectedImageBytes!, width: 36, height: 36, fit: BoxFit.cover),
+                            child: Image.memory(
+                              selectedImageBytes!,
+                              width: 36,
+                              height: 36,
+                              fit: BoxFit.cover,
+                            ),
                           ),
                       ],
                     ),
@@ -1358,44 +2067,77 @@ class _RewardManagementScreenState extends State<RewardManagementScreen> {
             ),
           ),
           actions: [
-            TextButton(onPressed: isUploading ? null : () => Navigator.pop(ctx), child: const Text("CANCEL")),
+            TextButton(
+              onPressed: isUploading ? null : () => Navigator.pop(ctx),
+              child: const Text("CANCEL"),
+            ),
             ElevatedButton(
-              onPressed: isUploading ? null : () async {
-                final tenant = TenantService().currentTenant.value;
-                final String name = nameCtrl.text.trim();
-                if (tenant == null || name.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Prize name is required!")));
-                  return;
-                }
+              onPressed: isUploading
+                  ? null
+                  : () async {
+                      final tenant = TenantService().currentTenant.value;
+                      final String name = nameCtrl.text.trim();
+                      if (tenant == null || name.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text("Prize name is required!"),
+                          ),
+                        );
+                        return;
+                      }
 
-                setModalState(() => isUploading = true);
+                      setModalState(() => isUploading = true);
 
-                String imageUrl = "";
-                if (selectedImageBytes != null && selectedImageName != null) {
-                  final uploadedUrl = await ApiService.uploadProductImage(selectedImageBytes!, selectedImageName!);
-                  if (uploadedUrl != null) imageUrl = uploadedUrl;
-                }
+                      String imageUrl = "";
+                      if (selectedImageBytes != null &&
+                          selectedImageName != null) {
+                        final uploadedUrl = await ApiService.uploadProductImage(
+                          selectedImageBytes!,
+                          selectedImageName!,
+                        );
+                        if (uploadedUrl != null) imageUrl = uploadedUrl;
+                      }
 
-                final res = await ApiService.addMysteryPrize({
-                  "tenant_id": tenant.id,
-                  "title": name,
-                  "prize_name": name,
-                  "reward_name": name,
-                  "probability": double.tryParse(probCtrl.text.trim()) ?? 10.0,
-                  "image_url": imageUrl,
-                });
+                      final res = await ApiService.addMysteryPrize({
+                        "tenant_id": tenant.id,
+                        "title": name,
+                        "prize_name": name,
+                        "reward_name": name,
+                        "probability":
+                            double.tryParse(probCtrl.text.trim()) ?? 10.0,
+                        "image_url": imageUrl,
+                      });
 
-                if (ctx.mounted) Navigator.pop(ctx);
-                if (res['success'] == true) {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Mystery Prize added successfully!"), backgroundColor: Colors.green));
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: ${res['message']}"), backgroundColor: Colors.red));
-                }
-                _loadData();
-              },
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF4C49ED)),
+                      if (ctx.mounted) Navigator.pop(ctx);
+                      if (res['success'] == true) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text("Mystery Prize added successfully!"),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text("Error: ${res['message']}"),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                      _loadData();
+                    },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF4C49ED),
+              ),
               child: isUploading
-                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    )
                   : const Text("ADD PRIZE"),
             ),
           ],
@@ -1404,13 +2146,26 @@ class _RewardManagementScreenState extends State<RewardManagementScreen> {
     );
   }
 
-  Widget _buildDialogField(String label, TextEditingController ctrl, String hint) {
+  Widget _buildDialogField(
+    String label,
+    TextEditingController ctrl,
+    String hint,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+        Text(
+          label,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+        ),
         const SizedBox(height: 8),
-        TextField(controller: ctrl, decoration: InputDecoration(hintText: hint, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)))),
+        TextField(
+          controller: ctrl,
+          decoration: InputDecoration(
+            hintText: hint,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        ),
       ],
     );
   }

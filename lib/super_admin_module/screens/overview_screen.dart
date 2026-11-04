@@ -66,11 +66,20 @@ class _OverviewScreenState extends State<OverviewScreen> {
         const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("Global Overview", style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900)),
-            Text("Real-time performance metrics across all restaurant tenants.", style: TextStyle(color: SAMStyles.textGrey)),
+            Text(
+              "Global Overview",
+              style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900),
+            ),
+            Text(
+              "Real-time performance metrics across all restaurant tenants.",
+              style: TextStyle(color: SAMStyles.textGrey),
+            ),
           ],
         ),
-        IconButton(onPressed: _loadStats, icon: const Icon(Icons.refresh, color: SAMStyles.royalBlue)),
+        IconButton(
+          onPressed: _loadStats,
+          icon: const Icon(Icons.refresh, color: SAMStyles.royalBlue),
+        ),
       ],
     );
   }
@@ -84,15 +93,40 @@ class _OverviewScreenState extends State<OverviewScreen> {
       mainAxisSpacing: 24,
       childAspectRatio: 1.4,
       children: [
-        _buildMetricCard("Total Tenants", _stats?['total_restaurants']?.toString() ?? "0", Icons.business, SAMStyles.royalBlue),
-        _buildMetricCard("Active Now", _stats?['active_restaurants']?.toString() ?? "0", Icons.store_rounded, SAMStyles.emeraldGreen),
-        _buildMetricCard("Monthly Revenue", _stats?['monthly_revenue'] ?? "NPR 0", Icons.payments, Colors.orange),
-        _buildMetricCard("System Health", _stats?['system_health'] ?? "100%", Icons.speed, Colors.purple),
+        _buildMetricCard(
+          "Total Tenants",
+          _stats?['total_restaurants']?.toString() ?? "0",
+          Icons.business,
+          SAMStyles.royalBlue,
+        ),
+        _buildMetricCard(
+          "Active Now",
+          _stats?['active_restaurants']?.toString() ?? "0",
+          Icons.store_rounded,
+          SAMStyles.emeraldGreen,
+        ),
+        _buildMetricCard(
+          "Monthly Revenue",
+          _stats?['monthly_revenue'] ?? "NPR 0",
+          Icons.payments,
+          Colors.orange,
+        ),
+        _buildMetricCard(
+          "System Health",
+          _stats?['system_health'] ?? "100%",
+          Icons.speed,
+          Colors.purple,
+        ),
       ],
     );
   }
 
-  Widget _buildMetricCard(String title, String val, IconData icon, Color color) {
+  Widget _buildMetricCard(
+    String title,
+    String val,
+    IconData icon,
+    Color color,
+  ) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -106,14 +140,30 @@ class _OverviewScreenState extends State<OverviewScreen> {
         children: [
           Container(
             padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
             child: Icon(icon, color: color, size: 24),
           ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(val, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900)),
-              Text(title, style: const TextStyle(color: SAMStyles.textGrey, fontSize: 13, fontWeight: FontWeight.bold)),
+              Text(
+                val,
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              Text(
+                title,
+                style: const TextStyle(
+                  color: SAMStyles.textGrey,
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ],
           ),
         ],
@@ -136,11 +186,37 @@ class _OverviewScreenState extends State<OverviewScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text("Infrastructure Node Status", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+              const Text(
+                "Infrastructure Node Status",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(color: Colors.green.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(20)),
-                child: const Row(children: [CircleAvatar(radius: 3, backgroundColor: Colors.green), SizedBox(width: 8), Text("STABLE", style: TextStyle(color: Colors.green, fontSize: 10, fontWeight: FontWeight.bold))]),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.green.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Row(
+                  children: [
+                    CircleAvatar(radius: 3, backgroundColor: Colors.green),
+                    SizedBox(width: 8),
+                    Text(
+                      "STABLE",
+                      style: TextStyle(
+                        color: Colors.green,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -169,8 +245,22 @@ class _OverviewScreenState extends State<OverviewScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(label, style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold)),
-              Text("${(val * 100).toInt()}%", style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w900)),
+              Text(
+                label,
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Text(
+                "${(val * 100).toInt()}%",
+                style: TextStyle(
+                  color: color,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -189,7 +279,8 @@ class _OverviewScreenState extends State<OverviewScreen> {
   }
 
   Widget _buildRevenueChart() {
-    final chartData = _stats?['revenue_chart'] as List<dynamic>? ?? [0,0,0,0,0,0,0];
+    final chartData =
+        _stats?['revenue_chart'] as List<dynamic>? ?? [0, 0, 0, 0, 0, 0, 0];
     return Container(
       height: 400,
       padding: const EdgeInsets.all(32),
@@ -201,7 +292,10 @@ class _OverviewScreenState extends State<OverviewScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text("Weekly Revenue Trend", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const Text(
+            "Weekly Revenue Trend",
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 32),
           Expanded(
             child: Row(
@@ -217,15 +311,26 @@ class _OverviewScreenState extends State<OverviewScreen> {
                       height: h,
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          colors: [SAMStyles.royalBlue, SAMStyles.royalBlue.withValues(alpha: 0.7)],
+                          colors: [
+                            SAMStyles.royalBlue,
+                            SAMStyles.royalBlue.withValues(alpha: 0.7),
+                          ],
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
                         ),
-                        borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(8),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 12),
-                    Text(["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][i], style: const TextStyle(color: SAMStyles.textGrey, fontSize: 10)),
+                    Text(
+                      ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][i],
+                      style: const TextStyle(
+                        color: SAMStyles.textGrey,
+                        fontSize: 10,
+                      ),
+                    ),
                   ],
                 );
               }),
@@ -248,15 +353,38 @@ class _OverviewScreenState extends State<OverviewScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text("Live System Pulse", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const Text(
+            "Live System Pulse",
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 24),
           Expanded(
             child: ListView(
               children: [
-                _buildActivityItem("Database Sync Complete", "Just now", Icons.check_circle, Colors.green),
-                _buildActivityItem("API Request Spiked (Everest)", "5m ago", Icons.trending_up, Colors.orange),
-                _buildActivityItem("New Resource Node Added", "15m ago", Icons.hub, Colors.blue),
-                _buildActivityItem("Routine Backup Started", "1h ago", Icons.storage, Colors.purple),
+                _buildActivityItem(
+                  "Database Sync Complete",
+                  "Just now",
+                  Icons.check_circle,
+                  Colors.green,
+                ),
+                _buildActivityItem(
+                  "API Request Spiked (Everest)",
+                  "5m ago",
+                  Icons.trending_up,
+                  Colors.orange,
+                ),
+                _buildActivityItem(
+                  "New Resource Node Added",
+                  "15m ago",
+                  Icons.hub,
+                  Colors.blue,
+                ),
+                _buildActivityItem(
+                  "Routine Backup Started",
+                  "1h ago",
+                  Icons.storage,
+                  Colors.purple,
+                ),
               ],
             ),
           ),
@@ -265,14 +393,22 @@ class _OverviewScreenState extends State<OverviewScreen> {
     );
   }
 
-  Widget _buildActivityItem(String title, String time, IconData icon, Color color) {
+  Widget _buildActivityItem(
+    String title,
+    String time,
+    IconData icon,
+    Color color,
+  ) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 20),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
             child: Icon(icon, color: color, size: 18),
           ),
           const SizedBox(width: 16),
@@ -280,8 +416,20 @@ class _OverviewScreenState extends State<OverviewScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                Text(time, style: const TextStyle(color: SAMStyles.textGrey, fontSize: 11)),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
+                ),
+                Text(
+                  time,
+                  style: const TextStyle(
+                    color: SAMStyles.textGrey,
+                    fontSize: 11,
+                  ),
+                ),
               ],
             ),
           ),

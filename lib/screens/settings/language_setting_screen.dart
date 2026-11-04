@@ -78,7 +78,9 @@ class _LanguageSettingScreenState extends State<LanguageSettingScreen> {
                   decoration: BoxDecoration(
                     color: AppTheme.primaryPurpleSubtle,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppTheme.primaryPurple.withValues(alpha: 0.2)),
+                    border: Border.all(
+                      color: AppTheme.primaryPurple.withValues(alpha: 0.2),
+                    ),
                   ),
                   child: Row(
                     children: [
@@ -127,13 +129,19 @@ class _LanguageSettingScreenState extends State<LanguageSettingScreen> {
                 // Search Input Card
                 Container(
                   decoration: AppTheme.cardDecoration(),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 4,
+                  ),
                   child: TextField(
                     controller: _searchController,
                     onChanged: (val) => setState(() => _searchQuery = val),
                     decoration: InputDecoration(
                       hintText: "Search English, Nepali, or Hindi...",
-                      prefixIcon: const Icon(Icons.search_rounded, color: AppTheme.primaryPurple),
+                      prefixIcon: const Icon(
+                        Icons.search_rounded,
+                        color: AppTheme.primaryPurple,
+                      ),
                       suffixIcon: _searchQuery.isNotEmpty
                           ? IconButton(
                               icon: const Icon(Icons.clear_rounded, size: 20),
@@ -173,7 +181,8 @@ class _LanguageSettingScreenState extends State<LanguageSettingScreen> {
                       : ListView.separated(
                           physics: const BouncingScrollPhysics(),
                           itemCount: filteredLanguages.length,
-                          separatorBuilder: (_, __) => const SizedBox(height: 10),
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(height: 10),
                           itemBuilder: (context, index) {
                             final lang = filteredLanguages[index];
                             final isSelected = lang['code'] == activeCode;
@@ -194,17 +203,23 @@ class _LanguageSettingScreenState extends State<LanguageSettingScreen> {
                                 child: InkWell(
                                   borderRadius: BorderRadius.circular(16),
                                   onTap: () {
-                                    LanguageService().setLanguage(lang['code']!);
+                                    LanguageService().setLanguage(
+                                      lang['code']!,
+                                    );
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
                                         content: Text(
                                           "App language updated to ${lang['name']} (${lang['native']})",
-                                          style: const TextStyle(fontWeight: FontWeight.w500),
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w500,
+                                          ),
                                         ),
                                         backgroundColor: AppTheme.primaryPurple,
                                         behavior: SnackBarBehavior.floating,
                                         shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(10),
+                                          borderRadius: BorderRadius.circular(
+                                            10,
+                                          ),
                                         ),
                                         duration: const Duration(seconds: 2),
                                       ),
@@ -224,7 +239,8 @@ class _LanguageSettingScreenState extends State<LanguageSettingScreen> {
                                         const SizedBox(width: 14),
                                         Expanded(
                                           child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
                                             children: [
                                               Row(
                                                 children: [
@@ -232,29 +248,39 @@ class _LanguageSettingScreenState extends State<LanguageSettingScreen> {
                                                     lang['name']!,
                                                     style: TextStyle(
                                                       color: isSelected
-                                                          ? AppTheme.primaryPurple
-                                                          : AppTheme.textPrimary,
+                                                          ? AppTheme
+                                                                .primaryPurple
+                                                          : AppTheme
+                                                                .textPrimary,
                                                       fontSize: 15,
-                                                      fontWeight: FontWeight.bold,
+                                                      fontWeight:
+                                                          FontWeight.bold,
                                                     ),
                                                   ),
                                                   if (isDefault) ...[
                                                     const SizedBox(width: 8),
                                                     Container(
-                                                      padding: const EdgeInsets.symmetric(
-                                                        horizontal: 8,
-                                                        vertical: 2,
-                                                      ),
+                                                      padding:
+                                                          const EdgeInsets.symmetric(
+                                                            horizontal: 8,
+                                                            vertical: 2,
+                                                          ),
                                                       decoration: BoxDecoration(
-                                                        color: AppTheme.primaryPurpleLight,
-                                                        borderRadius: BorderRadius.circular(6),
+                                                        color: AppTheme
+                                                            .primaryPurpleLight,
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                              6,
+                                                            ),
                                                       ),
                                                       child: const Text(
                                                         "DEFAULT",
                                                         style: TextStyle(
-                                                          color: AppTheme.primaryPurple,
+                                                          color: AppTheme
+                                                              .primaryPurple,
                                                           fontSize: 10,
-                                                          fontWeight: FontWeight.bold,
+                                                          fontWeight:
+                                                              FontWeight.bold,
                                                         ),
                                                       ),
                                                     ),

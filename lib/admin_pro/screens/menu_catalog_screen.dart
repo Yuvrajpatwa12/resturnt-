@@ -11,13 +11,30 @@ class MenuCatalogScreen extends StatefulWidget {
 
 class _MenuCatalogScreenState extends State<MenuCatalogScreen> {
   String _selectedCategory = 'All';
-  final List<String> _categories = ['All', 'Sandwiches', 'Roast Beef', 'Sides', 'Drinks', 'Desserts'];
+  final List<String> _categories = [
+    'All',
+    'Sandwiches',
+    'Roast Beef',
+    'Sides',
+    'Drinks',
+    'Desserts',
+  ];
 
   @override
   Widget build(BuildContext context) {
     List<Map<String, dynamic>> products = List.from(AppData.darazStyleProducts);
     if (_selectedCategory != 'All') {
-      products = products.where((p) => p['title'].toString().toLowerCase().contains(_selectedCategory.toLowerCase()) || p['tag'].toString().toLowerCase().contains(_selectedCategory.toLowerCase())).toList();
+      products = products
+          .where(
+            (p) =>
+                p['title'].toString().toLowerCase().contains(
+                  _selectedCategory.toLowerCase(),
+                ) ||
+                p['tag'].toString().toLowerCase().contains(
+                  _selectedCategory.toLowerCase(),
+                ),
+          )
+          .toList();
     }
 
     return Column(
@@ -44,7 +61,10 @@ class _MenuCatalogScreenState extends State<MenuCatalogScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const Text("Menu Catalog", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
+          const Text(
+            "Menu Catalog",
+            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+          ),
           ElevatedButton.icon(
             onPressed: () {},
             icon: const Icon(Icons.add, size: 18),
@@ -72,11 +92,19 @@ class _MenuCatalogScreenState extends State<MenuCatalogScreen> {
           return Padding(
             padding: const EdgeInsets.only(right: 10),
             child: ChoiceChip(
-              label: Text(cat, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+              label: Text(
+                cat,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               selected: isSelected,
               onSelected: (val) => setState(() => _selectedCategory = cat),
               selectedColor: AdminTheme.royalBlue,
-              labelStyle: TextStyle(color: isSelected ? Colors.white : Colors.black87),
+              labelStyle: TextStyle(
+                color: isSelected ? Colors.white : Colors.black87,
+              ),
             ),
           );
         },
@@ -98,19 +126,46 @@ class _MenuCatalogScreenState extends State<MenuCatalogScreen> {
             contentPadding: const EdgeInsets.all(16),
             leading: ClipRRect(
               borderRadius: BorderRadius.circular(12),
-              child: Image.network(product['image'], width: 60, height: 60, fit: BoxFit.cover),
+              child: Image.network(
+                product['image'],
+                width: 60,
+                height: 60,
+                fit: BoxFit.cover,
+              ),
             ),
-            title: Text(product['title'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+            title: Text(
+              product['title'],
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+            ),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 4),
-                Text(product['price'], style: const TextStyle(color: AdminTheme.royalBlue, fontWeight: FontWeight.w900)),
+                Text(
+                  product['price'],
+                  style: const TextStyle(
+                    color: AdminTheme.royalBlue,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
                 const SizedBox(height: 4),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(6)),
-                  child: Text(product['tag'], style: const TextStyle(fontSize: 9, color: Colors.grey, fontWeight: FontWeight.bold)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    product['tag'],
+                    style: const TextStyle(
+                      fontSize: 9,
+                      color: Colors.grey,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -118,7 +173,9 @@ class _MenuCatalogScreenState extends State<MenuCatalogScreen> {
               itemBuilder: (context) => [
                 const PopupMenuItem(child: Text("Edit Item")),
                 const PopupMenuItem(child: Text("Manage Variants")),
-                const PopupMenuItem(child: Text("Delete", style: TextStyle(color: Colors.red))),
+                const PopupMenuItem(
+                  child: Text("Delete", style: TextStyle(color: Colors.red)),
+                ),
               ],
             ),
           ),
@@ -128,16 +185,29 @@ class _MenuCatalogScreenState extends State<MenuCatalogScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text("Item Availability", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                const Text(
+                  "Item Availability",
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                ),
                 Row(
                   children: [
-                    const Text("Out of Stock", style: TextStyle(fontSize: 10, color: Colors.grey)),
+                    const Text(
+                      "Out of Stock",
+                      style: TextStyle(fontSize: 10, color: Colors.grey),
+                    ),
                     Switch.adaptive(
-                      value: true, 
+                      value: true,
                       onChanged: (val) {},
                       activeTrackColor: AdminTheme.emeraldGreen,
                     ),
-                    const Text("In Stock", style: TextStyle(fontSize: 10, color: AdminTheme.emeraldGreen, fontWeight: FontWeight.bold)),
+                    const Text(
+                      "In Stock",
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: AdminTheme.emeraldGreen,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ],
                 ),
               ],

@@ -24,35 +24,35 @@ class _ARViewPageState extends State<ARViewPage> {
   void initState() {
     super.initState();
     _viewId = 'model-viewer-${widget.product.title.hashCode}';
-    
-    // Register the model-viewer element directly in the browser
-    ui_web.platformViewRegistry.registerViewFactory(
-      _viewId,
-      (int viewId) {
-        final element = web.document.createElement('model-viewer') as web.HTMLElement;
-        
-        // Android / Web GLB
-        if (widget.product.modelUrl != null && widget.product.modelUrl!.isNotEmpty) {
-          element.setAttribute('src', widget.product.modelUrl!);
-        }
-        
-        // iOS USDZ (Critical for AR Quick Look on Apple devices)
-        if (widget.product.iosModelUrl != null && widget.product.iosModelUrl!.isNotEmpty) {
-          element.setAttribute('ios-src', widget.product.iosModelUrl!);
-        }
 
-        element.setAttribute('ar', '');
-        element.setAttribute('ar-modes', 'webxr scene-viewer quick-look');
-        element.setAttribute('camera-controls', '');
-        element.setAttribute('auto-rotate', '');
-        element.setAttribute('shadow-intensity', '1');
-        element.style.width = '100%';
-        element.style.height = '100%';
-        element.style.backgroundColor = 'white'; 
-        
-        return element;
-      },
-    );
+    // Register the model-viewer element directly in the browser
+    ui_web.platformViewRegistry.registerViewFactory(_viewId, (int viewId) {
+      final element =
+          web.document.createElement('model-viewer') as web.HTMLElement;
+
+      // Android / Web GLB
+      if (widget.product.modelUrl != null &&
+          widget.product.modelUrl!.isNotEmpty) {
+        element.setAttribute('src', widget.product.modelUrl!);
+      }
+
+      // iOS USDZ (Critical for AR Quick Look on Apple devices)
+      if (widget.product.iosModelUrl != null &&
+          widget.product.iosModelUrl!.isNotEmpty) {
+        element.setAttribute('ios-src', widget.product.iosModelUrl!);
+      }
+
+      element.setAttribute('ar', '');
+      element.setAttribute('ar-modes', 'webxr scene-viewer quick-look');
+      element.setAttribute('camera-controls', '');
+      element.setAttribute('auto-rotate', '');
+      element.setAttribute('shadow-intensity', '1');
+      element.style.width = '100%';
+      element.style.height = '100%';
+      element.style.backgroundColor = 'white';
+
+      return element;
+    });
 
     _loadTimer = Timer(const Duration(seconds: 5), () {
       if (mounted) setState(() => _showDirectAR = true);
@@ -62,25 +62,30 @@ class _ARViewPageState extends State<ARViewPage> {
   Future<void> _launchNativeAR() async {
     // Detect if we are on Web
     const bool isWeb = kIsWeb;
-    final bool isMobile = Theme.of(context).platform == TargetPlatform.iOS || 
-                          Theme.of(context).platform == TargetPlatform.android;
+    final bool isMobile =
+        Theme.of(context).platform == TargetPlatform.iOS ||
+        Theme.of(context).platform == TargetPlatform.android;
 
     if (isWeb && !isMobile) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Fast AR is only available on Mobile Devices (iOS/Android)."))
+        const SnackBar(
+          content: Text(
+            "Fast AR is only available on Mobile Devices (iOS/Android).",
+          ),
+        ),
       );
       return;
     }
 
     final bool isIOS = Theme.of(context).platform == TargetPlatform.iOS;
-    
+
     try {
       if (isIOS) {
         final String? iosUrl = widget.product.iosModelUrl;
         if (iosUrl == null || iosUrl.isEmpty) {
           throw "USDZ model missing for iPhone AR.";
         }
-        
+
         final Uri uri = Uri.parse(iosUrl);
         // Use externalApplication for native AR launch
         await launchUrl(uri, mode: LaunchMode.externalApplication);
@@ -92,15 +97,22 @@ class _ARViewPageState extends State<ARViewPage> {
 
         final String encodedUrl = Uri.encodeComponent(glbUrl);
         final String title = Uri.encodeComponent(widget.product.title);
-        final String intentUrl = "https://arvr.google.com/scene-viewer/1.0?file=$encodedUrl&mode=ar_only&title=$title";
-        
+        final String intentUrl =
+            "https://arvr.google.com/scene-viewer/1.0?file=$encodedUrl&mode=ar_only&title=$title";
+
         debugPrint("AR Launch (Android): $intentUrl");
-        await launchUrl(Uri.parse(intentUrl), mode: LaunchMode.externalApplication);
+        await launchUrl(
+          Uri.parse(intentUrl),
+          mode: LaunchMode.externalApplication,
+        );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Launch Error: $e"), backgroundColor: Colors.red)
+          SnackBar(
+            content: Text("Launch Error: $e"),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
@@ -108,14 +120,19 @@ class _ARViewPageState extends State<ARViewPage> {
 
   @override
   Widget build(BuildContext context) {
-    final bool hasModel = widget.product.modelUrl != null && widget.product.modelUrl!.isNotEmpty;
+    final bool hasModel =
+        widget.product.modelUrl != null && widget.product.modelUrl!.isNotEmpty;
 
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
         title: Text(
           "3D PREVIEW: ${widget.product.title.toUpperCase()}",
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 1),
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1,
+          ),
         ),
         centerTitle: true,
         elevation: 0,
@@ -134,11 +151,18 @@ class _ARViewPageState extends State<ARViewPage> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.view_in_ar_rounded, size: 80, color: Colors.grey[300]),
+                    Icon(
+                      Icons.view_in_ar_rounded,
+                      size: 80,
+                      color: Colors.grey[300],
+                    ),
                     const SizedBox(height: 24),
                     const Text(
                       "3D Model Coming Soon!",
-                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 12),
                     Text(
@@ -152,8 +176,13 @@ class _ARViewPageState extends State<ARViewPage> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Theme.of(context).primaryColor,
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 32,
+                          vertical: 16,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                       child: const Text("GO BACK"),
                     ),
@@ -167,9 +196,18 @@ class _ARViewPageState extends State<ARViewPage> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  CircularProgressIndicator(color: Theme.of(context).primaryColor),
+                  CircularProgressIndicator(
+                    color: Theme.of(context).primaryColor,
+                  ),
                   const SizedBox(height: 24),
-                  const Text("Initializing 3D Engine...", style: TextStyle(color: Colors.grey, fontSize: 13, fontWeight: FontWeight.bold)),
+                  const Text(
+                    "Initializing 3D Engine...",
+                    style: TextStyle(
+                      color: Colors.grey,
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -187,11 +225,20 @@ class _ARViewPageState extends State<ARViewPage> {
                   if (_showDirectAR) ...[
                     Container(
                       margin: const EdgeInsets.only(bottom: 16),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      decoration: BoxDecoration(color: Colors.amber.withValues(alpha: 0.9), borderRadius: BorderRadius.circular(12)),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.amber.withValues(alpha: 0.9),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                       child: const Text(
                         "Is the preview slow? Try launching native AR directly.",
-                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
                         textAlign: TextAlign.center,
                       ),
                     ),
@@ -202,12 +249,17 @@ class _ARViewPageState extends State<ARViewPage> {
                         child: ElevatedButton.icon(
                           onPressed: _launchNativeAR,
                           icon: const Icon(Icons.view_in_ar_rounded, size: 20),
-                          label: const Text("Launch Fast AR", style: TextStyle(fontWeight: FontWeight.bold)),
+                          label: const Text(
+                            "Launch Fast AR",
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Theme.of(context).primaryColor,
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 18),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
                           ),
                         ),
                       ),

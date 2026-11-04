@@ -17,14 +17,29 @@ class _CountrySettingScreenState extends State<CountrySettingScreen> {
 
   // Strictly 2 supported countries: Nepal & India
   final List<Map<String, String>> _countries = [
-    {'code': 'NP', 'name': 'Nepal', 'flag': '🇳🇵', 'region': 'South Asia', 'dialCode': '+977', 'isDefault': 'true'},
-    {'code': 'IN', 'name': 'India', 'flag': '🇮🇳', 'region': 'South Asia', 'dialCode': '+91', 'isDefault': 'false'},
+    {
+      'code': 'NP',
+      'name': 'Nepal',
+      'flag': '🇳🇵',
+      'region': 'South Asia',
+      'dialCode': '+977',
+      'isDefault': 'true',
+    },
+    {
+      'code': 'IN',
+      'name': 'India',
+      'flag': '🇮🇳',
+      'region': 'South Asia',
+      'dialCode': '+91',
+      'isDefault': 'false',
+    },
   ];
 
   @override
   void initState() {
     super.initState();
-    final currentCountry = TenantService().currentTenant.value?.country ?? 'Nepal';
+    final currentCountry =
+        TenantService().currentTenant.value?.country ?? 'Nepal';
     if (currentCountry.toLowerCase() == 'india') {
       _selectedCountryCode = 'IN';
     } else {
@@ -69,7 +84,9 @@ class _CountrySettingScreenState extends State<CountrySettingScreen> {
               decoration: BoxDecoration(
                 color: AppTheme.primaryPurpleSubtle,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppTheme.primaryPurple.withValues(alpha: 0.2)),
+                border: Border.all(
+                  color: AppTheme.primaryPurple.withValues(alpha: 0.2),
+                ),
               ),
               child: Row(
                 children: [
@@ -124,7 +141,10 @@ class _CountrySettingScreenState extends State<CountrySettingScreen> {
                 onChanged: (val) => setState(() => _searchQuery = val),
                 decoration: InputDecoration(
                   hintText: "Search Nepal or India...",
-                  prefixIcon: const Icon(Icons.search_rounded, color: AppTheme.primaryPurple),
+                  prefixIcon: const Icon(
+                    Icons.search_rounded,
+                    color: AppTheme.primaryPurple,
+                  ),
                   suffixIcon: _searchQuery.isNotEmpty
                       ? IconButton(
                           icon: const Icon(Icons.clear_rounded, size: 20),
@@ -189,12 +209,15 @@ class _CountrySettingScreenState extends State<CountrySettingScreen> {
                                   _selectedCountryCode = c['code']!;
                                 });
                                 final messenger = ScaffoldMessenger.of(context);
-                                final tenantId = TenantService().currentTenant.value?.id;
+                                final tenantId =
+                                    TenantService().currentTenant.value?.id;
                                 messenger.showSnackBar(
                                   SnackBar(
                                     content: Text(
                                       "Country set to ${c['name']} ${c['flag']} (Synced with Database)",
-                                      style: const TextStyle(fontWeight: FontWeight.w500),
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w500,
+                                      ),
                                     ),
                                     backgroundColor: AppTheme.primaryPurple,
                                     behavior: SnackBarBehavior.floating,
@@ -205,7 +228,10 @@ class _CountrySettingScreenState extends State<CountrySettingScreen> {
                                   ),
                                 );
                                 if (tenantId != null && tenantId.isNotEmpty) {
-                                  await ApiService.updateTenantLocation(tenantId, country: c['name']);
+                                  await ApiService.updateTenantLocation(
+                                    tenantId,
+                                    country: c['name'],
+                                  );
                                 }
                               },
                               child: Padding(
@@ -222,7 +248,8 @@ class _CountrySettingScreenState extends State<CountrySettingScreen> {
                                     const SizedBox(width: 14),
                                     Expanded(
                                       child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
                                           Row(
                                             children: [
@@ -239,20 +266,27 @@ class _CountrySettingScreenState extends State<CountrySettingScreen> {
                                               if (isDefault) ...[
                                                 const SizedBox(width: 8),
                                                 Container(
-                                                  padding: const EdgeInsets.symmetric(
-                                                    horizontal: 8,
-                                                    vertical: 2,
-                                                  ),
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                        horizontal: 8,
+                                                        vertical: 2,
+                                                      ),
                                                   decoration: BoxDecoration(
-                                                    color: AppTheme.primaryPurpleLight,
-                                                    borderRadius: BorderRadius.circular(6),
+                                                    color: AppTheme
+                                                        .primaryPurpleLight,
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          6,
+                                                        ),
                                                   ),
                                                   child: const Text(
                                                     "DEFAULT",
                                                     style: TextStyle(
-                                                      color: AppTheme.primaryPurple,
+                                                      color: AppTheme
+                                                          .primaryPurple,
                                                       fontSize: 10,
-                                                      fontWeight: FontWeight.bold,
+                                                      fontWeight:
+                                                          FontWeight.bold,
                                                       letterSpacing: 0.5,
                                                     ),
                                                   ),

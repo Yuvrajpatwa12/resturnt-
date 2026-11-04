@@ -5,7 +5,8 @@ class ProductionSettingsScreen extends StatefulWidget {
   const ProductionSettingsScreen({super.key});
 
   @override
-  State<ProductionSettingsScreen> createState() => _ProductionSettingsScreenState();
+  State<ProductionSettingsScreen> createState() =>
+      _ProductionSettingsScreenState();
 }
 
 class _ProductionSettingsScreenState extends State<ProductionSettingsScreen> {
@@ -19,18 +20,40 @@ class _ProductionSettingsScreenState extends State<ProductionSettingsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text("Production Settings", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87)),
+          const Text(
+            "Production Settings",
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
           const SizedBox(height: 4),
-          Text("Configure inventory triggers and low stock alerts for production", style: TextStyle(fontSize: 13, color: Colors.grey[600])),
+          Text(
+            "Configure inventory triggers and low stock alerts for production",
+            style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+          ),
           const SizedBox(height: 20),
-          _buildToggleCard("Add-on Inventory Control", _addonControl, (val) => setState(() => _addonControl = val)),
-          _buildToggleCard("Low Stock Alert", _lowStockAlert, (val) => setState(() => _lowStockAlert = val)),
+          _buildToggleCard(
+            "Add-on Inventory Control",
+            _addonControl,
+            (val) => setState(() => _addonControl = val),
+          ),
+          _buildToggleCard(
+            "Low Stock Alert",
+            _lowStockAlert,
+            (val) => setState(() => _lowStockAlert = val),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildToggleCard(String label, bool value, ValueChanged<bool> onChanged) {
+  Widget _buildToggleCard(
+    String label,
+    bool value,
+    ValueChanged<bool> onChanged,
+  ) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -39,7 +62,10 @@ class _ProductionSettingsScreenState extends State<ProductionSettingsScreen> {
       child: SwitchListTile.adaptive(
         value: value,
         onChanged: onChanged,
-        title: Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+        title: Text(
+          label,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+        ),
         activeTrackColor: AdminTheme.emeraldGreen,
       ),
     );

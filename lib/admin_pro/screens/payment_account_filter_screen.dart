@@ -5,13 +5,18 @@ import '../admin_theme.dart';
 
 class PaymentAccountFilterScreen extends StatefulWidget {
   final String mode;
-  const PaymentAccountFilterScreen({super.key, this.mode = "Payment Account Filter"});
+  const PaymentAccountFilterScreen({
+    super.key,
+    this.mode = "Payment Account Filter",
+  });
 
   @override
-  State<PaymentAccountFilterScreen> createState() => _PaymentAccountFilterScreenState();
+  State<PaymentAccountFilterScreen> createState() =>
+      _PaymentAccountFilterScreenState();
 }
 
-class _PaymentAccountFilterScreenState extends State<PaymentAccountFilterScreen> {
+class _PaymentAccountFilterScreenState
+    extends State<PaymentAccountFilterScreen> {
   String _selectedAccountId = "ALL";
   String _dateRange = "ALL"; // TODAY, WEEK, MONTH, ALL
   String _searchQuery = "";
@@ -66,17 +71,33 @@ class _PaymentAccountFilterScreenState extends State<PaymentAccountFilterScreen>
     return true;
   }
 
-  bool _isOrderMatchingAccount(Map<String, dynamic> order, Map<String, dynamic>? account) {
+  bool _isOrderMatchingAccount(
+    Map<String, dynamic> order,
+    Map<String, dynamic>? account,
+  ) {
     if (account == null) return true; // "ALL" option
 
-    final String methodInOrder = (order['payment_method'] ?? order['method'] ?? 'Cash').toString().toLowerCase();
-    final String accId = (account['method_id'] ?? account['id'] ?? '').toString().toLowerCase();
+    final String methodInOrder =
+        (order['payment_method'] ?? order['method'] ?? 'Cash')
+            .toString()
+            .toLowerCase();
+    final String accId = (account['method_id'] ?? account['id'] ?? '')
+        .toString()
+        .toLowerCase();
     final String accName = (account['name'] ?? '').toString().toLowerCase();
-    final String holder = (account['account_holder_name'] ?? '').toString().toLowerCase();
-    final String provider = (account['bank_provider'] ?? '').toString().toLowerCase();
+    final String holder = (account['account_holder_name'] ?? '')
+        .toString()
+        .toLowerCase();
+    final String provider = (account['bank_provider'] ?? '')
+        .toString()
+        .toLowerCase();
 
-    if (methodInOrder.contains(accId) || methodInOrder.contains(accName)) return true;
-    if (holder.isNotEmpty && holder != 'main account' && methodInOrder.contains(holder)) return true;
+    if (methodInOrder.contains(accId) || methodInOrder.contains(accName))
+      return true;
+    if (holder.isNotEmpty &&
+        holder != 'main account' &&
+        methodInOrder.contains(holder))
+      return true;
     if (provider.isNotEmpty && methodInOrder.contains(provider)) return true;
 
     return false;
@@ -121,9 +142,15 @@ class _PaymentAccountFilterScreenState extends State<PaymentAccountFilterScreen>
 
       if (_searchQuery.trim().isNotEmpty) {
         final q = _searchQuery.trim().toLowerCase();
-        final id = (ord['id'] ?? ord['order_id'] ?? '').toString().toLowerCase();
-        final customer = (ord['customer_name'] ?? ord['user_id'] ?? '').toString().toLowerCase();
-        final method = (ord['payment_method'] ?? ord['method'] ?? '').toString().toLowerCase();
+        final id = (ord['id'] ?? ord['order_id'] ?? '')
+            .toString()
+            .toLowerCase();
+        final customer = (ord['customer_name'] ?? ord['user_id'] ?? '')
+            .toString()
+            .toLowerCase();
+        final method = (ord['payment_method'] ?? ord['method'] ?? '')
+            .toString()
+            .toLowerCase();
 
         return id.contains(q) || customer.contains(q) || method.contains(q);
       }
@@ -133,7 +160,9 @@ class _PaymentAccountFilterScreenState extends State<PaymentAccountFilterScreen>
     final double totalRestaurantRevenue = _calculateAccountRevenue(null);
     final double selectedRevenue = _calculateAccountRevenue(currentAccount);
     final int selectedCount = filteredOrders.length;
-    final double sharePercent = totalRestaurantRevenue > 0 ? (selectedRevenue / totalRestaurantRevenue) * 100 : 0.0;
+    final double sharePercent = totalRestaurantRevenue > 0
+        ? (selectedRevenue / totalRestaurantRevenue) * 100
+        : 0.0;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
@@ -146,12 +175,22 @@ class _PaymentAccountFilterScreenState extends State<PaymentAccountFilterScreen>
           const SizedBox(height: 24),
           _buildAccountFilterBar(),
           const SizedBox(height: 24),
-          _buildStatsRow(selectedRevenue, selectedCount, sharePercent, totalRestaurantRevenue),
+          _buildStatsRow(
+            selectedRevenue,
+            selectedCount,
+            sharePercent,
+            totalRestaurantRevenue,
+          ),
           const SizedBox(height: 24),
           _buildDateAndSearchFilterBar(),
           const SizedBox(height: 24),
           if (_isLoading)
-            const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator()))
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(40),
+                child: CircularProgressIndicator(),
+              ),
+            )
           else if (filteredOrders.isEmpty)
             _buildEmptyStateCard(currentAccount)
           else
@@ -181,7 +220,11 @@ class _PaymentAccountFilterScreenState extends State<PaymentAccountFilterScreen>
               color: Colors.white.withValues(alpha: 0.15),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.account_balance_rounded, color: Colors.white, size: 36),
+            child: const Icon(
+              Icons.account_balance_rounded,
+              color: Colors.white,
+              size: 36,
+            ),
           ),
           const SizedBox(width: 20),
           Expanded(
@@ -190,7 +233,11 @@ class _PaymentAccountFilterScreenState extends State<PaymentAccountFilterScreen>
               children: const [
                 Text(
                   "Payment Account Ledger & Balance Audit",
-                  style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 SizedBox(height: 4),
                 Text(
@@ -206,10 +253,15 @@ class _PaymentAccountFilterScreenState extends State<PaymentAccountFilterScreen>
               foregroundColor: Colors.white,
               side: const BorderSide(color: Colors.white38),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
             icon: const Icon(Icons.refresh_rounded, size: 18),
-            label: const Text("REFRESH BALANCE", style: TextStyle(fontWeight: FontWeight.bold)),
+            label: const Text(
+              "REFRESH BALANCE",
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),
@@ -234,15 +286,30 @@ class _PaymentAccountFilterScreenState extends State<PaymentAccountFilterScreen>
             children: [
               Row(
                 children: const [
-                  Icon(Icons.account_balance_wallet_rounded, color: AdminTheme.royalBlue, size: 20),
+                  Icon(
+                    Icons.account_balance_wallet_rounded,
+                    color: AdminTheme.royalBlue,
+                    size: 20,
+                  ),
                   SizedBox(width: 8),
                   Text(
                     "REGISTERED PAYMENT ACCOUNTS & BALANCES",
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AdminTheme.darkNavy),
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: AdminTheme.darkNavy,
+                    ),
                   ),
                 ],
               ),
-              Text("${_accounts.length} Accounts Active", style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
+              Text(
+                "${_accounts.length} Accounts Active",
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 16),
@@ -250,8 +317,11 @@ class _PaymentAccountFilterScreenState extends State<PaymentAccountFilterScreen>
             scrollDirection: Axis.horizontal,
             child: Row(
               children: _accounts.map((acc) {
-                final holder = (acc['account_holder_name'] ?? 'Main Account').toString();
-                final provider = (acc['bank_provider'] ?? acc['name'] ?? 'Provider').toString();
+                final holder = (acc['account_holder_name'] ?? 'Main Account')
+                    .toString();
+                final provider =
+                    (acc['bank_provider'] ?? acc['name'] ?? 'Provider')
+                        .toString();
                 final number = (acc['account_number'] ?? '').toString();
                 final double rev = _calculateAccountRevenue(acc);
                 final int bills = _calculateAccountBillCount(acc);
@@ -262,7 +332,9 @@ class _PaymentAccountFilterScreenState extends State<PaymentAccountFilterScreen>
                   decoration: BoxDecoration(
                     color: AdminTheme.pearlWhite,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AdminTheme.royalBlue.withValues(alpha: 0.15)),
+                    border: Border.all(
+                      color: AdminTheme.royalBlue.withValues(alpha: 0.15),
+                    ),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -270,46 +342,82 @@ class _PaymentAccountFilterScreenState extends State<PaymentAccountFilterScreen>
                       Row(
                         children: [
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
                             decoration: BoxDecoration(
-                              color: AdminTheme.royalBlue.withValues(alpha: 0.1),
+                              color: AdminTheme.royalBlue.withValues(
+                                alpha: 0.1,
+                              ),
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
                               provider,
-                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AdminTheme.royalBlue),
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: AdminTheme.royalBlue,
+                              ),
                             ),
                           ),
                           const SizedBox(width: 8),
                           Text(
                             "$bills Bills Cleared",
-                            style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.bold),
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ],
                       ),
                       const SizedBox(height: 10),
                       Row(
                         children: [
-                          const Icon(Icons.person_rounded, size: 16, color: AdminTheme.darkNavy),
+                          const Icon(
+                            Icons.person_rounded,
+                            size: 16,
+                            color: AdminTheme.darkNavy,
+                          ),
                           const SizedBox(width: 6),
                           Text(
                             holder,
-                            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: AdminTheme.darkNavy),
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w900,
+                              color: AdminTheme.darkNavy,
+                            ),
                           ),
                         ],
                       ),
                       if (number.isNotEmpty) ...[
                         const SizedBox(height: 2),
-                        Text("No: $number", style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w600)),
+                        Text(
+                          "No: $number",
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ],
                       const SizedBox(height: 12),
                       Text(
                         "NPR ${rev.toStringAsFixed(0)}",
-                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: AdminTheme.emeraldGreen),
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900,
+                          color: AdminTheme.emeraldGreen,
+                        ),
                       ),
                       const Text(
                         "Total Credited Balance",
-                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey),
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey,
+                        ),
                       ),
                     ],
                   ),
@@ -335,11 +443,19 @@ class _PaymentAccountFilterScreenState extends State<PaymentAccountFilterScreen>
         children: [
           Row(
             children: const [
-              Icon(Icons.filter_list_rounded, color: AdminTheme.royalBlue, size: 20),
+              Icon(
+                Icons.filter_list_rounded,
+                color: AdminTheme.royalBlue,
+                size: 20,
+              ),
               SizedBox(width: 8),
               Text(
                 "AUDIT TRANSACTIONS FOR ACCOUNT PROFILE",
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AdminTheme.darkNavy),
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: AdminTheme.darkNavy,
+                ),
               ),
             ],
           ),
@@ -391,7 +507,9 @@ class _PaymentAccountFilterScreenState extends State<PaymentAccountFilterScreen>
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: isSelected ? Colors.white.withValues(alpha: 0.25) : AdminTheme.royalBlue.withValues(alpha: 0.1),
+                  color: isSelected
+                      ? Colors.white.withValues(alpha: 0.25)
+                      : AdminTheme.royalBlue.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
@@ -410,21 +528,59 @@ class _PaymentAccountFilterScreenState extends State<PaymentAccountFilterScreen>
     );
   }
 
-  Widget _buildStatsRow(double selectedRevenue, int selectedCount, double sharePercent, double totalRevenue) {
+  Widget _buildStatsRow(
+    double selectedRevenue,
+    int selectedCount,
+    double sharePercent,
+    double totalRevenue,
+  ) {
     return Row(
       children: [
-        Expanded(child: _buildStatCard("Selected Account Revenue", "NPR ${selectedRevenue.toStringAsFixed(0)}", Icons.account_balance_wallet_rounded, AdminTheme.emeraldGreen)),
+        Expanded(
+          child: _buildStatCard(
+            "Selected Account Revenue",
+            "NPR ${selectedRevenue.toStringAsFixed(0)}",
+            Icons.account_balance_wallet_rounded,
+            AdminTheme.emeraldGreen,
+          ),
+        ),
         const SizedBox(width: 16),
-        Expanded(child: _buildStatCard("Processed Bills", "$selectedCount Bills", Icons.receipt_rounded, AdminTheme.royalBlue)),
+        Expanded(
+          child: _buildStatCard(
+            "Processed Bills",
+            "$selectedCount Bills",
+            Icons.receipt_rounded,
+            AdminTheme.royalBlue,
+          ),
+        ),
         const SizedBox(width: 16),
-        Expanded(child: _buildStatCard("Revenue Share", "${sharePercent.toStringAsFixed(1)}%", Icons.pie_chart_rounded, Colors.purple)),
+        Expanded(
+          child: _buildStatCard(
+            "Revenue Share",
+            "${sharePercent.toStringAsFixed(1)}%",
+            Icons.pie_chart_rounded,
+            Colors.purple,
+          ),
+        ),
         const SizedBox(width: 16),
-        Expanded(child: _buildStatCard("Total Store Sales", "NPR ${totalRevenue.toStringAsFixed(0)}", Icons.payments_rounded, Colors.amber.shade800)),
+        Expanded(
+          child: _buildStatCard(
+            "Total Store Sales",
+            "NPR ${totalRevenue.toStringAsFixed(0)}",
+            Icons.payments_rounded,
+            Colors.amber.shade800,
+          ),
+        ),
       ],
     );
   }
 
-  Widget _buildStatCard(String title, String value, IconData icon, Color color) {
+  Widget _buildStatCard(
+    String title,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -446,9 +602,23 @@ class _PaymentAccountFilterScreenState extends State<PaymentAccountFilterScreen>
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title, style: TextStyle(color: Colors.grey.shade600, fontSize: 12, fontWeight: FontWeight.bold)),
+              Text(
+                title,
+                style: TextStyle(
+                  color: Colors.grey.shade600,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               const SizedBox(height: 4),
-              Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: AdminTheme.darkNavy)),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
+                  color: AdminTheme.darkNavy,
+                ),
+              ),
             ],
           ),
         ],
@@ -478,11 +648,20 @@ class _PaymentAccountFilterScreenState extends State<PaymentAccountFilterScreen>
               onChanged: (v) => setState(() => _searchQuery = v),
               decoration: InputDecoration(
                 hintText: "Search Invoice ID, Account Name, or Customer...",
-                prefixIcon: const Icon(Icons.search_rounded, color: Colors.grey),
+                prefixIcon: const Icon(
+                  Icons.search_rounded,
+                  color: Colors.grey,
+                ),
                 filled: true,
                 fillColor: AdminTheme.pearlWhite,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
               ),
             ),
           ),
@@ -503,7 +682,9 @@ class _PaymentAccountFilterScreenState extends State<PaymentAccountFilterScreen>
                     fontSize: 12,
                   ),
                   backgroundColor: AdminTheme.pearlWhite,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
               );
             }).toList(),
@@ -522,7 +703,8 @@ class _PaymentAccountFilterScreenState extends State<PaymentAccountFilterScreen>
       itemBuilder: (context, index) {
         final ord = orders[index];
         final id = (ord['id'] ?? ord['order_id'] ?? '-').toString();
-        final method = (ord['payment_method'] ?? ord['method'] ?? 'Cash').toString();
+        final method = (ord['payment_method'] ?? ord['method'] ?? 'Cash')
+            .toString();
         final amount = _parseAmount(ord['total_amount'] ?? ord['total']);
         final date = (ord['created_at'] ?? ord['date'] ?? 'Today').toString();
         final status = (ord['status'] ?? 'Completed').toString().toUpperCase();
@@ -544,7 +726,11 @@ class _PaymentAccountFilterScreenState extends State<PaymentAccountFilterScreen>
                 ),
                 child: Text(
                   "#$id",
-                  style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: AdminTheme.royalBlue),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 14,
+                    color: AdminTheme.royalBlue,
+                  ),
                 ),
               ),
               const SizedBox(width: 16),
@@ -555,18 +741,29 @@ class _PaymentAccountFilterScreenState extends State<PaymentAccountFilterScreen>
                     Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: AdminTheme.royalBlue.withValues(alpha: 0.08),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Row(
                             children: [
-                              const Icon(Icons.account_balance_wallet_rounded, size: 14, color: AdminTheme.royalBlue),
+                              const Icon(
+                                Icons.account_balance_wallet_rounded,
+                                size: 14,
+                                color: AdminTheme.royalBlue,
+                              ),
                               const SizedBox(width: 6),
                               Text(
                                 "Credited to: $method",
-                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AdminTheme.royalBlue),
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: AdminTheme.royalBlue,
+                                ),
                               ),
                             ],
                           ),
@@ -574,7 +771,10 @@ class _PaymentAccountFilterScreenState extends State<PaymentAccountFilterScreen>
                       ],
                     ),
                     const SizedBox(height: 6),
-                    Text("Billed Date & Time: $date", style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                    Text(
+                      "Billed Date & Time: $date",
+                      style: const TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
                   ],
                 ),
               ),
@@ -584,20 +784,33 @@ class _PaymentAccountFilterScreenState extends State<PaymentAccountFilterScreen>
                 children: [
                   Text(
                     "NPR ${amount.toStringAsFixed(0)}",
-                    style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 17, color: AdminTheme.emeraldGreen),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 17,
+                      color: AdminTheme.emeraldGreen,
+                    ),
                   ),
                   const SizedBox(height: 6),
                   Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
                         decoration: BoxDecoration(
-                          color: AdminTheme.emeraldGreen.withValues(alpha: 0.12),
+                          color: AdminTheme.emeraldGreen.withValues(
+                            alpha: 0.12,
+                          ),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
                           status,
-                          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AdminTheme.emeraldGreen),
+                          style: const TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: AdminTheme.emeraldGreen,
+                          ),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -606,11 +819,22 @@ class _PaymentAccountFilterScreenState extends State<PaymentAccountFilterScreen>
                         style: OutlinedButton.styleFrom(
                           foregroundColor: AdminTheme.royalBlue,
                           side: const BorderSide(color: AdminTheme.royalBlue),
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
                         ),
                         icon: const Icon(Icons.receipt_rounded, size: 14),
-                        label: const Text("RECEIPT", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                        label: const Text(
+                          "RECEIPT",
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -624,7 +848,9 @@ class _PaymentAccountFilterScreenState extends State<PaymentAccountFilterScreen>
   }
 
   Widget _buildEmptyStateCard(Map<String, dynamic>? account) {
-    final String accName = account != null ? (account['name'] ?? 'Selected Account') : 'Selected Account';
+    final String accName = account != null
+        ? (account['name'] ?? 'Selected Account')
+        : 'Selected Account';
 
     return Container(
       width: double.infinity,
@@ -640,10 +866,17 @@ class _PaymentAccountFilterScreenState extends State<PaymentAccountFilterScreen>
           const SizedBox(height: 16),
           Text(
             "No Billed Transactions Found for $accName",
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AdminTheme.darkNavy),
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: AdminTheme.darkNavy,
+            ),
           ),
           const SizedBox(height: 6),
-          const Text("No bill invoices were generated using this payment method in the selected timeframe.", style: TextStyle(color: Colors.grey, fontSize: 13)),
+          const Text(
+            "No bill invoices were generated using this payment method in the selected timeframe.",
+            style: TextStyle(color: Colors.grey, fontSize: 13),
+          ),
         ],
       ),
     );
@@ -651,7 +884,8 @@ class _PaymentAccountFilterScreenState extends State<PaymentAccountFilterScreen>
 
   void _showInvoiceModal(BuildContext context, Map<String, dynamic> ord) {
     final id = (ord['id'] ?? ord['order_id'] ?? '-').toString();
-    final method = (ord['payment_method'] ?? ord['method'] ?? 'Cash').toString();
+    final method = (ord['payment_method'] ?? ord['method'] ?? 'Cash')
+        .toString();
     final amount = _parseAmount(ord['total_amount'] ?? ord['total']);
 
     showDialog(
@@ -661,8 +895,17 @@ class _PaymentAccountFilterScreenState extends State<PaymentAccountFilterScreen>
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text("Order Invoice #$id", style: const TextStyle(fontWeight: FontWeight.bold, color: AdminTheme.darkNavy)),
-            IconButton(onPressed: () => Navigator.pop(ctx), icon: const Icon(Icons.close_rounded)),
+            Text(
+              "Order Invoice #$id",
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                color: AdminTheme.darkNavy,
+              ),
+            ),
+            IconButton(
+              onPressed: () => Navigator.pop(ctx),
+              icon: const Icon(Icons.close_rounded),
+            ),
           ],
         ),
         content: Column(
@@ -673,7 +916,10 @@ class _PaymentAccountFilterScreenState extends State<PaymentAccountFilterScreen>
             const SizedBox(height: 8),
             _buildInvoiceRow("Invoice Number:", "#$id"),
             _buildInvoiceRow("Paid Payment Account:", method),
-            _buildInvoiceRow("Total Billed Amount:", "NPR ${amount.toStringAsFixed(0)}"),
+            _buildInvoiceRow(
+              "Total Billed Amount:",
+              "NPR ${amount.toStringAsFixed(0)}",
+            ),
             _buildInvoiceRow("Payment Status:", "PAID / CREDITED"),
             const SizedBox(height: 12),
             Container(
@@ -684,9 +930,20 @@ class _PaymentAccountFilterScreenState extends State<PaymentAccountFilterScreen>
               ),
               child: const Row(
                 children: [
-                  Icon(Icons.check_circle_rounded, color: AdminTheme.emeraldGreen, size: 18),
+                  Icon(
+                    Icons.check_circle_rounded,
+                    color: AdminTheme.emeraldGreen,
+                    size: 18,
+                  ),
                   SizedBox(width: 8),
-                  Text("Bill revenue credited to account profile.", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AdminTheme.darkNavy)),
+                  Text(
+                    "Bill revenue credited to account profile.",
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: AdminTheme.darkNavy,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -695,8 +952,16 @@ class _PaymentAccountFilterScreenState extends State<PaymentAccountFilterScreen>
         actions: [
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx),
-            style: ElevatedButton.styleFrom(backgroundColor: AdminTheme.royalBlue),
-            child: const Text("CLOSE", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AdminTheme.royalBlue,
+            ),
+            child: const Text(
+              "CLOSE",
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
@@ -710,7 +975,14 @@ class _PaymentAccountFilterScreenState extends State<PaymentAccountFilterScreen>
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label, style: const TextStyle(color: Colors.grey, fontSize: 13)),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AdminTheme.darkNavy)),
+          Text(
+            value,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 13,
+              color: AdminTheme.darkNavy,
+            ),
+          ),
         ],
       ),
     );

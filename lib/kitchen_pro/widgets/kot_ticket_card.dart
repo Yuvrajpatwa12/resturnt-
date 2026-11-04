@@ -22,7 +22,7 @@ class KotTicketCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final int minutes = (secondsElapsed / 60).floor();
-    
+
     // Header Color based on Stage
     Color headerColor;
     if (stage == "Incoming") {
@@ -34,7 +34,9 @@ class KotTicketCard extends StatelessWidget {
     }
 
     // Urgency Icon Color based on time
-    Color urgencyColor = minutes > 20 ? Colors.redAccent : (minutes > 10 ? Colors.orange : Colors.white);
+    Color urgencyColor = minutes > 20
+        ? Colors.redAccent
+        : (minutes > 10 ? Colors.orange : Colors.white);
 
     return Container(
       decoration: BoxDecoration(
@@ -56,7 +58,9 @@ class KotTicketCard extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
               color: headerColor,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(20),
+              ),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -67,17 +71,29 @@ class KotTicketCard extends StatelessWidget {
                     children: [
                       Text(
                         "TABLE T-$tableId",
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 0.5),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 16,
+                          letterSpacing: 0.5,
+                        ),
                       ),
                       const Text(
                         "DINE-IN ORDER",
-                        style: TextStyle(color: Colors.white70, fontSize: 9, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ],
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.black.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(8),
@@ -88,7 +104,11 @@ class KotTicketCard extends StatelessWidget {
                       const SizedBox(width: 4),
                       Text(
                         "${minutes}M",
-                        style: TextStyle(color: urgencyColor, fontWeight: FontWeight.w900, fontSize: 11),
+                        style: TextStyle(
+                          color: urgencyColor,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 11,
+                        ),
                       ),
                     ],
                   ),
@@ -102,7 +122,10 @@ class KotTicketCard extends StatelessWidget {
             child: ListView.separated(
               padding: const EdgeInsets.all(16),
               itemCount: items.length,
-              separatorBuilder: (context, index) => Divider(color: Colors.grey.withValues(alpha: 0.1), height: 20),
+              separatorBuilder: (context, index) => Divider(
+                color: Colors.grey.withValues(alpha: 0.1),
+                height: 20,
+              ),
               itemBuilder: (context, index) {
                 final item = items[index];
                 return Row(
@@ -115,11 +138,17 @@ class KotTicketCard extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: KitchenTheme.pearlWhite,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
+                        border: Border.all(
+                          color: Colors.grey.withValues(alpha: 0.1),
+                        ),
                       ),
                       child: Text(
                         "${item.quantity}",
-                        style: const TextStyle(fontWeight: FontWeight.w900, color: KitchenTheme.darkNavy, fontSize: 14),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w900,
+                          color: KitchenTheme.darkNavy,
+                          fontSize: 14,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -129,19 +158,30 @@ class KotTicketCard extends StatelessWidget {
                         children: [
                           Text(
                             item.product.title,
-                            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, height: 1.2),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13,
+                              height: 1.2,
+                            ),
                           ),
                           if (item.notes != null && item.notes!.isNotEmpty)
                             Container(
                               margin: const EdgeInsets.only(top: 4),
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
                               decoration: BoxDecoration(
                                 color: Colors.red.withValues(alpha: 0.05),
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
                                 "NOTE: ${item.notes}",
-                                style: const TextStyle(color: Colors.redAccent, fontSize: 10, fontWeight: FontWeight.bold),
+                                style: const TextStyle(
+                                  color: Colors.redAccent,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
                         ],
@@ -163,19 +203,33 @@ class KotTicketCard extends StatelessWidget {
                     ElevatedButton.icon(
                       onPressed: onAction,
                       icon: Icon(
-                        stage == "Ready" ? Icons.notifications_active : (stage == "Incoming" ? Icons.play_arrow : Icons.check),
+                        stage == "Ready"
+                            ? Icons.notifications_active
+                            : (stage == "Incoming"
+                                  ? Icons.play_arrow
+                                  : Icons.check),
                         size: 18,
                       ),
                       label: Text(
-                        stage == "Incoming" ? "START COOKING" : (stage == "Preparing" ? "MARK READY" : "NOTIFY WAITER"),
-                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 0.5),
+                        stage == "Incoming"
+                            ? "START COOKING"
+                            : (stage == "Preparing"
+                                  ? "MARK READY"
+                                  : "NOTIFY WAITER"),
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.5,
+                        ),
                       ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: headerColor,
                         foregroundColor: Colors.white,
                         elevation: 0,
                         minimumSize: const Size(0, 48),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                     ),
                   ),
@@ -190,7 +244,11 @@ class KotTicketCard extends StatelessWidget {
                       ),
                       child: IconButton(
                         onPressed: () {},
-                        icon: const Icon(Icons.close, color: Colors.redAccent, size: 18),
+                        icon: const Icon(
+                          Icons.close,
+                          color: Colors.redAccent,
+                          size: 18,
+                        ),
                       ),
                     ),
                   ),

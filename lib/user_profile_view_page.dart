@@ -16,7 +16,8 @@ class UserProfileViewPage extends StatefulWidget {
   State<UserProfileViewPage> createState() => _UserProfileViewPageState();
 }
 
-class _UserProfileViewPageState extends State<UserProfileViewPage> with SingleTickerProviderStateMixin {
+class _UserProfileViewPageState extends State<UserProfileViewPage>
+    with SingleTickerProviderStateMixin {
   Map<String, dynamic>? _profile;
   Map<String, dynamic>? _socialStats;
   bool _isLoading = true;
@@ -60,7 +61,7 @@ class _UserProfileViewPageState extends State<UserProfileViewPage> with SingleTi
       targetId: widget.userId,
       myId: myId,
     );
-    
+
     final social = await ApiService.fetchSocialStats(tenant.id, widget.userId);
 
     if (mounted) {
@@ -83,55 +84,59 @@ class _UserProfileViewPageState extends State<UserProfileViewPage> with SingleTi
       body: _isLoading
           ? Center(child: CircularProgressIndicator(color: primaryColor))
           : _profile == null
-              ? const Center(child: Text("Profile not found"))
-              : Stack(
-                  children: [
-                    // 1. FIXED BACKGROUND GRADIENT & RAYS ONLY
-                    _buildFixedBackground(primaryColor, secondaryColor),
-                    
-                    // 2. SCROLLABLE CONTENT (Header + White Card)
-                    SafeArea(
-                      child: SingleChildScrollView(
-                        physics: const BouncingScrollPhysics(),
-                        child: Column(
-                          children: [
-                            const SizedBox(height: 12),
-                            // Interactive Profile Header Content
-                            _buildProfileHeaderContent(primaryColor),
-                            const SizedBox(height: 16),
+          ? const Center(child: Text("Profile not found"))
+          : Stack(
+              children: [
+                // 1. FIXED BACKGROUND GRADIENT & RAYS ONLY
+                _buildFixedBackground(primaryColor, secondaryColor),
 
-                            // White Rounded Card
-                            Container(
-                              width: double.infinity,
-                              decoration: const BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.only(
-                                  topLeft: Radius.circular(36),
-                                  topRight: Radius.circular(36),
-                                ),
-                                boxShadow: [
-                                  BoxShadow(color: Colors.black12, blurRadius: 20, offset: Offset(0, -10))
-                                ],
-                              ),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const SizedBox(height: 12),
-                                  _buildSwipeGuidance(primaryColor),
-                                  const SizedBox(height: 8),
-                                  _buildActivitySection(),
-                                ],
-                              ),
+                // 2. SCROLLABLE CONTENT (Header + White Card)
+                SafeArea(
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    child: Column(
+                      children: [
+                        const SizedBox(height: 12),
+                        // Interactive Profile Header Content
+                        _buildProfileHeaderContent(primaryColor),
+                        const SizedBox(height: 16),
+
+                        // White Rounded Card
+                        Container(
+                          width: double.infinity,
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.only(
+                              topLeft: Radius.circular(36),
+                              topRight: Radius.circular(36),
                             ),
-                          ],
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black12,
+                                blurRadius: 20,
+                                offset: Offset(0, -10),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const SizedBox(height: 12),
+                              _buildSwipeGuidance(primaryColor),
+                              const SizedBox(height: 8),
+                              _buildActivitySection(),
+                            ],
+                          ),
                         ),
-                      ),
+                      ],
                     ),
-
-                    // 3. TOP NAVIGATION
-                    _buildTopNavigation(),
-                  ],
+                  ),
                 ),
+
+                // 3. TOP NAVIGATION
+                _buildTopNavigation(),
+              ],
+            ),
     );
   }
 
@@ -186,7 +191,7 @@ class _UserProfileViewPageState extends State<UserProfileViewPage> with SingleTi
     final String avatarUrl = gender == 'Female'
         ? 'https://img.freepik.com/free-vector/beauty-woman-face-concept_23-2148679462.jpg'
         : 'https://img.freepik.com/free-vector/businessman-character-avatar-isolated_24877-60111.jpg';
-    
+
     final bool isFollowing = _profile?['is_following'] ?? false;
     final bool followsMe = _profile?['follows_me'] ?? false;
 
@@ -203,7 +208,10 @@ class _UserProfileViewPageState extends State<UserProfileViewPage> with SingleTi
                 animation: _animationController,
                 builder: (context, child) {
                   return CustomPaint(
-                    painter: ProfileRaysPainter(_animationController.value, Colors.white.withValues(alpha: 0.2)),
+                    painter: ProfileRaysPainter(
+                      _animationController.value,
+                      Colors.white.withValues(alpha: 0.2),
+                    ),
                     size: const Size(140, 140),
                   );
                 },
@@ -234,7 +242,11 @@ class _UserProfileViewPageState extends State<UserProfileViewPage> with SingleTi
                         shape: BoxShape.circle,
                         border: Border.all(color: Colors.white, width: 1.5),
                       ),
-                      child: const Icon(Icons.location_on, color: Colors.white, size: 10),
+                      child: const Icon(
+                        Icons.location_on,
+                        color: Colors.white,
+                        size: 10,
+                      ),
                     ),
                   ),
                 ],
@@ -244,14 +256,18 @@ class _UserProfileViewPageState extends State<UserProfileViewPage> with SingleTi
           const SizedBox(height: 2),
           Text(
             _profile!['name'] ?? "Anonymous",
-            style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const Text(
             "Currently Dining Nearby",
             style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.0),
           ),
           const SizedBox(height: 8),
-          
+
           // 4-STAT BAR (Interactive like Instagram)
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -259,27 +275,28 @@ class _UserProfileViewPageState extends State<UserProfileViewPage> with SingleTi
               _buildCenteredStat(_profile!['order_count'].toString(), "Orders"),
               _buildStatDivider(),
               _buildInteractiveStat(
-                (_socialStats?['followers'] ?? 0).toString(), 
+                (_socialStats?['followers'] ?? 0).toString(),
                 "Followers",
-                () => _showGuestSocialListModal("Followers", "get_followers")
+                () => _showGuestSocialListModal("Followers", "get_followers"),
               ),
               _buildStatDivider(),
               _buildInteractiveStat(
-                (_socialStats?['following'] ?? 0).toString(), 
+                (_socialStats?['following'] ?? 0).toString(),
                 "Following",
-                () => _showGuestSocialListModal("Following", "get_following")
+                () => _showGuestSocialListModal("Following", "get_following"),
               ),
               _buildStatDivider(),
               _buildInteractiveStat(
-                (_socialStats?['connections'] ?? 0).toString(), 
+                (_socialStats?['connections'] ?? 0).toString(),
                 "Friends",
-                () => _showGuestSocialListModal("Mutual Friends", "get_friends")
+                () =>
+                    _showGuestSocialListModal("Mutual Friends", "get_friends"),
               ),
             ],
           ),
-          
+
           const SizedBox(height: 12),
-          
+
           // ACTION BUTTONS
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -287,19 +304,48 @@ class _UserProfileViewPageState extends State<UserProfileViewPage> with SingleTi
               ElevatedButton.icon(
                 onPressed: _isFollowingLoading ? null : _toggleFollow,
                 icon: _isFollowingLoading
-                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                    : Icon(isFollowing ? (followsMe ? Icons.people : Icons.check) : Icons.person_add, size: 18),
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Icon(
+                        isFollowing
+                            ? (followsMe ? Icons.people : Icons.check)
+                            : Icons.person_add,
+                        size: 18,
+                      ),
                 label: _isFollowingLoading
-                    ? const Text("", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 1))
+                    ? const Text(
+                        "",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                          letterSpacing: 1,
+                        ),
+                      )
                     : Text(
-                        isFollowing ? (followsMe ? "FRIEND" : "FOLLOWING") : (followsMe ? "FOLLOW BACK" : "FOLLOW"),
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 1),
+                        isFollowing
+                            ? (followsMe ? "FRIEND" : "FOLLOWING")
+                            : (followsMe ? "FOLLOW BACK" : "FOLLOW"),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                          letterSpacing: 1,
+                        ),
                       ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: _isFollowingLoading ? Colors.grey[300] : Colors.white,
+                  backgroundColor: _isFollowingLoading
+                      ? Colors.grey[300]
+                      : Colors.white,
                   foregroundColor: startColor,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(25),
+                  ),
                   elevation: 0,
                 ),
               ),
@@ -317,12 +363,29 @@ class _UserProfileViewPageState extends State<UserProfileViewPage> with SingleTi
                     ),
                   );
                 },
-                icon: const Icon(Icons.chat_bubble_outline, size: 18, color: Colors.white),
-                label: const Text("MESSAGE", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.white, letterSpacing: 1)),
+                icon: const Icon(
+                  Icons.chat_bubble_outline,
+                  size: 18,
+                  color: Colors.white,
+                ),
+                label: const Text(
+                  "MESSAGE",
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                    color: Colors.white,
+                    letterSpacing: 1,
+                  ),
+                ),
                 style: OutlinedButton.styleFrom(
                   side: const BorderSide(color: Colors.white54),
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(25),
+                  ),
                 ),
               ),
             ],
@@ -337,8 +400,23 @@ class _UserProfileViewPageState extends State<UserProfileViewPage> with SingleTi
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
         children: [
-          Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
-          Text(label.toUpperCase(), style: const TextStyle(fontSize: 8, color: Colors.white70, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          Text(
+            label.toUpperCase(),
+            style: const TextStyle(
+              fontSize: 8,
+              color: Colors.white70,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0.5,
+            ),
+          ),
         ],
       ),
     );
@@ -352,8 +430,23 @@ class _UserProfileViewPageState extends State<UserProfileViewPage> with SingleTi
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         child: Column(
           children: [
-            Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
-            Text(label.toUpperCase(), style: const TextStyle(fontSize: 8, color: Colors.white70, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+            Text(
+              value,
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            Text(
+              label.toUpperCase(),
+              style: const TextStyle(
+                fontSize: 8,
+                color: Colors.white70,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 0.5,
+              ),
+            ),
           ],
         ),
       ),
@@ -380,7 +473,12 @@ class _UserProfileViewPageState extends State<UserProfileViewPage> with SingleTi
             ),
             const Text(
               "GUEST PROFILE",
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, letterSpacing: 2, fontSize: 12),
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 2,
+                fontSize: 12,
+              ),
             ),
             const SizedBox(width: 40),
           ],
@@ -411,7 +509,11 @@ class _UserProfileViewPageState extends State<UserProfileViewPage> with SingleTi
                       color: primaryColor.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(Icons.stars_rounded, color: primaryColor, size: 20),
+                    child: Icon(
+                      Icons.stars_rounded,
+                      color: primaryColor,
+                      size: 20,
+                    ),
                   ),
                   const SizedBox(width: 10),
                   Text(
@@ -427,11 +529,16 @@ class _UserProfileViewPageState extends State<UserProfileViewPage> with SingleTi
               ),
               // Live Online Pill
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.green.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
+                  border: Border.all(
+                    color: Colors.green.withValues(alpha: 0.3),
+                  ),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -498,7 +605,11 @@ class _UserProfileViewPageState extends State<UserProfileViewPage> with SingleTi
                       ),
                     ],
                   ),
-                  child: const Icon(Icons.restaurant_rounded, color: Colors.white, size: 26),
+                  child: const Icon(
+                    Icons.restaurant_rounded,
+                    color: Colors.white,
+                    size: 26,
+                  ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -516,7 +627,10 @@ class _UserProfileViewPageState extends State<UserProfileViewPage> with SingleTi
                       const SizedBox(height: 3),
                       const Text(
                         "In-Restaurant Presence Verified",
-                        style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF64748B),
+                        ),
                       ),
                     ],
                   ),
@@ -572,7 +686,11 @@ class _UserProfileViewPageState extends State<UserProfileViewPage> with SingleTi
                     color: const Color(0xFF10B981).withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(14),
                   ),
-                  child: const Icon(Icons.verified_user_rounded, color: Color(0xFF10B981), size: 22),
+                  child: const Icon(
+                    Icons.verified_user_rounded,
+                    color: Color(0xFF10B981),
+                    size: 22,
+                  ),
                 ),
                 const SizedBox(width: 14),
                 const Expanded(
@@ -581,12 +699,19 @@ class _UserProfileViewPageState extends State<UserProfileViewPage> with SingleTi
                     children: [
                       Text(
                         "Active Diner Community Member",
-                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1E293B),
+                        ),
                       ),
                       SizedBox(height: 2),
                       Text(
                         "Eligible for table sharing & chat",
-                        style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Color(0xFF64748B),
+                        ),
                       ),
                     ],
                   ),
@@ -605,10 +730,7 @@ class _UserProfileViewPageState extends State<UserProfileViewPage> with SingleTi
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [
-                    Colors.orange.shade50,
-                    Colors.amber.shade50,
-                  ],
+                  colors: [Colors.orange.shade50, Colors.amber.shade50],
                 ),
                 borderRadius: BorderRadius.circular(22),
                 border: Border.all(color: Colors.orange.shade200),
@@ -628,7 +750,11 @@ class _UserProfileViewPageState extends State<UserProfileViewPage> with SingleTi
                       color: Colors.orange,
                       borderRadius: BorderRadius.circular(14),
                     ),
-                    child: const Icon(Icons.notifications_active_rounded, color: Colors.white, size: 22),
+                    child: const Icon(
+                      Icons.notifications_active_rounded,
+                      color: Colors.white,
+                      size: 22,
+                    ),
                   ),
                   const SizedBox(width: 14),
                   const Expanded(
@@ -646,12 +772,19 @@ class _UserProfileViewPageState extends State<UserProfileViewPage> with SingleTi
                         SizedBox(height: 2),
                         Text(
                           "Request immediate assistance, water, or bill",
-                          style: TextStyle(fontSize: 11, color: Color(0xFF7C2D12)),
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Color(0xFF7C2D12),
+                          ),
                         ),
                       ],
                     ),
                   ),
-                  const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Color(0xFFC2410C)),
+                  const Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 14,
+                    color: Color(0xFFC2410C),
+                  ),
                 ],
               ),
             ),
@@ -715,10 +848,7 @@ class _UserProfileViewPageState extends State<UserProfileViewPage> with SingleTi
           ),
           Text(
             sublabel,
-            style: const TextStyle(
-              fontSize: 10,
-              color: Color(0xFF94A3B8),
-            ),
+            style: const TextStyle(fontSize: 10, color: Color(0xFF94A3B8)),
           ),
         ],
       ),
@@ -732,12 +862,21 @@ class _UserProfileViewPageState extends State<UserProfileViewPage> with SingleTi
     // Show loading first
     showModalBottomSheet(
       context: context,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(30))),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+      ),
       builder: (context) => FutureBuilder<List<Map<String, dynamic>>?>(
-        future: ApiService.fetchSocialList(action: action, tenantId: tenant.id, userId: widget.userId),
+        future: ApiService.fetchSocialList(
+          action: action,
+          tenantId: tenant.id,
+          userId: widget.userId,
+        ),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const SizedBox(height: 300, child: Center(child: CircularProgressIndicator()));
+            return const SizedBox(
+              height: 300,
+              child: Center(child: CircularProgressIndicator()),
+            );
           }
           final users = snapshot.data ?? [];
           return Container(
@@ -745,24 +884,43 @@ class _UserProfileViewPageState extends State<UserProfileViewPage> with SingleTi
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 const SizedBox(height: 20),
                 if (users.isEmpty)
-                  const Padding(padding: EdgeInsets.symmetric(vertical: 40), child: Text("No public data found", style: TextStyle(color: Colors.grey))),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 40),
+                    child: Text(
+                      "No public data found",
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  ),
                 ...users.take(5).map((u) {
                   String avatarUrl = u['gender'] == 'Female'
                       ? 'https://img.freepik.com/free-vector/beauty-woman-face-concept_23-2148679462.jpg'
                       : 'https://img.freepik.com/free-vector/businessman-character-avatar-isolated_24877-60111.jpg';
-                  
+
                   return ListTile(
                     onTap: () {
                       Navigator.pop(context);
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => UserProfileViewPage(userId: u['email'], name: u['name'])),
+                        MaterialPageRoute(
+                          builder: (context) => UserProfileViewPage(
+                            userId: u['email'],
+                            name: u['name'],
+                          ),
+                        ),
                       );
                     },
-                    leading: CircleAvatar(backgroundImage: NetworkImage(avatarUrl)),
+                    leading: CircleAvatar(
+                      backgroundImage: NetworkImage(avatarUrl),
+                    ),
                     title: Text(u['name'] ?? 'Guest'),
                     subtitle: Text(u['email'] ?? ''),
                   );
@@ -777,11 +935,11 @@ class _UserProfileViewPageState extends State<UserProfileViewPage> with SingleTi
 
   Future<void> _toggleFollow() async {
     if (_isFollowingLoading) return;
-    
+
     setState(() => _isFollowingLoading = true);
-    
+
     final success = await ShopManager.instance.toggleFollow(widget.userId);
-    
+
     if (mounted) {
       setState(() => _isFollowingLoading = false);
       if (success) {
@@ -806,22 +964,24 @@ class ProfileRaysPainter extends CustomPainter {
       final double angle = (i * 2 * 3.14159 / rayCount) + (progress * 0.8);
       final double rayProgress = (progress + (i / rayCount)) % 1.0;
       final double startDist = 52.0; // Right at avatar edge
-      final double endDist = startDist + (60 * rayProgress); // Extending slightly less
-      
+      final double endDist =
+          startDist + (60 * rayProgress); // Extending slightly less
+
       canvas.save();
       canvas.translate(center.dx, center.dy);
       canvas.rotate(angle);
-      
+
       final linePaint = Paint()
         ..color = color.withValues(alpha: color.a * (1.0 - rayProgress))
         ..strokeWidth = 3.5
         ..strokeCap = StrokeCap.round;
-        
+
       canvas.drawLine(Offset(startDist, 0), Offset(endDist, 0), linePaint);
       canvas.restore();
     }
   }
 
   @override
-  bool shouldRepaint(ProfileRaysPainter oldDelegate) => oldDelegate.progress != progress;
+  bool shouldRepaint(ProfileRaysPainter oldDelegate) =>
+      oldDelegate.progress != progress;
 }

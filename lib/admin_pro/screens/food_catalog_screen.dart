@@ -24,25 +24,31 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
   final _imageController = TextEditingController();
   final _descriptionController = TextEditingController(); // Restored
   final _sloganController = TextEditingController(); // Added
-  
+
   String? _selectedCategoryId;
   String _selectedSection = 'none'; // Added for Just For You, Trending, etc.
-  String _selectedSuitableTime = 'All Day'; // Morning, Lunch, Evening, Late Night, All Day
-  String _selectedMealTag = 'Popular'; // ✨ AI Picks, ⚡ Fast Food, 🔥 Popular, 🌱 Healthy, 😋 Sweet Cravings
-  String _selectedPrepTime = '15-20 min'; // 1-5 min, 5-10 min, 10-15 min, 15-25 min, 25-35 min
+  String _selectedSuitableTime =
+      'All Day'; // Morning, Lunch, Evening, Late Night, All Day
+  String _selectedMealTag =
+      'Popular'; // ✨ AI Picks, ⚡ Fast Food, 🔥 Popular, 🌱 Healthy, 😋 Sweet Cravings
+  String _selectedPrepTime =
+      '15-20 min'; // 1-5 min, 5-10 min, 10-15 min, 15-25 min, 25-35 min
   Map<String, dynamic>? _editingProduct; // State for Edit mode
-  
+
   // Product Sizes & Variants State
   bool _hasVariants = false;
-  String _selectedVariantType = 'sizes'; // 'sizes', 'portions', 'volume', 'custom'
-  String _variantTimeSlotFilter = 'All'; // 'All', 'Morning', 'Lunch', 'Evening', 'Late Night', 'All Day'
+  String _selectedVariantType =
+      'sizes'; // 'sizes', 'portions', 'volume', 'custom'
+  String _variantTimeSlotFilter =
+      'All'; // 'All', 'Morning', 'Lunch', 'Evening', 'Late Night', 'All Day'
   String _variantCategoryFilter = 'All';
   String _variantSearchQuery = '';
   bool _isFoodListSearching = false;
   String _foodListSearchQuery = '';
 
   // Availability Management State
-  String _availabilityStatusFilter = 'All'; // 'All', 'Available', 'Out of Stock'
+  String _availabilityStatusFilter =
+      'All'; // 'All', 'Available', 'Out of Stock'
   String _availabilityCategoryFilter = 'All';
   String _availabilitySearchQuery = '';
   final Map<String, int> _localAvailabilityOverrides = {};
@@ -59,7 +65,7 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
   bool _isSubmitting = false;
   Uint8List? _selectedImageBytes;
   String? _selectedImageName;
-  
+
   Uint8List? _selectedGlbBytes;
   String? _selectedGlbName;
   Uint8List? _selectedUsdzBytes;
@@ -94,13 +100,16 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (_editingProduct != null) 
+          if (_editingProduct != null)
             _buildEditFoodForm()
-          else if (widget.mode == "Add Food") 
+          else if (widget.mode == "Add Food")
             _buildAddFoodForm()
-          else if (widget.mode == "Food Variant") _buildFoodVariantView()
-          else if (widget.mode == "Food Availability") _buildAvailabilityView()
-          else _buildFoodListView(),
+          else if (widget.mode == "Food Variant")
+            _buildFoodVariantView()
+          else if (widget.mode == "Food Availability")
+            _buildAvailabilityView()
+          else
+            _buildFoodListView(),
         ],
       ),
     );
@@ -116,7 +125,8 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
             final title = (p['title'] ?? '').toString().toLowerCase();
             final desc = (p['description'] ?? '').toString().toLowerCase();
             final tag = (p['tag'] ?? '').toString().toLowerCase();
-            if (!title.contains(q) && !desc.contains(q) && !tag.contains(q)) return false;
+            if (!title.contains(q) && !desc.contains(q) && !tag.contains(q))
+              return false;
           }
           return true;
         }).toList();
@@ -127,30 +137,53 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(widget.mode, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                Text(
+                  widget.mode,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 IconButton(
-                  onPressed: () => setState(() => _isFoodListSearching = !_isFoodListSearching),
-                  icon: Icon(_isFoodListSearching ? Icons.close : Icons.search, color: AdminTheme.royalBlue),
+                  onPressed: () => setState(
+                    () => _isFoodListSearching = !_isFoodListSearching,
+                  ),
+                  icon: Icon(
+                    _isFoodListSearching ? Icons.close : Icons.search,
+                    color: AdminTheme.royalBlue,
+                  ),
                 ),
               ],
             ),
             if (_isFoodListSearching) ...[
               const SizedBox(height: 12),
               TextField(
-                onChanged: (v) => setState(() => _foodListSearchQuery = v.trim()),
+                onChanged: (v) =>
+                    setState(() => _foodListSearchQuery = v.trim()),
                 decoration: InputDecoration(
                   hintText: "Search food items...",
-                  prefixIcon: const Icon(Icons.search, color: AdminTheme.royalBlue),
+                  prefixIcon: const Icon(
+                    Icons.search,
+                    color: AdminTheme.royalBlue,
+                  ),
                   filled: true,
                   fillColor: Colors.white,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16),
                 ),
               ),
             ],
             const SizedBox(height: 16),
             if (filteredProducts.isEmpty)
-              const Center(child: Padding(padding: EdgeInsets.all(40), child: Text("No products match your search.")))
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(40),
+                  child: Text("No products match your search."),
+                ),
+              )
             else
               ...filteredProducts.map((p) => _buildFoodItemCard(p)),
           ],
@@ -177,14 +210,18 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
     final String title = p['title'] ?? 'Untitled Item';
     final String category = p['tag'] ?? 'Uncategorized';
     final String price = p['price']?.toString() ?? '0.00';
-    final String description = p['description'] ?? 'Delicious freshly prepared item.';
-    final String rawImg = (p['image_url'] != null && p['image_url'].toString().isNotEmpty) 
-        ? p['image_url'].toString() 
-        : (p['image'] != null && p['image'].toString().isNotEmpty ? p['image'].toString() : '');
+    final String description =
+        p['description'] ?? 'Delicious freshly prepared item.';
+    final String rawImg =
+        (p['image_url'] != null && p['image_url'].toString().isNotEmpty)
+        ? p['image_url'].toString()
+        : (p['image'] != null && p['image'].toString().isNotEmpty
+              ? p['image'].toString()
+              : '');
     final String image = _getFormattedImageUrl(rawImg, category);
 
     // Mock stock data for design consistency
-    final int stock = 40; 
+    final int stock = 40;
     final bool isLowStock = stock <= 10;
 
     return Container(
@@ -198,7 +235,7 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
             color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 20,
             offset: const Offset(0, 10),
-          )
+          ),
         ],
       ),
       child: Stack(
@@ -216,7 +253,8 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
                     height: 110,
                     fit: BoxFit.cover,
                     errorBuilder: (c, e, s) => Container(
-                      width: 110, height: 110, 
+                      width: 110,
+                      height: 110,
                       color: Colors.grey[100],
                       child: const Icon(Icons.fastfood, color: Colors.grey),
                     ),
@@ -234,43 +272,71 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
                     children: [
                       Text(
                         title,
-                        style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFF1E293B)),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 16,
+                          color: Color(0xFF1E293B),
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 4),
                       Text(
                         description,
-                        style: TextStyle(fontSize: 11, color: Colors.grey[500], height: 1.3),
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey[500],
+                          height: 1.3,
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          if (p['suitable_time'] != null && p['suitable_time'].toString().isNotEmpty)
+                          if (p['suitable_time'] != null &&
+                              p['suitable_time'].toString().isNotEmpty)
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
                               margin: const EdgeInsets.only(right: 6),
                               decoration: BoxDecoration(
-                                color: AdminTheme.royalBlue.withValues(alpha: 0.1),
+                                color: AdminTheme.royalBlue.withValues(
+                                  alpha: 0.1,
+                                ),
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(
                                 p['suitable_time'].toString(),
-                                style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: AdminTheme.royalBlue),
+                                style: const TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                  color: AdminTheme.royalBlue,
+                                ),
                               ),
                             ),
-                          if ((p['meal_tag'] ?? p['tag']) != null && (p['meal_tag'] ?? p['tag']).toString().isNotEmpty)
+                          if ((p['meal_tag'] ?? p['tag']) != null &&
+                              (p['meal_tag'] ?? p['tag']).toString().isNotEmpty)
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFFF5C00).withValues(alpha: 0.1),
+                                color: const Color(
+                                  0xFFFF5C00,
+                                ).withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(
                                 (p['meal_tag'] ?? p['tag']).toString(),
-                                style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Color(0xFFFF5C00)),
+                                style: const TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFFFF5C00),
+                                ),
                               ),
                             ),
                         ],
@@ -279,8 +345,8 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
                       Text(
                         "NPR $price",
                         style: const TextStyle(
-                          fontWeight: FontWeight.w900, 
-                          fontSize: 18, 
+                          fontWeight: FontWeight.w900,
+                          fontSize: 18,
                           color: Color(0xFF2563EB), // Reference Blue
                         ),
                       ),
@@ -298,13 +364,17 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
-                color: isLowStock ? const Color(0xFFFFF7ED) : const Color(0xFFF0FDF4),
+                color: isLowStock
+                    ? const Color(0xFFFFF7ED)
+                    : const Color(0xFFF0FDF4),
                 borderRadius: BorderRadius.circular(30),
               ),
               child: Text(
                 isLowStock ? "Low Stock : $stock" : "In Stock : $stock",
                 style: TextStyle(
-                  color: isLowStock ? const Color(0xFFEA580C) : const Color(0xFF16A34A),
+                  color: isLowStock
+                      ? const Color(0xFFEA580C)
+                      : const Color(0xFF16A34A),
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
                 ),
@@ -325,7 +395,11 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
                   color: Color(0xFF2D3282), // Reference Dark Blue
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.shopping_basket_outlined, color: Colors.white, size: 18),
+                child: const Icon(
+                  Icons.shopping_basket_outlined,
+                  color: Colors.white,
+                  size: 18,
+                ),
               ),
             ),
           ),
@@ -336,26 +410,42 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
 
   String _getCategoryImage(String category) {
     final cat = category.toLowerCase();
-    if (cat.contains('pizza')) return 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=500';
-    if (cat.contains('burger')) return 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500';
-    if (cat.contains('tea')) return 'https://images.unsplash.com/photo-1561336313-0bd5e0b27ec8?w=500';
-    if (cat.contains('momo') || cat.contains('dumpling')) return 'https://images.unsplash.com/photo-1534422298391-e4f8c170db06?w=500';
-    if (cat.contains('coffee')) return 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=500';
-    if (cat.contains('dessert') || cat.contains('cake')) return 'https://images.unsplash.com/photo-1551024506-0bccd828d307?w=500';
-    if (cat.contains('sides') || cat.contains('fry')) return 'https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=500';
-    
+    if (cat.contains('pizza'))
+      return 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=500';
+    if (cat.contains('burger'))
+      return 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500';
+    if (cat.contains('tea'))
+      return 'https://images.unsplash.com/photo-1561336313-0bd5e0b27ec8?w=500';
+    if (cat.contains('momo') || cat.contains('dumpling'))
+      return 'https://images.unsplash.com/photo-1534422298391-e4f8c170db06?w=500';
+    if (cat.contains('coffee'))
+      return 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=500';
+    if (cat.contains('dessert') || cat.contains('cake'))
+      return 'https://images.unsplash.com/photo-1551024506-0bccd828d307?w=500';
+    if (cat.contains('sides') || cat.contains('fry'))
+      return 'https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=500';
+
     return 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500'; // Default Food
   }
 
   void _showActionMenu(Map<String, dynamic> p) {
     showModalBottomSheet(
       context: context,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
       builder: (ctx) => Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           const SizedBox(height: 12),
-          Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2))),
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.grey[300],
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
           const SizedBox(height: 24),
           ListTile(
             leading: const Icon(Icons.edit_outlined, color: Colors.blue),
@@ -387,10 +477,18 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text("Delete Product?"),
-        content: const Text("This will permanently remove the product from your menu."),
+        content: const Text(
+          "This will permanently remove the product from your menu.",
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("CANCEL")),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text("DELETE", style: TextStyle(color: Colors.red))),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text("CANCEL"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text("DELETE", style: TextStyle(color: Colors.red)),
+          ),
         ],
       ),
     );
@@ -399,7 +497,10 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
       final success = await ApiService.deleteProduct(tenant.id, id);
       if (success) {
         TenantService().fetchMenuData(tenant.id);
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Product deleted.")));
+        if (mounted)
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text("Product deleted.")));
       }
     }
   }
@@ -412,26 +513,48 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (_editingProduct == null) ...[
-              const Text("Product Details", style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+              const Text(
+                "Product Details",
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+              ),
               const SizedBox(height: 24),
             ],
-            _buildTextField("Product Name", _titleController, hint: "e.g. Steam Chicken Momo"),
+            _buildTextField(
+              "Product Name",
+              _titleController,
+              hint: "e.g. Steam Chicken Momo",
+            ),
             const SizedBox(height: 16),
-            
+
             // Dynamic Category Dropdown
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text("Category", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey)),
+                const Text(
+                  "Category",
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                    color: Colors.grey,
+                  ),
+                ),
                 IconButton(
                   onPressed: () {
                     final tenant = TenantService().currentTenant.value;
                     if (tenant != null) {
                       TenantService().fetchMenuData(tenant.id);
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Syncing with database...")));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text("Syncing with database..."),
+                        ),
+                      );
                     }
-                  }, 
-                  icon: const Icon(Icons.refresh_rounded, size: 20, color: AdminTheme.royalBlue),
+                  },
+                  icon: const Icon(
+                    Icons.refresh_rounded,
+                    size: 20,
+                    color: AdminTheme.royalBlue,
+                  ),
                   constraints: const BoxConstraints(),
                   padding: EdgeInsets.zero,
                 ),
@@ -441,27 +564,43 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 14),
               decoration: BoxDecoration(
-                color: Colors.white, 
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey[200]!, width: 1.5)
+                border: Border.all(color: Colors.grey[200]!, width: 1.5),
               ),
               child: DropdownButtonHideUnderline(
                 child: DropdownButton<String>(
                   value: _selectedCategoryId,
                   hint: Text(
-                    categories.isEmpty ? "No Categories Found" : "Select Category", 
-                    style: TextStyle(fontSize: 13, color: categories.isEmpty ? Colors.red : Colors.grey[600])
+                    categories.isEmpty
+                        ? "No Categories Found"
+                        : "Select Category",
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: categories.isEmpty ? Colors.red : Colors.grey[600],
+                    ),
                   ),
                   isExpanded: true,
                   dropdownColor: Colors.white,
-                  icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AdminTheme.royalBlue),
-                  items: categories.map((c) => DropdownMenuItem(
-                    value: c['id'].toString(),
-                    child: Text(
-                      c['title'] ?? 'Unnamed', 
-                      style: const TextStyle(fontSize: 14, color: Colors.black87, fontWeight: FontWeight.w500)
-                    ),
-                  )).toList(),
+                  icon: const Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    color: AdminTheme.royalBlue,
+                  ),
+                  items: categories
+                      .map(
+                        (c) => DropdownMenuItem(
+                          value: c['id'].toString(),
+                          child: Text(
+                            c['title'] ?? 'Unnamed',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: Colors.black87,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      )
+                      .toList(),
                   onChanged: (val) {
                     debugPrint("CATEGORY SELECTED: $val");
                     setState(() => _selectedCategoryId = val);
@@ -473,13 +612,26 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
 
             Row(
               children: [
-                Expanded(child: _buildTextField("Base Price", _priceController, hint: "450")),
+                Expanded(
+                  child: _buildTextField(
+                    "Base Price",
+                    _priceController,
+                    hint: "450",
+                  ),
+                ),
                 const SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text("Product Image", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey)),
+                      const Text(
+                        "Product Image",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                          color: Colors.grey,
+                        ),
+                      ),
                       const SizedBox(height: 8),
                       InkWell(
                         onTap: _pickImage,
@@ -493,15 +645,26 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(_selectedImageBytes != null ? Icons.check_circle : Icons.upload_file, 
-                                   color: _selectedImageBytes != null ? Colors.green : AdminTheme.royalBlue, size: 20),
+                              Icon(
+                                _selectedImageBytes != null
+                                    ? Icons.check_circle
+                                    : Icons.upload_file,
+                                color: _selectedImageBytes != null
+                                    ? Colors.green
+                                    : AdminTheme.royalBlue,
+                                size: 20,
+                              ),
                               const SizedBox(width: 8),
                               Text(
-                                _selectedImageBytes != null ? "Image Selected" : "Upload Photo",
+                                _selectedImageBytes != null
+                                    ? "Image Selected"
+                                    : "Upload Photo",
                                 style: TextStyle(
-                                  fontSize: 12, 
-                                  fontWeight: FontWeight.bold, 
-                                  color: _selectedImageBytes != null ? Colors.green : Colors.black87
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: _selectedImageBytes != null
+                                      ? Colors.green
+                                      : Colors.black87,
                                 ),
                               ),
                             ],
@@ -518,29 +681,46 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
                 padding: const EdgeInsets.only(top: 16),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(16),
-                  child: Image.memory(_selectedImageBytes!, height: 100, width: double.infinity, fit: BoxFit.cover),
+                  child: Image.memory(
+                    _selectedImageBytes!,
+                    height: 100,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                  ),
                 ),
               ),
             const SizedBox(height: 16),
-            _buildTextField("Product Slogan", _sloganController, hint: "e.g. The best momo in town!"),
+            _buildTextField(
+              "Product Slogan",
+              _sloganController,
+              hint: "e.g. The best momo in town!",
+            ),
             const SizedBox(height: 16),
-            _buildTextField("Description", _descriptionController, hint: "Enter short product details..."),
+            _buildTextField(
+              "Description",
+              _descriptionController,
+              hint: "Enter short product details...",
+            ),
             const SizedBox(height: 20),
 
             // Product Sizes & Variants Section
             _buildVariantFormSection(),
             const SizedBox(height: 24),
-            
+
             // 3D Model Section (Premium Feature Check)
-            if (TenantService().currentTenant.value?.isPremiumEnabled ?? false) ...[
-              const Text("3D Models (AR)", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+            if (TenantService().currentTenant.value?.isPremiumEnabled ??
+                false) ...[
+              const Text(
+                "3D Models (AR)",
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+              ),
               const SizedBox(height: 16),
               Row(
                 children: [
                   Expanded(
                     child: _buildModelPicker(
-                      "Android (.glb)", 
-                      _selectedGlbName, 
+                      "Android (.glb)",
+                      _selectedGlbName,
                       () => _pickModel('glb'),
                       Icons.android,
                     ),
@@ -548,8 +728,8 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
                   const SizedBox(width: 16),
                   Expanded(
                     child: _buildModelPicker(
-                      "iOS (.usdz)", 
-                      _selectedUsdzName, 
+                      "iOS (.usdz)",
+                      _selectedUsdzName,
                       () => _pickModel('usdz'),
                       Icons.apple,
                     ),
@@ -558,9 +738,16 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
               ),
               const SizedBox(height: 24),
             ],
-            
+
             // Home Section Picker
-            const Text("Home Page Section", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey)),
+            const Text(
+              "Home Page Section",
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+                color: Colors.grey,
+              ),
+            ),
             const SizedBox(height: 12),
             Wrap(
               spacing: 12,
@@ -574,7 +761,14 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
             const SizedBox(height: 20),
 
             // Preparation Time Selector
-            const Text("Preparation Time", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey)),
+            const Text(
+              "Preparation Time",
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+                color: Colors.grey,
+              ),
+            ),
             const SizedBox(height: 12),
             Wrap(
               spacing: 8,
@@ -590,7 +784,14 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
             const SizedBox(height: 20),
 
             // Suitable Time Slot Selector
-            const Text("Suitable Time Slot", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey)),
+            const Text(
+              "Suitable Time Slot",
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+                color: Colors.grey,
+              ),
+            ),
             const SizedBox(height: 12),
             Wrap(
               spacing: 8,
@@ -606,7 +807,14 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
             const SizedBox(height: 20),
 
             // Meal Filter Tag Selector
-            const Text("Meal Filter Tag", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey)),
+            const Text(
+              "Meal Filter Tag",
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+                color: Colors.grey,
+              ),
+            ),
             const SizedBox(height: 12),
             Wrap(
               spacing: 8,
@@ -620,14 +828,22 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
               ],
             ),
             const SizedBox(height: 32),
-            
+
             if (_isSubmitting)
               const Center(child: CircularProgressIndicator())
             else
               ElevatedButton(
-                onPressed: _editingProduct != null ? _submitEdit : _submitProduct,
-                style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 54)),
-                child: Text(_editingProduct != null ? "UPDATE PRODUCT DETAILS" : "ADD PRODUCT TO DATABASE"),
+                onPressed: _editingProduct != null
+                    ? _submitEdit
+                    : _submitProduct,
+                style: ElevatedButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 54),
+                ),
+                child: Text(
+                  _editingProduct != null
+                      ? "UPDATE PRODUCT DETAILS"
+                      : "ADD PRODUCT TO DATABASE",
+                ),
               ),
           ],
         );
@@ -638,7 +854,7 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
   Future<void> _pickImage() async {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
-    
+
     if (pickedFile != null) {
       final bytes = await pickedFile.readAsBytes();
       setState(() {
@@ -652,19 +868,21 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
     if (kIsWeb) {
       try {
         debugPrint("Opening Web native file picker for: $type");
-        final web.HTMLInputElement input = web.document.createElement('input') as web.HTMLInputElement;
+        final web.HTMLInputElement input =
+            web.document.createElement('input') as web.HTMLInputElement;
         input.type = 'file';
         input.accept = '.$type';
-        
+
         input.onChange.listen((event) {
           if (input.files!.length > 0) {
             final file = input.files!.item(0)!;
             debugPrint("Web File selected: ${file.name}");
-            
+
             final reader = web.FileReader();
             reader.readAsArrayBuffer(file);
             reader.onLoadEnd.listen((e) {
-              final Uint8List bytes = (reader.result as JSArrayBuffer).toDart.asUint8List();
+              final Uint8List bytes = (reader.result as JSArrayBuffer).toDart
+                  .asUint8List();
               setState(() {
                 if (type == 'glb') {
                   _selectedGlbBytes = bytes;
@@ -682,7 +900,10 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
         debugPrint("Web Picker Error: $e");
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Web Picker Error: $e"), backgroundColor: Colors.red),
+            SnackBar(
+              content: Text("Web Picker Error: $e"),
+              backgroundColor: Colors.red,
+            ),
           );
         }
       }
@@ -790,9 +1011,16 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
             children: [
               Row(
                 children: const [
-                  Icon(Icons.tune_rounded, color: AdminTheme.royalBlue, size: 20),
+                  Icon(
+                    Icons.tune_rounded,
+                    color: AdminTheme.royalBlue,
+                    size: 20,
+                  ),
                   SizedBox(width: 8),
-                  Text("Product Sizes & Portion Options", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                  Text(
+                    "Product Sizes & Portion Options",
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                  ),
                 ],
               ),
               Switch(
@@ -806,47 +1034,115 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
           ),
           if (_hasVariants) ...[
             const SizedBox(height: 12),
-            const Text("Select Size / Portion Type", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
+            const Text(
+              "Select Size / Portion Type",
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey,
+              ),
+            ),
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
               runSpacing: 8,
               children: [
-                _buildVariantTypeChip('sizes', '🍕 Sizes (Small / Medium / Large)'),
+                _buildVariantTypeChip(
+                  'sizes',
+                  '🍕 Sizes (Small / Medium / Large)',
+                ),
                 _buildVariantTypeChip('portions', '🥣 Portions (Half / Full)'),
-                _buildVariantTypeChip('volume', '🥤 Volume (Glass / Pitcher / Bottle)'),
+                _buildVariantTypeChip(
+                  'volume',
+                  '🥤 Volume (Glass / Pitcher / Bottle)',
+                ),
                 _buildVariantTypeChip('custom', '⚙️ Custom Options'),
               ],
             ),
             const SizedBox(height: 16),
-            const Text("Set Individual Prices (NPR)", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
+            const Text(
+              "Set Individual Prices (NPR)",
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey,
+              ),
+            ),
             const SizedBox(height: 12),
             if (_selectedVariantType == 'sizes') ...[
               Row(
                 children: [
-                  Expanded(child: _buildTextField("Small Price", _smallPriceCtrl, hint: "e.g. 150")),
+                  Expanded(
+                    child: _buildTextField(
+                      "Small Price",
+                      _smallPriceCtrl,
+                      hint: "e.g. 150",
+                    ),
+                  ),
                   const SizedBox(width: 10),
-                  Expanded(child: _buildTextField("Medium Price", _mediumPriceCtrl, hint: "e.g. 250")),
+                  Expanded(
+                    child: _buildTextField(
+                      "Medium Price",
+                      _mediumPriceCtrl,
+                      hint: "e.g. 250",
+                    ),
+                  ),
                   const SizedBox(width: 10),
-                  Expanded(child: _buildTextField("Large Price", _largePriceCtrl, hint: "e.g. 350")),
+                  Expanded(
+                    child: _buildTextField(
+                      "Large Price",
+                      _largePriceCtrl,
+                      hint: "e.g. 350",
+                    ),
+                  ),
                 ],
               ),
             ] else if (_selectedVariantType == 'portions') ...[
               Row(
                 children: [
-                  Expanded(child: _buildTextField("Half Portion Price", _halfPriceCtrl, hint: "e.g. 120")),
+                  Expanded(
+                    child: _buildTextField(
+                      "Half Portion Price",
+                      _halfPriceCtrl,
+                      hint: "e.g. 120",
+                    ),
+                  ),
                   const SizedBox(width: 16),
-                  Expanded(child: _buildTextField("Full Portion Price", _fullPriceCtrl, hint: "e.g. 220")),
+                  Expanded(
+                    child: _buildTextField(
+                      "Full Portion Price",
+                      _fullPriceCtrl,
+                      hint: "e.g. 220",
+                    ),
+                  ),
                 ],
               ),
             ] else if (_selectedVariantType == 'volume') ...[
               Row(
                 children: [
-                  Expanded(child: _buildTextField("Glass Price", _glassPriceCtrl, hint: "e.g. 80")),
+                  Expanded(
+                    child: _buildTextField(
+                      "Glass Price",
+                      _glassPriceCtrl,
+                      hint: "e.g. 80",
+                    ),
+                  ),
                   const SizedBox(width: 10),
-                  Expanded(child: _buildTextField("Pitcher Price", _pitcherPriceCtrl, hint: "e.g. 350")),
+                  Expanded(
+                    child: _buildTextField(
+                      "Pitcher Price",
+                      _pitcherPriceCtrl,
+                      hint: "e.g. 350",
+                    ),
+                  ),
                   const SizedBox(width: 10),
-                  Expanded(child: _buildTextField("Bottle Price", _bottlePriceCtrl, hint: "e.g. 600")),
+                  Expanded(
+                    child: _buildTextField(
+                      "Bottle Price",
+                      _bottlePriceCtrl,
+                      hint: "e.g. 600",
+                    ),
+                  ),
                 ],
               ),
             ] else if (_selectedVariantType == 'custom') ...[
@@ -857,12 +1153,29 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
                   padding: const EdgeInsets.only(bottom: 8),
                   child: Row(
                     children: [
-                      Expanded(flex: 2, child: _buildTextField("Option Name", row['nameCtrl']!, hint: "e.g. 250ml")),
+                      Expanded(
+                        flex: 2,
+                        child: _buildTextField(
+                          "Option Name",
+                          row['nameCtrl']!,
+                          hint: "e.g. 250ml",
+                        ),
+                      ),
                       const SizedBox(width: 10),
-                      Expanded(flex: 2, child: _buildTextField("Price (NPR)", row['priceCtrl']!, hint: "e.g. 100")),
+                      Expanded(
+                        flex: 2,
+                        child: _buildTextField(
+                          "Price (NPR)",
+                          row['priceCtrl']!,
+                          hint: "e.g. 100",
+                        ),
+                      ),
                       const SizedBox(width: 8),
                       IconButton(
-                        icon: const Icon(Icons.remove_circle, color: Colors.red),
+                        icon: const Icon(
+                          Icons.remove_circle,
+                          color: Colors.red,
+                        ),
                         onPressed: () {
                           setState(() {
                             row['nameCtrl']!.dispose();
@@ -889,7 +1202,9 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AdminTheme.royalBlue,
                   foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
               ),
             ],
@@ -914,12 +1229,24 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
     );
   }
 
-  Widget _buildModelPicker(String label, String? fileName, VoidCallback onTap, IconData icon) {
+  Widget _buildModelPicker(
+    String label,
+    String? fileName,
+    VoidCallback onTap,
+    IconData icon,
+  ) {
     final bool isSelected = fileName != null;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.grey)),
+        Text(
+          label,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 11,
+            color: Colors.grey,
+          ),
+        ),
         const SizedBox(height: 8),
         GestureDetector(
           onTap: onTap,
@@ -930,31 +1257,39 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: isSelected ? Colors.green : Colors.grey[200]!, width: isSelected ? 2 : 1),
+              border: Border.all(
+                color: isSelected ? Colors.green : Colors.grey[200]!,
+                width: isSelected ? 2 : 1,
+              ),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.02),
                   blurRadius: 4,
                   offset: const Offset(0, 2),
-                )
+                ),
               ],
             ),
             child: Row(
               children: [
-                Icon(icon, size: 18, color: isSelected ? Colors.green : AdminTheme.royalBlue),
+                Icon(
+                  icon,
+                  size: 18,
+                  color: isSelected ? Colors.green : AdminTheme.royalBlue,
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     isSelected ? fileName : "Click to Upload",
                     style: TextStyle(
-                      fontSize: 11, 
+                      fontSize: 11,
                       fontWeight: FontWeight.bold,
                       color: isSelected ? Colors.green : Colors.black87,
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                if (isSelected) const Icon(Icons.check_circle, color: Colors.green, size: 16),
+                if (isSelected)
+                  const Icon(Icons.check_circle, color: Colors.green, size: 16),
               ],
             ),
           ),
@@ -964,14 +1299,23 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
   }
 
   Future<void> _submitProduct() async {
-    if (_titleController.text.isEmpty || _priceController.text.isEmpty || _selectedCategoryId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please fill all required fields!")));
+    if (_titleController.text.isEmpty ||
+        _priceController.text.isEmpty ||
+        _selectedCategoryId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please fill all required fields!")),
+      );
       return;
     }
 
     final tenant = TenantService().currentTenant.value;
     if (tenant == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Error: Tenant data not loaded!"), backgroundColor: Colors.red));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Error: Tenant data not loaded!"),
+          backgroundColor: Colors.red,
+        ),
+      );
       return;
     }
 
@@ -983,17 +1327,26 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
 
       // 1. Upload assets
       if (_selectedImageBytes != null && _selectedImageName != null) {
-        final uploadedUrl = await ApiService.uploadProductImage(_selectedImageBytes!, _selectedImageName!);
+        final uploadedUrl = await ApiService.uploadProductImage(
+          _selectedImageBytes!,
+          _selectedImageName!,
+        );
         if (uploadedUrl != null) finalImageUrl = uploadedUrl;
       }
 
       if (_selectedGlbBytes != null && _selectedGlbName != null) {
-        final uploadedUrl = await ApiService.upload3DModel(_selectedGlbBytes!, _selectedGlbName!);
+        final uploadedUrl = await ApiService.upload3DModel(
+          _selectedGlbBytes!,
+          _selectedGlbName!,
+        );
         if (uploadedUrl != null) finalGlbUrl = uploadedUrl;
       }
 
       if (_selectedUsdzBytes != null && _selectedUsdzName != null) {
-        final uploadedUrl = await ApiService.upload3DModel(_selectedUsdzBytes!, _selectedUsdzName!);
+        final uploadedUrl = await ApiService.upload3DModel(
+          _selectedUsdzBytes!,
+          _selectedUsdzName!,
+        );
         if (uploadedUrl != null) finalUsdzUrl = uploadedUrl;
       }
 
@@ -1035,12 +1388,27 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
           _selectedUsdzName = null;
         });
         TenantService().fetchMenuData(tenant.id);
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Product added successfully!"), backgroundColor: Colors.green));
+        if (mounted)
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Product added successfully!"),
+              backgroundColor: Colors.green,
+            ),
+          );
       } else {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(res['message'] ?? "Failed to add product."), backgroundColor: Colors.red));
+        if (mounted)
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(res['message'] ?? "Failed to add product."),
+              backgroundColor: Colors.red,
+            ),
+          );
       }
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red));
+      if (mounted)
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red),
+        );
     } finally {
       if (mounted) {
         setState(() => _isSubmitting = false);
@@ -1059,20 +1427,27 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
             final title = (p['title'] ?? '').toString().toLowerCase();
             final desc = (p['description'] ?? '').toString().toLowerCase();
             final slogan = (p['slogan'] ?? '').toString().toLowerCase();
-            if (!title.contains(q) && !desc.contains(q) && !slogan.contains(q)) return false;
+            if (!title.contains(q) && !desc.contains(q) && !slogan.contains(q))
+              return false;
           }
 
           if (_variantCategoryFilter != 'All') {
             final catId = (p['category_id'] ?? '').toString();
-            final catTitle = (p['tag'] ?? p['meal_tag'] ?? '').toString().toLowerCase();
-            if (catId != _variantCategoryFilter && !catTitle.contains(_variantCategoryFilter.toLowerCase())) {
+            final catTitle = (p['tag'] ?? p['meal_tag'] ?? '')
+                .toString()
+                .toLowerCase();
+            if (catId != _variantCategoryFilter &&
+                !catTitle.contains(_variantCategoryFilter.toLowerCase())) {
               return false;
             }
           }
 
           if (_variantTimeSlotFilter != 'All') {
-            final slot = (p['suitable_time'] ?? 'All Day').toString().toLowerCase();
-            if (!slot.contains(_variantTimeSlotFilter.toLowerCase()) && slot != 'all day') {
+            final slot = (p['suitable_time'] ?? 'All Day')
+                .toString()
+                .toLowerCase();
+            if (!slot.contains(_variantTimeSlotFilter.toLowerCase()) &&
+                slot != 'all day') {
               return false;
             }
           }
@@ -1082,8 +1457,17 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
 
         // Calculate Stats
         final int totalCount = products.length;
-        final int variantCount = products.where((p) => p['has_variants'] == true || p['has_variants'] == 1 || p['has_variants'] == '1').length;
-        final Set<String> timeSlots = products.map((p) => (p['suitable_time'] ?? 'All Day').toString()).toSet();
+        final int variantCount = products
+            .where(
+              (p) =>
+                  p['has_variants'] == true ||
+                  p['has_variants'] == 1 ||
+                  p['has_variants'] == '1',
+            )
+            .length;
+        final Set<String> timeSlots = products
+            .map((p) => (p['suitable_time'] ?? 'All Day').toString())
+            .toSet();
 
         // Group filtered products by suitable time slot
         final Map<String, List<Map<String, dynamic>>> groupedByTime = {};
@@ -1105,8 +1489,18 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
                 const Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text("Food Variant Explorer", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: AdminTheme.darkNavy)),
-                    Text("Categorized view of menu options, meal slots & portion prices.", style: TextStyle(fontSize: 12, color: Colors.grey)),
+                    Text(
+                      "Food Variant Explorer",
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w900,
+                        color: AdminTheme.darkNavy,
+                      ),
+                    ),
+                    Text(
+                      "Categorized view of menu options, meal slots & portion prices.",
+                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
                   ],
                 ),
                 IconButton(
@@ -1114,10 +1508,17 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
                     final tenant = TenantService().currentTenant.value;
                     if (tenant != null) {
                       TenantService().fetchMenuData(tenant.id);
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Syncing variants with database...")));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text("Syncing variants with database..."),
+                        ),
+                      );
                     }
                   },
-                  icon: const Icon(Icons.sync_rounded, color: AdminTheme.royalBlue),
+                  icon: const Icon(
+                    Icons.sync_rounded,
+                    color: AdminTheme.royalBlue,
+                  ),
                   tooltip: "Sync Menu Data",
                 ),
               ],
@@ -1127,11 +1528,32 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
             // Stat Cards
             Row(
               children: [
-                Expanded(child: _buildVariantStatCard("TOTAL ITEMS", "$totalCount Products", Icons.restaurant_menu_rounded, AdminTheme.royalBlue)),
+                Expanded(
+                  child: _buildVariantStatCard(
+                    "TOTAL ITEMS",
+                    "$totalCount Products",
+                    Icons.restaurant_menu_rounded,
+                    AdminTheme.royalBlue,
+                  ),
+                ),
                 const SizedBox(width: 12),
-                Expanded(child: _buildVariantStatCard("WITH VARIANTS", "$variantCount Items", Icons.tune_rounded, const Color(0xFFFF5C00))),
+                Expanded(
+                  child: _buildVariantStatCard(
+                    "WITH VARIANTS",
+                    "$variantCount Items",
+                    Icons.tune_rounded,
+                    const Color(0xFFFF5C00),
+                  ),
+                ),
                 const SizedBox(width: 12),
-                Expanded(child: _buildVariantStatCard("TIME SLOTS", "${timeSlots.length} Slots", Icons.access_time_filled_rounded, const Color(0xFF16A34A))),
+                Expanded(
+                  child: _buildVariantStatCard(
+                    "TIME SLOTS",
+                    "${timeSlots.length} Slots",
+                    Icons.access_time_filled_rounded,
+                    const Color(0xFF16A34A),
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 24),
@@ -1144,41 +1566,88 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(16),
-                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10)],
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.03),
+                          blurRadius: 10,
+                        ),
+                      ],
                     ),
                     child: TextField(
-                      onChanged: (v) => setState(() => _variantSearchQuery = v.trim()),
+                      onChanged: (v) =>
+                          setState(() => _variantSearchQuery = v.trim()),
                       decoration: InputDecoration(
                         hintText: "Search food variants, items or slogans...",
-                        hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
-                        prefixIcon: const Icon(Icons.search_rounded, color: AdminTheme.royalBlue),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-                        contentPadding: const EdgeInsets.symmetric(vertical: 16),
+                        hintStyle: const TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey,
+                        ),
+                        prefixIcon: const Icon(
+                          Icons.search_rounded,
+                          color: AdminTheme.royalBlue,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: BorderSide.none,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          vertical: 16,
+                        ),
                       ),
                     ),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(16),
-                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10)],
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.03),
+                        blurRadius: 10,
+                      ),
+                    ],
                   ),
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<String>(
                       value: _variantCategoryFilter,
-                      icon: const Icon(Icons.filter_list_rounded, color: AdminTheme.royalBlue, size: 20),
+                      icon: const Icon(
+                        Icons.filter_list_rounded,
+                        color: AdminTheme.royalBlue,
+                        size: 20,
+                      ),
                       items: [
-                        const DropdownMenuItem(value: "All", child: Text("All Categories", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold))),
-                        ...categoriesList.map((c) => DropdownMenuItem(
-                          value: c['id'].toString(),
-                          child: Text(c['title'] ?? 'Category', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                        )),
+                        const DropdownMenuItem(
+                          value: "All",
+                          child: Text(
+                            "All Categories",
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        ...categoriesList.map(
+                          (c) => DropdownMenuItem(
+                            value: c['id'].toString(),
+                            child: Text(
+                              c['title'] ?? 'Category',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
                       ],
                       onChanged: (val) {
-                        if (val != null) setState(() => _variantCategoryFilter = val);
+                        if (val != null)
+                          setState(() => _variantCategoryFilter = val);
                       },
                     ),
                   ),
@@ -1191,33 +1660,39 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
-                children: [
-                  {"id": "All", "label": "🌟 All Slots"},
-                  {"id": "Morning", "label": "☕ Morning"},
-                  {"id": "Lunch", "label": "🍕 Lunch"},
-                  {"id": "Evening", "label": "🍔 Evening"},
-                  {"id": "Late Night", "label": "🌙 Late Night"},
-                  {"id": "All Day", "label": "🌟 All Day"},
-                ].map((slot) {
-                  bool isSel = _variantTimeSlotFilter == slot['id'];
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: ChoiceChip(
-                      label: Text(slot['label']!),
-                      selected: isSel,
-                      selectedColor: AdminTheme.royalBlue,
-                      labelStyle: TextStyle(
-                        color: isSel ? Colors.white : Colors.black87,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 11,
-                      ),
-                      backgroundColor: Colors.white,
-                      elevation: 1,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide.none),
-                      onSelected: (_) => setState(() => _variantTimeSlotFilter = slot['id']!),
-                    ),
-                  );
-                }).toList(),
+                children:
+                    [
+                      {"id": "All", "label": "🌟 All Slots"},
+                      {"id": "Morning", "label": "☕ Morning"},
+                      {"id": "Lunch", "label": "🍕 Lunch"},
+                      {"id": "Evening", "label": "🍔 Evening"},
+                      {"id": "Late Night", "label": "🌙 Late Night"},
+                      {"id": "All Day", "label": "🌟 All Day"},
+                    ].map((slot) {
+                      bool isSel = _variantTimeSlotFilter == slot['id'];
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: ChoiceChip(
+                          label: Text(slot['label']!),
+                          selected: isSel,
+                          selectedColor: AdminTheme.royalBlue,
+                          labelStyle: TextStyle(
+                            color: isSel ? Colors.white : Colors.black87,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 11,
+                          ),
+                          backgroundColor: Colors.white,
+                          elevation: 1,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            side: BorderSide.none,
+                          ),
+                          onSelected: (_) => setState(
+                            () => _variantTimeSlotFilter = slot['id']!,
+                          ),
+                        ),
+                      );
+                    }).toList(),
               ),
             ),
             const SizedBox(height: 28),
@@ -1230,15 +1705,33 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(20),
-                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10)],
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.03),
+                      blurRadius: 10,
+                    ),
+                  ],
                 ),
                 child: const Column(
                   children: [
-                    Icon(Icons.restaurant_outlined, size: 48, color: Colors.grey),
+                    Icon(
+                      Icons.restaurant_outlined,
+                      size: 48,
+                      color: Colors.grey,
+                    ),
                     SizedBox(height: 12),
-                    Text("No food items match your filters.", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+                    Text(
+                      "No food items match your filters.",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey,
+                      ),
+                    ),
                     SizedBox(height: 4),
-                    Text("Try clearing filters or adding new food products.", style: TextStyle(fontSize: 11, color: Colors.grey)),
+                    Text(
+                      "Try clearing filters or adding new food products.",
+                      style: TextStyle(fontSize: 11, color: Colors.grey),
+                    ),
                   ],
                 ),
               )
@@ -1253,7 +1746,10 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
                     // Section Header
                     Container(
                       margin: const EdgeInsets.only(bottom: 16, top: 8),
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 8,
+                      ),
                       decoration: BoxDecoration(
                         color: const Color(0xFFFF5C00).withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
@@ -1261,11 +1757,21 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.access_time_filled_rounded, size: 16, color: Color(0xFFFF5C00)),
+                          const Icon(
+                            Icons.access_time_filled_rounded,
+                            size: 16,
+                            color: Color(0xFFFF5C00),
+                          ),
                           const SizedBox(width: 8),
                           Text(
-                            "$timeSlotName (${slotItems.length} Items)".toUpperCase(),
-                            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Color(0xFFFF5C00), letterSpacing: 0.5),
+                            "$timeSlotName (${slotItems.length} Items)"
+                                .toUpperCase(),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 12,
+                              color: Color(0xFFFF5C00),
+                              letterSpacing: 0.5,
+                            ),
                           ),
                         ],
                       ),
@@ -1283,19 +1789,32 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
     );
   }
 
-  Widget _buildVariantStatCard(String label, String value, IconData icon, Color color) {
+  Widget _buildVariantStatCard(
+    String label,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10)],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+          ),
+        ],
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
             child: Icon(icon, color: color, size: 20),
           ),
           const SizedBox(width: 12),
@@ -1303,9 +1822,26 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 0.5)),
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.grey,
+                    letterSpacing: 0.5,
+                  ),
+                ),
                 const SizedBox(height: 2),
-                Text(value, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: color), maxLines: 1, overflow: TextOverflow.ellipsis),
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w900,
+                    color: color,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ],
             ),
           ),
@@ -1320,16 +1856,21 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
     final String price = p['price']?.toString() ?? '0.00';
     final String timeSlot = p['suitable_time'] ?? 'All Day';
     final String slogan = p['slogan'] ?? '';
-    final String rawImg = (p['image_url'] != null && p['image_url'].toString().isNotEmpty) 
-        ? p['image_url'].toString() 
-        : (p['image'] != null && p['image'].toString().isNotEmpty ? p['image'].toString() : '');
+    final String rawImg =
+        (p['image_url'] != null && p['image_url'].toString().isNotEmpty)
+        ? p['image_url'].toString()
+        : (p['image'] != null && p['image'].toString().isNotEmpty
+              ? p['image'].toString()
+              : '');
     final String image = _getFormattedImageUrl(rawImg, category);
 
     // Parse Variants
     List parsedVariants = [];
     if (p['variants'] != null) {
       if (p['variants'] is String && (p['variants'] as String).isNotEmpty) {
-        try { parsedVariants = json.decode(p['variants']); } catch (_) {}
+        try {
+          parsedVariants = json.decode(p['variants']);
+        } catch (_) {}
       } else if (p['variants'] is List) {
         parsedVariants = p['variants'];
       }
@@ -1341,7 +1882,12 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10)],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+          ),
+        ],
         border: Border.all(color: const Color(0xFFF1F5F9)),
       ),
       child: Column(
@@ -1358,7 +1904,8 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
                   height: 70,
                   fit: BoxFit.cover,
                   errorBuilder: (c, e, s) => Container(
-                    width: 70, height: 70,
+                    width: 70,
+                    height: 70,
                     color: Colors.grey[100],
                     child: const Icon(Icons.fastfood, color: Colors.grey),
                   ),
@@ -1373,38 +1920,66 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: AdminTheme.darkNavy),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 16,
+                        color: AdminTheme.darkNavy,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                     if (slogan.isNotEmpty) ...[
                       const SizedBox(height: 2),
-                      Text(slogan, style: const TextStyle(fontSize: 11, color: Colors.grey), maxLines: 1, overflow: TextOverflow.ellipsis),
+                      Text(
+                        slogan,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ],
                     const SizedBox(height: 6),
                     Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
                           decoration: BoxDecoration(
                             color: AdminTheme.royalBlue.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
                             category,
-                            style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: AdminTheme.royalBlue),
+                            style: const TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                              color: AdminTheme.royalBlue,
+                            ),
                           ),
                         ),
                         const SizedBox(width: 6),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFF5C00).withValues(alpha: 0.1),
+                            color: const Color(
+                              0xFFFF5C00,
+                            ).withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
                             "⏱️ $timeSlot",
-                            style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Color(0xFFFF5C00)),
+                            style: const TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFFFF5C00),
+                            ),
                           ),
                         ),
                       ],
@@ -1417,13 +1992,31 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  const Text("BASE PRICE", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 0.5)),
-                  Text("NPR $price", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF2563EB))),
+                  const Text(
+                    "BASE PRICE",
+                    style: TextStyle(
+                      fontSize: 9,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.grey,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  Text(
+                    "NPR $price",
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                      color: Color(0xFF2563EB),
+                    ),
+                  ),
                 ],
               ),
             ],
           ),
-          const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Divider(height: 1, color: Color(0xFFF1F5F9))),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 12),
+            child: Divider(height: 1, color: Color(0xFFF1F5F9)),
+          ),
 
           // Variants Breakdown Grid
           Row(
@@ -1431,14 +2024,35 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
             children: [
               const Icon(Icons.tune_rounded, size: 16, color: Colors.grey),
               const SizedBox(width: 8),
-              const Text("SIZES & PORTION VARIANTS:", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 0.5)),
+              const Text(
+                "SIZES & PORTION VARIANTS:",
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.grey,
+                  letterSpacing: 0.5,
+                ),
+              ),
               const SizedBox(width: 12),
               Expanded(
                 child: parsedVariants.isEmpty
                     ? Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(8)),
-                        child: Text("Standard Portion: NPR $price", style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey)),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          "Standard Portion: NPR $price",
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey,
+                          ),
+                        ),
                       )
                     : Wrap(
                         spacing: 8,
@@ -1447,15 +2061,28 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
                           final String vName = v['name'] ?? 'Option';
                           final String vPrice = v['price']?.toString() ?? '0';
                           return Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF16A34A).withValues(alpha: 0.1),
+                              color: const Color(
+                                0xFF16A34A,
+                              ).withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: const Color(0xFF16A34A).withValues(alpha: 0.3)),
+                              border: Border.all(
+                                color: const Color(
+                                  0xFF16A34A,
+                                ).withValues(alpha: 0.3),
+                              ),
                             ),
                             child: Text(
                               "$vName: NPR $vPrice",
-                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Color(0xFF16A34A)),
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w900,
+                                color: Color(0xFF16A34A),
+                              ),
                             ),
                           );
                         }).toList(),
@@ -1467,12 +2094,20 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
               ElevatedButton.icon(
                 onPressed: () => _startEditing(p),
                 icon: const Icon(Icons.edit_rounded, size: 14),
-                label: const Text("MANAGE VARIANTS", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                label: const Text(
+                  "MANAGE VARIANTS",
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AdminTheme.darkNavy,
                   foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                   elevation: 0,
                 ),
               ),
@@ -1489,7 +2124,11 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
       builder: (context, products, child) {
         // Filter products based on search, category, and availability status
         final filteredProducts = products.where((p) {
-          final bool isAvail = p['is_available'] == true || p['is_available'] == 1 || p['is_available'] == '1' || p['is_available'] == null;
+          final bool isAvail =
+              p['is_available'] == true ||
+              p['is_available'] == 1 ||
+              p['is_available'] == '1' ||
+              p['is_available'] == null;
 
           if (_availabilitySearchQuery.isNotEmpty) {
             final q = _availabilitySearchQuery.toLowerCase();
@@ -1500,21 +2139,34 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
 
           if (_availabilityCategoryFilter != 'All') {
             final catId = (p['category_id'] ?? '').toString();
-            final catTitle = (p['tag'] ?? p['meal_tag'] ?? '').toString().toLowerCase();
-            if (catId != _availabilityCategoryFilter && !catTitle.contains(_availabilityCategoryFilter.toLowerCase())) {
+            final catTitle = (p['tag'] ?? p['meal_tag'] ?? '')
+                .toString()
+                .toLowerCase();
+            if (catId != _availabilityCategoryFilter &&
+                !catTitle.contains(_availabilityCategoryFilter.toLowerCase())) {
               return false;
             }
           }
 
-          if (_availabilityStatusFilter == 'Available' && !isAvail) return false;
-          if (_availabilityStatusFilter == 'Out of Stock' && isAvail) return false;
+          if (_availabilityStatusFilter == 'Available' && !isAvail)
+            return false;
+          if (_availabilityStatusFilter == 'Out of Stock' && isAvail)
+            return false;
 
           return true;
         }).toList();
 
         // Calculate Stats
         final int totalCount = products.length;
-        final int availCount = products.where((p) => p['is_available'] == true || p['is_available'] == 1 || p['is_available'] == '1' || p['is_available'] == null).length;
+        final int availCount = products
+            .where(
+              (p) =>
+                  p['is_available'] == true ||
+                  p['is_available'] == 1 ||
+                  p['is_available'] == '1' ||
+                  p['is_available'] == null,
+            )
+            .length;
         final int outOfStockCount = totalCount - availCount;
 
         final categoriesList = TenantService().categories.value;
@@ -1529,8 +2181,18 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
                 const Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text("Food Stock & Availability", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: AdminTheme.darkNavy)),
-                    Text("Real-time ON/OFF stock toggle control for your menu items.", style: TextStyle(fontSize: 12, color: Colors.grey)),
+                    Text(
+                      "Food Stock & Availability",
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w900,
+                        color: AdminTheme.darkNavy,
+                      ),
+                    ),
+                    Text(
+                      "Real-time ON/OFF stock toggle control for your menu items.",
+                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
                   ],
                 ),
                 IconButton(
@@ -1538,10 +2200,19 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
                     final tenant = TenantService().currentTenant.value;
                     if (tenant != null) {
                       TenantService().fetchMenuData(tenant.id);
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Syncing stock status with database...")));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            "Syncing stock status with database...",
+                          ),
+                        ),
+                      );
                     }
                   },
-                  icon: const Icon(Icons.sync_rounded, color: AdminTheme.royalBlue),
+                  icon: const Icon(
+                    Icons.sync_rounded,
+                    color: AdminTheme.royalBlue,
+                  ),
                   tooltip: "Sync Stock Data",
                 ),
               ],
@@ -1551,11 +2222,32 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
             // Stat Cards
             Row(
               children: [
-                Expanded(child: _buildAvailabilityStatCard("TOTAL MENU", "$totalCount Items", Icons.restaurant_menu_rounded, AdminTheme.royalBlue)),
+                Expanded(
+                  child: _buildAvailabilityStatCard(
+                    "TOTAL MENU",
+                    "$totalCount Items",
+                    Icons.restaurant_menu_rounded,
+                    AdminTheme.royalBlue,
+                  ),
+                ),
                 const SizedBox(width: 12),
-                Expanded(child: _buildAvailabilityStatCard("IN STOCK (ON)", "$availCount Active", Icons.check_circle_rounded, const Color(0xFF16A34A))),
+                Expanded(
+                  child: _buildAvailabilityStatCard(
+                    "IN STOCK (ON)",
+                    "$availCount Active",
+                    Icons.check_circle_rounded,
+                    const Color(0xFF16A34A),
+                  ),
+                ),
                 const SizedBox(width: 12),
-                Expanded(child: _buildAvailabilityStatCard("OUT OF STOCK", "$outOfStockCount Disabled", Icons.cancel_rounded, Colors.redAccent)),
+                Expanded(
+                  child: _buildAvailabilityStatCard(
+                    "OUT OF STOCK",
+                    "$outOfStockCount Disabled",
+                    Icons.cancel_rounded,
+                    Colors.redAccent,
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 24),
@@ -1568,41 +2260,88 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(16),
-                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10)],
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.03),
+                          blurRadius: 10,
+                        ),
+                      ],
                     ),
                     child: TextField(
-                      onChanged: (v) => setState(() => _availabilitySearchQuery = v.trim()),
+                      onChanged: (v) =>
+                          setState(() => _availabilitySearchQuery = v.trim()),
                       decoration: InputDecoration(
                         hintText: "Search items to toggle availability...",
-                        hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
-                        prefixIcon: const Icon(Icons.search_rounded, color: AdminTheme.royalBlue),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-                        contentPadding: const EdgeInsets.symmetric(vertical: 16),
+                        hintStyle: const TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey,
+                        ),
+                        prefixIcon: const Icon(
+                          Icons.search_rounded,
+                          color: AdminTheme.royalBlue,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: BorderSide.none,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          vertical: 16,
+                        ),
                       ),
                     ),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(16),
-                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10)],
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.03),
+                        blurRadius: 10,
+                      ),
+                    ],
                   ),
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<String>(
                       value: _availabilityCategoryFilter,
-                      icon: const Icon(Icons.filter_list_rounded, color: AdminTheme.royalBlue, size: 20),
+                      icon: const Icon(
+                        Icons.filter_list_rounded,
+                        color: AdminTheme.royalBlue,
+                        size: 20,
+                      ),
                       items: [
-                        const DropdownMenuItem(value: "All", child: Text("All Categories", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold))),
-                        ...categoriesList.map((c) => DropdownMenuItem(
-                          value: c['id'].toString(),
-                          child: Text(c['title'] ?? 'Category', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                        )),
+                        const DropdownMenuItem(
+                          value: "All",
+                          child: Text(
+                            "All Categories",
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        ...categoriesList.map(
+                          (c) => DropdownMenuItem(
+                            value: c['id'].toString(),
+                            child: Text(
+                              c['title'] ?? 'Category',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
                       ],
                       onChanged: (val) {
-                        if (val != null) setState(() => _availabilityCategoryFilter = val);
+                        if (val != null)
+                          setState(() => _availabilityCategoryFilter = val);
                       },
                     ),
                   ),
@@ -1615,30 +2354,42 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
-                children: [
-                  {"id": "All", "label": "🌟 All Items ($totalCount)"},
-                  {"id": "Available", "label": "✅ Available / ON ($availCount)"},
-                  {"id": "Out of Stock", "label": "❌ Out of Stock / OFF ($outOfStockCount)"},
-                ].map((chip) {
-                  bool isSel = _availabilityStatusFilter == chip['id'];
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: ChoiceChip(
-                      label: Text(chip['label']!),
-                      selected: isSel,
-                      selectedColor: AdminTheme.royalBlue,
-                      labelStyle: TextStyle(
-                        color: isSel ? Colors.white : Colors.black87,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 11,
-                      ),
-                      backgroundColor: Colors.white,
-                      elevation: 1,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide.none),
-                      onSelected: (_) => setState(() => _availabilityStatusFilter = chip['id']!),
-                    ),
-                  );
-                }).toList(),
+                children:
+                    [
+                      {"id": "All", "label": "🌟 All Items ($totalCount)"},
+                      {
+                        "id": "Available",
+                        "label": "✅ Available / ON ($availCount)",
+                      },
+                      {
+                        "id": "Out of Stock",
+                        "label": "❌ Out of Stock / OFF ($outOfStockCount)",
+                      },
+                    ].map((chip) {
+                      bool isSel = _availabilityStatusFilter == chip['id'];
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: ChoiceChip(
+                          label: Text(chip['label']!),
+                          selected: isSel,
+                          selectedColor: AdminTheme.royalBlue,
+                          labelStyle: TextStyle(
+                            color: isSel ? Colors.white : Colors.black87,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 11,
+                          ),
+                          backgroundColor: Colors.white,
+                          elevation: 1,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            side: BorderSide.none,
+                          ),
+                          onSelected: (_) => setState(
+                            () => _availabilityStatusFilter = chip['id']!,
+                          ),
+                        ),
+                      );
+                    }).toList(),
               ),
             ),
             const SizedBox(height: 28),
@@ -1651,15 +2402,29 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(20),
-                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10)],
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.03),
+                      blurRadius: 10,
+                    ),
+                  ],
                 ),
                 child: const Column(
                   children: [
                     Icon(Icons.no_meals_outlined, size: 48, color: Colors.grey),
                     SizedBox(height: 12),
-                    Text("No products match availability filters.", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+                    Text(
+                      "No products match availability filters.",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey,
+                      ),
+                    ),
                     SizedBox(height: 4),
-                    Text("Try adjusting your search or category filter.", style: TextStyle(fontSize: 11, color: Colors.grey)),
+                    Text(
+                      "Try adjusting your search or category filter.",
+                      style: TextStyle(fontSize: 11, color: Colors.grey),
+                    ),
                   ],
                 ),
               )
@@ -1671,19 +2436,32 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
     );
   }
 
-  Widget _buildAvailabilityStatCard(String label, String value, IconData icon, Color color) {
+  Widget _buildAvailabilityStatCard(
+    String label,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10)],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+          ),
+        ],
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
             child: Icon(icon, color: color, size: 20),
           ),
           const SizedBox(width: 12),
@@ -1691,9 +2469,26 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 0.5)),
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.grey,
+                    letterSpacing: 0.5,
+                  ),
+                ),
                 const SizedBox(height: 2),
-                Text(value, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: color), maxLines: 1, overflow: TextOverflow.ellipsis),
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w900,
+                    color: color,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ],
             ),
           ),
@@ -1707,16 +2502,23 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
     final String title = p['title'] ?? 'Untitled Item';
     final String category = p['tag'] ?? 'Uncategorized';
     final String price = p['price']?.toString() ?? '0.00';
-    
+
     // Check local override first, then fallback to product model
     final int? overrideVal = _localAvailabilityOverrides[pId];
-    final bool isAvailable = overrideVal != null 
-        ? (overrideVal == 1) 
-        : (p['is_available'] == true || p['is_available'] == 1 || p['is_available'] == '1' || p['is_available'] == null || p['is_available'] == 'true');
+    final bool isAvailable = overrideVal != null
+        ? (overrideVal == 1)
+        : (p['is_available'] == true ||
+              p['is_available'] == 1 ||
+              p['is_available'] == '1' ||
+              p['is_available'] == null ||
+              p['is_available'] == 'true');
 
-    final String rawImg = (p['image_url'] != null && p['image_url'].toString().isNotEmpty) 
-        ? p['image_url'].toString() 
-        : (p['image'] != null && p['image'].toString().isNotEmpty ? p['image'].toString() : '');
+    final String rawImg =
+        (p['image_url'] != null && p['image_url'].toString().isNotEmpty)
+        ? p['image_url'].toString()
+        : (p['image'] != null && p['image'].toString().isNotEmpty
+              ? p['image'].toString()
+              : '');
     final String image = _getFormattedImageUrl(rawImg, category);
 
     return Container(
@@ -1725,9 +2527,16 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10)],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+          ),
+        ],
         border: Border.all(
-          color: isAvailable ? const Color(0xFF16A34A).withValues(alpha: 0.3) : Colors.redAccent.withValues(alpha: 0.3),
+          color: isAvailable
+              ? const Color(0xFF16A34A).withValues(alpha: 0.3)
+              : Colors.redAccent.withValues(alpha: 0.3),
           width: 1.5,
         ),
       ),
@@ -1742,7 +2551,8 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
               height: 65,
               fit: BoxFit.cover,
               errorBuilder: (c, e, s) => Container(
-                width: 65, height: 65,
+                width: 65,
+                height: 65,
                 color: Colors.grey[100],
                 child: const Icon(Icons.fastfood, color: Colors.grey),
               ),
@@ -1757,7 +2567,11 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: AdminTheme.darkNavy),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 16,
+                    color: AdminTheme.darkNavy,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -1765,18 +2579,32 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
                       decoration: BoxDecoration(
                         color: AdminTheme.royalBlue.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
                         category,
-                        style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: AdminTheme.royalBlue),
+                        style: const TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                          color: AdminTheme.royalBlue,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 8),
-                    Text("NPR $price", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: Color(0xFF2563EB))),
+                    Text(
+                      "NPR $price",
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 13,
+                        color: Color(0xFF2563EB),
+                      ),
+                    ),
                   ],
                 ),
               ],
@@ -1787,18 +2615,27 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
-                  color: isAvailable ? const Color(0xFF16A34A).withValues(alpha: 0.1) : Colors.redAccent.withValues(alpha: 0.1),
+                  color: isAvailable
+                      ? const Color(0xFF16A34A).withValues(alpha: 0.1)
+                      : Colors.redAccent.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
-                      isAvailable ? Icons.check_circle_rounded : Icons.cancel_rounded,
+                      isAvailable
+                          ? Icons.check_circle_rounded
+                          : Icons.cancel_rounded,
                       size: 14,
-                      color: isAvailable ? const Color(0xFF16A34A) : Colors.redAccent,
+                      color: isAvailable
+                          ? const Color(0xFF16A34A)
+                          : Colors.redAccent,
                     ),
                     const SizedBox(width: 6),
                     Text(
@@ -1806,7 +2643,9 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w900,
-                        color: isAvailable ? const Color(0xFF16A34A) : Colors.redAccent,
+                        color: isAvailable
+                            ? const Color(0xFF16A34A)
+                            : Colors.redAccent,
                       ),
                     ),
                   ],
@@ -1823,7 +2662,9 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
                 inactiveTrackColor: Colors.grey.shade300,
                 onChanged: (newStatus) async {
                   final tenant = TenantService().currentTenant.value;
-                  final tenantId = (tenant != null && tenant.id.isNotEmpty) ? tenant.id : 'startups_main';
+                  final tenantId = (tenant != null && tenant.id.isNotEmpty)
+                      ? tenant.id
+                      : 'startups_main';
 
                   final int statusInt = newStatus ? 1 : 0;
 
@@ -1835,24 +2676,32 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
 
                   // 2. Update product in TenantService products list directly
                   final currentProducts = TenantService().products.value;
-                  final index = currentProducts.indexWhere((item) => item['id']?.toString() == pId);
+                  final index = currentProducts.indexWhere(
+                    (item) => item['id']?.toString() == pId,
+                  );
                   if (index != -1) {
                     currentProducts[index]['is_available'] = statusInt;
                     TenantService().products.value = List.from(currentProducts);
                   }
 
                   // 3. Send API call to backend server
-                  final success = await ApiService.toggleAvailability(tenantId, pId, statusInt);
+                  final success = await ApiService.toggleAvailability(
+                    tenantId,
+                    pId,
+                    statusInt,
+                  );
 
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(
-                          newStatus 
-                              ? "'$title' marked IN STOCK (ON)" 
+                          newStatus
+                              ? "'$title' marked IN STOCK (ON)"
                               : "'$title' marked OUT OF STOCK (OFF)",
                         ),
-                        backgroundColor: newStatus ? const Color(0xFF16A34A) : Colors.redAccent,
+                        backgroundColor: newStatus
+                            ? const Color(0xFF16A34A)
+                            : Colors.redAccent,
                         behavior: SnackBarBehavior.floating,
                         duration: const Duration(seconds: 2),
                       ),
@@ -1877,12 +2726,25 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
         decoration: BoxDecoration(
           color: isSelected ? AdminTheme.royalBlue : Colors.white,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: isSelected ? AdminTheme.royalBlue : Colors.grey[200]!),
-          boxShadow: isSelected ? [BoxShadow(color: AdminTheme.royalBlue.withValues(alpha: 0.2), blurRadius: 8)] : [],
+          border: Border.all(
+            color: isSelected ? AdminTheme.royalBlue : Colors.grey[200]!,
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: AdminTheme.royalBlue.withValues(alpha: 0.2),
+                    blurRadius: 8,
+                  ),
+                ]
+              : [],
         ),
         child: Text(
           label,
-          style: TextStyle(color: isSelected ? Colors.white : Colors.black87, fontSize: 11, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            color: isSelected ? Colors.white : Colors.black87,
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ),
     );
@@ -1894,7 +2756,11 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
       label: Text(label),
       selected: isSelected,
       selectedColor: AdminTheme.royalBlue,
-      labelStyle: TextStyle(color: isSelected ? Colors.white : Colors.black87, fontWeight: FontWeight.bold, fontSize: 11),
+      labelStyle: TextStyle(
+        color: isSelected ? Colors.white : Colors.black87,
+        fontWeight: FontWeight.bold,
+        fontSize: 11,
+      ),
       onSelected: (val) => setState(() => _selectedSuitableTime = value),
     );
   }
@@ -1905,7 +2771,11 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
       label: Text(label),
       selected: isSelected,
       selectedColor: AdminTheme.royalBlue,
-      labelStyle: TextStyle(color: isSelected ? Colors.white : Colors.black87, fontWeight: FontWeight.bold, fontSize: 11),
+      labelStyle: TextStyle(
+        color: isSelected ? Colors.white : Colors.black87,
+        fontWeight: FontWeight.bold,
+        fontSize: 11,
+      ),
       onSelected: (val) => setState(() => _selectedPrepTime = value),
     );
   }
@@ -1916,7 +2786,11 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
       label: Text(label),
       selected: isSelected,
       selectedColor: const Color(0xFFFF5C00),
-      labelStyle: TextStyle(color: isSelected ? Colors.white : Colors.black87, fontWeight: FontWeight.bold, fontSize: 11),
+      labelStyle: TextStyle(
+        color: isSelected ? Colors.white : Colors.black87,
+        fontWeight: FontWeight.bold,
+        fontSize: 11,
+      ),
       onSelected: (val) => setState(() => _selectedMealTag = label),
     );
   }
@@ -1933,16 +2807,22 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
       _selectedSuitableTime = p['suitable_time'] ?? 'All Day';
       _selectedMealTag = p['meal_tag'] ?? p['tag'] ?? '🔥 Popular';
       _selectedPrepTime = p['prep_time']?.toString() ?? '15-20 min';
-      _selectedImageBytes = null; // Don't show preview for existing image unless picked new
+      _selectedImageBytes =
+          null; // Don't show preview for existing image unless picked new
 
-      _hasVariants = p['has_variants'] == true || p['has_variants'] == 1 || p['has_variants'] == '1';
+      _hasVariants =
+          p['has_variants'] == true ||
+          p['has_variants'] == 1 ||
+          p['has_variants'] == '1';
       _selectedVariantType = p['variant_type']?.toString() ?? 'sizes';
       _clearVariantControllers();
 
       if (p['variants'] != null) {
         List parsed = [];
         if (p['variants'] is String && (p['variants'] as String).isNotEmpty) {
-          try { parsed = json.decode(p['variants']); } catch (_) {}
+          try {
+            parsed = json.decode(p['variants']);
+          } catch (_) {}
         } else if (p['variants'] is List) {
           parsed = p['variants'];
         }
@@ -1972,8 +2852,14 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
       children: [
         Row(
           children: [
-            IconButton(onPressed: () => setState(() => _editingProduct = null), icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 16)),
-            const Text("Edit Product", style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+            IconButton(
+              onPressed: () => setState(() => _editingProduct = null),
+              icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 16),
+            ),
+            const Text(
+              "Edit Product",
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+            ),
           ],
         ),
         const SizedBox(height: 24),
@@ -1983,29 +2869,42 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
   }
 
   Future<void> _submitEdit() async {
-    if (_titleController.text.isEmpty || _priceController.text.isEmpty || _selectedCategoryId == null) return;
-    
+    if (_titleController.text.isEmpty ||
+        _priceController.text.isEmpty ||
+        _selectedCategoryId == null)
+      return;
+
     final tenant = TenantService().currentTenant.value;
     if (tenant == null || _editingProduct == null) return;
 
     setState(() => _isSubmitting = true);
     try {
-      String finalImageUrl = _editingProduct!['image_url'] ?? _editingProduct!['image'] ?? "";
+      String finalImageUrl =
+          _editingProduct!['image_url'] ?? _editingProduct!['image'] ?? "";
       String finalGlbUrl = _editingProduct!['model_url'] ?? "";
       String finalUsdzUrl = _editingProduct!['ios_model_url'] ?? "";
 
       if (_selectedImageBytes != null && _selectedImageName != null) {
-        final uploadedUrl = await ApiService.uploadProductImage(_selectedImageBytes!, _selectedImageName!);
+        final uploadedUrl = await ApiService.uploadProductImage(
+          _selectedImageBytes!,
+          _selectedImageName!,
+        );
         if (uploadedUrl != null) finalImageUrl = uploadedUrl;
       }
 
       if (_selectedGlbBytes != null && _selectedGlbName != null) {
-        final uploadedUrl = await ApiService.upload3DModel(_selectedGlbBytes!, _selectedGlbName!);
+        final uploadedUrl = await ApiService.upload3DModel(
+          _selectedGlbBytes!,
+          _selectedGlbName!,
+        );
         if (uploadedUrl != null) finalGlbUrl = uploadedUrl;
       }
 
       if (_selectedUsdzBytes != null && _selectedUsdzName != null) {
-        final uploadedUrl = await ApiService.upload3DModel(_selectedUsdzBytes!, _selectedUsdzName!);
+        final uploadedUrl = await ApiService.upload3DModel(
+          _selectedUsdzBytes!,
+          _selectedUsdzName!,
+        );
         if (uploadedUrl != null) finalUsdzUrl = uploadedUrl;
       }
 
@@ -2036,12 +2935,27 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
       if (res['success'] == true) {
         setState(() => _editingProduct = null);
         TenantService().fetchMenuData(tenant.id);
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Product updated!"), backgroundColor: Colors.green));
+        if (mounted)
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Product updated!"),
+              backgroundColor: Colors.green,
+            ),
+          );
       } else {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(res['message'] ?? "Failed to update product."), backgroundColor: Colors.red));
+        if (mounted)
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(res['message'] ?? "Failed to update product."),
+              backgroundColor: Colors.red,
+            ),
+          );
       }
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red));
+      if (mounted)
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red),
+        );
     } finally {
       if (mounted) {
         setState(() => _isSubmitting = false);
@@ -2049,11 +2963,22 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
     }
   }
 
-  Widget _buildTextField(String label, TextEditingController controller, {String? hint}) {
+  Widget _buildTextField(
+    String label,
+    TextEditingController controller, {
+    String? hint,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey)),
+        Text(
+          label,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 12,
+            color: Colors.grey,
+          ),
+        ),
         const SizedBox(height: 8),
         TextField(
           controller: controller,
@@ -2062,7 +2987,10 @@ class _FoodCatalogScreenState extends State<FoodCatalogScreen> {
             hintStyle: const TextStyle(fontSize: 13),
             filled: true,
             fillColor: Colors.white,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
           ),
         ),
       ],

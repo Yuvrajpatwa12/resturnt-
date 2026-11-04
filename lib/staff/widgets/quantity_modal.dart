@@ -13,7 +13,12 @@ class QuantityModal extends StatefulWidget {
     required this.onConfirm,
   });
 
-  static void show(BuildContext context, Map<String, dynamic> productData, int initialQuantity, Function(int) onConfirm) {
+  static void show(
+    BuildContext context,
+    Map<String, dynamic> productData,
+    int initialQuantity,
+    Function(int) onConfirm,
+  ) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -50,9 +55,16 @@ class _QuantityModalState extends State<QuantityModal> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[200], borderRadius: BorderRadius.circular(2))),
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.grey[200],
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
           const SizedBox(height: 30),
-          
+
           Text(
             widget.productData['title'],
             style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
@@ -60,11 +72,15 @@ class _QuantityModalState extends State<QuantityModal> {
           const SizedBox(height: 8),
           Text(
             widget.productData['price'],
-            style: const TextStyle(fontSize: 16, color: Color(0xFFFF5C00), fontWeight: FontWeight.bold),
+            style: const TextStyle(
+              fontSize: 16,
+              color: Color(0xFFFF5C00),
+              fontWeight: FontWeight.bold,
+            ),
           ),
-          
+
           const SizedBox(height: 40),
-          
+
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -79,7 +95,11 @@ class _QuantityModalState extends State<QuantityModal> {
                 alignment: Alignment.center,
                 child: Text(
                   "$_quantity",
-                  style: const TextStyle(fontSize: 48, fontWeight: FontWeight.w900, color: Colors.black87),
+                  style: const TextStyle(
+                    fontSize: 48,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.black87,
+                  ),
                 ),
               ),
               _buildCounterBtn(Icons.add, () {
@@ -88,9 +108,9 @@ class _QuantityModalState extends State<QuantityModal> {
               }, isPrimary: true),
             ],
           ),
-          
+
           const SizedBox(height: 50),
-          
+
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
@@ -101,10 +121,19 @@ class _QuantityModalState extends State<QuantityModal> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFFF5C00),
                 padding: const EdgeInsets.symmetric(vertical: 20),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15),
+                ),
                 elevation: 0,
               ),
-              child: const Text("SET QUANTITY", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 1)),
+              child: const Text(
+                "SET QUANTITY",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1,
+                ),
+              ),
             ),
           ),
           const SizedBox(height: 10),
@@ -113,14 +142,25 @@ class _QuantityModalState extends State<QuantityModal> {
               widget.onConfirm(0); // Removing item
               Navigator.pop(context);
             },
-            child: const Text("REMOVE FROM ORDER", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 12)),
+            child: const Text(
+              "REMOVE FROM ORDER",
+              style: TextStyle(
+                color: Colors.red,
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+              ),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildCounterBtn(IconData icon, VoidCallback onTap, {bool isPrimary = false}) {
+  Widget _buildCounterBtn(
+    IconData icon,
+    VoidCallback onTap, {
+    bool isPrimary = false,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -129,7 +169,11 @@ class _QuantityModalState extends State<QuantityModal> {
           color: isPrimary ? const Color(0xFFFF5C00) : Colors.grey[100],
           shape: BoxShape.circle,
         ),
-        child: Icon(icon, color: isPrimary ? Colors.white : Colors.black87, size: 28),
+        child: Icon(
+          icon,
+          color: isPrimary ? Colors.white : Colors.black87,
+          size: 28,
+        ),
       ),
     );
   }

@@ -3,23 +3,36 @@ function financialEnsureSchema($conn) {
     $conn->query("CREATE TABLE IF NOT EXISTS order_voids (
         id BIGINT AUTO_INCREMENT PRIMARY KEY,
         order_id INT NOT NULL,
+        tenant_id VARCHAR(100) NOT NULL,
         staff_id BIGINT NOT NULL,
         reason TEXT NOT NULL,
         original_amount DECIMAL(12,2) NOT NULL,
         voided_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
         UNIQUE KEY uniq_order_voids_order (order_id),
+        INDEX idx_order_voids_tenant (tenant_id),
         INDEX idx_order_voids_time (voided_at)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci");
+    
+    // Add tenant_id column if it doesn't exist
+    $conn->query("ALTER TABLE order_voids ADD COLUMN IF NOT EXISTS tenant_id VARCHAR(100) NOT NULL AFTER order_id");
+    $conn->query("ALTER TABLE order_voids ADD INDEX IF NOT EXISTS idx_order_voids_tenant (tenant_id)");
+    
     $conn->query("CREATE TABLE IF NOT EXISTS refunds (
         id BIGINT AUTO_INCREMENT PRIMARY KEY,
         payment_id BIGINT NOT NULL,
+        tenant_id VARCHAR(100) NOT NULL,
         amount DECIMAL(12,2) NOT NULL,
         reason TEXT NOT NULL,
         staff_id BIGINT NOT NULL,
         refunded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
         INDEX idx_refunds_payment (payment_id),
+        INDEX idx_refunds_tenant (tenant_id),
         INDEX idx_refunds_time (refunded_at)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci");
+    
+    // Add tenant_id column if it doesn't exist
+    $conn->query("ALTER TABLE refunds ADD COLUMN IF NOT EXISTS tenant_id VARCHAR(100) NOT NULL AFTER payment_id");
+    $conn->query("ALTER TABLE refunds ADD INDEX IF NOT EXISTS idx_refunds_tenant (tenant_id)");
     $conn->query("CREATE TABLE IF NOT EXISTS payment_orders (
         payment_id BIGINT NOT NULL,
         order_id INT NOT NULL,

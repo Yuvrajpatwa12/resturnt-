@@ -1,14 +1,9 @@
-import 'super_admin/super_admin_dashboard.dart';
 import 'package:flutter/material.dart';
 import 'waiter_pro/theme.dart';
-import 'homepage.dart';
 import 'cart_manager.dart';
 import 'services/tenant_service.dart';
 import 'services/api_service.dart';
 import 'services/suspension_screen.dart';
-import 'super_admin_module/master_hub.dart';
-
-import 'services/staff_gateway.dart';
 import 'services/language_service.dart';
 import 'services/currency_service.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
@@ -27,17 +22,29 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 }
 
 void main() async {
-  // 1. Notify JS that Dart has started
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // 1. Capture the original path BEFORE any URL strategy changes
+  String originalPath = '';
+  try {
+    final loc = web.window.location;
+    originalPath = loc.pathname + loc.hash;
+    debugPrint("ORIGINAL PATH CAPTURED: $originalPath");
+    // Store in session storage to survive URL strategy changes
+    web.window.sessionStorage.setItem('original_path', originalPath);
+  } catch (e) {
+    debugPrint("Failed to capture original path: $e");
+  }
+
+  // 2. Notify JS that Dart has started
   try {
     js.context.callMethod('onFlutterAppStarted');
   } catch (e) {
     debugPrint("Handshake failed: $e");
   }
 
-  // 2. Remove the '#' from URLs
+  // 3. Remove the '#' from URLs
   usePathUrlStrategy();
-  
-  WidgetsFlutterBinding.ensureInitialized();
 
   // 3. Initialize Services
   await LanguageService().initialize();
@@ -75,7 +82,7 @@ class _MyAppState extends State<MyApp> {
     try {
       String domain = Uri.base.host;
       if (domain == "127.0.0.1") domain = "localhost";
-      
+
       // Remove 'www.' for consistent matching
       if (domain.startsWith('www.')) domain = domain.substring(4);
 
@@ -83,7 +90,7 @@ class _MyAppState extends State<MyApp> {
 
       // 1. FAST TABLE DETECTION
       String? tableParam = Uri.base.queryParameters['table'];
-      
+
       // Fallback: Check if it's in the fragment (e.g. /#/path?table=1)
       if (tableParam == null && Uri.base.fragment.contains('table=')) {
         final fragUri = Uri.parse(Uri.base.fragment.replaceFirst('/', ''));
@@ -136,7 +143,10 @@ class _MyAppState extends State<MyApp> {
               body: Center(
                 child: Padding(
                   padding: const EdgeInsets.all(24),
-                  child: Text("CONNECTION ERROR: $_errorMessage\n\nCheck your Hostinger API URL and DB config.", style: const TextStyle(color: Colors.red)),
+                  child: Text(
+                    "CONNECTION ERROR: $_errorMessage\n\nCheck your Hostinger API URL and DB config.",
+                    style: const TextStyle(color: Colors.red),
+                  ),
                 ),
               ),
             ),
@@ -151,9 +161,9 @@ class _MyAppState extends State<MyApp> {
                 debugShowCheckedModeBanner: false,
                 theme: WaiterProTheme.lightTheme,
                 home: AccountSuspendedScreen(
-                  reason: tenant == null 
-                    ? "Domain [${Uri.base.host}] is not registered. Please add it to the Super Admin hub."
-                    : "Subscription Expired or Account Suspended.",
+                  reason: tenant == null
+                      ? "Domain [${Uri.base.host}] is not registered. Please add it to the Super Admin hub."
+                      : "Subscription Expired or Account Suspended.",
                 ),
               );
             }
@@ -194,19 +204,27 @@ class _MyAppState extends State<MyApp> {
                 ),
               ),
               home: const SplashScreen(),
-              builder: (context, child) {
-                return Stack(
-                  children: [
-                    if (child != null) child,
-                    const GlobalNotificationBannerOverlay(),
-                  ],
-                );
+              onGenerateRoute: (settings) {
+                // Handle browser back button properly
+                return null;
               },
-              routes: {
-                '/customer': (context) => const HomePage(),
-                '/super-admin': (context) => const SuperAdminMasterHub(),
-                '/restaurant-admin': (context) => const StaffGateway(),
-                '/dashboard': (context) => const SuperAdminDashboard(),
+              builder: (context, child) {
+                return PopScope(
+                  canPop: false,
+                  onPopInvokedWithResult: (didPop, result) {
+                    if (didPop) return;
+                    // Handle browser back button - delegate to Navigator
+                    if (Navigator.canPop(context)) {
+                      Navigator.pop(context);
+                    }
+                  },
+                  child: Stack(
+                    children: [
+                      if (child != null) child,
+                      const GlobalNotificationBannerOverlay(),
+                    ],
+                  ),
+                );
               },
             );
           },

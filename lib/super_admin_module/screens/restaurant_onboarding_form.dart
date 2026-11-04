@@ -12,7 +12,8 @@ class RestaurantOnboardingForm extends StatefulWidget {
   });
 
   @override
-  State<RestaurantOnboardingForm> createState() => _RestaurantOnboardingFormState();
+  State<RestaurantOnboardingForm> createState() =>
+      _RestaurantOnboardingFormState();
 }
 
 class _RestaurantOnboardingFormState extends State<RestaurantOnboardingForm> {
@@ -23,7 +24,7 @@ class _RestaurantOnboardingFormState extends State<RestaurantOnboardingForm> {
   final _pinController = TextEditingController(text: "1234");
   final _latController = TextEditingController(); // Added Latitude
   final _lngController = TextEditingController(); // Added Longitude
-  
+
   String _selectedPlan = "Basic";
   DateTime _expiryDate = DateTime.now().add(const Duration(days: 365));
   bool _isPremiumEnabled = false; // Added Master Switch
@@ -50,9 +51,14 @@ class _RestaurantOnboardingFormState extends State<RestaurantOnboardingForm> {
         children: [
           _buildHeader(),
           const SizedBox(height: 32),
-          
+
           if (_isSubmitting)
-            const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator()))
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(40),
+                child: CircularProgressIndicator(),
+              ),
+            )
           else
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -62,17 +68,37 @@ class _RestaurantOnboardingFormState extends State<RestaurantOnboardingForm> {
                   child: Column(
                     children: [
                       _buildSectionCard("1. General Information", [
-                        _buildTextField("Restaurant Name", _nameController, hint: "e.g. Everest Cafe"),
-                        _buildTextField("Custom Domain", _subdomainController, hint: "everestcafe.com"),
+                        _buildTextField(
+                          "Restaurant Name",
+                          _nameController,
+                          hint: "e.g. Everest Cafe",
+                        ),
+                        _buildTextField(
+                          "Custom Domain",
+                          _subdomainController,
+                          hint: "everestcafe.com",
+                        ),
                       ]),
                       const SizedBox(height: 24),
                       _buildSectionCard("2. System Identity", [
-                        _buildTextField("Unique Tenant ID", _tenantIdController, hint: "e.g. everest_01"),
+                        _buildTextField(
+                          "Unique Tenant ID",
+                          _tenantIdController,
+                          hint: "e.g. everest_01",
+                        ),
                       ]),
                       const SizedBox(height: 24),
                       _buildSectionCard("5. Geofencing (GPS)", [
-                        _buildTextField("Latitude", _latController, hint: "e.g. 27.7172"),
-                        _buildTextField("Longitude", _lngController, hint: "e.g. 85.3240"),
+                        _buildTextField(
+                          "Latitude",
+                          _latController,
+                          hint: "e.g. 27.7172",
+                        ),
+                        _buildTextField(
+                          "Longitude",
+                          _lngController,
+                          hint: "e.g. 85.3240",
+                        ),
                       ]),
                     ],
                   ),
@@ -82,24 +108,47 @@ class _RestaurantOnboardingFormState extends State<RestaurantOnboardingForm> {
                   child: Column(
                     children: [
                       _buildSectionCard("3. Subscription", [
-                        _buildDropdownField("Plan", ["Basic", "Pro", "Enterprise"], _selectedPlan, (val) => setState(() => _selectedPlan = val!)),
+                        _buildDropdownField(
+                          "Plan",
+                          ["Basic", "Pro", "Enterprise"],
+                          _selectedPlan,
+                          (val) => setState(() => _selectedPlan = val!),
+                        ),
                         const SizedBox(height: 16),
                         _buildDatePickerTile("Expiry Date", _expiryDate),
                       ]),
                       const SizedBox(height: 24),
                       _buildSectionCard("4. Premium Package", [
                         SwitchListTile(
-                          title: const Text("Enable Premium Services", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                          subtitle: const Text("Includes AR, Voice Assistant, Loyalty & Proximity.", style: TextStyle(fontSize: 11)),
+                          title: const Text(
+                            "Enable Premium Services",
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
+                          subtitle: const Text(
+                            "Includes AR, Voice Assistant, Loyalty & Proximity.",
+                            style: TextStyle(fontSize: 11),
+                          ),
                           value: _isPremiumEnabled,
-                          activeColor: SAMStyles.royalBlue,
-                          onChanged: (val) => setState(() => _isPremiumEnabled = val),
+                          activeTrackColor: SAMStyles.royalBlue,
+                          onChanged: (val) =>
+                              setState(() => _isPremiumEnabled = val),
                         ),
                       ]),
                       const SizedBox(height: 24),
                       _buildSectionCard("5. Security & Access", [
-                        _buildTextField("Admin Email Address", _emailController, hint: "owner@cafe.com"), // UI for Email
-                        _buildTextField("Initial Admin PIN", _pinController, hint: "1234"),
+                        _buildTextField(
+                          "Admin Email Address",
+                          _emailController,
+                          hint: "owner@cafe.com",
+                        ), // UI for Email
+                        _buildTextField(
+                          "Initial Admin PIN",
+                          _pinController,
+                          hint: "1234",
+                        ),
                       ]),
                       const SizedBox(height: 40),
                       _buildActionButtons(),
@@ -121,8 +170,14 @@ class _RestaurantOnboardingFormState extends State<RestaurantOnboardingForm> {
         const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("Onboard New Restaurant", style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900)),
-            Text("Register a new instance onto the SaaS platform.", style: TextStyle(color: SAMStyles.textGrey)),
+            Text(
+              "Onboard New Restaurant",
+              style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900),
+            ),
+            Text(
+              "Register a new instance onto the SaaS platform.",
+              style: TextStyle(color: SAMStyles.textGrey),
+            ),
           ],
         ),
       ],
@@ -141,7 +196,14 @@ class _RestaurantOnboardingFormState extends State<RestaurantOnboardingForm> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: SAMStyles.royalBlue)),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: SAMStyles.royalBlue,
+            ),
+          ),
           const SizedBox(height: 24),
           ...children,
         ],
@@ -149,13 +211,24 @@ class _RestaurantOnboardingFormState extends State<RestaurantOnboardingForm> {
     );
   }
 
-  Widget _buildTextField(String label, TextEditingController controller, {String? hint}) {
+  Widget _buildTextField(
+    String label,
+    TextEditingController controller, {
+    String? hint,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: SAMStyles.textGrey)),
+          Text(
+            label,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+              color: SAMStyles.textGrey,
+            ),
+          ),
           const SizedBox(height: 8),
           TextField(
             controller: controller,
@@ -163,7 +236,10 @@ class _RestaurantOnboardingFormState extends State<RestaurantOnboardingForm> {
               hintText: hint,
               filled: true,
               fillColor: SAMStyles.pearlWhite,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
             ),
           ),
         ],
@@ -171,20 +247,37 @@ class _RestaurantOnboardingFormState extends State<RestaurantOnboardingForm> {
     );
   }
 
-  Widget _buildDropdownField(String label, List<String> items, String value, Function(String?) onChanged) {
+  Widget _buildDropdownField(
+    String label,
+    List<String> items,
+    String value,
+    Function(String?) onChanged,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: SAMStyles.textGrey)),
+        Text(
+          label,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 12,
+            color: SAMStyles.textGrey,
+          ),
+        ),
         const SizedBox(height: 8),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: BoxDecoration(color: SAMStyles.pearlWhite, borderRadius: BorderRadius.circular(12)),
+          decoration: BoxDecoration(
+            color: SAMStyles.pearlWhite,
+            borderRadius: BorderRadius.circular(12),
+          ),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<String>(
               value: value,
               isExpanded: true,
-              items: items.map((i) => DropdownMenuItem(value: i, child: Text(i))).toList(),
+              items: items
+                  .map((i) => DropdownMenuItem(value: i, child: Text(i)))
+                  .toList(),
               onChanged: onChanged,
             ),
           ),
@@ -197,7 +290,14 @@ class _RestaurantOnboardingFormState extends State<RestaurantOnboardingForm> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: SAMStyles.textGrey)),
+        Text(
+          label,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 12,
+            color: SAMStyles.textGrey,
+          ),
+        ),
         const SizedBox(height: 8),
         InkWell(
           onTap: () async {
@@ -211,12 +311,22 @@ class _RestaurantOnboardingFormState extends State<RestaurantOnboardingForm> {
           },
           child: Container(
             padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(color: SAMStyles.pearlWhite, borderRadius: BorderRadius.circular(12)),
+            decoration: BoxDecoration(
+              color: SAMStyles.pearlWhite,
+              borderRadius: BorderRadius.circular(12),
+            ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text("${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}", style: const TextStyle(fontWeight: FontWeight.bold)),
-                const Icon(Icons.calendar_today, size: 18, color: SAMStyles.royalBlue),
+                Text(
+                  "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}",
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const Icon(
+                  Icons.calendar_today,
+                  size: 18,
+                  color: SAMStyles.royalBlue,
+                ),
               ],
             ),
           ),
@@ -239,26 +349,35 @@ class _RestaurantOnboardingFormState extends State<RestaurantOnboardingForm> {
         Expanded(
           child: ElevatedButton(
             onPressed: () {
-              if (_nameController.text.isEmpty || _tenantIdController.text.isEmpty || _subdomainController.text.isEmpty || _emailController.text.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("All fields including Email are required!")));
+              if (_nameController.text.isEmpty ||
+                  _tenantIdController.text.isEmpty ||
+                  _subdomainController.text.isEmpty ||
+                  _emailController.text.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text("All fields including Email are required!"),
+                  ),
+                );
                 return;
               }
-              
+
               setState(() => _isSubmitting = true);
-              
+
               final newTenantData = {
                 'name': _nameController.text,
                 'tenant_id': _tenantIdController.text,
                 'domain': _subdomainController.text,
-                'email': _emailController.text.trim(), // Include Email in payload
+                'email': _emailController.text
+                    .trim(), // Include Email in payload
                 'plan': _selectedPlan,
-                'expiry': "${_expiryDate.year}-${_expiryDate.month.toString().padLeft(2, '0')}-${_expiryDate.day.toString().padLeft(2, '0')}",
+                'expiry':
+                    "${_expiryDate.year}-${_expiryDate.month.toString().padLeft(2, '0')}-${_expiryDate.day.toString().padLeft(2, '0')}",
                 'admin_pin': _pinController.text,
                 'latitude': double.tryParse(_latController.text.trim()) ?? 0.0,
                 'longitude': double.tryParse(_lngController.text.trim()) ?? 0.0,
-                'is_premium_enabled': _isPremiumEnabled ? 1 : 0, 
+                'is_premium_enabled': _isPremiumEnabled ? 1 : 0,
               };
-              
+
               widget.onRegister(newTenantData);
             },
             style: ElevatedButton.styleFrom(minimumSize: const Size(0, 54)),

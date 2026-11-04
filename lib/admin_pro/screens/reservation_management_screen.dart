@@ -12,10 +12,14 @@ class ReservationManagementScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (mode == "Add Booking") _buildAddBookingForm()
-          else if (mode == "Unavailable Day") _buildHolidayView()
-          else if (mode == "Reservation Setting") _buildSettingView()
-          else _buildReservationListView(),
+          if (mode == "Add Booking")
+            _buildAddBookingForm()
+          else if (mode == "Unavailable Day")
+            _buildHolidayView()
+          else if (mode == "Reservation Setting")
+            _buildSettingView()
+          else
+            _buildReservationListView(),
         ],
       ),
     );
@@ -28,11 +32,24 @@ class ReservationManagementScreen extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text("Booking Log", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const Text(
+              "Booking Log",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(color: AdminTheme.royalBlue.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
-              child: const Text("TODAY", style: TextStyle(color: AdminTheme.royalBlue, fontSize: 10, fontWeight: FontWeight.bold)),
+              decoration: BoxDecoration(
+                color: AdminTheme.royalBlue.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Text(
+                "TODAY",
+                style: TextStyle(
+                  color: AdminTheme.royalBlue,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ],
         ),
@@ -43,7 +60,12 @@ class ReservationManagementScreen extends StatelessWidget {
   }
 
   Widget _buildReservationCard(int index) {
-    final List<String> names = ["Yuvraj Patwa", "Catherine J.", "Noah Smith", "Sarah Miller"];
+    final List<String> names = [
+      "Yuvraj Patwa",
+      "Catherine J.",
+      "Noah Smith",
+      "Sarah Miller",
+    ];
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
@@ -56,26 +78,55 @@ class ReservationManagementScreen extends StatelessWidget {
         children: [
           CircleAvatar(
             backgroundColor: AdminTheme.royalBlue.withValues(alpha: 0.1),
-            child: const Icon(Icons.person_outline, color: AdminTheme.royalBlue, size: 20),
+            child: const Icon(
+              Icons.person_outline,
+              color: AdminTheme.royalBlue,
+              size: 20,
+            ),
           ),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(names[index % names.length], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                const Text("Table T-105 • 4 People", style: TextStyle(color: Colors.grey, fontSize: 11)),
+                Text(
+                  names[index % names.length],
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+                const Text(
+                  "Table T-105 • 4 People",
+                  style: TextStyle(color: Colors.grey, fontSize: 11),
+                ),
               ],
             ),
           ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              const Text("07:30 PM", style: TextStyle(fontWeight: FontWeight.w900, color: AdminTheme.darkNavy)),
+              const Text(
+                "07:30 PM",
+                style: TextStyle(
+                  fontWeight: FontWeight.w900,
+                  color: AdminTheme.darkNavy,
+                ),
+              ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(color: AdminTheme.emeraldGreen.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)),
-                child: const Text("CONFIRMED", style: TextStyle(color: AdminTheme.emeraldGreen, fontSize: 8, fontWeight: FontWeight.bold)),
+                decoration: BoxDecoration(
+                  color: AdminTheme.emeraldGreen.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: const Text(
+                  "CONFIRMED",
+                  style: TextStyle(
+                    color: AdminTheme.emeraldGreen,
+                    fontSize: 8,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ],
           ),
@@ -88,7 +139,10 @@ class ReservationManagementScreen extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text("New Reservation", style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+        const Text(
+          "New Reservation",
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+        ),
         const SizedBox(height: 24),
         _buildTextField("Customer Name", "Enter guest name"),
         const SizedBox(height: 16),
@@ -112,7 +166,9 @@ class ReservationManagementScreen extends StatelessWidget {
         const SizedBox(height: 32),
         ElevatedButton(
           onPressed: () {},
-          style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 54)),
+          style: ElevatedButton.styleFrom(
+            minimumSize: const Size(double.infinity, 54),
+          ),
           child: const Text("CREATE BOOKING"),
         ),
       ],
@@ -123,19 +179,39 @@ class ReservationManagementScreen extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text("Restaurant Holidays", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-        const Text("Mark specific dates as unavailable for bookings.", style: TextStyle(color: Colors.grey, fontSize: 11)),
+        const Text(
+          "Restaurant Holidays",
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        const Text(
+          "Mark specific dates as unavailable for bookings.",
+          style: TextStyle(color: Colors.grey, fontSize: 11),
+        ),
         const SizedBox(height: 24),
         Container(
           padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: AdminTheme.softShadow),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: AdminTheme.softShadow,
+          ),
           child: Column(
             children: [
-              const Icon(Icons.calendar_month_outlined, size: 48, color: AdminTheme.royalBlue),
+              const Icon(
+                Icons.calendar_month_outlined,
+                size: 48,
+                color: AdminTheme.royalBlue,
+              ),
               const SizedBox(height: 16),
-              const Text("No unavailable dates set for August.", style: TextStyle(fontWeight: FontWeight.bold)),
+              const Text(
+                "No unavailable dates set for August.",
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
               const SizedBox(height: 24),
-              OutlinedButton(onPressed: () {}, child: const Text("ADD UNAVAILABLE DAY")),
+              OutlinedButton(
+                onPressed: () {},
+                child: const Text("ADD UNAVAILABLE DAY"),
+              ),
             ],
           ),
         ),
@@ -147,7 +223,10 @@ class ReservationManagementScreen extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text("Booking Policy", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        const Text(
+          "Booking Policy",
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
         const SizedBox(height: 16),
         _buildToggleCard("Auto-Confirm Bookings", true),
         _buildToggleCard("SMS Notification", false),
@@ -162,7 +241,10 @@ class ReservationManagementScreen extends StatelessWidget {
       child: SwitchListTile.adaptive(
         value: value,
         onChanged: (v) {},
-        title: Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+        title: Text(
+          label,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+        ),
         activeTrackColor: AdminTheme.emeraldGreen,
       ),
     );
@@ -172,7 +254,14 @@ class ReservationManagementScreen extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey)),
+        Text(
+          label,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 12,
+            color: Colors.grey,
+          ),
+        ),
         const SizedBox(height: 8),
         TextField(
           decoration: InputDecoration(
@@ -180,7 +269,10 @@ class ReservationManagementScreen extends StatelessWidget {
             hintStyle: const TextStyle(fontSize: 13),
             filled: true,
             fillColor: Colors.white,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
           ),
         ),
       ],

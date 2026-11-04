@@ -68,14 +68,15 @@ class _ThemeManagementScreenState extends State<ThemeManagementScreen> {
           _primaryColor = _parseColor(themeData['primary_color'] ?? '#FF5C00');
           _selectedThemeName = themeData['theme_name'] ?? 'Default Blue';
           _isDarkMode = themeData['dark_mode_enabled'] ?? false;
-          _borderRadius = (themeData['border_radius'] as num?)?.toDouble() ?? 16.0;
+          _borderRadius =
+              (themeData['border_radius'] as num?)?.toDouble() ?? 16.0;
           _fontFamily = themeData['font_family'] ?? 'Inter';
           _isLoadingSettings = false;
         });
         return;
       }
     }
-    
+
     // Fallback to SharedPreferences
     final prefs = await SharedPreferences.getInstance();
     if (mounted) {
@@ -97,7 +98,8 @@ class _ThemeManagementScreenState extends State<ThemeManagementScreen> {
     if (tenant != null) {
       final result = await ApiService.updateTheme(
         tenantId: tenant.id,
-        primaryColor: '#${_primaryColor.value.toRadixString(16).substring(2).toUpperCase()}',
+        primaryColor:
+            '#${_primaryColor.value.toRadixString(16).substring(2).toUpperCase()}',
         themeName: _selectedThemeName,
         secondaryColor: '#002D62',
         backgroundColor: '#F8FAFC',
@@ -105,20 +107,22 @@ class _ThemeManagementScreenState extends State<ThemeManagementScreen> {
         borderRadius: _borderRadius,
         darkModeEnabled: _isDarkMode,
       );
-      
+
       if (result['success'] == true) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(result['message'] ?? 'Theme settings saved and applied!'),
+              content: Text(
+                result['message'] ?? 'Theme settings saved and applied!',
+              ),
               backgroundColor: AdminTheme.emeraldGreen,
-            )
+            ),
           );
         }
         return;
       }
     }
-    
+
     // Fallback to SharedPreferences
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('theme_primary_color', _primaryColor.value);
@@ -132,7 +136,7 @@ class _ThemeManagementScreenState extends State<ThemeManagementScreen> {
         const SnackBar(
           content: Text("Theme settings saved locally!"),
           backgroundColor: AdminTheme.emeraldGreen,
-        )
+        ),
       );
     }
   }
@@ -154,10 +158,18 @@ class _ThemeManagementScreenState extends State<ThemeManagementScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: const [
-                  Text("Appearance & Personalization", 
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: AdminTheme.darkNavy)),
-                  Text("Customize your restaurant's digital identity and interface.", 
-                    style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  Text(
+                    "Appearance & Personalization",
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w900,
+                      color: AdminTheme.darkNavy,
+                    ),
+                  ),
+                  Text(
+                    "Customize your restaurant's digital identity and interface.",
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
                 ],
               ),
               ElevatedButton.icon(
@@ -166,36 +178,41 @@ class _ThemeManagementScreenState extends State<ThemeManagementScreen> {
                 label: const Text("APPLY CHANGES"),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: _primaryColor,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 32),
-          LayoutBuilder(builder: (context, constraints) {
-            bool isDesktop = constraints.maxWidth > 900;
-            return Column(
-              children: [
-                if (isDesktop)
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(flex: 3, child: _buildControlsSection()),
-                      const SizedBox(width: 32),
-                      Expanded(flex: 2, child: _buildPreviewSection()),
-                    ],
-                  )
-                else
-                  Column(
-                    children: [
-                      _buildPreviewSection(),
-                      const SizedBox(height: 32),
-                      _buildControlsSection(),
-                    ],
-                  ),
-              ],
-            );
-          }),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              bool isDesktop = constraints.maxWidth > 900;
+              return Column(
+                children: [
+                  if (isDesktop)
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(flex: 3, child: _buildControlsSection()),
+                        const SizedBox(width: 32),
+                        Expanded(flex: 2, child: _buildPreviewSection()),
+                      ],
+                    )
+                  else
+                    Column(
+                      children: [
+                        _buildPreviewSection(),
+                        const SizedBox(height: 32),
+                        _buildControlsSection(),
+                      ],
+                    ),
+                ],
+              );
+            },
+          ),
         ],
       ),
     );
@@ -221,7 +238,10 @@ class _ThemeManagementScreenState extends State<ThemeManagementScreen> {
               const SizedBox(height: 24),
               Row(
                 children: [
-                  const Text("Custom Primary Color: ", style: TextStyle(fontWeight: FontWeight.bold)),
+                  const Text(
+                    "Custom Primary Color: ",
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                   const SizedBox(width: 16),
                   Container(
                     width: 40,
@@ -229,11 +249,14 @@ class _ThemeManagementScreenState extends State<ThemeManagementScreen> {
                     decoration: BoxDecoration(
                       color: _primaryColor,
                       shape: BoxShape.circle,
-                      border: Border.all(color: Colors.grey[300]!, width: 2)
+                      border: Border.all(color: Colors.grey[300]!, width: 2),
                     ),
                   ),
                   const SizedBox(width: 12),
-                  TextButton(onPressed: _showColorPicker, child: const Text("PICK COLOR")),
+                  TextButton(
+                    onPressed: _showColorPicker,
+                    child: const Text("PICK COLOR"),
+                  ),
                 ],
               ),
             ],
@@ -247,10 +270,10 @@ class _ThemeManagementScreenState extends State<ThemeManagementScreen> {
           child: Column(
             children: [
               _buildToggleOption(
-                "Dark Mode", 
-                "Reduce eye strain in low light.", 
-                _isDarkMode, 
-                (v) => setState(() => _isDarkMode = v)
+                "Dark Mode",
+                "Reduce eye strain in low light.",
+                _isDarkMode,
+                (v) => setState(() => _isDarkMode = v),
               ),
               const Divider(),
               Padding(
@@ -261,8 +284,17 @@ class _ThemeManagementScreenState extends State<ThemeManagementScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text("Component Roundness", style: TextStyle(fontWeight: FontWeight.bold)),
-                        Text("${_borderRadius.toInt()}px", style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+                        const Text(
+                          "Component Roundness",
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        Text(
+                          "${_borderRadius.toInt()}px",
+                          style: const TextStyle(
+                            color: Colors.grey,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ],
                     ),
                     Slider(
@@ -291,27 +323,54 @@ class _ThemeManagementScreenState extends State<ThemeManagementScreen> {
                 decoration: InputDecoration(
                   filled: true,
                   fillColor: Colors.grey[50],
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
                 ),
-                items: ['Inter', 'Roboto', 'Poppins', 'Lato', 'Open Sans', 'Serif', 'Monospace']
-                    .map((f) => DropdownMenuItem(value: f, child: Text(f))).toList(),
+                items:
+                    [
+                          'Inter',
+                          'Roboto',
+                          'Poppins',
+                          'Lato',
+                          'Open Sans',
+                          'Serif',
+                          'Monospace',
+                        ]
+                        .map((f) => DropdownMenuItem(value: f, child: Text(f)))
+                        .toList(),
                 onChanged: (v) => setState(() => _fontFamily = v!),
               ),
               const SizedBox(height: 20),
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: _isDarkMode ? Colors.white.withValues(alpha: 0.05) : Colors.grey[100],
+                  color: _isDarkMode
+                      ? Colors.white.withValues(alpha: 0.05)
+                      : Colors.grey[100],
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text("Aa - Quick Brown Fox", 
-                      style: TextStyle(fontFamily: _fontFamily, fontSize: 18, fontWeight: FontWeight.bold)),
+                    Text(
+                      "Aa - Quick Brown Fox",
+                      style: TextStyle(
+                        fontFamily: _fontFamily,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     const SizedBox(height: 4),
-                    Text("This is how your menu and dashboard text will look.", 
-                      style: TextStyle(fontFamily: _fontFamily, fontSize: 12, color: Colors.grey[600])),
+                    Text(
+                      "This is how your menu and dashboard text will look.",
+                      style: TextStyle(
+                        fontFamily: _fontFamily,
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -335,15 +394,38 @@ class _ThemeManagementScreenState extends State<ThemeManagementScreen> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: isSelected ? _primaryColor : Colors.grey[200]!, width: 2),
-          boxShadow: isSelected ? [BoxShadow(color: _primaryColor.withValues(alpha: 0.1), blurRadius: 10)] : null,
+          border: Border.all(
+            color: isSelected ? _primaryColor : Colors.grey[200]!,
+            width: 2,
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: _primaryColor.withValues(alpha: 0.1),
+                    blurRadius: 10,
+                  ),
+                ]
+              : null,
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(width: 12, height: 12, decoration: BoxDecoration(color: t['primary'], shape: BoxShape.circle)),
+            Container(
+              width: 12,
+              height: 12,
+              decoration: BoxDecoration(
+                color: t['primary'],
+                shape: BoxShape.circle,
+              ),
+            ),
             const SizedBox(width: 8),
-            Text(t['name'], style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.normal, fontSize: 12)),
+            Text(
+              t['name'],
+              style: TextStyle(
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                fontSize: 12,
+              ),
+            ),
           ],
         ),
       ),
@@ -354,7 +436,15 @@ class _ThemeManagementScreenState extends State<ThemeManagementScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text("LIVE PREVIEW", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1)),
+        const Text(
+          "LIVE PREVIEW",
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w900,
+            color: Colors.grey,
+            letterSpacing: 1,
+          ),
+        ),
         const SizedBox(height: 16),
         Container(
           width: double.infinity,
@@ -371,31 +461,59 @@ class _ThemeManagementScreenState extends State<ThemeManagementScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Container(width: 80, height: 12, decoration: BoxDecoration(color: _primaryColor.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(4))),
+                  Container(
+                    width: 80,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      color: _primaryColor.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
                   CircleAvatar(radius: 12, backgroundColor: _primaryColor),
                 ],
               ),
               const SizedBox(height: 32),
-              
+
               // Fake Card
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: _isDarkMode ? const Color(0xFF1E1E2C) : AdminTheme.pearlWhite,
+                  color: _isDarkMode
+                      ? const Color(0xFF1E1E2C)
+                      : AdminTheme.pearlWhite,
                   borderRadius: BorderRadius.circular(_borderRadius),
                 ),
                 child: Column(
                   children: [
                     Row(
                       children: [
-                        Container(width: 40, height: 40, decoration: BoxDecoration(color: _primaryColor, borderRadius: BorderRadius.circular(8))),
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: _primaryColor,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
                         const SizedBox(width: 12),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Container(width: 100, height: 8, color: _isDarkMode ? Colors.white24 : Colors.grey[300]),
+                            Container(
+                              width: 100,
+                              height: 8,
+                              color: _isDarkMode
+                                  ? Colors.white24
+                                  : Colors.grey[300],
+                            ),
                             const SizedBox(height: 4),
-                            Container(width: 60, height: 6, color: _isDarkMode ? Colors.white12 : Colors.grey[200]),
+                            Container(
+                              width: 60,
+                              height: 6,
+                              color: _isDarkMode
+                                  ? Colors.white12
+                                  : Colors.grey[200],
+                            ),
                           ],
                         ),
                       ],
@@ -404,16 +522,29 @@ class _ThemeManagementScreenState extends State<ThemeManagementScreen> {
                 ),
               ),
               const SizedBox(height: 24),
-              
+
               // Fake Button
               Container(
                 width: double.infinity,
                 height: 40,
-                decoration: BoxDecoration(color: _primaryColor, borderRadius: BorderRadius.circular(_borderRadius)),
-                child: Center(child: Text("ORDER NOW", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10, fontFamily: _fontFamily))),
+                decoration: BoxDecoration(
+                  color: _primaryColor,
+                  borderRadius: BorderRadius.circular(_borderRadius),
+                ),
+                child: Center(
+                  child: Text(
+                    "ORDER NOW",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 10,
+                      fontFamily: _fontFamily,
+                    ),
+                  ),
+                ),
               ),
               const SizedBox(height: 16),
-              
+
               // Fake Tabs
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -427,9 +558,23 @@ class _ThemeManagementScreenState extends State<ThemeManagementScreen> {
           ),
         ),
         const SizedBox(height: 24),
-        Text("Current Font: $_fontFamily", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: _primaryColor, fontFamily: _fontFamily)),
-        const Text("This preview reflects how your SaaS dashboard will appear to your specific restaurant account.", 
-          style: TextStyle(color: Colors.grey, fontSize: 11, fontStyle: FontStyle.italic)),
+        Text(
+          "Current Font: $_fontFamily",
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            color: _primaryColor,
+            fontFamily: _fontFamily,
+          ),
+        ),
+        const Text(
+          "This preview reflects how your SaaS dashboard will appear to your specific restaurant account.",
+          style: TextStyle(
+            color: Colors.grey,
+            fontSize: 11,
+            fontStyle: FontStyle.italic,
+          ),
+        ),
       ],
     );
   }
@@ -437,7 +582,15 @@ class _ThemeManagementScreenState extends State<ThemeManagementScreen> {
   Widget _buildMiniTab(String label, bool active) {
     return Column(
       children: [
-        Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: active ? _primaryColor : Colors.grey, fontFamily: _fontFamily)),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
+            color: active ? _primaryColor : Colors.grey,
+            fontFamily: _fontFamily,
+          ),
+        ),
         const SizedBox(height: 4),
         if (active) Container(width: 20, height: 2, color: _primaryColor),
       ],
@@ -454,39 +607,48 @@ class _ThemeManagementScreenState extends State<ThemeManagementScreen> {
           child: Wrap(
             spacing: 12,
             runSpacing: 12,
-            children: Colors.primaries.map((c) => GestureDetector(
-              onTap: () {
-                setState(() {
-                  _primaryColor = c;
-                  _selectedThemeName = "Custom";
-                });
-                Navigator.pop(ctx);
-              },
-              child: Container(
-                width: 45,
-                height: 45,
-                decoration: BoxDecoration(
-                  color: c, 
-                  shape: BoxShape.circle, 
-                  border: Border.all(color: Colors.white, width: 2),
-                  boxShadow: AdminTheme.softShadow
-                ),
-              ),
-            )).toList(),
+            children: Colors.primaries
+                .map(
+                  (c) => GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _primaryColor = c;
+                        _selectedThemeName = "Custom";
+                      });
+                      Navigator.pop(ctx);
+                    },
+                    child: Container(
+                      width: 45,
+                      height: 45,
+                      decoration: BoxDecoration(
+                        color: c,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2),
+                        boxShadow: AdminTheme.softShadow,
+                      ),
+                    ),
+                  ),
+                )
+                .toList(),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildSectionCard({required String title, required String subtitle, required IconData icon, required Widget child}) {
+  Widget _buildSectionCard({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Widget child,
+  }) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
-        boxShadow: AdminTheme.softShadow
+        boxShadow: AdminTheme.softShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -495,15 +657,27 @@ class _ThemeManagementScreenState extends State<ThemeManagementScreen> {
             children: [
               Container(
                 padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(color: _primaryColor.withValues(alpha: 0.1), shape: BoxShape.circle),
-                child: Icon(icon, color: _primaryColor, size: 20)
+                decoration: BoxDecoration(
+                  color: _primaryColor.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, color: _primaryColor, size: 20),
               ),
               const SizedBox(width: 16),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                  Text(subtitle, style: const TextStyle(color: Colors.grey, fontSize: 11)),
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(color: Colors.grey, fontSize: 11),
+                  ),
                 ],
               ),
             ],
@@ -515,7 +689,12 @@ class _ThemeManagementScreenState extends State<ThemeManagementScreen> {
     );
   }
 
-  Widget _buildToggleOption(String title, String sub, bool val, Function(bool) onChanged) {
+  Widget _buildToggleOption(
+    String title,
+    String sub,
+    bool val,
+    Function(bool) onChanged,
+  ) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: Row(
@@ -525,7 +704,10 @@ class _ThemeManagementScreenState extends State<ThemeManagementScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-              Text(sub, style: const TextStyle(color: Colors.grey, fontSize: 11)),
+              Text(
+                sub,
+                style: const TextStyle(color: Colors.grey, fontSize: 11),
+              ),
             ],
           ),
           Switch(value: val, onChanged: onChanged, activeColor: _primaryColor),

@@ -16,9 +16,16 @@ class KitchenHub extends StatefulWidget {
   State<KitchenHub> createState() => _KitchenHubState();
 }
 
-class _KitchenHubState extends State<KitchenHub> with SingleTickerProviderStateMixin {
+class _KitchenHubState extends State<KitchenHub>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  final List<String> _stages = ["Incoming", "Preparing", "Ready", "History", "Stock Out"];
+  final List<String> _stages = [
+    "Incoming",
+    "Preparing",
+    "Ready",
+    "History",
+    "Stock Out",
+  ];
   List<Map<String, dynamic>> _liveOrders = [];
   List<Map<String, dynamic>> _historyOrders = []; // Added
   List<Map<String, dynamic>> _stockReports = [];
@@ -31,18 +38,23 @@ class _KitchenHubState extends State<KitchenHub> with SingleTickerProviderStateM
     super.initState();
     _tabController = TabController(length: 5, vsync: this);
     _refreshKitchen(isInitial: true);
-    
+
     // Start automatic light polling every 8 seconds
-    _refreshTimer = Timer.periodic(const Duration(seconds: 8), (_) => _syncKDS());
+    _refreshTimer = Timer.periodic(
+      const Duration(seconds: 8),
+      (_) => _syncKDS(),
+    );
   }
 
   Future<void> _syncKDS() async {
     final tenant = TenantService().currentTenant.value;
     if (tenant == null) return;
-    
+
     final serverMod = await ApiService.checkOrderChange(tenant.id);
     if (serverMod > _lastMod) {
-      debugPrint("KDS: Change detected ($serverMod > $_lastMod). Refreshing...");
+      debugPrint(
+        "KDS: Change detected ($serverMod > $_lastMod). Refreshing...",
+      );
       _refreshKitchen();
       _lastMod = serverMod;
     }
@@ -53,7 +65,7 @@ class _KitchenHubState extends State<KitchenHub> with SingleTickerProviderStateM
     if (tenant == null) return;
 
     if (isInitial) setState(() => _isLoading = true);
-    
+
     final results = await Future.wait([
       ApiService.fetchActiveOrders(tenant.id),
       ApiService.fetchOrderHistory(tenant.id),
@@ -62,9 +74,12 @@ class _KitchenHubState extends State<KitchenHub> with SingleTickerProviderStateM
 
     if (mounted) {
       setState(() {
-        if (results[0] != null) _liveOrders = results[0] as List<Map<String, dynamic>>;
-        if (results[1] != null) _historyOrders = results[1] as List<Map<String, dynamic>>;
-        if (results[2] != null) _stockReports = results[2] as List<Map<String, dynamic>>;
+        if (results[0] != null)
+          _liveOrders = results[0] as List<Map<String, dynamic>>;
+        if (results[1] != null)
+          _historyOrders = results[1] as List<Map<String, dynamic>>;
+        if (results[2] != null)
+          _stockReports = results[2] as List<Map<String, dynamic>>;
         _isLoading = false;
       });
     }
@@ -76,13 +91,19 @@ class _KitchenHubState extends State<KitchenHub> with SingleTickerProviderStateM
       _refreshKitchen();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Order marked as $newStatus"), backgroundColor: KitchenTheme.emeraldGreen),
+          SnackBar(
+            content: Text("Order marked as $newStatus"),
+            backgroundColor: KitchenTheme.emeraldGreen,
+          ),
         );
       }
     } else {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: ${res['message']}"), backgroundColor: Colors.red),
+        SnackBar(
+          content: Text("Error: ${res['message']}"),
+          backgroundColor: Colors.red,
+        ),
       );
     }
   }
@@ -110,24 +131,50 @@ class _KitchenHubState extends State<KitchenHub> with SingleTickerProviderStateM
               titleSpacing: 16,
               title: Row(
                 children: [
-                  const Icon(Icons.restaurant_menu, color: KitchenTheme.royalBlue, size: 24),
+                  const Icon(
+                    Icons.restaurant_menu,
+                    color: KitchenTheme.royalBlue,
+                    size: 24,
+                  ),
                   const SizedBox(width: 10),
-                  Text("KDS: ${currentStaff.name}", style: const TextStyle(fontSize: 18)),
+                  Text(
+                    "KDS: ${currentStaff.name}",
+                    style: const TextStyle(fontSize: 18),
+                  ),
                   const SizedBox(width: 12),
                   Flexible(
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: KitchenTheme.emeraldGreen.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: KitchenTheme.emeraldGreen.withValues(alpha: 0.3)),
+                        border: Border.all(
+                          color: KitchenTheme.emeraldGreen.withValues(
+                            alpha: 0.3,
+                          ),
+                        ),
                       ),
                       child: const Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          CircleAvatar(radius: 3, backgroundColor: KitchenTheme.emeraldGreen),
+                          CircleAvatar(
+                            radius: 3,
+                            backgroundColor: KitchenTheme.emeraldGreen,
+                          ),
                           SizedBox(width: 4),
-                          Flexible(child: Text("LIVE", style: TextStyle(color: KitchenTheme.emeraldGreen, fontSize: 9, fontWeight: FontWeight.w900))),
+                          Flexible(
+                            child: Text(
+                              "LIVE",
+                              style: TextStyle(
+                                color: KitchenTheme.emeraldGreen,
+                                fontSize: 9,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -137,12 +184,18 @@ class _KitchenHubState extends State<KitchenHub> with SingleTickerProviderStateM
               actions: [
                 IconButton(
                   onPressed: _showStockOutDialog,
-                  icon: const Icon(Icons.warning_amber_rounded, color: Colors.orange),
+                  icon: const Icon(
+                    Icons.warning_amber_rounded,
+                    color: Colors.orange,
+                  ),
                   tooltip: "Report Stock Out",
                 ),
                 IconButton(
                   onPressed: _refreshKitchen,
-                  icon: const Icon(Icons.refresh_rounded, color: KitchenTheme.royalBlue),
+                  icon: const Icon(
+                    Icons.refresh_rounded,
+                    color: KitchenTheme.royalBlue,
+                  ),
                   tooltip: "Sync Orders",
                 ),
                 const SizedBox(width: 16),
@@ -167,12 +220,24 @@ class _KitchenHubState extends State<KitchenHub> with SingleTickerProviderStateM
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 const Text("Stock Out"),
-                                if (_stockReports.any((r) => r['status'] != 'Received')) ...[
+                                if (_stockReports.any(
+                                  (r) => r['status'] != 'Received',
+                                )) ...[
                                   const SizedBox(width: 6),
                                   Container(
                                     padding: const EdgeInsets.all(4),
-                                    decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
-                                    child: Text("${_stockReports.where((r) => r['status'] != 'Received').length}", style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
+                                    decoration: const BoxDecoration(
+                                      color: Colors.red,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Text(
+                                      "${_stockReports.where((r) => r['status'] != 'Received').length}",
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 8,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
                                   ),
                                 ],
                               ],
@@ -186,18 +251,18 @@ class _KitchenHubState extends State<KitchenHub> with SingleTickerProviderStateM
                 ),
               ),
             ),
-            body: _isLoading 
-              ? const Center(child: CircularProgressIndicator())
-              : TabBarView(
-                  controller: _tabController,
-                  children: [
-                    _buildStageView("Pending"),
-                    _buildStageView("Preparing"),
-                    _buildStageView("Ready"),
-                    _buildHistoryView(),
-                    _buildStockLogView(),
-                  ],
-                ),
+            body: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : TabBarView(
+                    controller: _tabController,
+                    children: [
+                      _buildStageView("Pending"),
+                      _buildStageView("Preparing"),
+                      _buildStageView("Ready"),
+                      _buildHistoryView(),
+                      _buildStockLogView(),
+                    ],
+                  ),
           ),
         );
       },
@@ -215,13 +280,29 @@ class _KitchenHubState extends State<KitchenHub> with SingleTickerProviderStateM
         scrollDirection: Axis.horizontal,
         child: Row(
           children: [
-            _buildSummaryChip("PENDING", pending.toString().padLeft(2, '0'), Colors.orange),
+            _buildSummaryChip(
+              "PENDING",
+              pending.toString().padLeft(2, '0'),
+              Colors.orange,
+            ),
             const SizedBox(width: 8),
-            _buildSummaryChip("COOKING", cooking.toString().padLeft(2, '0'), KitchenTheme.royalBlue),
+            _buildSummaryChip(
+              "COOKING",
+              cooking.toString().padLeft(2, '0'),
+              KitchenTheme.royalBlue,
+            ),
             const SizedBox(width: 8),
-            _buildSummaryChip("READY", ready.toString().padLeft(2, '0'), KitchenTheme.emeraldGreen),
+            _buildSummaryChip(
+              "READY",
+              ready.toString().padLeft(2, '0'),
+              KitchenTheme.emeraldGreen,
+            ),
             const SizedBox(width: 8),
-            _buildSummaryChip("TOTAL", _liveOrders.length.toString().padLeft(2, '0'), KitchenTheme.darkNavy),
+            _buildSummaryChip(
+              "TOTAL",
+              _liveOrders.length.toString().padLeft(2, '0'),
+              KitchenTheme.darkNavy,
+            ),
           ],
         ),
       ),
@@ -231,33 +312,62 @@ class _KitchenHubState extends State<KitchenHub> with SingleTickerProviderStateM
   Widget _buildSummaryChip(String label, String count, Color color) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(color: color.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(10), border: Border.all(color: color.withValues(alpha: 0.1))),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withValues(alpha: 0.1)),
+      ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(count, style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 14)),
+          Text(
+            count,
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.w900,
+              fontSize: 14,
+            ),
+          ),
           const SizedBox(width: 6),
-          Text(label, style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold, fontSize: 8)),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.grey,
+              fontWeight: FontWeight.bold,
+              fontSize: 8,
+            ),
+          ),
         ],
       ),
     );
   }
 
   Widget _buildStageView(String filterStatus) {
-    // KITCHEN LOGIC: 
+    // KITCHEN LOGIC:
     // If we are looking for 'Incoming' orders, we actually check for 'Approved' status in DB
-    final dbFilterStatus = filterStatus == 'Pending' ? 'Approved' : filterStatus;
-    
-    final filteredOrders = _liveOrders.where((o) => o['status'] == dbFilterStatus).toList();
+    final dbFilterStatus = filterStatus == 'Pending'
+        ? 'Approved'
+        : filterStatus;
+
+    final filteredOrders = _liveOrders
+        .where((o) => o['status'] == dbFilterStatus)
+        .toList();
 
     if (filteredOrders.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.check_circle_outline, size: 64, color: Colors.grey.withValues(alpha: 0.2)),
+            Icon(
+              Icons.check_circle_outline,
+              size: 64,
+              color: Colors.grey.withValues(alpha: 0.2),
+            ),
             const SizedBox(height: 16),
-            Text("No orders currently in $filterStatus", style: const TextStyle(color: Colors.grey)),
+            Text(
+              "No orders currently in $filterStatus",
+              style: const TextStyle(color: Colors.grey),
+            ),
           ],
         ),
       );
@@ -266,26 +376,40 @@ class _KitchenHubState extends State<KitchenHub> with SingleTickerProviderStateM
     return GridView.builder(
       padding: const EdgeInsets.all(16),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: Responsive.gridColumns(context, phone: 1, tablet: 2, desktop: 4),
+        crossAxisCount: Responsive.gridColumns(
+          context,
+          phone: 1,
+          tablet: 2,
+          desktop: 4,
+        ),
         mainAxisSpacing: 16,
         crossAxisSpacing: 16,
-        childAspectRatio: Responsive.value(context, phone: 1.2, tablet: 0.9, desktop: 0.8),
+        childAspectRatio: Responsive.value(
+          context,
+          phone: 1.2,
+          tablet: 0.9,
+          desktop: 0.8,
+        ),
       ),
       itemCount: filteredOrders.length,
       itemBuilder: (context, index) {
         final order = filteredOrders[index];
         final List<dynamic> rawItems = order['items'] ?? [];
-        
-        final List<CartItem> cartItems = rawItems.map((i) => CartItem(
-          product: Product(
-            title: i['product_name'] ?? "Unknown", 
-            price: i['price_at_order']?.toString() ?? "0", 
-            image: "",
-            tag: "Kitchen",
-            rating: "5.0",
-          ),
-          quantity: int.tryParse(i['quantity']?.toString() ?? '1') ?? 1,
-        )).toList();
+
+        final List<CartItem> cartItems = rawItems
+            .map(
+              (i) => CartItem(
+                product: Product(
+                  title: i['product_name'] ?? "Unknown",
+                  price: i['price_at_order']?.toString() ?? "0",
+                  image: "",
+                  tag: "Kitchen",
+                  rating: "5.0",
+                ),
+                quantity: int.tryParse(i['quantity']?.toString() ?? '1') ?? 1,
+              ),
+            )
+            .toList();
 
         return KotTicketCard(
           tableId: int.parse(order['table_number'].toString()),
@@ -293,13 +417,13 @@ class _KitchenHubState extends State<KitchenHub> with SingleTickerProviderStateM
           secondsElapsed: 0,
           stage: filterStatus == 'Pending' ? 'Incoming' : filterStatus,
           onAction: () {
-             if (filterStatus == 'Pending') {
-               _changeStatus(int.parse(order['id'].toString()), 'Preparing');
-             } else if (filterStatus == 'Preparing') {
-               _changeStatus(int.parse(order['id'].toString()), 'Ready');
-             } else if (filterStatus == 'Ready') {
-               _changeStatus(int.parse(order['id'].toString()), 'Completed');
-             }
+            if (filterStatus == 'Pending') {
+              _changeStatus(int.parse(order['id'].toString()), 'Preparing');
+            } else if (filterStatus == 'Preparing') {
+              _changeStatus(int.parse(order['id'].toString()), 'Ready');
+            } else if (filterStatus == 'Ready') {
+              _changeStatus(int.parse(order['id'].toString()), 'Completed');
+            }
           },
         );
       },
@@ -312,9 +436,16 @@ class _KitchenHubState extends State<KitchenHub> with SingleTickerProviderStateM
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.history_rounded, size: 64, color: Colors.grey.withValues(alpha: 0.1)),
+            Icon(
+              Icons.history_rounded,
+              size: 64,
+              color: Colors.grey.withValues(alpha: 0.1),
+            ),
             const SizedBox(height: 16),
-            const Text("No order history found.", style: TextStyle(color: Colors.grey)),
+            const Text(
+              "No order history found.",
+              style: TextStyle(color: Colors.grey),
+            ),
           ],
         ),
       );
@@ -327,27 +458,33 @@ class _KitchenHubState extends State<KitchenHub> with SingleTickerProviderStateM
         final order = _historyOrders[index];
         final List<dynamic> rawItems = order['items'] ?? [];
         final status = order['status'] ?? 'Completed';
-        
+
         return Card(
           margin: const EdgeInsets.only(bottom: 12),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           child: ExpansionTile(
             shape: const RoundedRectangleBorder(side: BorderSide.none),
             leading: CircleAvatar(
-              backgroundColor: status == 'Completed' ? Colors.green.withValues(alpha: 0.1) : Colors.red.withValues(alpha: 0.1),
+              backgroundColor: status == 'Completed'
+                  ? Colors.green.withValues(alpha: 0.1)
+                  : Colors.red.withValues(alpha: 0.1),
               child: Icon(
-                status == 'Completed' ? Icons.check_circle_outline : Icons.cancel_outlined,
+                status == 'Completed'
+                    ? Icons.check_circle_outline
+                    : Icons.cancel_outlined,
                 color: status == 'Completed' ? Colors.green : Colors.red,
                 size: 20,
               ),
             ),
             title: Text(
-              "Table T-${order['table_number']} • #ORD-${order['id']}", 
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)
+              "Table T-${order['table_number']} • #ORD-${order['id']}",
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
             ),
             subtitle: Text(
-              "Closed at: ${order['updated_at']}", 
-              style: const TextStyle(fontSize: 10, color: Colors.grey)
+              "Closed at: ${order['updated_at']}",
+              style: const TextStyle(fontSize: 10, color: Colors.grey),
             ),
             children: [
               Padding(
@@ -355,16 +492,30 @@ class _KitchenHubState extends State<KitchenHub> with SingleTickerProviderStateM
                 child: Column(
                   children: [
                     const Divider(),
-                    ...rawItems.map((i) => Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 4),
-                      child: Row(
-                        children: [
-                          Text("${i['quantity']}x", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: KitchenTheme.royalBlue)),
-                          const SizedBox(width: 12),
-                          Expanded(child: Text(i['product_name'] ?? 'Item', style: const TextStyle(fontSize: 12))),
-                        ],
+                    ...rawItems.map(
+                      (i) => Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: Row(
+                          children: [
+                            Text(
+                              "${i['quantity']}x",
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                                color: KitchenTheme.royalBlue,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                i['product_name'] ?? 'Item',
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    )),
+                    ),
                   ],
                 ),
               ),
@@ -381,9 +532,16 @@ class _KitchenHubState extends State<KitchenHub> with SingleTickerProviderStateM
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.inventory_2_outlined, size: 64, color: Colors.grey.withValues(alpha: 0.1)),
+            Icon(
+              Icons.inventory_2_outlined,
+              size: 64,
+              color: Colors.grey.withValues(alpha: 0.1),
+            ),
             const SizedBox(height: 16),
-            const Text("No stock reports found.", style: TextStyle(color: Colors.grey)),
+            const Text(
+              "No stock reports found.",
+              style: TextStyle(color: Colors.grey),
+            ),
           ],
         ),
       );
@@ -394,7 +552,8 @@ class _KitchenHubState extends State<KitchenHub> with SingleTickerProviderStateM
       child: ListView.builder(
         padding: const EdgeInsets.all(16),
         itemCount: _stockReports.length,
-        itemBuilder: (context, index) => _buildStockReportCard(_stockReports[index]),
+        itemBuilder: (context, index) =>
+            _buildStockReportCard(_stockReports[index]),
       ),
     );
   }
@@ -405,7 +564,10 @@ class _KitchenHubState extends State<KitchenHub> with SingleTickerProviderStateM
       _refreshKitchen();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Saman Received! Alert Closed."), backgroundColor: Colors.green),
+          const SnackBar(
+            content: Text("Saman Received! Alert Closed."),
+            backgroundColor: Colors.green,
+          ),
         );
       }
     }
@@ -415,7 +577,7 @@ class _KitchenHubState extends State<KitchenHub> with SingleTickerProviderStateM
     final status = r['status'] ?? 'Requested';
     final urgency = r['urgency'] ?? 'Medium';
     final int reportId = int.parse(r['id'].toString());
-    
+
     IconData statusIcon = Icons.hourglass_empty_rounded;
     Color statusColor = Colors.orange;
     String statusText = "Requested";
@@ -435,7 +597,12 @@ class _KitchenHubState extends State<KitchenHub> with SingleTickerProviderStateM
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10)],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 10,
+          ),
+        ],
         border: Border.all(color: statusColor.withValues(alpha: 0.1)),
       ),
       child: Column(
@@ -457,8 +624,21 @@ class _KitchenHubState extends State<KitchenHub> with SingleTickerProviderStateM
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(r['item_name'] ?? 'Item', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
-                          Text(statusText, style: TextStyle(fontSize: 11, color: statusColor, fontWeight: FontWeight.bold)),
+                          Text(
+                            r['item_name'] ?? 'Item',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 16,
+                            ),
+                          ),
+                          Text(
+                            statusText,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: statusColor,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -467,10 +647,17 @@ class _KitchenHubState extends State<KitchenHub> with SingleTickerProviderStateM
                 ),
                 if (r['notes'] != null && r['notes'].toString().isNotEmpty) ...[
                   const SizedBox(height: 12),
-                  Text("Notes: ${r['notes']}", style: const TextStyle(fontSize: 12, color: Colors.blueGrey, fontStyle: FontStyle.italic)),
+                  Text(
+                    "Notes: ${r['notes']}",
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Colors.blueGrey,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
                 ],
                 const SizedBox(height: 20),
-                
+
                 // --- VISUAL STAPER (PROGRESS LINE) ---
                 _buildVisualStaper(status),
               ],
@@ -482,7 +669,11 @@ class _KitchenHubState extends State<KitchenHub> with SingleTickerProviderStateM
               height: 54,
               decoration: BoxDecoration(
                 color: const Color(0xFF16A34A).withValues(alpha: 0.05),
-                border: Border(top: BorderSide(color: const Color(0xFF16A34A).withValues(alpha: 0.1))),
+                border: Border(
+                  top: BorderSide(
+                    color: const Color(0xFF16A34A).withValues(alpha: 0.1),
+                  ),
+                ),
               ),
               child: Material(
                 color: Colors.transparent,
@@ -492,9 +683,21 @@ class _KitchenHubState extends State<KitchenHub> with SingleTickerProviderStateM
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.check_circle_rounded, color: Color(0xFF16A34A), size: 18),
+                        Icon(
+                          Icons.check_circle_rounded,
+                          color: Color(0xFF16A34A),
+                          size: 18,
+                        ),
                         SizedBox(width: 8),
-                        Text("CONFIRM SAMAN RECEIVED", style: TextStyle(color: Color(0xFF16A34A), fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 0.5)),
+                        Text(
+                          "CONFIRM SAMAN RECEIVED",
+                          style: TextStyle(
+                            color: Color(0xFF16A34A),
+                            fontWeight: FontWeight.w900,
+                            fontSize: 13,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -508,7 +711,8 @@ class _KitchenHubState extends State<KitchenHub> with SingleTickerProviderStateM
 
   Widget _buildVisualStaper(String currentStatus) {
     bool isRequested = true; // Always true if in log
-    bool isApproved = currentStatus == 'Approved' || currentStatus == 'Received';
+    bool isApproved =
+        currentStatus == 'Approved' || currentStatus == 'Received';
     bool isReceived = currentStatus == 'Received';
 
     return Row(
@@ -531,19 +735,33 @@ class _KitchenHubState extends State<KitchenHub> with SingleTickerProviderStateM
     return Column(
       children: [
         Container(
-          width: 24, height: 24,
+          width: 24,
+          height: 24,
           decoration: BoxDecoration(
-            color: isActive ? (isNextActive ? Colors.green : KitchenTheme.royalBlue) : Colors.grey[200],
+            color: isActive
+                ? (isNextActive ? Colors.green : KitchenTheme.royalBlue)
+                : Colors.grey[200],
             shape: BoxShape.circle,
           ),
           child: Icon(
-            isNextActive ? Icons.check : (isActive ? Icons.radio_button_checked : Icons.radio_button_off),
+            isNextActive
+                ? Icons.check
+                : (isActive
+                      ? Icons.radio_button_checked
+                      : Icons.radio_button_off),
             color: isActive ? Colors.white : Colors.grey[400],
             size: 14,
           ),
         ),
         const SizedBox(height: 4),
-        Text(displayLabel, style: TextStyle(fontSize: 7.5, fontWeight: FontWeight.w900, color: isActive ? KitchenTheme.darkNavy : Colors.grey)),
+        Text(
+          displayLabel,
+          style: TextStyle(
+            fontSize: 7.5,
+            fontWeight: FontWeight.w900,
+            color: isActive ? KitchenTheme.darkNavy : Colors.grey,
+          ),
+        ),
       ],
     );
   }
@@ -565,8 +783,18 @@ class _KitchenHubState extends State<KitchenHub> with SingleTickerProviderStateM
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
-      child: Text(urgency.toUpperCase(), style: TextStyle(color: color, fontSize: 8, fontWeight: FontWeight.w900)),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        urgency.toUpperCase(),
+        style: TextStyle(
+          color: color,
+          fontSize: 8,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
     );
   }
 
@@ -579,54 +807,96 @@ class _KitchenHubState extends State<KitchenHub> with SingleTickerProviderStateM
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setModalState) => AlertDialog(
-          title: const Text("Detailed Stock Report", style: TextStyle(fontWeight: FontWeight.w900)),
+          title: const Text(
+            "Detailed Stock Report",
+            style: TextStyle(fontWeight: FontWeight.w900),
+          ),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text("ITEM NAME", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey)),
+                const Text(
+                  "ITEM NAME",
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.grey,
+                  ),
+                ),
                 const SizedBox(height: 8),
                 TextField(
                   controller: itemController,
                   decoration: InputDecoration(
                     hintText: "e.g. Fresh Milk, Sugar",
-                    filled: true, fillColor: Colors.grey[100],
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                    filled: true,
+                    fillColor: Colors.grey[100],
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 20),
-                const Text("URGENCY LEVEL", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey)),
+                const Text(
+                  "URGENCY LEVEL",
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.grey,
+                  ),
+                ),
                 const SizedBox(height: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12),
-                  decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(12)),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<String>(
                       value: urgency,
                       isExpanded: true,
-                      items: ["Low", "Medium", "Critical"].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+                      items: ["Low", "Medium", "Critical"]
+                          .map(
+                            (e) => DropdownMenuItem(value: e, child: Text(e)),
+                          )
+                          .toList(),
                       onChanged: (v) => setModalState(() => urgency = v!),
                     ),
                   ),
                 ),
                 const SizedBox(height: 20),
-                const Text("ADDITIONAL NOTES", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey)),
+                const Text(
+                  "ADDITIONAL NOTES",
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.grey,
+                  ),
+                ),
                 const SizedBox(height: 8),
                 TextField(
                   controller: notesController,
                   maxLines: 3,
                   decoration: InputDecoration(
                     hintText: "e.g. Need 10L for evening rush...",
-                    filled: true, fillColor: Colors.grey[100],
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                    filled: true,
+                    fillColor: Colors.grey[100],
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
                   ),
                 ),
               ],
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("CANCEL")),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text("CANCEL"),
+            ),
             ElevatedButton(
               onPressed: () async {
                 if (itemController.text.trim().isEmpty) return;
@@ -645,7 +915,12 @@ class _KitchenHubState extends State<KitchenHub> with SingleTickerProviderStateM
                 if (res['success'] == true) {
                   if (context.mounted) {
                     Navigator.pop(ctx);
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Alert sent to Admin!"), backgroundColor: KitchenTheme.emeraldGreen));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("Alert sent to Admin!"),
+                        backgroundColor: KitchenTheme.emeraldGreen,
+                      ),
+                    );
                   }
                 }
               },

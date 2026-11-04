@@ -41,7 +41,9 @@ class SignatureCanvasWidgetState extends State<SignatureCanvasWidget> {
     if (_strokes.isEmpty) return "";
     List<String> strokeStrings = [];
     for (var stroke in _strokes) {
-      List<String> pointStrings = stroke.map((p) => "${p.dx.toStringAsFixed(1)},${p.dy.toStringAsFixed(1)}").toList();
+      List<String> pointStrings = stroke
+          .map((p) => "${p.dx.toStringAsFixed(1)},${p.dy.toStringAsFixed(1)}")
+          .toList();
       strokeStrings.add(pointStrings.join(";"));
     }
     return strokeStrings.join("|");
@@ -59,7 +61,9 @@ class SignatureCanvasWidgetState extends State<SignatureCanvasWidget> {
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: _strokes.isNotEmpty ? const Color(0xFF2563EB) : const Color(0xFFCBD5E1),
+              color: _strokes.isNotEmpty
+                  ? const Color(0xFF2563EB)
+                  : const Color(0xFFCBD5E1),
               width: 1.5,
             ),
             boxShadow: [
@@ -67,7 +71,7 @@ class SignatureCanvasWidgetState extends State<SignatureCanvasWidget> {
                 color: Colors.black.withValues(alpha: 0.03),
                 blurRadius: 10,
                 spreadRadius: 2,
-              )
+              ),
             ],
           ),
           child: Stack(
@@ -77,11 +81,19 @@ class SignatureCanvasWidgetState extends State<SignatureCanvasWidget> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.draw_rounded, size: 36, color: Color(0xFFE2E8F0)),
+                    Icon(
+                      Icons.draw_rounded,
+                      size: 36,
+                      color: Color(0xFFE2E8F0),
+                    ),
                     SizedBox(height: 6),
                     Text(
                       "Draw Employee Digital Signature Here",
-                      style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        color: Color(0xFF94A3B8),
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     Text(
                       "(Works with Touchscreen, Mouse, or Laptop Touchpad)",
@@ -127,7 +139,9 @@ class SignatureCanvasWidgetState extends State<SignatureCanvasWidget> {
             Row(
               children: [
                 Icon(
-                  hasSignature ? Icons.check_circle_rounded : Icons.info_outline_rounded,
+                  hasSignature
+                      ? Icons.check_circle_rounded
+                      : Icons.info_outline_rounded,
                   size: 16,
                   color: hasSignature ? Colors.green : Colors.grey,
                 ),
@@ -148,17 +162,25 @@ class SignatureCanvasWidgetState extends State<SignatureCanvasWidget> {
                   onPressed: hasSignature ? undo : null,
                   icon: const Icon(Icons.undo_rounded, size: 14),
                   label: const Text("Undo", style: TextStyle(fontSize: 12)),
-                  style: TextButton.styleFrom(foregroundColor: Colors.grey[700]),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.grey[700],
+                  ),
                 ),
                 const SizedBox(width: 8),
                 OutlinedButton.icon(
                   onPressed: hasSignature ? clear : null,
                   icon: const Icon(Icons.clear_rounded, size: 14),
-                  label: const Text("Clear Canvas", style: TextStyle(fontSize: 12)),
+                  label: const Text(
+                    "Clear Canvas",
+                    style: TextStyle(fontSize: 12),
+                  ),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.redAccent,
                     side: const BorderSide(color: Color(0xFFFECDD3)),
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
                   ),
                 ),
               ],
@@ -193,7 +215,11 @@ class SignaturePainter extends CustomPainter {
     for (var stroke in strokes) {
       if (stroke.isEmpty) continue;
       if (stroke.length == 1) {
-        canvas.drawCircle(stroke.first, strokeWidth / 2, paint..style = PaintingStyle.fill);
+        canvas.drawCircle(
+          stroke.first,
+          strokeWidth / 2,
+          paint..style = PaintingStyle.fill,
+        );
         paint.style = PaintingStyle.stroke;
       } else {
         final path = Path();
@@ -265,11 +291,19 @@ class SavedSignatureViewer extends StatelessWidget {
             ? const Center(
                 child: Text(
                   "[ No Digital Signature Captured ]",
-                  style: TextStyle(color: Colors.grey, fontSize: 11, fontStyle: FontStyle.italic),
+                  style: TextStyle(
+                    color: Colors.grey,
+                    fontSize: 11,
+                    fontStyle: FontStyle.italic,
+                  ),
                 ),
               )
             : CustomPaint(
-                painter: SignaturePainter(strokes: strokes, color: const Color(0xFF0F172A), strokeWidth: 2.5),
+                painter: SignaturePainter(
+                  strokes: strokes,
+                  color: const Color(0xFF0F172A),
+                  strokeWidth: 2.5,
+                ),
                 size: Size.infinite,
               ),
       ),

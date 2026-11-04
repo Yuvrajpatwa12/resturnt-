@@ -39,7 +39,11 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
         ),
         title: const Text(
           "Account Details",
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 18),
+          style: TextStyle(
+            color: Colors.black,
+            fontWeight: FontWeight.w900,
+            fontSize: 18,
+          ),
         ),
         centerTitle: true,
       ),
@@ -54,9 +58,13 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
                 children: [
                   CircleAvatar(
                     radius: 50,
-                    backgroundColor: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                    backgroundColor: Theme.of(
+                      context,
+                    ).primaryColor.withValues(alpha: 0.1),
                     child: Icon(
-                      _selectedGender == 'Female' ? Icons.face_3_rounded : Icons.face_6_rounded,
+                      _selectedGender == 'Female'
+                          ? Icons.face_3_rounded
+                          : Icons.face_6_rounded,
                       color: Theme.of(context).primaryColor,
                       size: 50,
                     ),
@@ -66,7 +74,11 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
                     valueListenable: ShopManager.instance.customerEmail,
                     builder: (context, email, _) => Text(
                       email.isNotEmpty ? email : "Guest Account",
-                      style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold, fontSize: 14),
+                      style: const TextStyle(
+                        color: Colors.grey,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
                     ),
                   ),
                 ],
@@ -91,25 +103,34 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
             ),
 
             const SizedBox(height: 48),
-            _isUpdating 
-              ? Center(child: CircularProgressIndicator(color: Theme.of(context).primaryColor))
-              : SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _saveProfile,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Theme.of(context).primaryColor,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 20),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      elevation: 0,
+            _isUpdating
+                ? Center(
+                    child: CircularProgressIndicator(
+                      color: Theme.of(context).primaryColor,
                     ),
-                    child: const Text(
-                      "SAVE CHANGES",
-                      style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1),
+                  )
+                : SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: _saveProfile,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Theme.of(context).primaryColor,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 20),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: const Text(
+                        "SAVE CHANGES",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1,
+                        ),
+                      ),
                     ),
                   ),
-                ),
           ],
         ),
       ),
@@ -121,7 +142,12 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
       padding: const EdgeInsets.only(left: 4, bottom: 8),
       child: Text(
         text,
-        style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5),
+        style: const TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w900,
+          color: Colors.grey,
+          letterSpacing: 1.5,
+        ),
       ),
     );
   }
@@ -132,7 +158,11 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4)),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
         ],
       ),
       child: TextField(
@@ -140,7 +170,10 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
         style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
         decoration: InputDecoration(
           hintText: hint,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide.none,
+          ),
           contentPadding: const EdgeInsets.all(20),
         ),
       ),
@@ -158,8 +191,19 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
           decoration: BoxDecoration(
             color: isSelected ? Theme.of(context).primaryColor : Colors.white,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: isSelected ? Colors.transparent : Colors.grey[200]!),
-            boxShadow: isSelected ? [BoxShadow(color: Theme.of(context).primaryColor.withValues(alpha: 0.2), blurRadius: 8)] : [],
+            border: Border.all(
+              color: isSelected ? Colors.transparent : Colors.grey[200]!,
+            ),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: Theme.of(
+                        context,
+                      ).primaryColor.withValues(alpha: 0.2),
+                      blurRadius: 8,
+                    ),
+                  ]
+                : [],
           ),
           child: Center(
             child: Text(
@@ -180,22 +224,28 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
     if (_nameController.text.trim().isEmpty) return;
 
     setState(() => _isUpdating = true);
-    
+
     final success = await ShopManager.instance.updateProfile(
-      name: _nameController.text.trim(), 
-      gender: _selectedGender
+      name: _nameController.text.trim(),
+      gender: _selectedGender,
     );
 
     if (mounted) {
       setState(() => _isUpdating = false);
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Profile updated successfully!"), backgroundColor: Colors.green),
+          const SnackBar(
+            content: Text("Profile updated successfully!"),
+            backgroundColor: Colors.green,
+          ),
         );
         Navigator.pop(context);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Update failed. Please try again."), backgroundColor: Colors.red),
+          const SnackBar(
+            content: Text("Update failed. Please try again."),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }

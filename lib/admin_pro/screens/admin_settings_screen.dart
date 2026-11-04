@@ -111,8 +111,18 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
             const SizedBox(height: 24),
           ],
           _buildSettingsGroup("General Configuration", [
-            _buildToggleTile("Automatic KOT Print", "Print tickets instantly when order is received", _autoPrint, (v) => setState(() => _autoPrint = v)),
-            _buildToggleTile("Enable Sound Alerts", "Play sound for new incoming orders", _soundEnabled, (v) => setState(() => _soundEnabled = v)),
+            _buildToggleTile(
+              "Automatic KOT Print",
+              "Print tickets instantly when order is received",
+              _autoPrint,
+              (v) => setState(() => _autoPrint = v),
+            ),
+            _buildToggleTile(
+              "Enable Sound Alerts",
+              "Play sound for new incoming orders",
+              _soundEnabled,
+              (v) => setState(() => _soundEnabled = v),
+            ),
           ]),
           const SizedBox(height: 24),
           _buildSettingsGroup("Audio Levels", [
@@ -121,7 +131,10 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text("Notification Volume", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                  const Text(
+                    "Notification Volume",
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                  ),
                   Slider(
                     value: _volume,
                     onChanged: (v) => setState(() => _volume = v),
@@ -141,7 +154,14 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
           Center(
             child: TextButton(
               onPressed: () {},
-              child: const Text("RESTORE DEFAULT SETTINGS", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 12)),
+              child: const Text(
+                "RESTORE DEFAULT SETTINGS",
+                style: TextStyle(
+                  color: Colors.red,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+              ),
             ),
           ),
         ],
@@ -183,8 +203,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
           child: Align(
             alignment: Alignment.centerRight,
             child: FilledButton.icon(
-              onPressed:
-                  _isSavingBillingSettings ? null : _saveBillingSettings,
+              onPressed: _isSavingBillingSettings ? null : _saveBillingSettings,
               icon: _isSavingBillingSettings
                   ? const SizedBox(
                       width: 16,
@@ -230,7 +249,15 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title.toUpperCase(), style: const TextStyle(color: Colors.grey, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1)),
+        Text(
+          title.toUpperCase(),
+          style: const TextStyle(
+            color: Colors.grey,
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1,
+          ),
+        ),
         const SizedBox(height: 12),
         Container(
           decoration: BoxDecoration(
@@ -244,21 +271,42 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
     );
   }
 
-  Widget _buildToggleTile(String title, String sub, bool value, Function(bool) onChanged) {
+  Widget _buildToggleTile(
+    String title,
+    String sub,
+    bool value,
+    Function(bool) onChanged,
+  ) {
     return SwitchListTile.adaptive(
       value: value,
       onChanged: onChanged,
       activeTrackColor: AdminTheme.emeraldGreen,
-      title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-      subtitle: Text(sub, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+      title: Text(
+        title,
+        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+      ),
+      subtitle: Text(
+        sub,
+        style: const TextStyle(fontSize: 11, color: Colors.grey),
+      ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
     );
   }
 
   Widget _buildInfoTile(String title, String value) {
     return ListTile(
-      title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-      trailing: Text(value, style: const TextStyle(color: AdminTheme.royalBlue, fontWeight: FontWeight.bold, fontSize: 13)),
+      title: Text(
+        title,
+        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+      ),
+      trailing: Text(
+        value,
+        style: const TextStyle(
+          color: AdminTheme.royalBlue,
+          fontWeight: FontWeight.bold,
+          fontSize: 13,
+        ),
+      ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 20),
     );
   }

@@ -34,7 +34,10 @@ class StaffManagementScreen extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const Text("Staff Directory", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
+          const Text(
+            "Staff Directory",
+            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+          ),
           ElevatedButton.icon(
             onPressed: () {},
             icon: const Icon(Icons.person_add, size: 18),
@@ -64,9 +67,18 @@ class StaffManagementScreen extends StatelessWidget {
             leading: CircleAvatar(
               radius: 25,
               backgroundColor: AdminTheme.royalBlue.withValues(alpha: 0.1),
-              child: Text(person['name'][0], style: const TextStyle(fontWeight: FontWeight.bold, color: AdminTheme.royalBlue)),
+              child: Text(
+                person['name'][0],
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: AdminTheme.royalBlue,
+                ),
+              ),
             ),
-            title: Text(person['name'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            title: Text(
+              person['name'],
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -74,12 +86,32 @@ class StaffManagementScreen extends StatelessWidget {
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(color: person['role'] == 'Chef' ? Colors.orange[50] : Colors.blue[50], borderRadius: BorderRadius.circular(6)),
-                      child: Text(person['role'], style: TextStyle(fontSize: 9, color: person['role'] == 'Chef' ? Colors.orange : Colors.blue, fontWeight: FontWeight.w900)),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: person['role'] == 'Chef'
+                            ? Colors.orange[50]
+                            : Colors.blue[50],
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        person['role'],
+                        style: TextStyle(
+                          fontSize: 9,
+                          color: person['role'] == 'Chef'
+                              ? Colors.orange
+                              : Colors.blue,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
                     ),
                     const SizedBox(width: 8),
-                    Text("ID: ${person['id']}", style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                    Text(
+                      "ID: ${person['id']}",
+                      style: const TextStyle(fontSize: 10, color: Colors.grey),
+                    ),
                   ],
                 ),
               ],
@@ -106,8 +138,18 @@ class StaffManagementScreen extends StatelessWidget {
   Widget _buildStaffStat(String label, String value) {
     return Column(
       children: [
-        Text(value, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14)),
-        Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)),
+        Text(
+          value,
+          style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
+        ),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 10,
+            color: Colors.grey,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ],
     );
   }

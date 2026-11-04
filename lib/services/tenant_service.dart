@@ -23,16 +23,17 @@ class Tenant {
   final String? subscriptionStart;
   final String? subscriptionEnd;
   final String? storage;
-  final double? latitude;  // Added
+  final double? latitude; // Added
   final double? longitude; // Added
   final String? googleMapsLink; // Added
-  final String? instagramLink;   // Added
-  final String? facebookLink;    // Added
-  final String? tiktokLink;      // Added
-  final String? contactEmail;    // Restaurant Admin Notification Email
-  final String? contactPhone;    // Support Phone
-  final String? location;        // Business Address
-  final bool isPremiumEnabled; // Master switch for AR, Voice, Loyalty, Proximity
+  final String? instagramLink; // Added
+  final String? facebookLink; // Added
+  final String? tiktokLink; // Added
+  final String? contactEmail; // Restaurant Admin Notification Email
+  final String? contactPhone; // Support Phone
+  final String? location; // Business Address
+  final bool
+  isPremiumEnabled; // Master switch for AR, Voice, Loyalty, Proximity
   final String? themeName;
   final String? secondaryColor;
   final String? backgroundColor;
@@ -84,7 +85,7 @@ class Tenant {
       name: map['restaurant_name'] ?? map['name'] ?? 'Unknown',
       logo: map['logo_url'] ?? map['logo'] ?? '',
       color: map['primary_color'] ?? map['color'] ?? '#FF5C00',
-      domain: map['domain'] ?? map['custom_domain'] ?? '', 
+      domain: map['domain'] ?? map['custom_domain'] ?? '',
       isActive: (map['is_active'] == 1 || map['is_active'] == true),
       plan: map['plan'] ?? 'Basic',
       currencyCode: map['currency_code'] ?? map['currency'] ?? 'NPR',
@@ -92,12 +93,16 @@ class Tenant {
       country: map['country'] ?? 'Nepal',
       state: map['state'] ?? map['province'] ?? 'Bagmati Province',
       expiry: map['subscription_end'] ?? map['expiry_date'] ?? map['expiry'],
-      startDate: map['subscription_start'] ?? map['start_date'] ?? map['created_at'],
-      subscriptionStatus: map['subscription_status'] ?? (map['plan'] == '3 Days Free Trial' ? 'Trial' : 'Active'),
+      startDate:
+          map['subscription_start'] ?? map['start_date'] ?? map['created_at'],
+      subscriptionStatus:
+          map['subscription_status'] ??
+          (map['plan'] == '3 Days Free Trial' ? 'Trial' : 'Active'),
       trialStart: map['trial_start'],
       trialEnd: map['trial_end'],
       subscriptionStart: map['subscription_start'],
-      subscriptionEnd: map['subscription_end'] ?? map['expiry_date'] ?? map['expiry'],
+      subscriptionEnd:
+          map['subscription_end'] ?? map['expiry_date'] ?? map['expiry'],
       storage: map['storage_used'] ?? map['storage'] ?? '0.0 GB',
       latitude: double.tryParse(map['latitude']?.toString() ?? ''),
       longitude: double.tryParse(map['longitude']?.toString() ?? ''),
@@ -108,13 +113,15 @@ class Tenant {
       contactEmail: map['contact_email'] ?? map['primary_email'],
       contactPhone: map['contact_phone'] ?? map['phone'],
       location: map['location'] ?? map['address'],
-      isPremiumEnabled: (map['is_premium_enabled'] == 1 || map['is_premium_enabled'] == true),
+      isPremiumEnabled:
+          (map['is_premium_enabled'] == 1 || map['is_premium_enabled'] == true),
       themeName: map['theme_name'],
       secondaryColor: map['secondary_color'],
       backgroundColor: map['background_color'],
       fontFamily: map['font_family'],
       borderRadius: (map['border_radius'] as num?)?.toDouble(),
-      darkModeEnabled: (map['dark_mode_enabled'] == 1 || map['dark_mode_enabled'] == true),
+      darkModeEnabled:
+          (map['dark_mode_enabled'] == 1 || map['dark_mode_enabled'] == true),
     );
   }
 
@@ -160,7 +167,12 @@ class Staff {
   final String role;
   final String tenantId;
 
-  Staff({required this.id, required this.name, required this.role, required this.tenantId});
+  Staff({
+    required this.id,
+    required this.name,
+    required this.role,
+    required this.tenantId,
+  });
 }
 
 class TenantService extends ChangeNotifier {
@@ -172,14 +184,19 @@ class TenantService extends ChangeNotifier {
   final ValueNotifier<Staff?> currentStaff = ValueNotifier<Staff?>(null);
   final ValueNotifier<bool> isLoading = ValueNotifier<bool>(true);
   final ValueNotifier<List<Map<String, dynamic>>> products = ValueNotifier([]);
-  final ValueNotifier<List<Map<String, dynamic>>> categories = ValueNotifier([]);
+  final ValueNotifier<List<Map<String, dynamic>>> categories = ValueNotifier(
+    [],
+  );
 
   Future<void> initialize(String domain, {bool showLoading = true}) async {
     if (showLoading) isLoading.value = true;
 
     // Auto-map primary domain or localhost to startups_main
     String domainToFetch = domain;
-    if (domain == "localhost" || domain == "127.0.0.1" || domain == "startupsgo.tech" || domain.isEmpty) {
+    if (domain == "localhost" ||
+        domain == "127.0.0.1" ||
+        domain == "startupsgo.tech" ||
+        domain.isEmpty) {
       domainToFetch = "startups_main"; // Match main restaurant tenant_id in DB
     }
 
@@ -188,22 +205,33 @@ class TenantService extends ChangeNotifier {
 
     // If not found, fallback to startups_main
     if (data == null && domainToFetch != "startups_main") {
-      debugPrint("TENANT: Domain not found directly, falling back to startups_main...");
+      debugPrint(
+        "TENANT: Domain not found directly, falling back to startups_main...",
+      );
       data = await ApiService.initTenant("startups_main");
     }
 
     if (data != null) {
       final parsedTenant = Tenant.fromMap(data);
       currentTenant.value = parsedTenant;
-      CurrencyService().applyTenantCurrency(parsedTenant.currencyCode, parsedTenant.currencySymbol);
-      
-      debugPrint("TENANT: Loaded ${currentTenant.value!.name} (ID: ${currentTenant.value!.id})");
-      
+      CurrencyService().applyTenantCurrency(
+        parsedTenant.currencyCode,
+        parsedTenant.currencySymbol,
+      );
+
+      debugPrint(
+        "TENANT: Loaded ${currentTenant.value!.name} (ID: ${currentTenant.value!.id})",
+      );
+
       // Fetch theme settings from backend
-      debugPrint("TENANT: Fetching theme from backend for ${parsedTenant.id}...");
+      debugPrint(
+        "TENANT: Fetching theme from backend for ${parsedTenant.id}...",
+      );
       final themeData = await ApiService.fetchTheme(parsedTenant.id);
       if (themeData != null) {
-        debugPrint("TENANT: Theme data received - ${themeData['theme_name']}, color: ${themeData['primary_color']}");
+        debugPrint(
+          "TENANT: Theme data received - ${themeData['theme_name']}, color: ${themeData['primary_color']}",
+        );
         final updatedTenant = Tenant(
           id: parsedTenant.id,
           name: parsedTenant.name,
@@ -241,16 +269,20 @@ class TenantService extends ChangeNotifier {
         currentTenant.value = updatedTenant;
         debugPrint("TENANT: Theme applied successfully!");
       } else {
-        debugPrint("TENANT: Theme data is NULL - using default colors from tenant data");
+        debugPrint(
+          "TENANT: Theme data is NULL - using default colors from tenant data",
+        );
         debugPrint("TENANT: Current color from DB: ${parsedTenant.color}");
       }
 
       await fetchMenuData(currentTenant.value!.id);
     } else {
-      debugPrint("TENANT: ERROR - Tenant data could not be fetched. Using Default Active Tenant.");
+      debugPrint(
+        "TENANT: ERROR - Tenant data could not be fetched. Using Default Active Tenant.",
+      );
       currentTenant.value = Tenant(
         id: "startups_main",
-        name: "ChiyaBreak Restaurant",
+        name: "Restaurant",
         logo: "",
         color: "#FF5C00",
         domain: "startupsgo.tech",
@@ -271,11 +303,15 @@ class TenantService extends ChangeNotifier {
   Future<Map<String, dynamic>> login(String email, String pin) async {
     String domain = Uri.base.host == "127.0.0.1" ? "localhost" : Uri.base.host;
 
-    
-    if (domain == "localhost") domain = "startupsgo.tech"; // Force domain for localhost login
+    if (domain == "localhost")
+      domain = "startupsgo.tech"; // Force domain for localhost login
 
-    final result = await ApiService.staffLogin(domain: domain, email: email, pin: pin);
-    
+    final result = await ApiService.staffLogin(
+      domain: domain,
+      email: email,
+      pin: pin,
+    );
+
     if (result['success'] == true) {
       final userData = result['user'];
       currentStaff.value = Staff(
@@ -306,7 +342,10 @@ class TenantService extends ChangeNotifier {
   void logout() {
     unawaited(ApiService.staffLogout());
     if (currentStaff.value != null && currentTenant.value != null) {
-      ApiService.goOffline(tenantId: currentTenant.value!.id, userId: currentStaff.value!.id.toString());
+      ApiService.goOffline(
+        tenantId: currentTenant.value!.id,
+        userId: currentStaff.value!.id.toString(),
+      );
     }
     currentStaff.value = null;
     notifyListeners();
@@ -341,10 +380,16 @@ class TenantService extends ChangeNotifier {
 
     if (menuData != null) {
       products.value = List<Map<String, dynamic>>.from(menuData['products']);
-      categories.value = List<Map<String, dynamic>>.from(menuData['categories']);
-      debugPrint("TENANT: SUCCESS! Found ${categories.value.length} categories and ${products.value.length} products.");
+      categories.value = List<Map<String, dynamic>>.from(
+        menuData['categories'],
+      );
+      debugPrint(
+        "TENANT: SUCCESS! Found ${categories.value.length} categories and ${products.value.length} products.",
+      );
     } else {
-      debugPrint("TENANT: ERROR! get_menu.php returned NULL. Check if the file exists in saas_api folder.");
+      debugPrint(
+        "TENANT: ERROR! get_menu.php returned NULL. Check if the file exists in saas_api folder.",
+      );
       // Auto-Retry with default ID if it failed
       if (tenantId != "startups_main") {
         debugPrint("TENANT: Retrying with startups_main...");

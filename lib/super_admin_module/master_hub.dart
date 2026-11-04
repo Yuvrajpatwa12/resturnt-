@@ -24,14 +24,46 @@ class _SuperAdminMasterHubState extends State<SuperAdminMasterHub> {
   bool _isCheckingAuth = true;
 
   final List<Map<String, dynamic>> _menuItems = [
-    {'title': 'Command Center', 'icon': Icons.dashboard_rounded, 'screen': const OverviewScreen()},
-    {'title': 'Client Directory', 'icon': Icons.business_center_rounded, 'screen': const ClientManagementScreen()},
-    {'title': 'SaaS Subscriptions', 'icon': Icons.credit_card_rounded, 'screen': const SubscriptionBillingScreen()},
-    {'title': 'Node Resources', 'icon': Icons.analytics_rounded, 'screen': const ResourceMonitoringScreen()},
-    {'title': 'Global Catalog', 'icon': Icons.library_books_rounded, 'screen': const GlobalCatalogScreen()},
-    {'title': 'Support & CRM', 'icon': Icons.forum_rounded, 'screen': const SupportCommunicationScreen()},
-    {'title': 'Platform Config', 'icon': Icons.settings_suggest_rounded, 'screen': const SystemConfigScreen()},
-    {'title': 'Security Audit', 'icon': Icons.shield_rounded, 'screen': const AuthSecurityScreens(mode: 'Audit')},
+    {
+      'title': 'Command Center',
+      'icon': Icons.dashboard_rounded,
+      'screen': const OverviewScreen(),
+    },
+    {
+      'title': 'Client Directory',
+      'icon': Icons.business_center_rounded,
+      'screen': const ClientManagementScreen(),
+    },
+    {
+      'title': 'SaaS Subscriptions',
+      'icon': Icons.credit_card_rounded,
+      'screen': const SubscriptionBillingScreen(),
+    },
+    {
+      'title': 'Node Resources',
+      'icon': Icons.analytics_rounded,
+      'screen': const ResourceMonitoringScreen(),
+    },
+    {
+      'title': 'Global Catalog',
+      'icon': Icons.library_books_rounded,
+      'screen': const GlobalCatalogScreen(),
+    },
+    {
+      'title': 'Support & CRM',
+      'icon': Icons.forum_rounded,
+      'screen': const SupportCommunicationScreen(),
+    },
+    {
+      'title': 'Platform Config',
+      'icon': Icons.settings_suggest_rounded,
+      'screen': const SystemConfigScreen(),
+    },
+    {
+      'title': 'Security Audit',
+      'icon': Icons.shield_rounded,
+      'screen': const AuthSecurityScreens(mode: 'Audit'),
+    },
   ];
 
   @override
@@ -111,7 +143,9 @@ class _SuperAdminMasterHubState extends State<SuperAdminMasterHub> {
       width: _isSidebarCollapsed ? 80 : 280,
       decoration: BoxDecoration(
         color: const Color(0xFF002D62), // High-end SaaS Navy
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 30)],
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 30),
+        ],
       ),
       child: Column(
         children: [
@@ -123,7 +157,12 @@ class _SuperAdminMasterHubState extends State<SuperAdminMasterHub> {
               itemBuilder: (context, index) {
                 final item = _menuItems[index];
                 bool isSelected = _selectedIndex == index;
-                return _buildSidebarItem(index, item['icon'], item['title'], isSelected);
+                return _buildSidebarItem(
+                  index,
+                  item['icon'],
+                  item['title'],
+                  isSelected,
+                );
               },
             ),
           ),
@@ -137,11 +176,16 @@ class _SuperAdminMasterHubState extends State<SuperAdminMasterHub> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
       child: Row(
-        mainAxisAlignment: _isSidebarCollapsed ? MainAxisAlignment.center : MainAxisAlignment.start,
+        mainAxisAlignment: _isSidebarCollapsed
+            ? MainAxisAlignment.center
+            : MainAxisAlignment.start,
         children: [
           Container(
             padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: const Color(0xFFFF5C00), borderRadius: BorderRadius.circular(12)),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFF5C00),
+              borderRadius: BorderRadius.circular(12),
+            ),
             child: const Icon(Icons.hub_rounded, color: Colors.white, size: 24),
           ),
           if (!_isSidebarCollapsed) ...[
@@ -149,8 +193,24 @@ class _SuperAdminMasterHubState extends State<SuperAdminMasterHub> {
             const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text("CHIYALAA", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 1.5)),
-                Text("ROOT ADMIN HUB", style: TextStyle(color: Colors.white30, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                Text(
+                  "CHIYALAA",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 18,
+                    letterSpacing: 1.5,
+                  ),
+                ),
+                Text(
+                  "ROOT ADMIN HUB",
+                  style: TextStyle(
+                    color: Colors.white30,
+                    fontSize: 9,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1,
+                  ),
+                ),
               ],
             ),
           ],
@@ -159,7 +219,12 @@ class _SuperAdminMasterHubState extends State<SuperAdminMasterHub> {
     );
   }
 
-  Widget _buildSidebarItem(int index, IconData icon, String title, bool isSelected) {
+  Widget _buildSidebarItem(
+    int index,
+    IconData icon,
+    String title,
+    bool isSelected,
+  ) {
     return InkWell(
       onTap: () => setState(() => _selectedIndex = index),
       child: AnimatedContainer(
@@ -167,14 +232,22 @@ class _SuperAdminMasterHubState extends State<SuperAdminMasterHub> {
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         padding: const EdgeInsets.symmetric(vertical: 14),
         decoration: BoxDecoration(
-          color: isSelected ? Colors.white.withValues(alpha: 0.1) : Colors.transparent,
+          color: isSelected
+              ? Colors.white.withValues(alpha: 0.1)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(16),
         ),
         child: Row(
-          mainAxisAlignment: _isSidebarCollapsed ? MainAxisAlignment.center : MainAxisAlignment.start,
+          mainAxisAlignment: _isSidebarCollapsed
+              ? MainAxisAlignment.center
+              : MainAxisAlignment.start,
           children: [
             const SizedBox(width: 16),
-            Icon(icon, color: isSelected ? const Color(0xFFFF5C00) : Colors.white54, size: 20),
+            Icon(
+              icon,
+              color: isSelected ? const Color(0xFFFF5C00) : Colors.white54,
+              size: 20,
+            ),
             if (!_isSidebarCollapsed) ...[
               const SizedBox(width: 16),
               Text(
@@ -196,11 +269,19 @@ class _SuperAdminMasterHubState extends State<SuperAdminMasterHub> {
     return Padding(
       padding: const EdgeInsets.all(24.0),
       child: IconButton(
-        onPressed: () => setState(() => _isSidebarCollapsed = !_isSidebarCollapsed),
+        onPressed: () =>
+            setState(() => _isSidebarCollapsed = !_isSidebarCollapsed),
         icon: Container(
           padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(border: Border.all(color: Colors.white10), shape: BoxShape.circle),
-          child: Icon(_isSidebarCollapsed ? Icons.chevron_right : Icons.chevron_left, color: Colors.white30, size: 18),
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.white10),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            _isSidebarCollapsed ? Icons.chevron_right : Icons.chevron_left,
+            color: Colors.white30,
+            size: 18,
+          ),
         ),
       ),
     );
@@ -212,39 +293,68 @@ class _SuperAdminMasterHubState extends State<SuperAdminMasterHub> {
       padding: const EdgeInsets.symmetric(horizontal: 32),
       decoration: BoxDecoration(
         color: Colors.white,
-        border: Border(bottom: BorderSide(color: Colors.grey.withValues(alpha: 0.08))),
+        border: Border(
+          bottom: BorderSide(color: Colors.grey.withValues(alpha: 0.08)),
+        ),
       ),
       child: Row(
         children: [
           IconButton(
             onPressed: _handleLogout,
-            icon: const Icon(Icons.logout_rounded, color: Colors.redAccent, size: 20),
+            icon: const Icon(
+              Icons.logout_rounded,
+              color: Colors.redAccent,
+              size: 20,
+            ),
             tooltip: "Logout Super Admin",
           ),
           const SizedBox(width: 16),
           Text(
             _menuItems[_selectedIndex]['title'],
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF002D62)),
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w900,
+              color: Color(0xFF002D62),
+            ),
           ),
           const Spacer(),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(color: Colors.blue.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.blue.withValues(alpha: 0.1))),
+            decoration: BoxDecoration(
+              color: Colors.blue.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.blue.withValues(alpha: 0.1)),
+            ),
             child: const Row(
               children: [
                 CircleAvatar(radius: 3, backgroundColor: Colors.blue),
                 SizedBox(width: 8),
-                Text("SUPER ADMIN: AUTHENTICATED", style: TextStyle(color: Colors.blue, fontSize: 9, fontWeight: FontWeight.w900)),
+                Text(
+                  "SUPER ADMIN: AUTHENTICATED",
+                  style: TextStyle(
+                    color: Colors.blue,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
               ],
             ),
           ),
           const SizedBox(width: 24),
-          const Icon(Icons.notifications_none_rounded, color: Color(0xFF64748B), size: 22),
+          const Icon(
+            Icons.notifications_none_rounded,
+            color: Color(0xFF64748B),
+            size: 22,
+          ),
           const SizedBox(width: 24),
           const CircleAvatar(
-            backgroundColor: Color(0xFF0047AB), 
-            radius: 18, 
-            child: Icon(Icons.admin_panel_settings_rounded, color: Colors.white, size: 20)
+            backgroundColor: Color(0xFF0047AB),
+            radius: 18,
+            child: Icon(
+              Icons.admin_panel_settings_rounded,
+              color: Colors.white,
+              size: 20,
+            ),
           ),
         ],
       ),
