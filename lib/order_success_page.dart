@@ -39,15 +39,16 @@ class _OrderSuccessPageState extends State<OrderSuccessPage>
   }
 
   Future<void> _saveOrderAndContinue() async {
-    await ShopManager.instance.placeOrder();
+    final orderError = await ShopManager.instance.placeOrder();
     final int? orderId = ShopManager.instance.activeOrderId.value;
     if (!mounted) return;
 
-    if (orderId == null) {
+    if (orderError != null || orderId == null) {
       setState(() {
         _isLoading = false;
         _isError = true;
         _message =
+            orderError ??
             "Could not confirm that your order was saved.\nPlease try again or contact staff.";
       });
       return;

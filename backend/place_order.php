@@ -16,6 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
 }
 
 require_once 'db_config.php';
+require_once __DIR__ . '/billing_common.php';
 require_once 'push_notifier.php';
 require_once 'email_notification_common.php';
 
@@ -28,12 +29,105 @@ $json = file_get_contents('php://input');
 $data = json_decode($json);
 
 $tenant_id = (!empty($data->tenant_id)) ? (string)$data->tenant_id : 'startups_main';
-$table_number = (isset($data->table_number) && (int)$data->table_number > 0) ? (int)$data->table_number : 1;
+$table_number = isset($data->table_number) ? (int)$data->table_number : 0;
 $user_id = (!empty($data->user_id)) ? (string)$data->user_id : 'guest';
 $customer_email = (!empty($data->customer_email)) ? (string)$data->customer_email : '';
-$total_amount = (isset($data->total_amount)) ? (float)$data->total_amount : 0.00;
+$idempotency_key = trim((string)($data->idempotency_key ?? ''));
+$submittedItems = $data->items ?? null;
+
+function placeOrderProductColumns($conn) {
+    $result = $conn->query("SHOW COLUMNS FROM products");
+    $available = [];
+    while ($column = $result->fetch_assoc()) {
+        $available[strtolower($column['Field'])] = $column['Field'];
+    }
+    $title = $available['title'] ?? $available['name'] ?? null;
+    $price = $available['price'] ?? $available['selling_price'] ?? null;
+    $active = $available['is_available'] ?? $available['is_active'] ?? $available['status'] ?? null;
+    if (!$title || !$price || !isset($available['tenant_id']) || !$active) {
+        throw new RuntimeException("Products must have tenant_id, title, price and an active-status column");
+    }
+    return [$title, $price, $active, $available['variants'] ?? null];
+}
+
+function placeOrderGetProduct($conn, $tenantId, $item, $columns) {
+    [$titleColumn, $priceColumn, $activeColumn, $variantsColumn] = $columns;
+    $productId = (int)($item->product_id ?? $item->id ?? 0);
+    $productName = trim((string)($item->name ?? $item->product_name ?? ''));
+    $variantName = trim((string)($item->variant_name ?? ''));
+    $variantSelect = $variantsColumn ? "`$variantsColumn`" : "NULL";
+    if ($productId > 0) {
+        $stmt = $conn->prepare("SELECT id, `$titleColumn` AS title, `$priceColumn` AS price, `$activeColumn` AS active, $variantSelect AS variants
+            FROM products WHERE tenant_id = ? AND id = ? LIMIT 1");
+        $stmt->bind_param("si", $tenantId, $productId);
+    } elseif ($productName !== '') {
+        $stmt = $conn->prepare("SELECT id, `$titleColumn` AS title, `$priceColumn` AS price, `$activeColumn` AS active, $variantSelect AS variants
+            FROM products WHERE tenant_id = ? AND `$titleColumn` = ? LIMIT 2");
+        $stmt->bind_param("ss", $tenantId, $productName);
+    } else {
+        throw new InvalidArgumentException("Every order item must identify a product");
+    }
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $product = $result->fetch_assoc();
+    $ambiguous = $result->num_rows > 1;
+    $stmt->close();
+    if (!$product || $ambiguous) {
+        throw new InvalidArgumentException($ambiguous
+            ? "Product name is ambiguous; submit its product_id"
+            : "A submitted product was not found for this restaurant");
+    }
+    $active = $product['active'];
+    if (strtolower($activeColumn) === 'status') {
+        if (!in_array(strtolower(trim((string)$active)), ['active', 'available', '1'], true)) {
+            throw new InvalidArgumentException("Product " . $product['title'] . " is not available");
+        }
+    } elseif (!in_array((string)$active, ['1', 'true'], true)) {
+        throw new InvalidArgumentException("Product " . $product['title'] . " is not available");
+    }
+    $baseTitle = (string)$product['title'];
+    $priceValue = $product['price'];
+    if ($variantName !== '') {
+        $variants = json_decode((string)$product['variants'], true);
+        $matchingVariant = null;
+        if (is_array($variants)) {
+            foreach ($variants as $variant) {
+                if (is_array($variant) &&
+                    strcasecmp(trim((string)($variant['name'] ?? '')), $variantName) === 0) {
+                    $matchingVariant = $variant;
+                    break;
+                }
+            }
+        }
+        if (!$matchingVariant || !isset($matchingVariant['price']) || !is_numeric($matchingVariant['price'])) {
+            throw new InvalidArgumentException("The selected product variant is unavailable");
+        }
+        $priceValue = $matchingVariant['price'];
+        $baseTitle .= " (" . $variantName . ")";
+    }
+    $priceCents = (int)round((float)$priceValue * 100, 0, PHP_ROUND_HALF_UP);
+    if ($priceCents < 0) {
+        throw new InvalidArgumentException("Product price is invalid");
+    }
+    return [
+        'id' => (int)$product['id'],
+        'title' => $baseTitle,
+        'price_cents' => $priceCents,
+    ];
+}
+
+function placeOrderStoredItems($conn, $orderId) {
+    $stmt = $conn->prepare("SELECT product_id, product_name, quantity, price_at_order AS price
+        FROM order_items WHERE order_id = ? ORDER BY id");
+    $stmt->bind_param("i", $orderId);
+    $stmt->execute();
+    $items = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+    return $items;
+}
 
 try {
+    billingEnsureSchema($conn);
     try {
         @mysqli_query($conn, "CREATE TABLE IF NOT EXISTS orders (
             id INT AUTO_INCREMENT PRIMARY KEY,
@@ -57,6 +151,7 @@ try {
             quantity INT DEFAULT 1,
             notes TEXT DEFAULT NULL,
             price_at_order DECIMAL(10,2) DEFAULT 0.00,
+            status VARCHAR(32) NOT NULL DEFAULT 'Pending',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )");
     } catch (Throwable $e) {}
@@ -64,11 +159,54 @@ try {
     try { @mysqli_query($conn, "ALTER TABLE orders ADD COLUMN customer_email VARCHAR(255) DEFAULT ''"); } catch (Throwable $e) {}
     try { @mysqli_query($conn, "ALTER TABLE orders ADD COLUMN session_id INT DEFAULT NULL"); } catch (Throwable $e) {}
     try { @mysqli_query($conn, "ALTER TABLE order_items ADD COLUMN product_id INT DEFAULT 0"); } catch (Throwable $e) {}
+    $idempotencyColumn = $conn->query("SHOW COLUMNS FROM orders LIKE 'idempotency_key'");
+    if ($idempotencyColumn->num_rows === 0) {
+        $conn->query("ALTER TABLE orders ADD COLUMN idempotency_key VARCHAR(128) DEFAULT NULL");
+    }
+    $idempotencyIndex = $conn->query("SHOW INDEX FROM orders WHERE Key_name = 'uniq_orders_tenant_idempotency'");
+    if ($idempotencyIndex->num_rows === 0) {
+        $conn->query("ALTER TABLE orders ADD UNIQUE KEY uniq_orders_tenant_idempotency (tenant_id, idempotency_key)");
+    }
+
+    if (!preg_match('/^[A-Za-z0-9._~-]{16,128}$/', $idempotency_key)) {
+        http_response_code(400);
+        echo json_encode(["status" => "error", "message" => "A valid idempotency_key is required for every order submission"]);
+        exit;
+    }
+    if (!is_array($submittedItems) || count($submittedItems) === 0) {
+        http_response_code(400);
+        echo json_encode(["status" => "error", "message" => "At least one order item is required"]);
+        exit;
+    }
+    if ($table_number <= 0) {
+        http_response_code(400);
+        echo json_encode(["status" => "error", "message" => "A valid table_number is required"]);
+        exit;
+    }
 
     $conn->begin_transaction();
 
+    $replay = $conn->prepare("SELECT id, total_amount FROM orders WHERE tenant_id = ? AND idempotency_key = ? LIMIT 1 FOR UPDATE");
+    $replay->bind_param("ss", $tenant_id, $idempotency_key);
+    $replay->execute();
+    $existingOrder = $replay->get_result()->fetch_assoc();
+    $replay->close();
+    if ($existingOrder) {
+        $conn->commit();
+        $existingOrderId = (int)$existingOrder['id'];
+        echo json_encode([
+            "status" => "success",
+            "order_id" => $existingOrderId,
+            "total_amount" => $existingOrder['total_amount'],
+            "items" => placeOrderStoredItems($conn, $existingOrderId),
+            "idempotent_replay" => true,
+            "message" => "This order submission was already accepted"
+        ]);
+        exit;
+    }
+
     // 1. Resolve Table ID
-    $t_stmt = $conn->prepare("SELECT id FROM restaurant_tables WHERE tenant_id = ? AND table_number = ? LIMIT 1");
+    $t_stmt = $conn->prepare("SELECT id, status FROM restaurant_tables WHERE tenant_id = ? AND table_number = ? LIMIT 1 FOR UPDATE");
     $t_stmt->bind_param("si", $tenant_id, $table_number);
     $t_stmt->execute();
     $t_res = $t_stmt->get_result();
@@ -76,35 +214,86 @@ try {
     $table_id = null;
     if ($t_row = $t_res->fetch_assoc()) {
         $table_id = (int)$t_row['id'];
-        $table_update = $conn->prepare("UPDATE restaurant_tables SET status = 'Dining' WHERE id = ?");
-        $table_update->bind_param("i", $table_id);
-        $table_update->execute();
     } else {
-        $ins_t = $conn->prepare("INSERT INTO restaurant_tables (tenant_id, table_number, status) VALUES (?, ?, 'Dining')");
-        $ins_t->bind_param("si", $tenant_id, $table_number);
-        $ins_t->execute();
-        $table_id = (int)$conn->insert_id;
+        $conn->rollback();
+        http_response_code(409);
+        echo json_encode([
+            "status" => "error",
+            "message" => "The selected table does not exist for this restaurant"
+        ]);
+        exit;
     }
 
-    // 2. CHECK FOR ACTIVE DINING SESSION
-    $session_id_val = 0;
-    try {
-        $s_stmt = $conn->prepare("SELECT id FROM dining_sessions WHERE tenant_id = ? AND table_number = ? AND status = 'Open' LIMIT 1");
-        if ($s_stmt) {
-            $s_stmt->bind_param("si", $tenant_id, $table_number);
-            $s_stmt->execute();
-            if ($s_row = $s_stmt->get_result()->fetch_assoc()) {
-                $session_id_val = (int)$s_row['id'];
-                $session_update = $conn->prepare("UPDATE dining_sessions SET last_modified = CURRENT_TIMESTAMP WHERE id = ?");
-                $session_update->bind_param("i", $session_id_val);
-                $session_update->execute();
-            }
+    // A table cannot accept more items after it has been sent to billing.
+    $s_stmt = $conn->prepare("SELECT id, status FROM dining_sessions
+        WHERE tenant_id = ? AND table_number = ?
+          AND LOWER(status) NOT IN ('settled', 'closed')
+        ORDER BY id DESC LIMIT 1 FOR UPDATE");
+    $s_stmt->bind_param("si", $tenant_id, $table_number);
+    $s_stmt->execute();
+    $activeSession = $s_stmt->get_result()->fetch_assoc();
+    $s_stmt->close();
+    $activeSessionStatus = strtolower(trim((string)($activeSession['status'] ?? '')));
+    if ($activeSession && !in_array($activeSessionStatus, ['open', 'settled', 'closed'], true)) {
+        $conn->rollback();
+        http_response_code(409);
+        echo json_encode([
+            "status" => "error",
+            "message" => "This table is " . (string)$activeSession['status'] . " and cannot accept new items. Ask an admin to reopen the session."
+        ]);
+        exit;
+    }
+    if ($activeSession && in_array($activeSessionStatus, ['settled', 'closed'], true)) {
+        $activeSession = null;
+    }
+
+    $productColumns = placeOrderProductColumns($conn);
+    $verifiedItems = [];
+    $totalCents = 0;
+    foreach ($submittedItems as $item) {
+        if (!is_object($item)) {
+            throw new InvalidArgumentException("Order items must be valid objects");
         }
-    } catch (Exception $ex) {}
+        $quantity = filter_var($item->quantity ?? null, FILTER_VALIDATE_INT);
+        if ($quantity === false || $quantity < 1 || $quantity > 1000) {
+            throw new InvalidArgumentException("Each item quantity must be between 1 and 1000");
+        }
+        $product = placeOrderGetProduct($conn, $tenant_id, $item, $productColumns);
+        $totalCents += $product['price_cents'] * $quantity;
+        $verifiedItems[] = [
+            'product_id' => $product['id'],
+            'product_name' => $product['title'],
+            'quantity' => $quantity,
+            'price' => number_format($product['price_cents'] / 100, 2, '.', ''),
+        ];
+    }
+    $total_amount = number_format($totalCents / 100, 2, '.', '');
+
+    if ($activeSession) {
+        $session_id_val = (int)$activeSession['id'];
+        $session_update = $conn->prepare("UPDATE dining_sessions SET last_modified = CURRENT_TIMESTAMP WHERE id = ?");
+        $session_update->bind_param("i", $session_id_val);
+        $session_update->execute();
+    } else {
+        $session_insert = $conn->prepare("INSERT INTO dining_sessions (tenant_id, table_id, table_number, status)
+            VALUES (?, ?, ?, 'Open')");
+        $session_insert->bind_param("sii", $tenant_id, $table_id, $table_number);
+        $session_insert->execute();
+        $session_id_val = (int)$conn->insert_id;
+    }
+    $attachLegacyOrders = $conn->prepare("UPDATE orders SET session_id = ?
+        WHERE tenant_id = ? AND table_id = ? AND (session_id IS NULL OR session_id = 0)
+        AND LOWER(status) <> 'settled'");
+    $attachLegacyOrders->bind_param("isi", $session_id_val, $tenant_id, $table_id);
+    $attachLegacyOrders->execute();
+
+    $table_update = $conn->prepare("UPDATE restaurant_tables SET status = 'Dining' WHERE id = ? AND tenant_id = ?");
+    $table_update->bind_param("is", $table_id, $tenant_id);
+    $table_update->execute();
 
     // 3. Create Order
-    $stmt = $conn->prepare("INSERT INTO orders (tenant_id, table_id, user_id, customer_email, total_amount, status, session_id, created_at) VALUES (?, ?, ?, ?, ?, 'Pending', ?, NOW())");
-    $stmt->bind_param("sissdi", $tenant_id, $table_id, $user_id, $customer_email, $total_amount, $session_id_val);
+    $stmt = $conn->prepare("INSERT INTO orders (tenant_id, table_id, user_id, customer_email, total_amount, status, session_id, idempotency_key, created_at) VALUES (?, ?, ?, ?, ?, 'Pending', ?, ?, NOW())");
+    $stmt->bind_param("sissdis", $tenant_id, $table_id, $user_id, $customer_email, $total_amount, $session_id_val, $idempotency_key);
     $stmt->execute();
     $order_id = (int)$conn->insert_id;
     if ($order_id <= 0) {
@@ -112,14 +301,16 @@ try {
     }
 
     // 4. Save Items (Matching exact order_items schema: order_id, product_id, product_name, quantity, price_at_order)
-    if (!empty($data->items)) {
-        $item_ins = $conn->prepare("INSERT INTO order_items (order_id, product_id, product_name, quantity, price_at_order) VALUES (?, ?, ?, ?, ?)");
+    if (!empty($verifiedItems)) {
+        $item_ins = $conn->prepare("INSERT INTO order_items
+            (order_id, product_id, product_name, quantity, price_at_order, status)
+            VALUES (?, ?, ?, ?, ?, 'Pending')");
 
-        foreach ($data->items as $item) {
-            $item_pid = (int)($item->product_id ?? $item->id ?? 0);
-            $item_name = (string)($item->name ?? $item->product_name ?? 'Item');
-            $item_qty = (int)($item->quantity ?? 1);
-            $item_prc = (float)($item->price ?? $item->price_at_order ?? 0.00);
+        foreach ($verifiedItems as $item) {
+            $item_pid = $item['product_id'];
+            $item_name = $item['product_name'];
+            $item_qty = $item['quantity'];
+            $item_prc = (float)$item['price'];
 
             $item_ins->bind_param("iisid", $order_id, $item_pid, $item_name, $item_qty, $item_prc);
             $item_ins->execute();
@@ -162,14 +353,15 @@ try {
 
     // 6. Notify Admin about new order
     try {
-        $admin_stmt = $conn->prepare("SELECT primary_email, contact_email FROM tenants WHERE tenant_id = ? LIMIT 1");
+        $admin_stmt = $conn->prepare("SELECT contact_email FROM tenants WHERE tenant_id = ? LIMIT 1");
         $admin_stmt->bind_param("s", $tenant_id);
         $admin_stmt->execute();
         $admin_res = $admin_stmt->get_result();
         $admin_email = 'admin';
         if ($admin_row = $admin_res->fetch_assoc()) {
-            $admin_email = !empty($admin_row['primary_email']) ? $admin_row['primary_email'] : 
-                          (!empty($admin_row['contact_email']) ? $admin_row['contact_email'] : 'admin');
+            $admin_email = !empty($admin_row['contact_email'])
+                ? $admin_row['contact_email']
+                : 'admin';
         }
 
         $admin_notif_title = "New Order #$order_id";
@@ -185,13 +377,53 @@ try {
     echo json_encode([
         "status" => "success",
         "order_id" => (int)$order_id,
+        "total_amount" => $total_amount,
+        "items" => $verifiedItems,
+        "idempotent_replay" => false,
         "message" => "Order placed successfully"
     ]);
 
+} catch (InvalidArgumentException $e) {
+    if ($conn) {
+        try { $conn->rollback(); } catch (Throwable $rollbackError) {}
+    }
+    http_response_code(422);
+    echo json_encode(["status" => "error", "message" => $e->getMessage()]);
+} catch (mysqli_sql_exception $e) {
+    if ($conn) {
+        try { $conn->rollback(); } catch (Throwable $rollbackError) {}
+    }
+    if ((int)$e->getCode() === 1062 && $idempotency_key !== '') {
+        $replay = $conn->prepare("SELECT id, total_amount FROM orders WHERE tenant_id = ? AND idempotency_key = ? LIMIT 1");
+        $replay->bind_param("ss", $tenant_id, $idempotency_key);
+        $replay->execute();
+        $existingOrder = $replay->get_result()->fetch_assoc();
+        $replay->close();
+        if ($existingOrder) {
+            $existingOrderId = (int)$existingOrder['id'];
+            echo json_encode([
+                "status" => "success",
+                "order_id" => $existingOrderId,
+                "total_amount" => $existingOrder['total_amount'],
+                "items" => placeOrderStoredItems($conn, $existingOrderId),
+                "idempotent_replay" => true,
+                "message" => "This order submission was already accepted"
+            ]);
+        } else {
+            http_response_code(500);
+            echo json_encode(["status" => "error", "message" => "Order could not be saved"]);
+        }
+    } else {
+        error_log("Order placement database error: " . $e->getMessage());
+        http_response_code(500);
+        echo json_encode(["status" => "error", "message" => "Order could not be saved"]);
+    }
 } catch (Exception $e) {
     if ($conn) {
         try { $conn->rollback(); } catch(Exception $ex) {}
     }
+    error_log("Order placement failed: " . $e->getMessage());
+    http_response_code(500);
     echo json_encode(["status" => "error", "message" => "System Error: " . $e->getMessage()]);
 }
 

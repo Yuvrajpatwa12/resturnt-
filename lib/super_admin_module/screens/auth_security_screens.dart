@@ -32,27 +32,57 @@ class AuthSecurityScreens extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text("Admin Profile", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+          const Text(
+            "Admin Profile",
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 24),
           Container(
             padding: const EdgeInsets.all(32),
-            decoration: BoxDecoration(color: SAMStyles.pureWhite, borderRadius: BorderRadius.circular(24), boxShadow: SAMStyles.softShadow),
+            decoration: BoxDecoration(
+              color: SAMStyles.pureWhite,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: SAMStyles.softShadow,
+            ),
             child: Row(
               children: [
-                const CircleAvatar(radius: 50, backgroundColor: SAMStyles.royalBlue, child: Icon(Icons.person, size: 50, color: Colors.white)),
+                const CircleAvatar(
+                  radius: 50,
+                  backgroundColor: SAMStyles.royalBlue,
+                  child: Icon(Icons.person, size: 50, color: Colors.white),
+                ),
                 const SizedBox(width: 32),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: const [
-                      Text("Yuvraj Patwa", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-                      Text("Role: Root Super Admin", style: TextStyle(color: SAMStyles.textGrey)),
+                      Text(
+                        "Yuvraj Patwa",
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        "Role: Root Super Admin",
+                        style: TextStyle(color: SAMStyles.textGrey),
+                      ),
                       SizedBox(height: 8),
-                      Text("Last login: Aug 22, 2026 • 10:45 AM (IP: 192.168.1.1)", style: TextStyle(color: Colors.blue, fontSize: 11, fontWeight: FontWeight.bold)),
+                      Text(
+                        "Last login: Aug 22, 2026 • 10:45 AM (IP: 192.168.1.1)",
+                        style: TextStyle(
+                          color: Colors.blue,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ],
                   ),
                 ),
-                ElevatedButton(onPressed: () {}, child: const Text("EDIT PROFILE")),
+                ElevatedButton(
+                  onPressed: () {},
+                  child: const Text("EDIT PROFILE"),
+                ),
               ],
             ),
           ),
@@ -63,9 +93,24 @@ class AuthSecurityScreens extends StatelessWidget {
 
   Widget _buildAuditLogs() {
     final logs = [
-      {'user': 'Yuvraj', 'action': 'Client Deactivated', 'target': 'Mountain Cafe', 'time': '2026-08-22 14:30'},
-      {'user': 'Admin_02', 'action': 'Plan Upgraded', 'target': 'Spice Garden', 'time': '2026-08-22 12:15'},
-      {'user': 'System', 'action': 'Automatic Backup', 'target': 'Global DB', 'time': '2026-08-22 00:00'},
+      {
+        'user': 'Yuvraj',
+        'action': 'Client Deactivated',
+        'target': 'Mountain Cafe',
+        'time': '2026-08-22 14:30',
+      },
+      {
+        'user': 'Admin_02',
+        'action': 'Plan Upgraded',
+        'target': 'Spice Garden',
+        'time': '2026-08-22 12:15',
+      },
+      {
+        'user': 'System',
+        'action': 'Automatic Backup',
+        'target': 'Global DB',
+        'time': '2026-08-22 00:00',
+      },
     ];
 
     return Padding(
@@ -73,11 +118,18 @@ class AuthSecurityScreens extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text("Security Audit Logs", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+          const Text(
+            "Security Audit Logs",
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 24),
           Expanded(
             child: Container(
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24), boxShadow: SAMStyles.softShadow),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: SAMStyles.softShadow,
+              ),
               child: SingleChildScrollView(
                 child: DataTable(
                   columns: const [
@@ -86,12 +138,25 @@ class AuthSecurityScreens extends StatelessWidget {
                     DataColumn(label: Text("TARGET")),
                     DataColumn(label: Text("TIMESTAMP")),
                   ],
-                  rows: logs.map((log) => DataRow(cells: [
-                    DataCell(Text(log['user']!, style: const TextStyle(fontWeight: FontWeight.bold))),
-                    DataCell(Text(log['action']!)),
-                    DataCell(Text(log['target']!)),
-                    DataCell(Text(log['time']!)),
-                  ])).toList(),
+                  rows: logs
+                      .map(
+                        (log) => DataRow(
+                          cells: [
+                            DataCell(
+                              Text(
+                                log['user']!,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            DataCell(Text(log['action']!)),
+                            DataCell(Text(log['target']!)),
+                            DataCell(Text(log['time']!)),
+                          ],
+                        ),
+                      )
+                      .toList(),
                 ),
               ),
             ),
@@ -111,17 +176,24 @@ class _SuperAdminLoginForm extends StatefulWidget {
 }
 
 class _SuperAdminLoginFormState extends State<_SuperAdminLoginForm> {
-  final _usernameCtrl = TextEditingController(text: "admin");
-  final _passwordCtrl = TextEditingController(text: "patwa");
+  final _emailCtrl = TextEditingController();
+  final _pinCtrl = TextEditingController();
   bool _isLoading = false;
   String? _errorMessage;
 
-  Future<void> _handleLogin() async {
-    final username = _usernameCtrl.text.trim();
-    final password = _passwordCtrl.text.trim();
+  @override
+  void dispose() {
+    _emailCtrl.dispose();
+    _pinCtrl.dispose();
+    super.dispose();
+  }
 
-    if (username.isEmpty || password.isEmpty) {
-      setState(() => _errorMessage = "Username and password/PIN are required.");
+  Future<void> _handleLogin() async {
+    final email = _emailCtrl.text.trim();
+    final pin = _pinCtrl.text.trim();
+
+    if (email.isEmpty || pin.isEmpty) {
+      setState(() => _errorMessage = "Email and PIN are required.");
       return;
     }
 
@@ -130,14 +202,14 @@ class _SuperAdminLoginFormState extends State<_SuperAdminLoginForm> {
       _errorMessage = null;
     });
 
-    final res = await ApiService.superAdminLogin(username, password);
+    final res = await ApiService.superAdminLogin(email, pin);
 
     if (!mounted) return;
 
     if (res['success'] == true) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(res['message'] ?? 'Authenticated as Root Super Admin'),
+          content: Text(res['message'] ?? 'Super Admin authenticated.'),
           backgroundColor: SAMStyles.emeraldGreen,
         ),
       );
@@ -165,10 +237,20 @@ class _SuperAdminLoginFormState extends State<_SuperAdminLoginForm> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.security_rounded, size: 64, color: SAMStyles.royalBlue),
+          const Icon(
+            Icons.security_rounded,
+            size: 64,
+            color: SAMStyles.royalBlue,
+          ),
           const SizedBox(height: 24),
-          const Text("Super Admin Portal", style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900)),
-          const Text("Secure access for root administrators", style: TextStyle(color: SAMStyles.textGrey)),
+          const Text(
+            "Super Admin Portal",
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
+          ),
+          const Text(
+            "Secure access for root administrators",
+            style: TextStyle(color: SAMStyles.textGrey),
+          ),
           const SizedBox(height: 32),
           if (_errorMessage != null) ...[
             Container(
@@ -180,12 +262,20 @@ class _SuperAdminLoginFormState extends State<_SuperAdminLoginForm> {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.error_outline_rounded, color: Colors.red, size: 20),
+                  const Icon(
+                    Icons.error_outline_rounded,
+                    color: Colors.red,
+                    size: 20,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       _errorMessage!,
-                      style: const TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                        color: Colors.red,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ],
@@ -194,23 +284,32 @@ class _SuperAdminLoginFormState extends State<_SuperAdminLoginForm> {
             const SizedBox(height: 16),
           ],
           TextField(
-            controller: _usernameCtrl,
+            controller: _emailCtrl,
+            keyboardType: TextInputType.emailAddress,
+            textInputAction: TextInputAction.next,
             decoration: InputDecoration(
-              labelText: "Admin Username",
-              hintText: "admin",
-              prefixIcon: const Icon(Icons.person_outline),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              labelText: "Admin Email",
+              hintText: "admin@example.com",
+              prefixIcon: const Icon(Icons.email_outlined),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
           ),
           const SizedBox(height: 20),
           TextField(
-            controller: _passwordCtrl,
+            controller: _pinCtrl,
             obscureText: true,
+            keyboardType: TextInputType.number,
+            textInputAction: TextInputAction.done,
+            onSubmitted: (_) => _isLoading ? null : _handleLogin(),
             decoration: InputDecoration(
-              labelText: "Secret PIN / Password",
-              hintText: "patwa or 123456",
+              labelText: "Super Admin PIN",
+              hintText: "Enter your database PIN",
               prefixIcon: const Icon(Icons.lock_outline),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
           ),
           const SizedBox(height: 32),
@@ -221,15 +320,27 @@ class _SuperAdminLoginFormState extends State<_SuperAdminLoginForm> {
               onPressed: _isLoading ? null : _handleLogin,
               style: ElevatedButton.styleFrom(
                 backgroundColor: SAMStyles.royalBlue,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
               child: _isLoading
                   ? const SizedBox(
                       width: 24,
                       height: 24,
-                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
                     )
-                  : const Text("AUTHENTICATE", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                  : const Text(
+                      "AUTHENTICATE",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1,
+                      ),
+                    ),
             ),
           ),
         ],

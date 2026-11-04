@@ -8,7 +8,6 @@ import 'squad_lobby_page.dart';
 import 'services/tenant_service.dart';
 import 'services/api_service.dart';
 
-
 class NotificationsPage extends StatefulWidget {
   const NotificationsPage({super.key});
 
@@ -16,8 +15,10 @@ class NotificationsPage extends StatefulWidget {
   State<NotificationsPage> createState() => _NotificationsPageState();
 }
 
-class _NotificationsPageState extends State<NotificationsPage> with SingleTickerProviderStateMixin {
+class _NotificationsPageState extends State<NotificationsPage>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  final Set<int> _respondingToGameNotifications = {};
 
   @override
   void initState() {
@@ -38,18 +39,33 @@ class _NotificationsPageState extends State<NotificationsPage> with SingleTicker
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text("Your notifications", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 22)),
+        title: const Text(
+          "Your notifications",
+          style: TextStyle(
+            color: Colors.black,
+            fontWeight: FontWeight.bold,
+            fontSize: 22,
+          ),
+        ),
         actions: [
           ElevatedButton.icon(
             onPressed: () async {
               await ShopManager.instance.checkOrRequestNotificationOnAction();
               final tenant = TenantService().currentTenant.value;
-              if (tenant != null && ShopManager.instance.currentUserId.isNotEmpty) {
-                final success = await ApiService.sendTestOfferNotification(tenant.id, ShopManager.instance.currentUserId);
+              if (tenant != null &&
+                  ShopManager.instance.currentUserId.isNotEmpty) {
+                final success = await ApiService.sendTestOfferNotification(
+                  tenant.id,
+                  ShopManager.instance.currentUserId,
+                );
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text(success ? "🎉 Test offer push sent to your device!" : "⚠️ Failed to send test push"),
+                      content: Text(
+                        success
+                            ? "🎉 Test offer push sent to your device!"
+                            : "⚠️ Failed to send test push",
+                      ),
                       backgroundColor: success ? Colors.green : Colors.red,
                     ),
                   );
@@ -60,17 +76,25 @@ class _NotificationsPageState extends State<NotificationsPage> with SingleTicker
               backgroundColor: Theme.of(context).primaryColor,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
               elevation: 0,
             ),
             icon: const Icon(Icons.local_offer_rounded, size: 16),
-            label: const Text("Test Offer", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+            label: const Text(
+              "Test Offer",
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+            ),
           ),
           const SizedBox(width: 6),
           TextButton.icon(
             onPressed: () => ShopManager.instance.clearNotificationBadge(),
             icon: const Icon(Icons.done_all, size: 18),
-            label: const Text("Read All", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+            label: const Text(
+              "Read All",
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+            ),
           ),
           const SizedBox(width: 8),
         ],
@@ -84,7 +108,7 @@ class _NotificationsPageState extends State<NotificationsPage> with SingleTicker
             Tab(text: "View all"),
             Tab(text: "Mentions"),
             Tab(text: "Followers"),
-            Tab(text: "Invites"),
+            Tab(text: "Games"),
           ],
         ),
       ),
@@ -97,7 +121,7 @@ class _NotificationsPageState extends State<NotificationsPage> with SingleTicker
               _buildList(notifications, "all"),
               _buildList(notifications, "message"),
               _buildList(notifications, "follow"),
-              _buildList(notifications, "wave"),
+              _buildList(notifications, "invites"),
             ],
           );
         },
@@ -106,11 +130,19 @@ class _NotificationsPageState extends State<NotificationsPage> with SingleTicker
   }
 
   Widget _buildList(List<Map<String, dynamic>> all, String filter) {
-    final filtered = filter == "all" 
-        ? all 
+    final filtered = filter == "all"
+        ? all
         : all.where((n) {
             final type = n['type'];
-            return type == filter || (filter == 'follow' && type == 'follow_back');
+            if (filter == 'invites') {
+              return type == 'squad_invite' ||
+                  type == 'squad_table_added' ||
+                  type == 'squad_join_request' ||
+                  type == 'squad_join_approved' ||
+                  type == 'squad_join_declined';
+            }
+            return type == filter ||
+                (filter == 'follow' && type == 'follow_back');
           }).toList();
 
     if (filtered.isEmpty) {
@@ -118,9 +150,16 @@ class _NotificationsPageState extends State<NotificationsPage> with SingleTicker
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.notifications_off_outlined, size: 64, color: Colors.grey[200]),
+            Icon(
+              Icons.notifications_off_outlined,
+              size: 64,
+              color: Colors.grey[200],
+            ),
             const SizedBox(height: 16),
-            const Text("No notifications yet", style: TextStyle(color: Colors.grey)),
+            const Text(
+              "No notifications yet",
+              style: TextStyle(color: Colors.grey),
+            ),
           ],
         ),
       );
@@ -136,83 +175,354 @@ class _NotificationsPageState extends State<NotificationsPage> with SingleTicker
         separatorBuilder: (context, index) => const SizedBox(height: 24),
         itemBuilder: (context, index) {
           final n = filtered[index];
-          return InkWell(
-            onTap: () async {
-              final notificationId =
-                  int.tryParse(n['id']?.toString() ?? '');
-              if (notificationId != null) {
-                await ShopManager.instance.acknowledgeNotification(
-                  notificationId,
-                );
-                if (!context.mounted) return;
-              }
-              final senderId = n['sender_id']?.toString().trim();
-              final type = n['type']?.toString();
-              final message = n['message']?.toString() ?? '';
+          final isJoinRequest = n['type'] == 'squad_join_request';
+          final isGameInvite = n['type'] == 'squad_invite';
+          final isTableMember = n['type'] == 'squad_table_added';
+          final notificationId = int.tryParse(n['id']?.toString() ?? '');
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: (isJoinRequest || isGameInvite || isTableMember)
+                      ? const Color(0xFFFFF8F3)
+                      : Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(
+                    color: (isJoinRequest || isGameInvite || isTableMember)
+                        ? const Color(0xFFFFE2D0)
+                        : const Color(0xFFF0F0F0),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    InkWell(
+                      onTap: () async {
+                        final notificationId = int.tryParse(
+                          n['id']?.toString() ?? '',
+                        );
+                        if (notificationId != null) {
+                          await ShopManager.instance.acknowledgeNotification(
+                            notificationId,
+                          );
+                          if (!context.mounted) return;
+                        }
+                        final senderId = n['sender_id']?.toString().trim();
+                        final type = n['type']?.toString();
+                        final message = n['message']?.toString() ?? '';
+                        if (type == 'squad_invite') return;
+                        if (type == 'squad_join_request' ||
+                            type == 'squad_join_approved' ||
+                            type == 'squad_table_added') {
+                          final squadId = int.tryParse(
+                            n['related_squad_id']?.toString() ?? '',
+                          );
+                          if (squadId != null && squadId > 0) {
+                            await _openSquadLobby(
+                              squadId,
+                              isHost: type == 'squad_join_request',
+                            );
+                          } else {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const NearbyPage(),
+                              ),
+                            );
+                          }
+                          return;
+                        }
+                        if (type == 'squad_join_declined') {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const NearbyPage(),
+                            ),
+                          );
+                          return;
+                        }
 
-              // 1. Direct match by sender_id if valid
-              if (senderId != null && senderId.isNotEmpty && senderId != 'null') {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => UserProfileViewPage(userId: senderId)),
-                );
-                return;
-              }
+                        // 1. Direct match by sender_id if valid
+                        if (senderId != null &&
+                            senderId.isNotEmpty &&
+                            senderId != 'null') {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  UserProfileViewPage(userId: senderId),
+                            ),
+                          );
+                          return;
+                        }
 
-              // 2. Fallback: Extract @username from message text if sender_id was null in old database rows
-              if (message.contains('@')) {
-                final match = RegExp(r'@([a-zA-Z0-9_\.\-]+)').firstMatch(message);
-                if (match != null) {
-                  final extractedHandle = match.group(1);
-                  if (extractedHandle != null && extractedHandle.isNotEmpty) {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => UserProfileViewPage(userId: extractedHandle)),
-                    );
-                    return;
-                  }
-                }
-              }
+                        // 2. Fallback: Extract @username from message text if sender_id was null in old database rows
+                        if (message.contains('@')) {
+                          final match = RegExp(
+                            r'@([a-zA-Z0-9_\.\-]+)',
+                          ).firstMatch(message);
+                          if (match != null) {
+                            final extractedHandle = match.group(1);
+                            if (extractedHandle != null &&
+                                extractedHandle.isNotEmpty) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => UserProfileViewPage(
+                                    userId: extractedHandle,
+                                  ),
+                                ),
+                              );
+                              return;
+                            }
+                          }
+                        }
 
-              // 3. Fallback by notification type
-              if (type == 'follow' || type == 'follow_back' || type == 'wave') {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const NearbyPage()),
-                );
-              } else if (type == 'order') {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const MyOrdersPage()),
-                );
-              } else if (type == 'points') {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const RewardsPage()),
-                );
-              } else if (type == 'squad_invite') {
-                final tenant = TenantService().currentTenant.value;
-                final myId = ShopManager.instance.currentUserId;
-                if (tenant != null && myId.isNotEmpty) {
-                  final squad = await ApiService.getActiveSquad(tenantId: tenant.id, userId: myId);
-                  if (squad != null && mounted) {
-                    final int squadId = int.tryParse(squad['id'].toString()) ?? 0;
-                    final bool isHost = squad['created_by_user_id']?.toString() == myId;
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => SquadLobbyPage(squadId: squadId, isHost: isHost)),
-                    );
-                  } else if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Squad session has expired or closed.")),
-                    );
-                  }
-                }
-              }
-            },
-            child: _buildNotificationItem(n),
+                        // 3. Fallback by notification type
+                        if (type == 'follow' ||
+                            type == 'follow_back' ||
+                            type == 'wave') {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const NearbyPage(),
+                            ),
+                          );
+                        } else if (type == 'order') {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const MyOrdersPage(),
+                            ),
+                          );
+                        } else if (type == 'points') {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const RewardsPage(),
+                            ),
+                          );
+                        } else if (type == 'squad_invite') {
+                          final tenant = TenantService().currentTenant.value;
+                          final myId = ShopManager.instance.currentUserId;
+                          if (tenant != null && myId.isNotEmpty) {
+                            final squad = await ApiService.getActiveSquad(
+                              tenantId: tenant.id,
+                              userId: myId,
+                            );
+                            if (squad != null && mounted) {
+                              final int squadId =
+                                  int.tryParse(squad['id'].toString()) ?? 0;
+                              final bool isHost =
+                                  squad['created_by_user_id']?.toString() ==
+                                  myId;
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => SquadLobbyPage(
+                                    squadId: squadId,
+                                    isHost: isHost,
+                                  ),
+                                ),
+                              );
+                            } else if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    "Squad session has expired or closed.",
+                                  ),
+                                ),
+                              );
+                            }
+                          }
+                        }
+                      },
+                      child: _buildNotificationItem(n),
+                    ),
+                    if (isJoinRequest || isGameInvite)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 64, top: 12),
+                        child: Row(
+                          children: [
+                            OutlinedButton(
+                              onPressed:
+                                  notificationId == null ||
+                                      _respondingToGameNotifications.contains(
+                                        notificationId,
+                                      )
+                                  ? null
+                                  : () => isJoinRequest
+                                        ? _respondToJoinRequest(n, false)
+                                        : _respondToSquadInvite(n, false),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: Colors.red.shade700,
+                                side: BorderSide(color: Colors.red.shade200),
+                                minimumSize: const Size(88, 40),
+                              ),
+                              child: const Text('Ignore'),
+                            ),
+                            const SizedBox(width: 10),
+                            FilledButton.icon(
+                              onPressed:
+                                  notificationId == null ||
+                                      _respondingToGameNotifications.contains(
+                                        notificationId,
+                                      )
+                                  ? null
+                                  : () => isJoinRequest
+                                        ? _respondToJoinRequest(n, true)
+                                        : _respondToSquadInvite(n, true),
+                              icon: const Icon(Icons.check_rounded, size: 18),
+                              label: const Text('Accept'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    if (isTableMember)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 64, top: 12),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: FilledButton.icon(
+                            onPressed: () async {
+                              final squadId = int.tryParse(
+                                n['related_squad_id']?.toString() ?? '',
+                              );
+                              if (squadId != null && squadId > 0) {
+                                await _openSquadLobby(squadId, isHost: false);
+                              }
+                            },
+                            icon: const Icon(Icons.sports_esports_rounded),
+                            label: const Text('Open lobby'),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
           );
         },
+      ),
+    );
+  }
+
+  Future<void> _respondToJoinRequest(
+    Map<String, dynamic> notification,
+    bool accept,
+  ) async {
+    final tenant = TenantService().currentTenant.value;
+    final notificationId = int.tryParse(notification['id']?.toString() ?? '');
+    final squadId = int.tryParse(
+      notification['related_squad_id']?.toString() ?? '',
+    );
+    final requesterId = notification['sender_id']?.toString().trim() ?? '';
+    if (tenant == null ||
+        notificationId == null ||
+        squadId == null ||
+        requesterId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('This join request is missing details.')),
+      );
+      return;
+    }
+
+    setState(() => _respondingToGameNotifications.add(notificationId));
+    final response = await ApiService.respondToBattlegroundJoin(
+      tenantId: tenant.id,
+      squadId: squadId,
+      requesterId: requesterId,
+      accept: accept,
+    );
+    if (!mounted) return;
+    setState(() => _respondingToGameNotifications.remove(notificationId));
+    if (response?['status'] == 'success') {
+      await ShopManager.instance.acknowledgeNotification(notificationId);
+      await ShopManager.instance.refreshNotifications();
+      if (accept && mounted) {
+        await _openSquadLobby(squadId, isHost: true);
+        return;
+      }
+    }
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          response?['message']?.toString() ??
+              'Could not respond to the join request.',
+        ),
+      ),
+    );
+  }
+
+  Future<void> _respondToSquadInvite(
+    Map<String, dynamic> notification,
+    bool accept,
+  ) async {
+    final tenant = TenantService().currentTenant.value;
+    final userId = ShopManager.instance.currentUserId;
+    final notificationId = int.tryParse(notification['id']?.toString() ?? '');
+    var squadId = int.tryParse(
+      notification['related_squad_id']?.toString() ?? '',
+    );
+    if (tenant != null &&
+        userId.isNotEmpty &&
+        (squadId == null || squadId <= 0)) {
+      final legacySquad = await ApiService.getActiveSquad(
+        tenantId: tenant.id,
+        userId: userId,
+      );
+      if (!mounted) return;
+      squadId = int.tryParse(legacySquad?['id']?.toString() ?? '');
+    }
+    if (tenant == null ||
+        userId.isEmpty ||
+        notificationId == null ||
+        squadId == null ||
+        squadId <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('This game invite is missing details.')),
+      );
+      return;
+    }
+
+    setState(() => _respondingToGameNotifications.add(notificationId));
+    final response = await ApiService.respondToInvite(
+      tenantId: tenant.id,
+      userId: userId,
+      squadId: squadId,
+      accept: accept,
+    );
+    if (!mounted) return;
+    setState(() => _respondingToGameNotifications.remove(notificationId));
+    if (response?['status'] == 'success') {
+      await ShopManager.instance.acknowledgeNotification(notificationId);
+      await ShopManager.instance.refreshNotifications();
+      if (accept && mounted) {
+        await _openSquadLobby(squadId, isHost: false);
+        return;
+      }
+    }
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          response?['message']?.toString() ??
+              (accept
+                  ? 'Could not accept this game invite.'
+                  : 'Could not dismiss this game invite.'),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openSquadLobby(int squadId, {required bool isHost}) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SquadLobbyPage(squadId: squadId, isHost: isHost),
       ),
     );
   }
@@ -222,11 +532,32 @@ class _NotificationsPageState extends State<NotificationsPage> with SingleTicker
     IconData icon = Icons.notifications;
     Color color = Colors.blue;
 
-    if (n['type'] == 'follow' || n['type'] == 'follow_back') { icon = Icons.person_add; color = Colors.orange; }
-    if (n['type'] == 'wave') { icon = Icons.back_hand; color = Colors.amber; }
-    if (n['type'] == 'points') { icon = Icons.monetization_on; color = Colors.green; }
-    if (n['type'] == 'message') { icon = Icons.chat_bubble; color = Colors.purple; }
-    if (n['type'] == 'squad_invite') { icon = Icons.sports_esports_rounded; color = Colors.deepOrange; }
+    if (n['type'] == 'follow' || n['type'] == 'follow_back') {
+      icon = Icons.person_add;
+      color = Colors.orange;
+    }
+    if (n['type'] == 'wave') {
+      icon = Icons.back_hand;
+      color = Colors.amber;
+    }
+    if (n['type'] == 'points') {
+      icon = Icons.monetization_on;
+      color = Colors.green;
+    }
+    if (n['type'] == 'message') {
+      icon = Icons.chat_bubble;
+      color = Colors.purple;
+    }
+    if (n['type'] == 'squad_invite') {
+      icon = Icons.sports_esports_rounded;
+      color = Colors.deepOrange;
+    }
+    if (n['type'] == 'squad_join_request' ||
+        n['type'] == 'squad_join_approved' ||
+        n['type'] == 'squad_join_declined') {
+      icon = Icons.sports_esports_rounded;
+      color = Colors.deepOrange;
+    }
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -246,7 +577,10 @@ class _NotificationsPageState extends State<NotificationsPage> with SingleTicker
                   Expanded(
                     child: Text(
                       n['title'] ?? "Activity",
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                      ),
                     ),
                   ),
                   if (!isRead)
@@ -256,7 +590,11 @@ class _NotificationsPageState extends State<NotificationsPage> with SingleTicker
               const SizedBox(height: 4),
               Text(
                 n['message'] ?? "",
-                style: TextStyle(color: Colors.grey[600], fontSize: 13, height: 1.4),
+                style: TextStyle(
+                  color: Colors.grey[600],
+                  fontSize: 13,
+                  height: 1.4,
+                ),
               ),
               const SizedBox(height: 8),
               Text(
@@ -278,6 +616,8 @@ class _NotificationsPageState extends State<NotificationsPage> with SingleTicker
       if (diff.inMinutes < 60) return "${diff.inMinutes} mins ago";
       if (diff.inHours < 24) return "${diff.inHours} hours ago";
       return "${diff.inDays} days ago";
-    } catch (e) { return "Recent"; }
+    } catch (e) {
+      return "Recent";
+    }
   }
 }

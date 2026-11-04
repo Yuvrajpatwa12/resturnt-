@@ -11,7 +11,16 @@ import 'services/notification_sound_stub.dart'
 import 'services/api_service.dart';
 
 class NearbyPage extends StatefulWidget {
-  const NearbyPage({super.key});
+  final int? battlegroundSquadId;
+  final int battlegroundMemberCount;
+  final int? battlegroundMaxPlayers;
+
+  const NearbyPage({
+    super.key,
+    this.battlegroundSquadId,
+    this.battlegroundMemberCount = 0,
+    this.battlegroundMaxPlayers,
+  });
 
   @override
   State<NearbyPage> createState() => _NearbyPageState();
@@ -21,18 +30,23 @@ class _NearbyPageState extends State<NearbyPage> {
   List<Map<String, dynamic>> _activeGuests = [];
   bool _isLoading = true;
   Timer? _refreshTimer;
-  final Set<String> _loadingFollowIds = {}; 
-  
+  final Set<String> _loadingFollowIds = {};
+
   // Optimistic UI Map: targetId -> isFollowing
   final Map<String, bool> _optimisticFollows = {};
+  final Set<String> _battlegroundInvitesSent = {};
+  late int _battlegroundMemberCount = widget.battlegroundMemberCount;
 
   @override
   void initState() {
     super.initState();
     _fetchGuests(isInitial: true);
-    // Refresh every 15 seconds for real-time feel
-    _refreshTimer = Timer.periodic(const Duration(seconds: 15), (_) => _fetchGuests());
-    
+    // Keep nearby diners fresh while the page is open.
+    _refreshTimer = Timer.periodic(
+      const Duration(seconds: 10),
+      (_) => _fetchGuests(),
+    );
+
     // Auto check-in and check notification permission
     ShopManager.instance.updatePresenceOnServer();
     ShopManager.instance.checkOrRequestNotificationOnAction();
@@ -44,26 +58,69 @@ class _NearbyPageState extends State<NearbyPage> {
     super.dispose();
   }
 
-  Future<void> _inviteUserToTapWar(String targetUserId, String displayName) async {
+  Future<void> _inviteUserToTapWar(
+    String targetUserId,
+    String displayName,
+  ) async {
     final tenant = TenantService().currentTenant.value;
     if (tenant == null) return;
     final myId = ShopManager.instance.currentUserId;
+    if (widget.battlegroundSquadId != null) {
+      if (_battlegroundInvitesSent.contains(targetUserId) ||
+          (widget.battlegroundMaxPlayers != null &&
+              _battlegroundMemberCount >= widget.battlegroundMaxPlayers!)) {
+        return;
+      }
+      final inviteRes = await ApiService.inviteToSquad(
+        tenantId: tenant.id,
+        userId: myId,
+        squadId: widget.battlegroundSquadId!,
+        invitedUserId: targetUserId,
+      );
+      if (!mounted) return;
+      if (inviteRes != null && inviteRes['status'] == 'success') {
+        setState(() {
+          _battlegroundInvitesSent.add(targetUserId);
+          _battlegroundMemberCount++;
+        });
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            inviteRes?['message']?.toString() ??
+                'Could not invite $displayName.',
+          ),
+        ),
+      );
+      return;
+    }
+
     final tableId = ShopManager.instance.selectedTableId.value ?? 1;
 
     final order = await ApiService.fetchLatestOrder(tenant.id, myId);
     if (order == null) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("You need an active order (Pending or Cooking) to host a Tap War squad!")),
+          const SnackBar(
+            content: Text(
+              "You need an active order (Pending or Cooking) to host a Tap War squad!",
+            ),
+          ),
         );
       }
       return;
     }
     final orderStatus = (order['status'] ?? '').toString().toLowerCase();
-    if (orderStatus != 'pending' && orderStatus != 'cooking' && orderStatus != 'preparing') {
+    if (orderStatus != 'pending' &&
+        orderStatus != 'cooking' &&
+        orderStatus != 'preparing') {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Your order is already served. Tap War squads are only available during dining preparation.")),
+          const SnackBar(
+            content: Text(
+              "Your order is already served. Tap War squads are only available during dining preparation.",
+            ),
+          ),
         );
       }
       return;
@@ -78,7 +135,9 @@ class _NearbyPageState extends State<NearbyPage> {
     if (squadRes == null || squadRes['status'] != 'success') {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(squadRes?['message'] ?? "Could not create squad")),
+          SnackBar(
+            content: Text(squadRes?['message'] ?? "Could not create squad"),
+          ),
         );
       }
       return;
@@ -96,19 +155,28 @@ class _NearbyPageState extends State<NearbyPage> {
     if (inviteRes != null && inviteRes['status'] == 'success') {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Squad invite sent to $displayName! Opening lobby...")),
+          SnackBar(
+            content: Text(
+              "Squad invite sent to $displayName! Opening lobby...",
+            ),
+          ),
         );
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => SquadLobbyPage(squadId: squadId, isHost: true),
+            builder: (context) =>
+                SquadLobbyPage(squadId: squadId, isHost: true),
           ),
         );
       }
     } else {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(inviteRes?['message'] ?? "Could not send squad invite")),
+          SnackBar(
+            content: Text(
+              inviteRes?['message'] ?? "Could not send squad invite",
+            ),
+          ),
         );
       }
     }
@@ -120,7 +188,7 @@ class _NearbyPageState extends State<NearbyPage> {
 
     if (isInitial) setState(() => _isLoading = true);
     final myId = ShopManager.instance.currentUserId;
-    
+
     final data = await ApiService.fetchActiveGuests(tenant.id, myId);
     if (mounted) {
       setState(() {
@@ -130,7 +198,9 @@ class _NearbyPageState extends State<NearbyPage> {
           // Trust the server's window (60 mins). No local filtering to avoid Timezone issues.
           _activeGuests = data;
         } else {
-          debugPrint("NEARBY: ERROR - Received NULL or failed response from server.");
+          debugPrint(
+            "NEARBY: ERROR - Received NULL or failed response from server.",
+          );
         }
         _isLoading = false;
       });
@@ -158,7 +228,13 @@ class _NearbyPageState extends State<NearbyPage> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(32),
-                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 20, offset: const Offset(0, 10))],
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 20,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(32),
@@ -173,52 +249,161 @@ class _NearbyPageState extends State<NearbyPage> {
                           ),
                         ),
                       ),
-                      Positioned(top: 40, left: 30, child: _buildFloorArea("Lounge Zone", 140, 110, Icons.weekend_rounded)),
-                      Positioned(top: 40, right: 30, child: _buildFloorArea("Coffee Bar", 100, 160, Icons.local_cafe_rounded)),
-                      Positioned(bottom: 50, left: 40, child: _buildFloorArea("Table Cluster", 80, 80, Icons.grid_view_rounded)),
-                      Positioned(bottom: 50, right: 60, child: _buildFloorArea("Outdoor Patio", 90, 90, Icons.wb_sunny_rounded)),
-  
-                      if (users.isNotEmpty) Positioned(top: 70, left: 80, child: _buildMapPin(users[0])),
-                      if (users.length > 1) Positioned(top: 130, right: 50, child: _buildMapPin(users[1])),
-                      if (users.length > 2) Positioned(bottom: 65, left: 65, child: _buildMapPin(users[2])),
-                      if (users.length > 3) Positioned(bottom: 65, right: 85, child: _buildMapPin(users[3])),
-  
                       Positioned(
-                        top: 16, left: 16, right: 16,
+                        top: 40,
+                        left: 30,
+                        child: _buildFloorArea(
+                          "Lounge Zone",
+                          140,
+                          110,
+                          Icons.weekend_rounded,
+                        ),
+                      ),
+                      Positioned(
+                        top: 40,
+                        right: 30,
+                        child: _buildFloorArea(
+                          "Coffee Bar",
+                          100,
+                          160,
+                          Icons.local_cafe_rounded,
+                        ),
+                      ),
+                      Positioned(
+                        bottom: 50,
+                        left: 40,
+                        child: _buildFloorArea(
+                          "Table Cluster",
+                          80,
+                          80,
+                          Icons.grid_view_rounded,
+                        ),
+                      ),
+                      Positioned(
+                        bottom: 50,
+                        right: 60,
+                        child: _buildFloorArea(
+                          "Outdoor Patio",
+                          90,
+                          90,
+                          Icons.wb_sunny_rounded,
+                        ),
+                      ),
+
+                      if (users.isNotEmpty)
+                        Positioned(
+                          top: 70,
+                          left: 80,
+                          child: _buildMapPin(users[0]),
+                        ),
+                      if (users.length > 1)
+                        Positioned(
+                          top: 130,
+                          right: 50,
+                          child: _buildMapPin(users[1]),
+                        ),
+                      if (users.length > 2)
+                        Positioned(
+                          bottom: 65,
+                          left: 65,
+                          child: _buildMapPin(users[2]),
+                        ),
+                      if (users.length > 3)
+                        Positioned(
+                          bottom: 65,
+                          right: 85,
+                          child: _buildMapPin(users[3]),
+                        ),
+
+                      Positioned(
+                        top: 16,
+                        left: 16,
+                        right: 16,
                         child: Row(
                           children: [
-                            _buildMapActionBtn(Icons.settings_outlined, () => _showPrivacySettings(context)),
-                            const Spacer(),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)]),
-                              child: Row(children: [
-                                Text(TenantService().currentTenant.value?.name ?? "Downtown Hub", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)), 
-                                const Icon(Icons.keyboard_arrow_down, size: 16)
-                              ]),
+                            _buildMapActionBtn(
+                              Icons.settings_outlined,
+                              () => _showPrivacySettings(context),
                             ),
                             const Spacer(),
-                            _buildMapActionBtn(Icons.refresh, () => _fetchGuests(isInitial: true)),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(20),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.05),
+                                    blurRadius: 10,
+                                  ),
+                                ],
+                              ),
+                              child: Row(
+                                children: [
+                                  Text(
+                                    TenantService().currentTenant.value?.name ??
+                                        "Downtown Hub",
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                  const Icon(
+                                    Icons.keyboard_arrow_down,
+                                    size: 16,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const Spacer(),
+                            _buildMapActionBtn(
+                              Icons.refresh,
+                              () => _fetchGuests(isInitial: true),
+                            ),
                             const SizedBox(width: 8),
                             ValueListenableBuilder<int>(
-                              valueListenable: ShopManager.instance.totalUnreadChatCount,
+                              valueListenable:
+                                  ShopManager.instance.totalUnreadChatCount,
                               builder: (context, unread, _) {
                                 return Stack(
                                   clipBehavior: Clip.none,
                                   children: [
-                                    _buildMapActionBtn(Icons.chat_bubble_outline, () => Navigator.push(context, MaterialPageRoute(builder: (context) => const MessagesListPage()))),
+                                    _buildMapActionBtn(
+                                      Icons.chat_bubble_outline,
+                                      () => Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              const MessagesListPage(),
+                                        ),
+                                      ),
+                                    ),
                                     if (unread > 0)
                                       Positioned(
-                                        top: -4, right: -4,
+                                        top: -4,
+                                        right: -4,
                                         child: Container(
                                           padding: const EdgeInsets.all(4),
-                                          decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
-                                          child: Text("$unread", style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
+                                          decoration: const BoxDecoration(
+                                            color: Colors.red,
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: Text(
+                                            "$unread",
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 8,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
                                         ),
                                       ),
                                   ],
                                 );
-                              }
+                              },
                             ),
                           ],
                         ),
@@ -228,12 +413,15 @@ class _NearbyPageState extends State<NearbyPage> {
                 ),
               ),
             ),
-  
+
             // --- 2. PEOPLE LIST SECTION ---
             SliverToBoxAdapter(
               child: Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 24),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 0,
+                  vertical: 24,
+                ),
                 decoration: const BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.vertical(top: Radius.circular(40)),
@@ -246,16 +434,45 @@ class _NearbyPageState extends State<NearbyPage> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text("Active Now", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black)),
+                          const Text(
+                            "Active Now",
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black,
+                            ),
+                          ),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(color: Colors.green.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
-                            child: Row(children: [const CircleAvatar(radius: 3, backgroundColor: Colors.green), const SizedBox(width: 6), Text("${users.length} Live", style: const TextStyle(color: Colors.green, fontSize: 11, fontWeight: FontWeight.bold))]),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.green.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Row(
+                              children: [
+                                const CircleAvatar(
+                                  radius: 3,
+                                  backgroundColor: Colors.green,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  "${users.length} Live",
+                                  style: const TextStyle(
+                                    color: Colors.green,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ],
                       ),
                     ),
-                    
+
                     // Visibility Warning Message
                     ValueListenableBuilder<bool>(
                       valueListenable: ShopManager.instance.isProfileVisible,
@@ -272,40 +489,59 @@ class _NearbyPageState extends State<NearbyPage> {
                           ),
                           child: const Text(
                             "Your profile is currently not visible to others. To show your location to other diners, please enable 'Public Profile' in settings.",
-                            style: TextStyle(color: Color(0xFFC62828), fontSize: 11, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                              color: Color(0xFFC62828),
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
                             textAlign: TextAlign.center,
                           ),
                         );
                       },
                     ),
-  
+
                     const SizedBox(height: 20),
                   ],
                 ),
               ),
             ),
-  
+
             // List of Users
             if (_isLoading)
-              SliverFillRemaining(child: Center(child: CircularProgressIndicator(color: Theme.of(context).primaryColor)))
+              SliverFillRemaining(
+                child: Center(
+                  child: CircularProgressIndicator(
+                    color: Theme.of(context).primaryColor,
+                  ),
+                ),
+              )
             else if (users.isEmpty)
               SliverFillRemaining(
                 child: Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text("No guests nearby yet", style: TextStyle(color: Colors.grey)),
+                      const Text(
+                        "No guests nearby yet",
+                        style: TextStyle(color: Colors.grey),
+                      ),
                       const SizedBox(height: 16),
                       ElevatedButton.icon(
                         onPressed: () async {
                           final tenant = TenantService().currentTenant.value;
                           if (tenant != null) {
-                            final success = await ApiService.spawnTestBot(tenant.id);
+                            final success = await ApiService.spawnTestBot(
+                              tenant.id,
+                            );
                             if (success) {
                               _fetchGuests();
                               if (mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text("Test Bot Diner spawned successfully! 🤖")),
+                                  const SnackBar(
+                                    content: Text(
+                                      "Test Bot Diner spawned successfully! 🤖",
+                                    ),
+                                  ),
                                 );
                               }
                             }
@@ -325,11 +561,14 @@ class _NearbyPageState extends State<NearbyPage> {
             else
               SliverList(
                 delegate: SliverChildBuilderDelegate(
-                  (context, index) => Container(color: Colors.white, child: _buildUserListTile(users[index])),
+                  (context, index) => Material(
+                    color: Colors.white,
+                    child: _buildUserListTile(users[index]),
+                  ),
                   childCount: users.length,
                 ),
               ),
-              
+
             const SliverToBoxAdapter(child: SizedBox(height: 100)),
           ],
         ),
@@ -337,9 +576,15 @@ class _NearbyPageState extends State<NearbyPage> {
     );
   }
 
-  Widget _buildFloorArea(String label, double width, double height, IconData icon) {
+  Widget _buildFloorArea(
+    String label,
+    double width,
+    double height,
+    IconData icon,
+  ) {
     return Container(
-      width: width, height: height,
+      width: width,
+      height: height,
       decoration: BoxDecoration(
         color: const Color(0xFFF8FAFC),
         borderRadius: BorderRadius.circular(20),
@@ -350,7 +595,14 @@ class _NearbyPageState extends State<NearbyPage> {
         children: [
           Icon(icon, color: const Color(0xFFCBD5E1), size: 24),
           const SizedBox(height: 6),
-          Text(label, style: const TextStyle(color: Color(0xFF64748B), fontSize: 10, fontWeight: FontWeight.bold)),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Color(0xFF64748B),
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         ],
       ),
     );
@@ -367,9 +619,13 @@ class _NearbyPageState extends State<NearbyPage> {
         myCustomName.isNotEmpty &&
         myCustomName != 'Guest') {
       displayName = myCustomName;
-    } else if (displayName == '0' || displayName.isEmpty || displayName == 'null' || displayName == 'Guest') {
-       String uidStr = targetId.isNotEmpty ? targetId : '0000';
-       displayName = "Diner ${uidStr.length >= 4 ? uidStr.substring(uidStr.length - 4) : uidStr}";
+    } else if (displayName == '0' ||
+        displayName.isEmpty ||
+        displayName == 'null' ||
+        displayName == 'Guest') {
+      String uidStr = targetId.isNotEmpty ? targetId : '0000';
+      displayName =
+          "Diner ${uidStr.length >= 4 ? uidStr.substring(uidStr.length - 4) : uidStr}";
     }
     final String displayImage = user['gender'] == 'Female'
         ? 'https://img.freepik.com/free-vector/beauty-woman-face-concept_23-2148679462.jpg'
@@ -379,14 +635,36 @@ class _NearbyPageState extends State<NearbyPage> {
       children: [
         Container(
           padding: const EdgeInsets.all(3),
-          decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 10)]),
-          child: CircleAvatar(radius: 20, backgroundImage: NetworkImage(displayImage)),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.1),
+                blurRadius: 10,
+              ),
+            ],
+          ),
+          child: CircleAvatar(
+            radius: 20,
+            backgroundImage: NetworkImage(displayImage),
+          ),
         ),
         const SizedBox(height: 4),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(color: Colors.black87, borderRadius: BorderRadius.circular(10)),
-          child: Text(displayName, style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
+          decoration: BoxDecoration(
+            color: Colors.black87,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Text(
+            displayName,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 9,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         ),
       ],
     );
@@ -397,7 +675,16 @@ class _NearbyPageState extends State<NearbyPage> {
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)]),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+            ),
+          ],
+        ),
         child: Icon(icon, size: 20, color: Colors.black87),
       ),
     );
@@ -414,24 +701,35 @@ class _NearbyPageState extends State<NearbyPage> {
         myCustomName.isNotEmpty &&
         myCustomName != 'Guest') {
       displayName = myCustomName;
-    } else if (displayName == '0' || displayName.isEmpty || displayName == 'null' || displayName == 'Guest') {
-       String uidStr = targetId.isNotEmpty ? targetId : '0000';
-       displayName = "Diner ${uidStr.length >= 4 ? uidStr.substring(uidStr.length - 4) : uidStr}";
+    } else if (displayName == '0' ||
+        displayName.isEmpty ||
+        displayName == 'null' ||
+        displayName == 'Guest') {
+      String uidStr = targetId.isNotEmpty ? targetId : '0000';
+      displayName =
+          "Diner ${uidStr.length >= 4 ? uidStr.substring(uidStr.length - 4) : uidStr}";
     }
     final String displayLocation = "Table ${user['table_number']}";
     final String displayImage = (user['gender'] == 'Female')
         ? 'https://img.freepik.com/free-vector/beauty-woman-face-concept_23-2148679462.jpg'
         : 'https://img.freepik.com/free-vector/businessman-character-avatar-isolated_24877-60111.jpg';
-    
+
     // Convert to int/bool safely
-    bool isFollowing = _optimisticFollows.containsKey(targetId) 
-        ? _optimisticFollows[targetId]! 
+    bool isFollowing = _optimisticFollows.containsKey(targetId)
+        ? _optimisticFollows[targetId]!
         : (int.tryParse(user['is_following']?.toString() ?? '0') ?? 0) > 0;
-        
-    bool followsMe = (int.tryParse(user['follows_me']?.toString() ?? '0') ?? 0) > 0;
-    bool isPublic = (user['is_public'] == 1 || user['is_public'] == true || user['is_public'] == "1");
-    bool allowWaves = (user['allow_waves'] == 1 || user['allow_waves'] == true || user['allow_waves'] == "1");
-    
+
+    bool followsMe =
+        (int.tryParse(user['follows_me']?.toString() ?? '0') ?? 0) > 0;
+    bool isPublic =
+        (user['is_public'] == 1 ||
+        user['is_public'] == true ||
+        user['is_public'] == "1");
+    bool allowWaves =
+        (user['allow_waves'] == 1 ||
+        user['allow_waves'] == true ||
+        user['allow_waves'] == "1");
+
     final bool isMe = targetId == myId;
 
     return InkWell(
@@ -439,22 +737,37 @@ class _NearbyPageState extends State<NearbyPage> {
         if (targetId.isEmpty) return;
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => UserProfileViewPage(userId: targetId, name: displayName)),
+          MaterialPageRoute(
+            builder: (context) =>
+                UserProfileViewPage(userId: targetId, name: displayName),
+          ),
         );
       },
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
         child: Row(
           children: [
-            CircleAvatar(radius: 28, backgroundImage: NetworkImage(displayImage)),
+            CircleAvatar(
+              radius: 28,
+              backgroundImage: NetworkImage(displayImage),
+            ),
             const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(displayName + (isMe ? " (You)" : ""), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  Text(
+                    displayName + (isMe ? " (You)" : ""),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
                   const SizedBox(height: 2),
-                  Text("Dining at $displayLocation", style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+                  Text(
+                    "Dining at $displayLocation",
+                    style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                  ),
                 ],
               ),
             ),
@@ -463,55 +776,101 @@ class _NearbyPageState extends State<NearbyPage> {
                 children: [
                   // Social logic updated for stability
                   if (allowWaves)
-                    _buildSocialIcon(Icons.back_hand_rounded, Colors.amber, () async {
-                       final tenant = TenantService().currentTenant.value;
-                       if (tenant != null && myId.isNotEmpty) {
-                         final sent = await ApiService.sendWave(tenantId: tenant.id, myId: myId, targetId: targetId);
-                         if (!mounted) return;
-                         if (sent) {
-                           notification_sound.playNotificationSound('sendwaves');
-                         }
-                         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                           content: Text(sent ? "Wave sent to $displayName." : "Could not send wave. Please try again."),
-                           duration: const Duration(seconds: 2),
-                         ));
-                       }
-                    }),
+                    _buildSocialIcon(
+                      Icons.back_hand_rounded,
+                      Colors.amber,
+                      () async {
+                        final tenant = TenantService().currentTenant.value;
+                        if (tenant != null && myId.isNotEmpty) {
+                          final sent = await ApiService.sendWave(
+                            tenantId: tenant.id,
+                            myId: myId,
+                            targetId: targetId,
+                          );
+                          if (!mounted) return;
+                          if (sent) {
+                            notification_sound.playNotificationSound(
+                              'sendwaves',
+                            );
+                          }
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                sent
+                                    ? "Wave sent to $displayName."
+                                    : "Could not send wave. Please try again.",
+                              ),
+                              duration: const Duration(seconds: 2),
+                            ),
+                          );
+                        }
+                      },
+                    ),
 
                   const SizedBox(width: 10),
-                  _buildSocialIcon(Icons.sports_esports_rounded, Colors.orange, () => _inviteUserToTapWar(targetId, displayName)),
+                  _buildSocialIcon(
+                    widget.battlegroundSquadId == null
+                        ? Icons.sports_esports_rounded
+                        : (_battlegroundInvitesSent.contains(targetId)
+                              ? Icons.check_circle
+                              : Icons.person_add_alt_1),
+                    Colors.orange,
+                    () => _inviteUserToTapWar(targetId, displayName),
+                  ),
 
                   const SizedBox(width: 10),
                   Material(
                     color: Colors.transparent,
                     child: InkWell(
-                      onTap: _loadingFollowIds.contains(targetId) ? null : () async {
-                        if (!isPublic) {
-                           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Profile is private.")));
-                           return;
-                        }
+                      onTap: _loadingFollowIds.contains(targetId)
+                          ? null
+                          : () async {
+                              if (!isPublic) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text("Profile is private."),
+                                  ),
+                                );
+                                return;
+                              }
 
-                        setState(() {
-                          _optimisticFollows[targetId] = !isFollowing;
-                          _loadingFollowIds.add(targetId);
-                        });
-                        final followed = await ShopManager.instance.toggleFollow(targetId);
-                        if (!followed && mounted) {
-                          setState(() => _optimisticFollows[targetId] = isFollowing);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text("Could not update follow. Please try again.")),
-                          );
-                        }
-                        await _fetchGuests();
-                        if (mounted) setState(() => _loadingFollowIds.remove(targetId));
-                      },
+                              setState(() {
+                                _optimisticFollows[targetId] = !isFollowing;
+                                _loadingFollowIds.add(targetId);
+                              });
+                              final followed = await ShopManager.instance
+                                  .toggleFollow(targetId);
+                              if (!followed && mounted) {
+                                setState(
+                                  () => _optimisticFollows[targetId] =
+                                      isFollowing,
+                                );
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      "Could not update follow. Please try again.",
+                                    ),
+                                  ),
+                                );
+                              }
+                              await _fetchGuests();
+                              if (mounted)
+                                setState(
+                                  () => _loadingFollowIds.remove(targetId),
+                                );
+                            },
                       borderRadius: BorderRadius.circular(12),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 10,
+                        ),
                         decoration: BoxDecoration(
-                          color: _loadingFollowIds.contains(targetId) 
-                              ? Colors.grey[300] 
-                              : (isFollowing ? const Color(0xFFF1F5F9) : Theme.of(context).primaryColor),
+                          color: _loadingFollowIds.contains(targetId)
+                              ? Colors.grey[300]
+                              : (isFollowing
+                                    ? const Color(0xFFF1F5F9)
+                                    : Theme.of(context).primaryColor),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: _loadingFollowIds.contains(targetId)
@@ -520,12 +879,22 @@ class _NearbyPageState extends State<NearbyPage> {
                                 height: 12,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.grey),
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.grey,
+                                  ),
                                 ),
                               )
                             : Text(
-                                isFollowing ? (followsMe ? "Friend" : "Following") : (followsMe ? "Follow Back" : "Follow"),
-                                style: TextStyle(color: isFollowing ? Colors.black87 : Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                                isFollowing
+                                    ? (followsMe ? "Friend" : "Following")
+                                    : (followsMe ? "Follow Back" : "Follow"),
+                                style: TextStyle(
+                                  color: isFollowing
+                                      ? Colors.black87
+                                      : Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                       ),
                     ),
@@ -546,7 +915,10 @@ class _NearbyPageState extends State<NearbyPage> {
         borderRadius: BorderRadius.circular(30),
         child: Container(
           padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.1),
+            shape: BoxShape.circle,
+          ),
           child: Icon(icon, color: color, size: 20),
         ),
       ),
@@ -557,7 +929,9 @@ class _NearbyPageState extends State<NearbyPage> {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(32))),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+      ),
       builder: (context) => SingleChildScrollView(
         child: Container(
           padding: const EdgeInsets.all(32),
@@ -565,9 +939,12 @@ class _NearbyPageState extends State<NearbyPage> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text("Nearby Settings", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+              const Text(
+                "Nearby Settings",
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              ),
               const SizedBox(height: 24),
-              
+
               // Public Profile Switch
               ValueListenableBuilder<bool>(
                 valueListenable: ShopManager.instance.isProfileVisible,
@@ -575,50 +952,61 @@ class _NearbyPageState extends State<NearbyPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildSettingRow(
-                      Icons.visibility_outlined, 
-                      "Public Profile", 
+                      Icons.visibility_outlined,
+                      "Public Profile",
                       "Show your location to other guests",
                       isVisible,
                       (v) {
                         ShopManager.instance.isProfileVisible.value = v;
                         ShopManager.instance.updatePrivacyOnServer();
-                      }
+                      },
                     ),
                     if (!isVisible)
                       Padding(
                         padding: const EdgeInsets.only(top: 8, left: 40),
                         child: const Text(
                           "Your profile is hidden. Turn it on to be visible to others.",
-                          style: TextStyle(color: Color(0xFFC62828), fontSize: 11, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            color: Color(0xFFC62828),
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                   ],
                 ),
               ),
-              
+
               const SizedBox(height: 20),
-              
+
               // Allow Waves Switch
               ValueListenableBuilder<bool>(
                 valueListenable: ShopManager.instance.isWaveEnabled,
                 builder: (context, canWave, _) => _buildSettingRow(
-                  Icons.back_hand_outlined, 
-                  "Allow Waves", 
+                  Icons.back_hand_outlined,
+                  "Allow Waves",
                   "Let people greet you digitally",
                   canWave,
                   (v) {
                     ShopManager.instance.isWaveEnabled.value = v;
                     ShopManager.instance.updatePrivacyOnServer();
-                  }
+                  },
                 ),
               ),
-  
+
               const SizedBox(height: 32),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () => Navigator.pop(context),
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.black, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 18), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.black,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 18),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
                   child: const Text("Done"),
                 ),
               ),
@@ -629,13 +1017,34 @@ class _NearbyPageState extends State<NearbyPage> {
     );
   }
 
-  Widget _buildSettingRow(IconData icon, String title, String sub, bool value, Function(bool) onChanged) {
+  Widget _buildSettingRow(
+    IconData icon,
+    String title,
+    String sub,
+    bool value,
+    Function(bool) onChanged,
+  ) {
     return Row(
       children: [
         Icon(icon, color: value ? Theme.of(context).primaryColor : Colors.grey),
         const SizedBox(width: 16),
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(fontWeight: FontWeight.bold)), Text(sub, style: const TextStyle(color: Colors.grey, fontSize: 12))])),
-        Switch(value: value, onChanged: onChanged, activeThumbColor: Theme.of(context).primaryColor),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+              Text(
+                sub,
+                style: const TextStyle(color: Colors.grey, fontSize: 12),
+              ),
+            ],
+          ),
+        ),
+        Switch(
+          value: value,
+          onChanged: onChanged,
+          activeThumbColor: Theme.of(context).primaryColor,
+        ),
       ],
     );
   }

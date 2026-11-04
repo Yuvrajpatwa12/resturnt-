@@ -139,7 +139,9 @@ class _DigitalMenuScreenState extends State<DigitalMenuScreen> {
         return ValueListenableBuilder<Map<int, String>>(
           valueListenable: ShopManager.instance.tableStatuses,
           builder: (context, statuses, _) {
-            final bool isOccupied = statuses[tableIdInt] == "Dining";
+            final tableStatus = statuses[tableIdInt]?.toLowerCase();
+            final bool isOccupied =
+                tableStatus == "dining" || tableStatus == "readyforbilling";
 
             return ValueListenableBuilder<Map<int, List<CartItem>>>(
               valueListenable: ShopManager.instance.tableOrders,
@@ -151,19 +153,9 @@ class _DigitalMenuScreenState extends State<DigitalMenuScreen> {
                   builder: (context, allPending, child) {
                     final tablePending = allPending[tableIdInt] ?? {};
                     int cartCount = 0;
-                    double cartTotal = 0.0;
 
                     tablePending.forEach((_, item) {
                       cartCount += item.quantity;
-                      double price =
-                          double.tryParse(
-                            item.product.price.replaceAll(
-                              RegExp(r'[^0-9.]'),
-                              '',
-                            ),
-                          ) ??
-                          0;
-                      cartTotal += price * item.quantity;
                     });
 
                     return Scaffold(
@@ -392,11 +384,11 @@ class _DigitalMenuScreenState extends State<DigitalMenuScreen> {
                                               fontSize: 14,
                                             ),
                                           ),
-                                          Text(
-                                            "Total: NPR ${cartTotal.toStringAsFixed(0)}",
-                                            style: const TextStyle(
+                                          const Text(
+                                            "Final total confirmed by server",
+                                            style: TextStyle(
                                               color: Colors.white70,
-                                              fontSize: 11,
+                                              fontSize: 10,
                                             ),
                                           ),
                                         ],

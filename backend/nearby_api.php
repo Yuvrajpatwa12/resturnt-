@@ -13,27 +13,27 @@ if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
     exit;
 }
 
-require_once 'db_config.php';
-require_once 'push_notifier.php';
-require_once 'email_notification_common.php';
-
-$conn->query("CREATE TABLE IF NOT EXISTS user_privacy_settings (
-    tenant_id VARCHAR(50) NOT NULL,
-    user_id VARCHAR(190) NOT NULL,
-    is_public TINYINT(1) NOT NULL DEFAULT 1,
-    allow_waves TINYINT(1) NOT NULL DEFAULT 1,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (tenant_id, user_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci");
-
-if ($conn->connect_error) {
-    die(json_encode(["status" => "error", "message" => "Database connection failed"]));
-}
-
 $action = $_GET['action'] ?? '';
 $tenant_id = $_GET['tenant_id'] ?? '';
 
 try {
+    require_once __DIR__ . '/db_config.php';
+    require_once __DIR__ . '/push_notifier.php';
+    require_once __DIR__ . '/email_notification_common.php';
+
+    $conn->query("CREATE TABLE IF NOT EXISTS user_privacy_settings (
+        tenant_id VARCHAR(50) NOT NULL,
+        user_id VARCHAR(190) NOT NULL,
+        is_public TINYINT(1) NOT NULL DEFAULT 1,
+        allow_waves TINYINT(1) NOT NULL DEFAULT 1,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (tenant_id, user_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci");
+
+    if ($conn->connect_error) {
+        throw new RuntimeException('Database connection failed');
+    }
+
     switch ($action) {
         case 'check_in':
             $data = json_decode(file_get_contents('php://input'));
@@ -50,9 +50,16 @@ try {
             // Fix "0" / default name bug
             $uname = trim((string)($data->user_name ?? ''));
             if (empty($uname) || $uname === "0" || $uname === "null" || $uname === "Diner" || $uname === "Guest Diner") {
-                $c_stmt = $conn->prepare("SELECT name FROM customers WHERE (LOWER(email) = LOWER(?) OR (tenant_id = ? AND user_id = ?)) AND name IS NOT NULL AND name != '' AND name != 'Diner' AND name != 'Guest Diner' LIMIT 1");
+                $c_stmt = $conn->prepare("SELECT name FROM customers
+                    WHERE tenant_id COLLATE utf8mb4_general_ci =
+                          ? COLLATE utf8mb4_general_ci
+                      AND LOWER(email) COLLATE utf8mb4_general_ci =
+                          LOWER(?) COLLATE utf8mb4_general_ci
+                      AND name IS NOT NULL AND name != ''
+                      AND name NOT IN ('Diner', 'Guest Diner')
+                    LIMIT 1");
                 if ($c_stmt) {
-                    $c_stmt->bind_param("sss", $uid, $tid, $uid);
+                    $c_stmt->bind_param("ss", $tid, $uid);
                     $c_stmt->execute();
                     $c_res = $c_stmt->get_result();
                     if ($c_res && $c_row = $c_res->fetch_assoc()) {
@@ -97,7 +104,11 @@ try {
                             AND f.following_id COLLATE utf8mb4_general_ci = ? COLLATE utf8mb4_general_ci
                             AND f.tenant_id COLLATE utf8mb4_general_ci = p.tenant_id COLLATE utf8mb4_general_ci) as follows_me
                     FROM restaurant_presence p
-                    LEFT JOIN customers c ON LOWER(c.email) = LOWER(p.user_id) AND c.tenant_id = p.tenant_id
+                    LEFT JOIN customers c
+                        ON LOWER(c.email) COLLATE utf8mb4_general_ci =
+                           LOWER(p.user_id) COLLATE utf8mb4_general_ci
+                       AND c.tenant_id COLLATE utf8mb4_general_ci =
+                           p.tenant_id COLLATE utf8mb4_general_ci
                     LEFT JOIN user_privacy_settings privacy
                         ON privacy.tenant_id COLLATE utf8mb4_general_ci = p.tenant_id COLLATE utf8mb4_general_ci
                             AND privacy.user_id COLLATE utf8mb4_general_ci = p.user_id COLLATE utf8mb4_general_ci
@@ -282,8 +293,14 @@ try {
             $tid = (string)($_GET['tenant_id'] ?? '');
 
             $stmt = $conn->prepare("SELECT w.id, p.user_name FROM user_waves w
-                                    LEFT JOIN restaurant_presence p ON w.sender_id = p.user_id
-                                    WHERE w.receiver_id = ? AND w.tenant_id = ? AND w.is_delivered = 0");
+                                    LEFT JOIN restaurant_presence p
+                                      ON w.sender_id COLLATE utf8mb4_general_ci =
+                                         p.user_id COLLATE utf8mb4_general_ci
+                                    WHERE w.receiver_id COLLATE utf8mb4_general_ci =
+                                          ? COLLATE utf8mb4_general_ci
+                                      AND w.tenant_id COLLATE utf8mb4_general_ci =
+                                          ? COLLATE utf8mb4_general_ci
+                                      AND w.is_delivered = 0");
             $stmt->bind_param("ss", $uid, $tid);
             $stmt->execute();
             $result = $stmt->get_result();
@@ -321,8 +338,15 @@ try {
 } catch (Throwable $e) {
     error_log('Nearby API action "' . $action . '" failed: ' . $e->getMessage());
     http_response_code(500);
-    echo json_encode(["status" => "error", "message" => "Nearby request failed"]);
+    echo json_encode([
+        "success" => false,
+        "status" => "error",
+        "error" => "Nearby request failed",
+        "message" => "Nearby request failed",
+    ]);
 }
 
-$conn->close();
+if (isset($conn) && $conn instanceof mysqli) {
+    $conn->close();
+}
 ?>

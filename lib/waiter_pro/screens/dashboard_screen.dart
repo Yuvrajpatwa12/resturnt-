@@ -109,7 +109,7 @@ class DashboardScreen extends StatelessWidget {
               valueListenable: ShopManager.instance.tableStatuses,
               builder: (context, statuses, child) {
                 if (statuses.isEmpty) {
-                  ShopManager.instance.initializeTables(20);
+                  ShopManager.instance.initializeTables();
                   return const Center(
                     child: Padding(
                       padding: EdgeInsets.all(40.0),

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import '../../services/api_service.dart';
 import '../admin_theme.dart';
 
 class AdminSettingsScreen extends StatefulWidget {
@@ -13,6 +15,89 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
   bool _autoPrint = true;
   bool _soundEnabled = true;
   double _volume = 0.8;
+  final TextEditingController _vatController = TextEditingController();
+  final TextEditingController _serviceChargeController =
+      TextEditingController();
+  bool _isLoadingBillingSettings = false;
+  bool _isSavingBillingSettings = false;
+  String? _billingSettingsError;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.section == 'POS Setting') {
+      _loadBillingSettings();
+    }
+  }
+
+  @override
+  void dispose() {
+    _vatController.dispose();
+    _serviceChargeController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadBillingSettings() async {
+    setState(() => _isLoadingBillingSettings = true);
+    final result = await ApiService.getBillingSettings();
+    if (!mounted) return;
+    setState(() {
+      _isLoadingBillingSettings = false;
+      if (result['success'] == true) {
+        _vatController.text = result['vat_percentage'].toString();
+        _serviceChargeController.text = result['service_charge'].toString();
+        _billingSettingsError = null;
+      } else {
+        _billingSettingsError =
+            result['message']?.toString() ??
+            'Could not load billing rates. Configure them before billing.';
+      }
+    });
+  }
+
+  Future<void> _saveBillingSettings() async {
+    final vat = double.tryParse(_vatController.text.trim());
+    final serviceCharge = double.tryParse(_serviceChargeController.text.trim());
+    if (vat == null ||
+        serviceCharge == null ||
+        !vat.isFinite ||
+        !serviceCharge.isFinite ||
+        vat < 0 ||
+        vat > 100 ||
+        serviceCharge < 0 ||
+        serviceCharge > 100) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Enter VAT and service charge from 0 to 100%.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isSavingBillingSettings = true);
+    final result = await ApiService.saveBillingSettings(
+      vatPercentage: vat,
+      serviceCharge: serviceCharge,
+    );
+    if (!mounted) return;
+    setState(() {
+      _isSavingBillingSettings = false;
+      _billingSettingsError = result['success'] == true
+          ? null
+          : result['message']?.toString() ?? 'Could not save billing rates.';
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          result['success'] == true
+              ? 'VAT and service charge saved.'
+              : _billingSettingsError!,
+        ),
+        backgroundColor: result['success'] == true ? Colors.green : Colors.red,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -21,6 +106,10 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (widget.section == 'POS Setting') ...[
+            _buildBillingRatesGroup(),
+            const SizedBox(height: 24),
+          ],
           _buildSettingsGroup("General Configuration", [
             _buildToggleTile("Automatic KOT Print", "Print tickets instantly when order is received", _autoPrint, (v) => setState(() => _autoPrint = v)),
             _buildToggleTile("Enable Sound Alerts", "Play sound for new incoming orders", _soundEnabled, (v) => setState(() => _soundEnabled = v)),
@@ -56,6 +145,83 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildBillingRatesGroup() {
+    return _buildSettingsGroup('Billing Rates', [
+      if (_isLoadingBillingSettings)
+        const Padding(
+          padding: EdgeInsets.all(20),
+          child: Center(child: CircularProgressIndicator()),
+        )
+      else ...[
+        _buildPercentageField(
+          label: 'VAT (%)',
+          controller: _vatController,
+          hint: 'e.g. 13',
+        ),
+        _buildPercentageField(
+          label: 'Service Charge (%)',
+          controller: _serviceChargeController,
+          hint: 'e.g. 10',
+        ),
+        if (_billingSettingsError != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                _billingSettingsError!,
+                style: TextStyle(color: Colors.red.shade700, fontSize: 12),
+              ),
+            ),
+          ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: FilledButton.icon(
+              onPressed:
+                  _isSavingBillingSettings ? null : _saveBillingSettings,
+              icon: _isSavingBillingSettings
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.save_outlined),
+              label: Text(
+                _isSavingBillingSettings ? 'Saving...' : 'Save Billing Rates',
+              ),
+            ),
+          ),
+        ),
+      ],
+    ]);
+  }
+
+  Widget _buildPercentageField({
+    required String label,
+    required TextEditingController controller,
+    required String hint,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      child: TextField(
+        controller: controller,
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        inputFormatters: [
+          FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,3}')),
+        ],
+        decoration: InputDecoration(
+          labelText: label,
+          hintText: hint,
+          suffixText: '%',
+          helperText: 'Enter a value from 0 to 100. Use 0 to disable.',
+          border: const OutlineInputBorder(),
+        ),
       ),
     );
   }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../admin_theme.dart';
@@ -11,12 +12,14 @@ class SystemConfigurationScreen extends StatefulWidget {
   const SystemConfigurationScreen({super.key, required this.mode});
 
   @override
-  State<SystemConfigurationScreen> createState() => _SystemConfigurationScreenState();
+  State<SystemConfigurationScreen> createState() =>
+      _SystemConfigurationScreenState();
 }
 
 class _SystemConfigurationScreenState extends State<SystemConfigurationScreen> {
   bool _isLoading = true;
   bool _isSaving = false;
+  String? _billingSettingsError;
 
   Map<String, dynamic> _configState = {
     "restaurant_name": "Chiyalaa Global Hub",
@@ -26,8 +29,6 @@ class _SystemConfigurationScreenState extends State<SystemConfigurationScreen> {
     "contact_phone": "+977-98XXXXXXXX",
     "currency": "NPR",
     "timezone": "Asia/Kathmandu",
-    "vat_percentage": 13.0,
-    "service_charge": 10.0,
     "sms_sender_id": "CHIYALAA",
     "subscription_plan": "ENTERPRISE ELITE",
   };
@@ -36,6 +37,9 @@ class _SystemConfigurationScreenState extends State<SystemConfigurationScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
+  final TextEditingController _vatController = TextEditingController();
+  final TextEditingController _serviceChargeController =
+      TextEditingController();
 
   @override
   void initState() {
@@ -49,6 +53,8 @@ class _SystemConfigurationScreenState extends State<SystemConfigurationScreen> {
     _emailController.dispose();
     _phoneController.dispose();
     _addressController.dispose();
+    _vatController.dispose();
+    _serviceChargeController.dispose();
     super.dispose();
   }
 
@@ -56,8 +62,10 @@ class _SystemConfigurationScreenState extends State<SystemConfigurationScreen> {
     final tenant = TenantService().currentTenant.value;
     if (tenant != null) {
       _configState['restaurant_name'] = tenant.name;
-      _configState['contact_email'] = tenant.contactEmail ?? _configState['contact_email'];
-      _configState['contact_phone'] = tenant.contactPhone ?? _configState['contact_phone'];
+      _configState['contact_email'] =
+          tenant.contactEmail ?? _configState['contact_email'];
+      _configState['contact_phone'] =
+          tenant.contactPhone ?? _configState['contact_phone'];
       _configState['location'] = tenant.location ?? _configState['location'];
       _configState['currency'] = tenant.currencyCode;
       _configState['subscription_plan'] = tenant.plan;
@@ -71,6 +79,22 @@ class _SystemConfigurationScreenState extends State<SystemConfigurationScreen> {
         _configState.addAll(decoded);
       } catch (_) {}
     }
+    _configState.remove('vat_percentage');
+    _configState.remove('service_charge');
+
+    final billingSettings = await ApiService.getBillingSettings();
+    if (billingSettings['success'] == true) {
+      _vatController.text = billingSettings['vat_percentage'].toString();
+      _serviceChargeController.text = billingSettings['service_charge']
+          .toString();
+      _configState['vat_percentage'] = billingSettings['vat_percentage'];
+      _configState['service_charge'] = billingSettings['service_charge'];
+      _billingSettingsError = null;
+    } else {
+      _vatController.clear();
+      _serviceChargeController.clear();
+      _billingSettingsError = billingSettings['message']?.toString();
+    }
 
     _populateControllers();
     if (mounted) setState(() => _isLoading = false);
@@ -78,15 +102,48 @@ class _SystemConfigurationScreenState extends State<SystemConfigurationScreen> {
 
   void _populateControllers() {
     final tenant = TenantService().currentTenant.value;
-    _nameController.text = (tenant?.name.isNotEmpty == true) ? tenant!.name : (_configState['restaurant_name'] ?? "");
-    _emailController.text = (tenant?.contactEmail?.isNotEmpty == true) ? tenant!.contactEmail! : (_configState['contact_email'] ?? "");
-    _phoneController.text = (tenant?.contactPhone?.isNotEmpty == true) ? tenant!.contactPhone! : (_configState['contact_phone'] ?? "");
-    _addressController.text = (tenant?.location?.isNotEmpty == true) ? tenant!.location! : (_configState['location'] ?? "");
+    _nameController.text = (tenant?.name.isNotEmpty == true)
+        ? tenant!.name
+        : (_configState['restaurant_name'] ?? "");
+    _emailController.text = (tenant?.contactEmail?.isNotEmpty == true)
+        ? tenant!.contactEmail!
+        : (_configState['contact_email'] ?? "");
+    _phoneController.text = (tenant?.contactPhone?.isNotEmpty == true)
+        ? tenant!.contactPhone!
+        : (_configState['contact_phone'] ?? "");
+    _addressController.text = (tenant?.location?.isNotEmpty == true)
+        ? tenant!.location!
+        : (_configState['location'] ?? "");
   }
 
   Future<void> _saveConfig() async {
     final tenant = TenantService().currentTenant.value;
     final tenantId = tenant?.id ?? 'startups_main';
+    final isApplicationSettings = widget.mode == 'Application Setting';
+    double? vat;
+    double? serviceCharge;
+    if (isApplicationSettings) {
+      vat = double.tryParse(_vatController.text.trim());
+      serviceCharge = double.tryParse(_serviceChargeController.text.trim());
+      if (vat == null ||
+          serviceCharge == null ||
+          !vat.isFinite ||
+          !serviceCharge.isFinite ||
+          vat < 0 ||
+          vat > 100 ||
+          serviceCharge < 0 ||
+          serviceCharge > 100) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Enter VAT and service charge rates from 0 to 100. Use 0 for no charge.',
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+    }
 
     setState(() => _isSaving = true);
 
@@ -97,11 +154,22 @@ class _SystemConfigurationScreenState extends State<SystemConfigurationScreen> {
       contactPhone: _phoneController.text.trim(),
       location: _addressController.text.trim(),
     );
+    final billingRes = isApplicationSettings
+        ? await ApiService.saveBillingSettings(
+            vatPercentage: vat!,
+            serviceCharge: serviceCharge!,
+          )
+        : null;
 
     _configState['restaurant_name'] = _nameController.text.trim();
     _configState['contact_email'] = _emailController.text.trim();
     _configState['contact_phone'] = _phoneController.text.trim();
     _configState['location'] = _addressController.text.trim();
+    if (billingRes?['success'] == true) {
+      _configState['vat_percentage'] = billingRes!['vat_percentage'];
+      _configState['service_charge'] = billingRes['service_charge'];
+      _billingSettingsError = null;
+    }
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('system_config_data', json.encode(_configState));
@@ -112,10 +180,16 @@ class _SystemConfigurationScreenState extends State<SystemConfigurationScreen> {
 
     if (mounted) {
       setState(() => _isSaving = false);
-      final bool isSuccess = res['success'] == true;
+      final bool isSuccess =
+          res['success'] == true &&
+          (billingRes == null || billingRes['success'] == true);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(isSuccess ? "Restaurant profile saved to database permanently!" : "Local profile saved (${res['message']})"),
+          content: Text(
+            isSuccess
+                ? "Restaurant profile and billing rates saved to the database."
+                : "Profile: ${res['message'] ?? 'save failed'} Billing rates: ${billingRes?['message'] ?? 'not changed'}",
+          ),
           backgroundColor: isSuccess ? Colors.green : Colors.orange,
         ),
       );
@@ -144,7 +218,13 @@ class _SystemConfigurationScreenState extends State<SystemConfigurationScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
       decoration: BoxDecoration(
         color: Colors.white,
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 2))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -152,21 +232,40 @@ class _SystemConfigurationScreenState extends State<SystemConfigurationScreen> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(widget.mode, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AdminTheme.darkNavy)),
-              const Text("Global system environment and business rules.", style: TextStyle(fontSize: 12, color: Colors.grey)),
+              Text(
+                widget.mode,
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: AdminTheme.darkNavy,
+                ),
+              ),
+              const Text(
+                "Global system environment and business rules.",
+                style: TextStyle(fontSize: 12, color: Colors.grey),
+              ),
             ],
           ),
           ElevatedButton.icon(
             onPressed: _isSaving ? null : _saveConfig,
             icon: _isSaving
-                ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                ? const SizedBox(
+                    height: 18,
+                    width: 18,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2,
+                    ),
+                  )
                 : const Icon(Icons.sync_rounded, size: 18),
             label: Text(_isSaving ? "SAVING..." : "SYNC CHANGES"),
             style: ElevatedButton.styleFrom(
               backgroundColor: AdminTheme.royalBlue,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
           ),
         ],
@@ -202,25 +301,76 @@ class _SystemConfigurationScreenState extends State<SystemConfigurationScreen> {
         const SizedBox(height: 24),
         _buildConfigInput("Restaurant Name", _nameController, Icons.restaurant),
         const SizedBox(height: 16),
-        _buildConfigInput("Business Address", _addressController, Icons.location_on_outlined),
+        _buildConfigInput(
+          "Business Address",
+          _addressController,
+          Icons.location_on_outlined,
+        ),
         const SizedBox(height: 16),
         Row(
           children: [
-            Expanded(child: _buildConfigInput("Admin Notification Email (For Tickets, Stock & Subscription Alerts)", _emailController, Icons.email_outlined)),
+            Expanded(
+              child: _buildConfigInput(
+                "Admin Notification Email (For Tickets, Stock & Subscription Alerts)",
+                _emailController,
+                Icons.email_outlined,
+              ),
+            ),
             const SizedBox(width: 16),
-            Expanded(child: _buildConfigInput("Support Phone", _phoneController, Icons.phone_android)),
+            Expanded(
+              child: _buildConfigInput(
+                "Support Phone",
+                _phoneController,
+                Icons.phone_android,
+              ),
+            ),
           ],
         ),
         const SizedBox(height: 48),
         _buildSectionTitle("FINANCIAL ENVIRONMENT"),
         const SizedBox(height: 24),
+        if (_billingSettingsError != null) ...[
+          Container(
+            width: double.infinity,
+            margin: const EdgeInsets.only(bottom: 16),
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF7ED),
+              border: Border.all(color: const Color(0xFFF97316)),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              'Billing rates are not available from the server: '
+              '$_billingSettingsError. Enter both rates below and save to configure them.',
+              style: const TextStyle(color: Color(0xFF9A3412)),
+            ),
+          ),
+        ],
         Row(
           children: [
-            Expanded(child: _buildReadonlyCard("Currency", _configState['currency'], Icons.payments_outlined)),
+            Expanded(
+              child: _buildReadonlyCard(
+                "Currency",
+                _configState['currency'],
+                Icons.payments_outlined,
+              ),
+            ),
             const SizedBox(width: 16),
-            Expanded(child: _buildReadonlyCard("VAT Percentage", "${_configState['vat_percentage']}%", Icons.percent)),
+            Expanded(
+              child: _buildRateInput(
+                "VAT Percentage",
+                _vatController,
+                Icons.percent,
+              ),
+            ),
             const SizedBox(width: 16),
-            Expanded(child: _buildReadonlyCard("Service Charge", "${_configState['service_charge']}%", Icons.room_service_outlined)),
+            Expanded(
+              child: _buildRateInput(
+                "Service Charge",
+                _serviceChargeController,
+                Icons.room_service_outlined,
+              ),
+            ),
           ],
         ),
       ],
@@ -233,10 +383,30 @@ class _SystemConfigurationScreenState extends State<SystemConfigurationScreen> {
       children: [
         _buildSectionTitle("ACTIVE PAYMENT METHODS"),
         const SizedBox(height: 24),
-        _buildConfigCard("Cash Payment", "Active", Icons.payments_outlined, AdminTheme.emeraldGreen),
-        _buildConfigCard("Fonepay (QR)", "Active", Icons.qr_code_scanner, AdminTheme.royalBlue),
-        _buildConfigCard("Bank Card Terminal", "Offline", Icons.credit_card_outlined, Colors.red),
-        _buildConfigCard("eSewa Wallet", "Active", Icons.account_balance_wallet_outlined, Colors.green),
+        _buildConfigCard(
+          "Cash Payment",
+          "Active",
+          Icons.payments_outlined,
+          AdminTheme.emeraldGreen,
+        ),
+        _buildConfigCard(
+          "Fonepay (QR)",
+          "Active",
+          Icons.qr_code_scanner,
+          AdminTheme.royalBlue,
+        ),
+        _buildConfigCard(
+          "Bank Card Terminal",
+          "Offline",
+          Icons.credit_card_outlined,
+          Colors.red,
+        ),
+        _buildConfigCard(
+          "eSewa Wallet",
+          "Active",
+          Icons.account_balance_wallet_outlined,
+          Colors.green,
+        ),
       ],
     );
   }
@@ -247,13 +417,27 @@ class _SystemConfigurationScreenState extends State<SystemConfigurationScreen> {
       children: [
         _buildSectionTitle("GATEWAY STATUS"),
         const SizedBox(height: 24),
-        _buildConfigCard("Sender ID: ${_configState['sms_sender_id']}", "Configured", Icons.sms, AdminTheme.royalBlue),
+        _buildConfigCard(
+          "Sender ID: ${_configState['sms_sender_id']}",
+          "Configured",
+          Icons.sms,
+          AdminTheme.royalBlue,
+        ),
         const SizedBox(height: 48),
         _buildSectionTitle("MESSAGE TEMPLATES"),
         const SizedBox(height: 16),
-        _buildTemplateTile("Reservation Confirmed", "Dear [Name], your table is booked..."),
-        _buildTemplateTile("Order Ready", "Your order #[ID] is ready for pickup!"),
-        _buildTemplateTile("Payment Received", "Thank you! We received your payment..."),
+        _buildTemplateTile(
+          "Reservation Confirmed",
+          "Dear [Name], your table is booked...",
+        ),
+        _buildTemplateTile(
+          "Order Ready",
+          "Your order #[ID] is ready for pickup!",
+        ),
+        _buildTemplateTile(
+          "Payment Received",
+          "Thank you! We received your payment...",
+        ),
       ],
     );
   }
@@ -264,9 +448,24 @@ class _SystemConfigurationScreenState extends State<SystemConfigurationScreen> {
       children: [
         _buildSectionTitle("CONNECTED CORPORATE ACCOUNTS"),
         const SizedBox(height: 24),
-        _buildConfigCard("Global IME Bank", "Verified", Icons.account_balance, Colors.indigo),
-        _buildConfigCard("NIC Asia Bank", "Active", Icons.account_balance, Colors.red),
-        _buildConfigCard("Nabil Bank Ltd", "Pending", Icons.account_balance, Colors.orange),
+        _buildConfigCard(
+          "Global IME Bank",
+          "Verified",
+          Icons.account_balance,
+          Colors.indigo,
+        ),
+        _buildConfigCard(
+          "NIC Asia Bank",
+          "Active",
+          Icons.account_balance,
+          Colors.red,
+        ),
+        _buildConfigCard(
+          "Nabil Bank Ltd",
+          "Pending",
+          Icons.account_balance,
+          Colors.orange,
+        ),
       ],
     );
   }
@@ -280,28 +479,57 @@ class _SystemConfigurationScreenState extends State<SystemConfigurationScreen> {
           children: [
             _buildSectionTitle("SYSTEM LANGUAGES"),
             const SizedBox(height: 24),
-            ...LanguageService().languages.value.map((l) => Container(
-              margin: const EdgeInsets.only(bottom: 12),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: l.code == currentCode ? AdminTheme.royalBlue : Colors.grey.shade100, width: 2),
-                boxShadow: AdminTheme.softShadow,
-              ),
-              child: ListTile(
-                onTap: () => LanguageService().setLanguage(l.code),
-                leading: CircleAvatar(
-                  backgroundColor: l.code == currentCode ? AdminTheme.royalBlue : Colors.grey.shade100,
-                  child: Text(l.code.toUpperCase(), style: TextStyle(color: l.code == currentCode ? Colors.white : Colors.grey, fontSize: 12, fontWeight: FontWeight.bold)),
+            ...LanguageService().languages.value.map(
+              (l) => Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: l.code == currentCode
+                        ? AdminTheme.royalBlue
+                        : Colors.grey.shade100,
+                    width: 2,
+                  ),
+                  boxShadow: AdminTheme.softShadow,
                 ),
-                title: Text(l.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                subtitle: Text(l.nativeName, style: const TextStyle(fontSize: 12)),
-                trailing: l.code == currentCode ? const Icon(Icons.check_circle, color: AdminTheme.royalBlue) : null,
+                child: ListTile(
+                  onTap: () => LanguageService().setLanguage(l.code),
+                  leading: CircleAvatar(
+                    backgroundColor: l.code == currentCode
+                        ? AdminTheme.royalBlue
+                        : Colors.grey.shade100,
+                    child: Text(
+                      l.code.toUpperCase(),
+                      style: TextStyle(
+                        color: l.code == currentCode
+                            ? Colors.white
+                            : Colors.grey,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  title: Text(
+                    l.name,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: Text(
+                    l.nativeName,
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                  trailing: l.code == currentCode
+                      ? const Icon(
+                          Icons.check_circle,
+                          color: AdminTheme.royalBlue,
+                        )
+                      : null,
+                ),
               ),
-            )),
+            ),
           ],
         );
-      }
+      },
     );
   }
 
@@ -312,20 +540,39 @@ class _SystemConfigurationScreenState extends State<SystemConfigurationScreen> {
         children: [
           const Icon(Icons.tune, size: 64, color: Colors.grey),
           const SizedBox(height: 16),
-          Text("Configuration for ${widget.mode} coming soon.", style: const TextStyle(color: Colors.grey)),
+          Text(
+            "Configuration for ${widget.mode} coming soon.",
+            style: const TextStyle(color: Colors.grey),
+          ),
         ],
       ),
     );
   }
 
   Widget _buildSectionTitle(String title) {
-    return Text(title, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.2));
+    return Text(
+      title,
+      style: const TextStyle(
+        fontSize: 10,
+        fontWeight: FontWeight.w900,
+        color: Colors.grey,
+        letterSpacing: 1.2,
+      ),
+    );
   }
 
-  Widget _buildConfigInput(String label, TextEditingController ctrl, IconData icon) {
+  Widget _buildConfigInput(
+    String label,
+    TextEditingController ctrl,
+    IconData icon,
+  ) {
     return Container(
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: AdminTheme.softShadow),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: AdminTheme.softShadow,
+      ),
       child: TextField(
         controller: ctrl,
         decoration: InputDecoration(
@@ -338,36 +585,106 @@ class _SystemConfigurationScreenState extends State<SystemConfigurationScreen> {
     );
   }
 
+  Widget _buildRateInput(
+    String label,
+    TextEditingController controller,
+    IconData icon,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: AdminTheme.softShadow,
+      ),
+      child: TextField(
+        controller: controller,
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        inputFormatters: [
+          FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,3}')),
+        ],
+        decoration: InputDecoration(
+          labelText: '$label (0-100%)',
+          suffixText: '%',
+          prefixIcon: Icon(icon, color: AdminTheme.royalBlue, size: 20),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      ),
+    );
+  }
+
   Widget _buildReadonlyCard(String label, String val, IconData icon) {
     return Container(
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(color: Colors.grey[50], borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.grey.shade200)),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(icon, color: Colors.grey, size: 18),
           const SizedBox(height: 12),
-          Text(val, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AdminTheme.darkNavy)),
-          Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)),
+          Text(
+            val,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: AdminTheme.darkNavy,
+            ),
+          ),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 10,
+              color: Colors.grey,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildConfigCard(String title, String status, IconData icon, Color color) {
+  Widget _buildConfigCard(
+    String title,
+    String status,
+    IconData icon,
+    Color color,
+  ) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: AdminTheme.softShadow),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: AdminTheme.softShadow,
+      ),
       child: Row(
         children: [
           Icon(icon, color: AdminTheme.darkNavy, size: 24),
           const SizedBox(width: 16),
-          Expanded(child: Text(title, style: const TextStyle(fontWeight: FontWeight.bold))),
+          Expanded(
+            child: Text(
+              title,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
-            child: Text(status, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w900)),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              status,
+              style: TextStyle(
+                color: color,
+                fontSize: 10,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
           ),
         ],
       ),
@@ -377,10 +694,20 @@ class _SystemConfigurationScreenState extends State<SystemConfigurationScreen> {
   Widget _buildTemplateTile(String title, String preview) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: AdminTheme.softShadow),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: AdminTheme.softShadow,
+      ),
       child: ListTile(
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-        subtitle: Text(preview, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+        title: Text(
+          title,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+        ),
+        subtitle: Text(
+          preview,
+          style: const TextStyle(fontSize: 11, color: Colors.grey),
+        ),
         trailing: const Icon(Icons.edit, size: 16, color: AdminTheme.royalBlue),
       ),
     );

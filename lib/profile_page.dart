@@ -5,7 +5,6 @@ import 'cart_manager.dart';
 
 import 'passport_page.dart';
 import 'rewards_page.dart';
-import 'game_hub.dart';
 import 'live_order_tracking_screen.dart';
 import 'my_orders_page.dart';
 import 'user_profile_view_page.dart';
@@ -587,10 +586,6 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
                 SmartAuthOverlay.show(context);
               }
             }),
-          _buildMenuItem(Icons.sports_esports_rounded, "Game Hub & Tap War", "Play games & battle nearby diners", Colors.orange, () {
-            Navigator.push(context, MaterialPageRoute(builder: (context) => const GameHubPage()));
-          }),
-
           // --- NEW: SOCIAL MEDIA LINKS SECTION ---
           const SizedBox(height: 10),
           SizedBox(

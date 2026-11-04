@@ -1,9 +1,6 @@
-import 'dart:async';
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'cart_manager.dart';
-import 'services/api_service.dart';
 import 'services/tenant_service.dart';
 
 class CollaborativeSplitPage extends StatefulWidget {
@@ -13,17 +10,16 @@ class CollaborativeSplitPage extends StatefulWidget {
   State<CollaborativeSplitPage> createState() => _CollaborativeSplitPageState();
 }
 
-class _CollaborativeSplitPageState extends State<CollaborativeSplitPage> with TickerProviderStateMixin {
+class _CollaborativeSplitPageState extends State<CollaborativeSplitPage>
+    with TickerProviderStateMixin {
   // Page State
   bool _isRoleSelected = false;
   bool _isHosting = false;
   bool _isLoading = false;
-  
+
   // Group Data
   String? _groupCode;
   List<Map<String, dynamic>> _members = [];
-  double _totalBill = 0.0;
-  Timer? _syncTimer;
 
   // Controllers
   final TextEditingController _codeController = TextEditingController();
@@ -33,14 +29,19 @@ class _CollaborativeSplitPageState extends State<CollaborativeSplitPage> with Ti
   @override
   void initState() {
     super.initState();
-    _fadeController = AnimationController(vsync: this, duration: const Duration(milliseconds: 800));
-    _pulseController = AnimationController(vsync: this, duration: const Duration(seconds: 2))..repeat(reverse: true);
+    _fadeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat(reverse: true);
     _fadeController.forward();
   }
 
   @override
   void dispose() {
-    _syncTimer?.cancel();
     _codeController.dispose();
     _fadeController.dispose();
     _pulseController.dispose();
@@ -51,7 +52,7 @@ class _CollaborativeSplitPageState extends State<CollaborativeSplitPage> with Ti
   Future<void> _hostGroup() async {
     final tenant = TenantService().currentTenant.value;
     final tableId = ShopManager.instance.selectedTableId.value;
-    
+
     if (tenant == null || tableId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Please select a table first!")),
@@ -64,12 +65,13 @@ class _CollaborativeSplitPageState extends State<CollaborativeSplitPage> with Ti
     // Simulate API call for "Complete, clean code"
     // In a real scenario, this hits the backend.
     await Future.delayed(const Duration(seconds: 2));
-    
+
     // For demo/production integration:
     // final data = await ApiService.createSplitGroup(tenantId: tenant.id, userId: ShopManager.instance.currentUserId, tableNumber: tableId);
-    
+
     // Mocking a unique 6-digit code for immediate usage
-    final mockCode = (100000 + (DateTime.now().millisecondsSinceEpoch % 899999)).toString();
+    final mockCode = (100000 + (DateTime.now().millisecondsSinceEpoch % 899999))
+        .toString();
 
     if (mounted) {
       setState(() {
@@ -78,10 +80,14 @@ class _CollaborativeSplitPageState extends State<CollaborativeSplitPage> with Ti
         _groupCode = mockCode;
         _isLoading = false;
         _members = [
-          {'name': ShopManager.instance.customerName.value.isNotEmpty ? ShopManager.instance.customerName.value : "Host (Me)", 'isMe': true}
+          {
+            'name': ShopManager.instance.customerName.value.isNotEmpty
+                ? ShopManager.instance.customerName.value
+                : "Host (Me)",
+            'isMe': true,
+          },
         ];
       });
-      _startSyncing();
     }
   }
 
@@ -89,7 +95,9 @@ class _CollaborativeSplitPageState extends State<CollaborativeSplitPage> with Ti
   Future<void> _joinGroup() async {
     final code = _codeController.text.trim();
     if (code.length != 6) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Enter a valid 6-digit code")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Enter a valid 6-digit code")),
+      );
       return;
     }
 
@@ -107,24 +115,6 @@ class _CollaborativeSplitPageState extends State<CollaborativeSplitPage> with Ti
           {'name': "Me", 'isMe': true},
         ];
       });
-      _startSyncing();
-    }
-  }
-
-  void _startSyncing() {
-    _syncTimer?.cancel();
-    _syncTimer = Timer.periodic(const Duration(seconds: 10), (timer) => _fetchUpdate());
-    _fetchUpdate();
-  }
-
-  Future<void> _fetchUpdate() async {
-    // This would fetch real total and members from the server
-    // For now, we sync with the current local table orders
-    if (mounted) {
-      setState(() {
-        _totalBill = ShopManager.instance.totalPrice > 0 ? ShopManager.instance.totalPrice : 1500.0;
-        // Logic: Total / Members
-      });
     }
   }
 
@@ -139,15 +129,18 @@ class _CollaborativeSplitPageState extends State<CollaborativeSplitPage> with Ti
           icon: const Icon(Icons.close, color: Colors.black87),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text("Premium Bill Splitter", style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w900)),
+        title: const Text(
+          "Premium Bill Splitter",
+          style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w900),
+        ),
         centerTitle: true,
       ),
       body: FadeTransition(
         opacity: _fadeController,
-        child: _isLoading 
-          ? _buildLoadingState()
-          : !_isRoleSelected 
-            ? _buildRoleSelection() 
+        child: _isLoading
+            ? _buildLoadingState()
+            : !_isRoleSelected
+            ? _buildRoleSelection()
             : _buildGroupDashboard(),
       ),
     );
@@ -162,7 +155,12 @@ class _CollaborativeSplitPageState extends State<CollaborativeSplitPage> with Ti
           const SizedBox(height: 24),
           Text(
             _isHosting ? "GENERAING SECURE CODE..." : "JOINING GROUP LOBBY...",
-            style: const TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5, fontSize: 12),
+            style: const TextStyle(
+              fontWeight: FontWeight.w900,
+              color: Colors.grey,
+              letterSpacing: 1.5,
+              fontSize: 12,
+            ),
           ),
         ],
       ),
@@ -175,24 +173,36 @@ class _CollaborativeSplitPageState extends State<CollaborativeSplitPage> with Ti
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text("Dine Together,\nSplit Better.", style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, height: 1.2)),
+          const Text(
+            "Dine Together,\nSplit Better.",
+            style: TextStyle(
+              fontSize: 32,
+              fontWeight: FontWeight.w900,
+              height: 1.2,
+            ),
+          ),
           const SizedBox(height: 12),
-          const Text("Choose your role to start the collaborative split.", style: TextStyle(color: Colors.grey, fontSize: 15)),
+          const Text(
+            "Choose your role to start the collaborative split.",
+            style: TextStyle(color: Colors.grey, fontSize: 15),
+          ),
           const SizedBox(height: 40),
-          
+
           _buildRoleCard(
             title: "Host Group",
-            desc: "Start a new group and get a shareable code for your friends.",
+            desc:
+                "Start a new group and get a shareable code for your friends.",
             icon: Icons.add_moderator_rounded,
             color: Theme.of(context).primaryColor,
             onTap: _hostGroup,
           ),
-          
+
           const SizedBox(height: 20),
-          
+
           _buildRoleCard(
             title: "Join Group",
-            desc: "Enter a 6-digit code provided by your host to join the session.",
+            desc:
+                "Enter a 6-digit code provided by your host to join the session.",
             icon: Icons.group_add_rounded,
             color: Colors.blueAccent,
             onTap: () => _showJoinModal(),
@@ -202,7 +212,13 @@ class _CollaborativeSplitPageState extends State<CollaborativeSplitPage> with Ti
     );
   }
 
-  Widget _buildRoleCard({required String title, required String desc, required IconData icon, required Color color, required VoidCallback onTap}) {
+  Widget _buildRoleCard({
+    required String title,
+    required String desc,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(24),
@@ -211,13 +227,22 @@ class _CollaborativeSplitPageState extends State<CollaborativeSplitPage> with Ti
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(24),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 20, offset: const Offset(0, 10))],
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+            ),
+          ],
         ),
         child: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
               child: Icon(icon, color: color, size: 28),
             ),
             const SizedBox(width: 20),
@@ -225,13 +250,26 @@ class _CollaborativeSplitPageState extends State<CollaborativeSplitPage> with Ti
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
                   const SizedBox(height: 4),
-                  Text(desc, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                  Text(
+                    desc,
+                    style: const TextStyle(color: Colors.grey, fontSize: 12),
+                  ),
                 ],
               ),
             ),
-            const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Colors.grey),
+            const Icon(
+              Icons.arrow_forward_ios_rounded,
+              size: 16,
+              color: Colors.grey,
+            ),
           ],
         ),
       ),
@@ -244,7 +282,12 @@ class _CollaborativeSplitPageState extends State<CollaborativeSplitPage> with Ti
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
-        padding: EdgeInsets.fromLTRB(24, 24, 24, MediaQuery.of(context).viewInsets.bottom + 40),
+        padding: EdgeInsets.fromLTRB(
+          24,
+          24,
+          24,
+          MediaQuery.of(context).viewInsets.bottom + 40,
+        ),
         decoration: const BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
@@ -252,21 +295,32 @@ class _CollaborativeSplitPageState extends State<CollaborativeSplitPage> with Ti
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text("ENTER GROUP CODE", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
+            const Text(
+              "ENTER GROUP CODE",
+              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
+            ),
             const SizedBox(height: 24),
             TextField(
               controller: _codeController,
               keyboardType: TextInputType.number,
               textAlign: TextAlign.center,
               maxLength: 6,
-              style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, letterSpacing: 8, color: Theme.of(context).primaryColor),
+              style: TextStyle(
+                fontSize: 32,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 8,
+                color: Theme.of(context).primaryColor,
+              ),
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
               decoration: InputDecoration(
                 hintText: "000000",
                 counterText: "",
                 filled: true,
                 fillColor: const Color(0xFFF1F5F9),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(20),
+                  borderSide: BorderSide.none,
+                ),
               ),
             ),
             const SizedBox(height: 32),
@@ -280,9 +334,17 @@ class _CollaborativeSplitPageState extends State<CollaborativeSplitPage> with Ti
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Theme.of(context).primaryColor,
                   padding: const EdgeInsets.symmetric(vertical: 18),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                 ),
-                child: const Text("JOIN SESSION", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                child: const Text(
+                  "JOIN SESSION",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ),
           ],
@@ -292,8 +354,6 @@ class _CollaborativeSplitPageState extends State<CollaborativeSplitPage> with Ti
   }
 
   Widget _buildGroupDashboard() {
-    final myShare = _totalBill / (_members.isEmpty ? 1 : _members.length);
-
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -304,62 +364,46 @@ class _CollaborativeSplitPageState extends State<CollaborativeSplitPage> with Ti
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(100),
-              border: Border.all(color: Theme.of(context).primaryColor.withValues(alpha: 0.2)),
+              border: Border.all(
+                color: Theme.of(context).primaryColor.withValues(alpha: 0.2),
+              ),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.link_rounded, color: Theme.of(context).primaryColor, size: 18),
+                Icon(
+                  Icons.link_rounded,
+                  color: Theme.of(context).primaryColor,
+                  size: 18,
+                ),
                 const SizedBox(width: 12),
                 Text(
                   "CODE: $_groupCode",
-                  style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 2,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 const Icon(Icons.copy_rounded, color: Colors.grey, size: 14),
               ],
             ),
           ),
-          
+
           const SizedBox(height: 40),
 
-          // CIRCULAR BILL INDICATOR
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              SizedBox(
-                width: 240,
-                height: 240,
-                child: CircularProgressIndicator(
-                  value: 1.0,
-                  strokeWidth: 12,
-                  color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
-                ),
-              ),
-              SizedBox(
-                width: 240,
-                height: 240,
-                child: CircularProgressIndicator(
-                  value: 0.75, // Simulated progress
-                  strokeWidth: 12,
-                  color: Theme.of(context).primaryColor,
-                  strokeCap: StrokeCap.round,
-                ),
-              ),
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text("YOUR SHARE", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 1.5)),
-                  const SizedBox(height: 4),
-                  Text(
-                    "Rs. ${myShare.toStringAsFixed(2)}",
-                    style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: Colors.black87),
-                  ),
-                  const SizedBox(height: 4),
-                  Text("Total: Rs. ${_totalBill.toStringAsFixed(2)}", style: const TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold)),
-                ],
-              ),
-            ],
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: const Text(
+              "Server-backed bill splitting is not available yet. No estimated or split amount is shown.",
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w600),
+            ),
           ),
 
           const SizedBox(height: 50),
@@ -368,36 +412,66 @@ class _CollaborativeSplitPageState extends State<CollaborativeSplitPage> with Ti
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text("GROUP MEMBERS", style: TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF64748B), fontSize: 11, letterSpacing: 1.2)),
+              const Text(
+                "GROUP MEMBERS",
+                style: TextStyle(
+                  fontWeight: FontWeight.w900,
+                  color: Color(0xFF64748B),
+                  fontSize: 11,
+                  letterSpacing: 1.2,
+                ),
+              ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(color: Colors.green.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
-                child: Text("${_members.length} ACTIVE", style: const TextStyle(color: Colors.green, fontSize: 9, fontWeight: FontWeight.w900)),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.green.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  "${_members.length} ACTIVE",
+                  style: const TextStyle(
+                    color: Colors.green,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
               ),
             ],
           ),
           const SizedBox(height: 16),
-          
+
           ..._members.map((m) => _buildMemberItem(m)).toList(),
-          
+
           const SizedBox(height: 40),
-          
+
           // SMART TIPS
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               color: Colors.blueAccent.withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: Colors.blueAccent.withValues(alpha: 0.1)),
+              border: Border.all(
+                color: Colors.blueAccent.withValues(alpha: 0.1),
+              ),
             ),
             child: Row(
               children: [
-                const Icon(Icons.info_outline_rounded, color: Colors.blueAccent),
+                const Icon(
+                  Icons.info_outline_rounded,
+                  color: Colors.blueAccent,
+                ),
                 const SizedBox(width: 16),
                 const Expanded(
                   child: Text(
                     "Split updates automatically whenever a new item is ordered at this table.",
-                    style: TextStyle(fontSize: 12, color: Colors.blueAccent, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.blueAccent,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ],
@@ -416,16 +490,27 @@ class _CollaborativeSplitPageState extends State<CollaborativeSplitPage> with Ti
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Row(
         children: [
           CircleAvatar(
             radius: 20,
-            backgroundColor: isMe ? Theme.of(context).primaryColor : Colors.grey[200],
+            backgroundColor: isMe
+                ? Theme.of(context).primaryColor
+                : Colors.grey[200],
             child: Text(
               member['name'][0].toUpperCase(),
-              style: TextStyle(color: isMe ? Colors.white : Colors.black87, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                color: isMe ? Colors.white : Colors.black87,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
           const SizedBox(width: 16),
@@ -436,7 +521,11 @@ class _CollaborativeSplitPageState extends State<CollaborativeSplitPage> with Ti
             ),
           ),
           if (isMe)
-            const Icon(Icons.check_circle_rounded, color: Colors.green, size: 20)
+            const Icon(
+              Icons.check_circle_rounded,
+              color: Colors.green,
+              size: 20,
+            )
           else
             ScaleTransition(
               scale: _pulseController.drive(Tween(begin: 1.0, end: 1.1)),

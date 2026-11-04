@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'battleground_creation_page.dart';
 import 'cart_manager.dart';
 import 'services/api_service.dart';
 import 'dart:async';
@@ -10,7 +11,8 @@ class LiveOrderTrackingScreen extends StatefulWidget {
   const LiveOrderTrackingScreen({super.key, required this.orderId});
 
   @override
-  State<LiveOrderTrackingScreen> createState() => _LiveOrderTrackingScreenState();
+  State<LiveOrderTrackingScreen> createState() =>
+      _LiveOrderTrackingScreenState();
 }
 
 class _LiveOrderTrackingScreenState extends State<LiveOrderTrackingScreen> {
@@ -31,7 +33,10 @@ class _LiveOrderTrackingScreenState extends State<LiveOrderTrackingScreen> {
   }
 
   void _startStatusPolling() {
-    _statusTimer = Timer.periodic(const Duration(seconds: 10), (timer) => _fetchStatus());
+    _statusTimer = Timer.periodic(
+      const Duration(seconds: 10),
+      (timer) => _fetchStatus(),
+    );
     _fetchStatus();
   }
 
@@ -60,7 +65,10 @@ class _LiveOrderTrackingScreenState extends State<LiveOrderTrackingScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        title: const Text("Order Tracking", style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text(
+          "Order Tracking",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         elevation: 0,
         backgroundColor: Colors.white,
         leading: IconButton(
@@ -75,22 +83,84 @@ class _LiveOrderTrackingScreenState extends State<LiveOrderTrackingScreen> {
           },
         ),
       ),
-      body: _isLoading 
-        ? const Center(child: CircularProgressIndicator())
-        : SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                children: [
+                  _buildStatusBanner(),
+                  const SizedBox(height: 32),
+                  _buildStepper(),
+                  if (_canShowBattleground) ...[
+                    const SizedBox(height: 24),
+                    _buildBattlegroundCard(),
+                  ],
+                  const SizedBox(height: 40),
+                  _buildOrderSummary(),
+                  const SizedBox(height: 32),
+                  _buildHelpCard(),
+                ],
+              ),
+            ),
+    );
+  }
+
+  bool get _canShowBattleground {
+    return true;
+  }
+
+  Widget _buildBattlegroundCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.sports_esports_rounded, color: Color(0xFFFF5C00)),
+          const SizedBox(width: 12),
+          const Expanded(
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildStatusBanner(),
-                const SizedBox(height: 32),
-                _buildStepper(),
-                const SizedBox(height: 40),
-                _buildOrderSummary(),
-                const SizedBox(height: 32),
-                _buildHelpCard(),
+                Text(
+                  'Are you bored? 😴',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  'Challenge your table to a Battleground.',
+                  style: TextStyle(color: Colors.grey, fontSize: 12),
+                ),
               ],
             ),
           ),
+          const SizedBox(width: 8),
+          ElevatedButton(
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const BattlegroundCreationPage(),
+              ),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFFF5C00),
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Yes'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -108,11 +178,20 @@ class _LiveOrderTrackingScreenState extends State<LiveOrderTrackingScreen> {
           const SizedBox(height: 16),
           Text(
             _getStatusTitle(),
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: _getStatusColor()),
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w900,
+              color: _getStatusColor(),
+            ),
           ),
           Text(
             "ORDER ID: #${widget.orderId}",
-            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey, letterSpacing: 1),
+            style: const TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey,
+              letterSpacing: 1,
+            ),
           ),
         ],
       ),
@@ -136,7 +215,9 @@ class _LiveOrderTrackingScreenState extends State<LiveOrderTrackingScreen> {
     int currentStepIndex = _getStepIndex(_currentStatus);
     bool isDone = currentStepIndex > stepIndex;
     bool isActive = currentStepIndex == stepIndex;
-    Color color = isDone ? Colors.green : (isActive ? Theme.of(context).primaryColor : Colors.grey[300]!);
+    Color color = isDone
+        ? Colors.green
+        : (isActive ? Theme.of(context).primaryColor : Colors.grey[300]!);
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -144,16 +225,23 @@ class _LiveOrderTrackingScreenState extends State<LiveOrderTrackingScreen> {
         Column(
           children: [
             Container(
-              width: 24, height: 24,
+              width: 24,
+              height: 24,
               decoration: BoxDecoration(
                 color: isActive ? Colors.white : color,
                 shape: BoxShape.circle,
                 border: isActive ? Border.all(color: color, width: 6) : null,
               ),
-              child: isDone ? const Icon(Icons.check, size: 14, color: Colors.white) : null,
+              child: isDone
+                  ? const Icon(Icons.check, size: 14, color: Colors.white)
+                  : null,
             ),
             if (stepIndex != 5)
-              Container(width: 2, height: 40, color: isDone ? Colors.green : Colors.grey[200]),
+              Container(
+                width: 2,
+                height: 40,
+                color: isDone ? Colors.green : Colors.grey[200],
+              ),
           ],
         ),
         const SizedBox(width: 20),
@@ -161,8 +249,18 @@ class _LiveOrderTrackingScreenState extends State<LiveOrderTrackingScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: isActive ? Colors.black : Colors.grey[600])),
-              Text(sub, style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+              Text(
+                title,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                  color: isActive ? Colors.black : Colors.grey[600],
+                ),
+              ),
+              Text(
+                sub,
+                style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+              ),
               const SizedBox(height: 20),
             ],
           ),
@@ -173,55 +271,81 @@ class _LiveOrderTrackingScreenState extends State<LiveOrderTrackingScreen> {
 
   int _getStepIndex(String status) {
     switch (status.trim().toLowerCase()) {
-      case 'pending': return 0;
-      case 'approved': return 1;
-      case 'preparing': return 2;
-      case 'ready': return 3;
+      case 'pending':
+        return 0;
+      case 'approved':
+        return 1;
+      case 'preparing':
+        return 2;
+      case 'ready':
+        return 3;
       case 'onway':
-      case 'on way': return 4;
+      case 'on way':
+        return 4;
       case 'completed':
-      case 'served': return 5;
-      default: return 0;
+      case 'served':
+        return 5;
+      default:
+        return 0;
     }
   }
 
   String _getStatusTitle() {
     switch (_currentStatus.trim().toLowerCase()) {
-      case 'pending': return "Pending Approval";
-      case 'approved': return "Accepted";
-      case 'preparing': return "In the Kitchen";
-      case 'ready': return "Ready for Pickup";
+      case 'pending':
+        return "Pending Approval";
+      case 'approved':
+        return "Accepted";
+      case 'preparing':
+        return "In the Kitchen";
+      case 'ready':
+        return "Ready for Pickup";
       case 'onway':
-      case 'on way': return "Bringing to Table";
+      case 'on way':
+        return "Bringing to Table";
       case 'completed':
-      case 'served': return "Served";
-      default: return "Processing";
+      case 'served':
+        return "Served";
+      default:
+        return "Processing";
     }
   }
 
   Color _getStatusColor() {
     switch (_currentStatus.trim().toLowerCase()) {
-      case 'pending': return Colors.orange;
-      case 'approved': return Colors.blue;
-      case 'preparing': return Colors.purple;
-      case 'ready': return Colors.green;
+      case 'pending':
+        return Colors.orange;
+      case 'approved':
+        return Colors.blue;
+      case 'preparing':
+        return Colors.purple;
+      case 'ready':
+        return Colors.green;
       case 'onway':
-      case 'on way': return const Color(0xFF6236FF);
+      case 'on way':
+        return const Color(0xFF6236FF);
       case 'completed':
-      case 'served': return Colors.teal;
-      default: return const Color(0xFFFF5C00);
+      case 'served':
+        return Colors.teal;
+      default:
+        return const Color(0xFFFF5C00);
     }
   }
 
   IconData _getStatusIcon() {
     switch (_currentStatus.trim().toLowerCase()) {
-      case 'pending': return Icons.timer_outlined;
-      case 'preparing': return Icons.restaurant;
+      case 'pending':
+        return Icons.timer_outlined;
+      case 'preparing':
+        return Icons.restaurant;
       case 'onway':
-      case 'on way': return Icons.directions_run;
+      case 'on way':
+        return Icons.directions_run;
       case 'completed':
-      case 'served': return Icons.check_circle;
-      default: return Icons.local_fire_department;
+      case 'served':
+        return Icons.check_circle;
+      default:
+        return Icons.local_fire_department;
     }
   }
 
@@ -229,15 +353,31 @@ class _LiveOrderTrackingScreenState extends State<LiveOrderTrackingScreen> {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10)]),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 10,
+          ),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text("Order Tracking Info", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          const Text(
+            "Order Tracking Info",
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
           const SizedBox(height: 16),
           Text(
             "Tracking is live for Order #${widget.orderId}. Your order is currently being processed by our staff.",
-            style: const TextStyle(color: Colors.grey, fontSize: 13, height: 1.5),
+            style: const TextStyle(
+              color: Colors.grey,
+              fontSize: 13,
+              height: 1.5,
+            ),
           ),
         ],
       ),
@@ -264,19 +404,41 @@ class _LiveOrderTrackingScreenState extends State<LiveOrderTrackingScreen> {
         ),
         child: Row(
           children: [
-            const Icon(Icons.support_agent_rounded, color: Colors.white, size: 28),
+            const Icon(
+              Icons.support_agent_rounded,
+              color: Colors.white,
+              size: 28,
+            ),
             const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: const [
-                  Text("Need help?", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                  Text(
+                    "Need help?",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
                   SizedBox(height: 2),
-                  Text("Ask our waiter for assistance ->", style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w500)),
+                  Text(
+                    "Ask our waiter for assistance ->",
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
                 ],
               ),
             ),
-            const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white70, size: 16),
+            const Icon(
+              Icons.arrow_forward_ios_rounded,
+              color: Colors.white70,
+              size: 16,
+            ),
           ],
         ),
       ),

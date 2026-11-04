@@ -20,7 +20,12 @@ class _MenuPageState extends State<MenuPage> {
   String _selectedQuickToggle = '🌟 All Items';
 
   final List<String> _quickToggles = [
-    '🌟 All Items', '✨ AI Picks', '⚡ Fast Food', '🔥 Popular', '🌱 Healthy', '😋 Sweet Cravings',
+    '🌟 All Items',
+    '✨ AI Picks',
+    '⚡ Fast Food',
+    '🔥 Popular',
+    '🌱 Healthy',
+    '😋 Sweet Cravings',
   ];
 
   String _resolveImageUrl(String raw) {
@@ -39,7 +44,8 @@ class _MenuPageState extends State<MenuPage> {
     }
     if (!url.startsWith('http')) {
       String baseUrl = ApiService.baseUrl;
-      if (baseUrl.endsWith('/')) baseUrl = baseUrl.substring(0, baseUrl.length - 1);
+      if (baseUrl.endsWith('/'))
+        baseUrl = baseUrl.substring(0, baseUrl.length - 1);
       String cleanPath = url.startsWith('/') ? url.substring(1) : url;
       url = "$baseUrl/$cleanPath";
     }
@@ -79,15 +85,21 @@ class _MenuPageState extends State<MenuPage> {
     }
   }
 
-  List<Map<String, dynamic>> _getAvailableProducts(List<Map<String, dynamic>> dbProducts) {
+  List<Map<String, dynamic>> _getAvailableProducts(
+    List<Map<String, dynamic>> dbProducts,
+  ) {
     return dbProducts.where((p) {
       final avail = p['is_available'];
-      if (avail == false || avail == 0 || avail == '0' || avail == 'false') return false;
+      if (avail == false || avail == 0 || avail == '0' || avail == 'false')
+        return false;
       return true;
     }).toList();
   }
 
-  List<Map<String, dynamic>> _getRecommendedItems(List<Map<String, dynamic>> dbProducts, String slot) {
+  List<Map<String, dynamic>> _getRecommendedItems(
+    List<Map<String, dynamic>> dbProducts,
+    String slot,
+  ) {
     final available = _getAvailableProducts(dbProducts);
     if (available.isEmpty) return [];
 
@@ -101,17 +113,31 @@ class _MenuPageState extends State<MenuPage> {
 
       // 2. If suitable_time was NOT set, use strict slot keyword matching
       final title = (p['title'] ?? '').toString().toLowerCase();
-      final category = (p['category'] ?? p['category_name'] ?? '').toString().toLowerCase();
+      final category = (p['category'] ?? p['category_name'] ?? '')
+          .toString()
+          .toLowerCase();
       final fullText = "$title $category";
 
       if (slot == 'Morning') {
-        return fullText.contains('tea') || fullText.contains('coffee') || fullText.contains('breakfast') || fullText.contains('toast');
+        return fullText.contains('tea') ||
+            fullText.contains('coffee') ||
+            fullText.contains('breakfast') ||
+            fullText.contains('toast');
       } else if (slot == 'Lunch') {
-        return fullText.contains('thali') || fullText.contains('rice') || fullText.contains('lunch') || fullText.contains('combo');
+        return fullText.contains('thali') ||
+            fullText.contains('rice') ||
+            fullText.contains('lunch') ||
+            fullText.contains('combo');
       } else if (slot == 'Evening') {
-        return fullText.contains('snack') || fullText.contains('fries') || fullText.contains('burger');
+        return fullText.contains('snack') ||
+            fullText.contains('fries') ||
+            fullText.contains('burger');
       } else if (slot == 'Late Night') {
-        return fullText.contains('dessert') || fullText.contains('ice cream') || fullText.contains('juice') || fullText.contains('shake') || fullText.contains('sweet');
+        return fullText.contains('dessert') ||
+            fullText.contains('ice cream') ||
+            fullText.contains('juice') ||
+            fullText.contains('shake') ||
+            fullText.contains('sweet');
       }
       return false;
     }).toList();
@@ -120,11 +146,14 @@ class _MenuPageState extends State<MenuPage> {
 
     // Randomize and pick up to 4 items
     final seed = DateTime.now().day + DateTime.now().hour;
-    final shuffled = List<Map<String, dynamic>>.from(matching)..shuffle(math.Random(seed));
+    final shuffled = List<Map<String, dynamic>>.from(matching)
+      ..shuffle(math.Random(seed));
     return shuffled.take(4).toList();
   }
 
-  List<Map<String, dynamic>> _getFiltered(List<Map<String, dynamic>> dbProducts) {
+  List<Map<String, dynamic>> _getFiltered(
+    List<Map<String, dynamic>> dbProducts,
+  ) {
     List<Map<String, dynamic>> items = _getAvailableProducts(dbProducts);
 
     // 1. Filter by Category
@@ -138,11 +167,15 @@ class _MenuPageState extends State<MenuPage> {
       final selectedId = selectedCatObj['id']?.toString();
 
       if (selectedId != null) {
-        items = items.where((i) => i['category_id']?.toString() == selectedId).toList();
+        items = items
+            .where((i) => i['category_id']?.toString() == selectedId)
+            .toList();
       } else {
         items = items.where((i) {
           final t = (i['title'] ?? '').toString().toLowerCase();
-          final c = (i['category'] ?? i['category_name'] ?? '').toString().toLowerCase();
+          final c = (i['category'] ?? i['category_name'] ?? '')
+              .toString()
+              .toLowerCase();
           final sel = _selectedCategory.toLowerCase();
           return t.contains(sel) || c.contains(sel);
         }).toList();
@@ -153,7 +186,11 @@ class _MenuPageState extends State<MenuPage> {
     if (_selectedQuickToggle == '🌟 All Items') {
       return items;
     } else if (_selectedQuickToggle == '🔥 Popular') {
-      items.sort((a, b) => (b['rating'] ?? '0').toString().compareTo((a['rating'] ?? '0').toString()));
+      items.sort(
+        (a, b) => (b['rating'] ?? '0').toString().compareTo(
+          (a['rating'] ?? '0').toString(),
+        ),
+      );
       return items;
     } else if (_selectedQuickToggle == '✨ AI Picks') {
       return items.where((i) {
@@ -161,23 +198,40 @@ class _MenuPageState extends State<MenuPage> {
         final r = double.tryParse(i['rating']?.toString() ?? '0') ?? 0;
         return tag.contains('AI Picks') || r >= 4.5;
       }).toList();
-    } else if (_selectedQuickToggle == '⚡ Fast Order' || _selectedQuickToggle == '⚡ Fast Food') {
+    } else if (_selectedQuickToggle == '⚡ Fast Order' ||
+        _selectedQuickToggle == '⚡ Fast Food') {
       return items.where((i) {
         final tag = (i['meal_tag'] ?? i['tag'] ?? '').toString();
         final title = (i['title'] ?? '').toString().toLowerCase();
-        return tag.contains('Fast Food') || title.contains('burger') || title.contains('pizza') || title.contains('chowmein') || title.contains('chaumin') || title.contains('fry') || title.contains('sandwich');
+        return tag.contains('Fast Food') ||
+            title.contains('burger') ||
+            title.contains('pizza') ||
+            title.contains('chowmein') ||
+            title.contains('chaumin') ||
+            title.contains('fry') ||
+            title.contains('sandwich');
       }).toList();
     } else if (_selectedQuickToggle == '🌱 Healthy') {
       return items.where((i) {
         final tag = (i['meal_tag'] ?? i['tag'] ?? '').toString();
         final title = (i['title'] ?? '').toString().toLowerCase();
-        return tag.contains('Healthy') || title.contains('salad') || title.contains('tea') || title.contains('soup') || title.contains('veg');
+        return tag.contains('Healthy') ||
+            title.contains('salad') ||
+            title.contains('tea') ||
+            title.contains('soup') ||
+            title.contains('veg');
       }).toList();
-    } else if (_selectedQuickToggle == '😋 Sweet Craving' || _selectedQuickToggle == '😋 Sweet Cravings') {
+    } else if (_selectedQuickToggle == '😋 Sweet Craving' ||
+        _selectedQuickToggle == '😋 Sweet Cravings') {
       return items.where((i) {
         final tag = (i['meal_tag'] ?? i['tag'] ?? '').toString();
         final title = (i['title'] ?? '').toString().toLowerCase();
-        return tag.contains('Sweet') || title.contains('ice cream') || title.contains('cake') || title.contains('dessert') || title.contains('shake') || title.contains('sweet');
+        return tag.contains('Sweet') ||
+            title.contains('ice cream') ||
+            title.contains('cake') ||
+            title.contains('dessert') ||
+            title.contains('shake') ||
+            title.contains('sweet');
       }).toList();
     }
 
@@ -198,7 +252,9 @@ class _MenuPageState extends State<MenuPage> {
             // Dynamic categories from DB + 'All'
             final List<String> menuCategories = ['All'];
             if (dbCategories.isNotEmpty) {
-              menuCategories.addAll(dbCategories.map((c) => c['title'].toString()));
+              menuCategories.addAll(
+                dbCategories.map((c) => c['title'].toString()),
+              );
             }
 
             return RefreshIndicator(
@@ -227,20 +283,39 @@ class _MenuPageState extends State<MenuPage> {
                                 IconButton(
                                   style: IconButton.styleFrom(
                                     backgroundColor: Colors.white,
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(14),
+                                    ),
                                     elevation: 2,
                                   ),
-                                  icon: const Icon(Icons.arrow_back, color: Colors.black87),
+                                  icon: const Icon(
+                                    Icons.arrow_back,
+                                    color: Colors.black87,
+                                  ),
                                   onPressed: () {
-                                    ShopManager.instance.currentTabIndex.value = 0; // Go Home
+                                    ShopManager.instance.currentTabIndex.value =
+                                        0; // Go Home
                                   },
                                 ),
                                 const SizedBox(width: 12),
                                 const Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text("Our Menu", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-                                    Text("Smart AI Recommendations", style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)),
+                                    Text(
+                                      "Our Menu",
+                                      style: TextStyle(
+                                        fontSize: 22,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    Text(
+                                      "Smart AI Recommendations",
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        color: Colors.grey,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ],
@@ -267,24 +342,36 @@ class _MenuPageState extends State<MenuPage> {
                           scrollDirection: Axis.horizontal,
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           itemCount: _quickToggles.length,
-                          itemBuilder: (context, index) => _buildToggleChip(_quickToggles[index]),
+                          itemBuilder: (context, index) =>
+                              _buildToggleChip(_quickToggles[index]),
                         ),
                       ),
                     ),
 
                     // 4. Time-Based Recommendations (Replaces History)
                     SliverToBoxAdapter(
-                      child: _buildRecommendationSection(dbProducts, timeContext),
+                      child: _buildRecommendationSection(
+                        dbProducts,
+                        timeContext,
+                      ),
                     ),
 
                     // 5. Category Selector
                     const SliverToBoxAdapter(
                       child: Padding(
                         padding: EdgeInsets.fromLTRB(20, 32, 20, 12),
-                        child: Text("Explore Menu", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                        child: Text(
+                          "Explore Menu",
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                     ),
-                    SliverToBoxAdapter(child: _buildCategoryList(menuCategories)),
+                    SliverToBoxAdapter(
+                      child: _buildCategoryList(menuCategories),
+                    ),
 
                     // 6. Main Grid or Empty State
                     if (filtered.isEmpty)
@@ -298,16 +385,26 @@ class _MenuPageState extends State<MenuPage> {
                           ),
                           child: Column(
                             children: const [
-                              Icon(Icons.search_off_rounded, size: 48, color: Colors.grey),
+                              Icon(
+                                Icons.search_off_rounded,
+                                size: 48,
+                                color: Colors.grey,
+                              ),
                               SizedBox(height: 12),
                               Text(
                                 "No food found for this filter",
-                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
                               ),
                               SizedBox(height: 4),
                               Text(
                                 "Try selecting another category or tag.",
-                                style: TextStyle(color: Colors.grey, fontSize: 12),
+                                style: TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 12,
+                                ),
                               ),
                             ],
                           ),
@@ -317,14 +414,18 @@ class _MenuPageState extends State<MenuPage> {
                       SliverPadding(
                         padding: const EdgeInsets.all(16),
                         sliver: SliverGrid(
-                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            mainAxisSpacing: 14,
-                            crossAxisSpacing: 14,
-                            childAspectRatio: 0.8,
-                          ),
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2,
+                                mainAxisSpacing: 14,
+                                crossAxisSpacing: 14,
+                                childAspectRatio: 0.8,
+                              ),
                           delegate: SliverChildBuilderDelegate(
-                            (context, index) => ProductCard(item: filtered[index], heroPrefix: 'menu_main'),
+                            (context, index) => ProductCard(
+                              item: filtered[index],
+                              heroPrefix: 'menu_main',
+                            ),
                             childCount: filtered.length,
                           ),
                         ),
@@ -359,7 +460,12 @@ class _MenuPageState extends State<MenuPage> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: LinearGradient(colors: [Theme.of(context).primaryColor, Theme.of(context).primaryColor.withValues(alpha: 0.8)]),
+        gradient: LinearGradient(
+          colors: [
+            Theme.of(context).primaryColor,
+            Theme.of(context).primaryColor.withValues(alpha: 0.8),
+          ],
+        ),
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
@@ -375,12 +481,33 @@ class _MenuPageState extends State<MenuPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(ctx['greeting']!, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-              Text(ctx['weather']!, style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold)),
+              Text(
+                ctx['greeting']!,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Text(
+                ctx['weather']!,
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 8),
-          Text(ctx['sub']!, style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold, height: 1.3)),
+          Text(
+            ctx['sub']!,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+              height: 1.3,
+            ),
+          ),
         ],
       ),
     );
@@ -394,18 +521,30 @@ class _MenuPageState extends State<MenuPage> {
         onPressed: () => setState(() => _selectedQuickToggle = label),
         label: Text(label),
         backgroundColor: isSelected ? Colors.black87 : Colors.white,
-        labelStyle: TextStyle(color: isSelected ? Colors.white : Colors.black87, fontWeight: FontWeight.bold, fontSize: 12),
+        labelStyle: TextStyle(
+          color: isSelected ? Colors.white : Colors.black87,
+          fontWeight: FontWeight.bold,
+          fontSize: 12,
+        ),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
-          side: BorderSide(color: isSelected ? Colors.black87 : Colors.grey[200]!),
+          side: BorderSide(
+            color: isSelected ? Colors.black87 : Colors.grey[200]!,
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildRecommendationSection(List<Map<String, dynamic>> dbProducts, Map<String, String> timeContext) {
+  Widget _buildRecommendationSection(
+    List<Map<String, dynamic>> dbProducts,
+    Map<String, String> timeContext,
+  ) {
     final slot = timeContext['slot'] ?? 'Morning';
-    final recommended = _getRecommendedItems(_getAvailableProducts(dbProducts), slot);
+    final recommended = _getRecommendedItems(
+      _getAvailableProducts(dbProducts),
+      slot,
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -417,12 +556,19 @@ class _MenuPageState extends State<MenuPage> {
             children: [
               Text(
                 "Recommended for ${timeContext['greeting']} ✨",
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               if (recommended.isNotEmpty)
                 Text(
                   "${recommended.length} items",
-                  style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: Colors.grey,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
             ],
           ),
@@ -436,23 +582,40 @@ class _MenuPageState extends State<MenuPage> {
               borderRadius: BorderRadius.circular(20),
               border: Border.all(color: Colors.grey[200]!),
               boxShadow: [
-                BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10),
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.02),
+                  blurRadius: 10,
+                ),
               ],
             ),
             child: Row(
               children: [
                 CircleAvatar(
-                  backgroundColor: Theme.of(context).primaryColor.withValues(alpha: 0.1),
-                  child: Icon(Icons.restaurant, color: Theme.of(context).primaryColor),
+                  backgroundColor: Theme.of(
+                    context,
+                  ).primaryColor.withValues(alpha: 0.1),
+                  child: Icon(
+                    Icons.restaurant,
+                    color: Theme.of(context).primaryColor,
+                  ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: const [
-                      Text("No food found for this time", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                      Text(
+                        "No food found for this time",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
                       SizedBox(height: 2),
-                      Text("Explore full menu categories below.", style: TextStyle(color: Colors.grey, fontSize: 11)),
+                      Text(
+                        "Explore full menu categories below.",
+                        style: TextStyle(color: Colors.grey, fontSize: 11),
+                      ),
                     ],
                   ),
                 ),
@@ -471,7 +634,8 @@ class _MenuPageState extends State<MenuPage> {
                 final String rawImg = item['image_url'] ?? item['image'] ?? '';
                 final String imgUrl = _resolveImageUrl(rawImg);
                 String priceStr = item['price']?.toString() ?? 'N/A';
-                if (!priceStr.contains('NPR') && priceStr != 'N/A') priceStr = "NPR $priceStr";
+                if (!priceStr.contains('NPR') && priceStr != 'N/A')
+                  priceStr = "NPR $priceStr";
 
                 return GestureDetector(
                   onTap: () {
@@ -480,6 +644,9 @@ class _MenuPageState extends State<MenuPage> {
                       MaterialPageRoute(
                         builder: (context) => ProductDetailsPage(
                           product: Product(
+                            productId: int.tryParse(
+                              item['id']?.toString() ?? '',
+                            ),
                             title: item['title'] ?? 'Product',
                             price: priceStr,
                             image: imgUrl,
@@ -500,7 +667,10 @@ class _MenuPageState extends State<MenuPage> {
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(color: Colors.grey[100]!),
                       boxShadow: [
-                        BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10),
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.02),
+                          blurRadius: 10,
+                        ),
                       ],
                     ),
                     child: Row(
@@ -517,20 +687,32 @@ class _MenuPageState extends State<MenuPage> {
                             children: [
                               Text(
                                 item['title'] ?? '',
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
                               Text(
-                                item['slogan'] ?? "Fresh for ${timeContext['slot']}",
-                                style: const TextStyle(color: Colors.grey, fontSize: 9, fontWeight: FontWeight.bold),
+                                item['slogan'] ??
+                                    "Fresh for ${timeContext['slot']}",
+                                style: const TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
                               const SizedBox(height: 2),
                               Text(
                                 priceStr,
-                                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Theme.of(context).primaryColor),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 12,
+                                  color: Theme.of(context).primaryColor,
+                                ),
                               ),
                             ],
                           ),
@@ -603,10 +785,17 @@ class _MenuPageState extends State<MenuPage> {
               onSelected: (val) => setState(() => _selectedCategory = cat),
               selectedColor: Theme.of(context).primaryColor,
               backgroundColor: Colors.white,
-              labelStyle: TextStyle(color: isSelected ? Colors.white : Colors.black87, fontWeight: FontWeight.bold),
+              labelStyle: TextStyle(
+                color: isSelected ? Colors.white : Colors.black87,
+                fontWeight: FontWeight.bold,
+              ),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
-                side: BorderSide(color: isSelected ? Theme.of(context).primaryColor : Colors.grey[200]!),
+                side: BorderSide(
+                  color: isSelected
+                      ? Theme.of(context).primaryColor
+                      : Colors.grey[200]!,
+                ),
               ),
               showCheckmark: false,
             ),

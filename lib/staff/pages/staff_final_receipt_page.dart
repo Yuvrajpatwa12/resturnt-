@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../../cart_manager.dart';
+import '../../services/api_service.dart';
+import '../../services/tenant_service.dart';
 
 class StaffFinalReceiptPage extends StatefulWidget {
   final int tableId;
@@ -12,26 +13,81 @@ class StaffFinalReceiptPage extends StatefulWidget {
 
 class _StaffFinalReceiptPageState extends State<StaffFinalReceiptPage> {
   bool _isSending = false;
+  bool _isLoading = true;
+  String? _error;
+  Map<String, dynamic>? _bill;
   double _billY = 0;
   double _billOpacity = 1.0;
 
-  void _sendBill() {
+  @override
+  void initState() {
+    super.initState();
+    _loadBill();
+  }
+
+  Future<void> _loadBill() async {
+    final tenant = TenantService().currentTenant.value;
+    if (tenant == null) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _error = 'Restaurant session is unavailable.';
+        });
+      }
+      return;
+    }
+    final tables = await ApiService.fetchTables(tenant.id);
+    final matchingTables = tables?.where(
+      (table) =>
+          table['table_number']?.toString() == widget.tableId.toString(),
+    );
+    final table = matchingTables == null || matchingTables.isEmpty
+        ? null
+        : matchingTables.first;
+    final databaseTableId = int.tryParse(table?['id']?.toString() ?? '');
+    final bill = databaseTableId == null
+        ? null
+        : await ApiService.fetchSessionBill(tableId: databaseTableId);
+    if (!mounted) return;
+    setState(() {
+      _isLoading = false;
+      _bill = bill;
+      _error = bill == null ? 'Could not load this bill from the server.' : null;
+    });
+  }
+
+  Future<void> _sendBill() async {
+    final sessionId = int.tryParse(_bill?['session_id']?.toString() ?? '');
+    if (sessionId == null || _bill == null) return;
+    setState(() => _isSending = true);
+    final result = await ApiService.updateSessionStatus(
+      sessionId: sessionId,
+      status: 'ReadyForBilling',
+    );
+    if (!mounted) return;
+    if (result['success'] != true) {
+      setState(() => _isSending = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result['message']?.toString() ?? 'Could not send this bill.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
     HapticFeedback.heavyImpact();
     setState(() {
-      _isSending = true;
       _billY = -500;
       _billOpacity = 0.0;
     });
 
     Future.delayed(const Duration(milliseconds: 800), () {
       if (!mounted) return;
-      ShopManager.instance.updateTableStatus(widget.tableId, "Billed");
       Navigator.pop(context); // Close receipt
       Navigator.pop(context); // Return to tables
-      
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Bill sent to customer's phone! 📱✨"),
+          content: Text("Table sent to billing."),
           backgroundColor: Colors.green,
           behavior: SnackBarBehavior.floating,
         ),
@@ -41,16 +97,8 @@ class _StaffFinalReceiptPageState extends State<StaffFinalReceiptPage> {
 
   @override
   Widget build(BuildContext context) {
-    final orderItems = ShopManager.instance.tableOrders.value[widget.tableId] ?? [];
-    double subtotal = 0;
-    for (var item in orderItems) {
-      String priceStr = item.product.price.replaceAll('NPR ', '').replaceAll(',', '');
-      double price = double.tryParse(priceStr) ?? 0;
-      subtotal += price * item.quantity;
-    }
-    double cgst = subtotal * 0.05;
-    double sgst = subtotal * 0.05;
-    double total = subtotal + cgst + sgst;
+    final orderItems = (_bill?['items'] as List?) ?? const [];
+    final unbilledItems = (_bill?['unbilled_items'] as List?) ?? const [];
 
     return Scaffold(
       backgroundColor: const Color(0xFFF7F8FA),
@@ -62,6 +110,23 @@ class _StaffFinalReceiptPageState extends State<StaffFinalReceiptPage> {
       ),
       body: Stack(
         children: [
+          if (_isLoading)
+            const Center(child: CircularProgressIndicator())
+          else if (_error != null)
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(_error!, textAlign: TextAlign.center),
+                    const SizedBox(height: 12),
+                    OutlinedButton(onPressed: _loadBill, child: const Text('RETRY')),
+                  ],
+                ),
+              ),
+            )
+          else
           SingleChildScrollView(
             padding: const EdgeInsets.all(24),
             child: Column(
@@ -112,27 +177,48 @@ class _StaffFinalReceiptPageState extends State<StaffFinalReceiptPage> {
                           const Divider(height: 40),
                           
                           // Itemized List
-                          ...orderItems.map((item) => Padding(
+                          ...orderItems.map((rawItem) {
+                            final item = Map<String, dynamic>.from(rawItem as Map);
+                            final quantity = int.tryParse(item['quantity']?.toString() ?? '') ?? 0;
+                            return Padding(
                             padding: const EdgeInsets.only(bottom: 12),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text("${item.quantity} x ${item.product.title}", style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                                Text(item.product.price, style: const TextStyle(fontSize: 13)),
+                                Text("$quantity x ${item['product_name'] ?? 'Item'}", style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                                Text("NPR ${item['line_total'] ?? '0.00'}", style: const TextStyle(fontSize: 13)),
                               ],
                             ),
-                          )),
+                          );
+                          }),
+                          if (unbilledItems.isNotEmpty) ...[
+                            const Divider(height: 32),
+                            const Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text('NOT YET BILLABLE', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orange)),
+                            ),
+                            ...unbilledItems.map((rawItem) {
+                              final item = Map<String, dynamic>.from(rawItem as Map);
+                              return ListTile(
+                                dense: true,
+                                contentPadding: EdgeInsets.zero,
+                                title: Text('${item['quantity']} x ${item['product_name']}'),
+                                subtitle: Text(item['status']?.toString() ?? 'Pending'),
+                                trailing: const Text('NPR 0.00'),
+                              );
+                            }),
+                          ],
                           
                           const Divider(height: 40),
-                          _buildSummaryItem("SUBTOTAL", "NPR ${subtotal.toStringAsFixed(0)}"),
-                          _buildSummaryItem("CGST (5%)", "NPR ${cgst.toStringAsFixed(0)}"),
-                          _buildSummaryItem("SGST (5%)", "NPR ${sgst.toStringAsFixed(0)}"),
+                          _buildSummaryItem("SUBTOTAL", "NPR ${_bill?['subtotal'] ?? '0.00'}"),
+                          _buildSummaryItem("SERVICE CHARGE", "NPR ${_bill?['service_charge'] ?? '0.00'}"),
+                          _buildSummaryItem("TAX", "NPR ${_bill?['tax'] ?? '0.00'}"),
                           const SizedBox(height: 10),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               const Text("TOTAL", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
-                              Text("NPR ${total.toStringAsFixed(0)}", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFFFF5C00))),
+                              Text("NPR ${_bill?['grand_total'] ?? '0.00'}", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFFFF5C00))),
                             ],
                           ),
                           const SizedBox(height: 40),
@@ -153,9 +239,9 @@ class _StaffFinalReceiptPageState extends State<StaffFinalReceiptPage> {
             left: 30,
             right: 30,
             child: ElevatedButton.icon(
-              onPressed: _isSending ? null : _sendBill,
+              onPressed: _isSending || orderItems.isEmpty ? null : _sendBill,
               icon: const Icon(Icons.send_rounded, size: 20),
-              label: Text(_isSending ? "SENDING..." : "SEND TO CUSTOMER'S PHONE"),
+              label: Text(_isSending ? "SENDING..." : "SEND TO BILLING"),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFFF5C00),
                 foregroundColor: Colors.white,

@@ -21,7 +21,6 @@ import 'widgets/onboarding_modal.dart';
 import 'widgets/notification_prompt.dart';
 import 'widgets/ios_pwa_prompt.dart';
 import 'widgets/proximity_offer_dialog.dart';
-import 'widgets/are_you_bored_dialog.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 // Enables Mouse Drag Scrolling on Web/Desktop
@@ -42,8 +41,6 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  bool _hasShownBoredDialog = false;
-
   @override
   void initState() {
     super.initState();
@@ -51,21 +48,11 @@ class _HomePageState extends State<HomePage> {
     ShopManager.instance.openTablePickerTrigger.addListener(
       _handleTablePickerTrigger,
     );
-    ShopManager.instance.isOrderActive.addListener(_handleOrderActiveChange);
 
     // 1. CHECK FOR PENDING REVIEW VERIFICATION & ACTIVE ORDER
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (ShopManager.instance.isWaitingForGoogleReview.value) {
         _showReviewVerificationDialog();
-      }
-      if (ShopManager.instance.isOrderActive.value && !_hasShownBoredDialog) {
-        _hasShownBoredDialog = true;
-        showDialog(
-          context: context,
-          builder: (ctx) => AreYouBoredDialog(
-            onDismiss: () {},
-          ),
-        );
       }
     });
   }
@@ -75,24 +62,7 @@ class _HomePageState extends State<HomePage> {
     ShopManager.instance.openTablePickerTrigger.removeListener(
       _handleTablePickerTrigger,
     );
-    ShopManager.instance.isOrderActive.removeListener(_handleOrderActiveChange);
     super.dispose();
-  }
-
-  void _handleOrderActiveChange() {
-    if (ShopManager.instance.isOrderActive.value && !_hasShownBoredDialog) {
-      _hasShownBoredDialog = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          showDialog(
-            context: context,
-            builder: (ctx) => AreYouBoredDialog(
-              onDismiss: () {},
-            ),
-          );
-        }
-      });
-    }
   }
 
   void _showReviewVerificationDialog() {

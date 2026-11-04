@@ -1,4 +1,6 @@
 class Product {
+  final int? productId;
+  final String? variantName;
   final String title;
   final String price;
   final String image;
@@ -17,6 +19,8 @@ class Product {
   final bool isComingSoon;
 
   Product({
+    this.productId,
+    this.variantName,
     required this.title,
     required this.price,
     required this.image,
@@ -78,7 +82,9 @@ class UnavailableDay {
       repeatType: map['repeat_type'] ?? 'Does Not Repeat',
       notes: map['notes'],
       isActive: map['status'] == 'Active' || map['isActive'] == true,
-      createdAt: DateTime.parse(map['created_at'] ?? DateTime.now().toIso8601String()),
+      createdAt: DateTime.parse(
+        map['created_at'] ?? DateTime.now().toIso8601String(),
+      ),
     );
   }
 
@@ -102,9 +108,23 @@ class UnavailableDay {
 
 enum OccupancyStatus { Vacant, Occupied, Reserved, DueCheckIn, DueCheckOut }
 
-enum RoomCondition { Clean, Dirty, Cleaning, Inspected, Maintenance, OutOfOrder, OutOfService }
+enum RoomCondition {
+  Clean,
+  Dirty,
+  Cleaning,
+  Inspected,
+  Maintenance,
+  OutOfOrder,
+  OutOfService,
+}
 
-enum HousekeepingStatus { CleaningQueue, Assigned, InProgress, Completed, InspectionPending }
+enum HousekeepingStatus {
+  CleaningQueue,
+  Assigned,
+  InProgress,
+  Completed,
+  InspectionPending,
+}
 
 class HotelRoom {
   final String id;
@@ -246,14 +266,16 @@ class Booking {
   double get totalOrderCharges {
     double total = 0;
     for (var order in orders) {
-      double price = double.tryParse(order.price.replaceAll(RegExp(r'[^0-9.]'), '')) ?? 0;
+      double price =
+          double.tryParse(order.price.replaceAll(RegExp(r'[^0-9.]'), '')) ?? 0;
       int qty = int.tryParse(order.qty) ?? 1;
       total += price * qty;
     }
     return total;
   }
 
-  double get grandTotal => (totalRoomCharges + totalOrderCharges) * 1.13; // Including 13% Tax
+  double get grandTotal =>
+      (totalRoomCharges + totalOrderCharges) * 1.13; // Including 13% Tax
 }
 
 class OrderItem {

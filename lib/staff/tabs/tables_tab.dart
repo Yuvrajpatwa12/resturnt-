@@ -22,16 +22,35 @@ class _TablesTabState extends State<TablesTab> {
           padding: const EdgeInsets.all(24.0),
           child: Row(
             children: [
-              _buildFloorChip("1F Hall", _selectedFloor == 1, () => setState(() => _selectedFloor = 1)),
-              _buildFloorChip("2F Hall", _selectedFloor == 2, () => setState(() => _selectedFloor = 2)),
+              _buildFloorChip(
+                "1F Hall",
+                _selectedFloor == 1,
+                () => setState(() => _selectedFloor = 1),
+              ),
+              _buildFloorChip(
+                "2F Hall",
+                _selectedFloor == 2,
+                () => setState(() => _selectedFloor = 2),
+              ),
               const Spacer(),
-              const Text("EDIT", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey)),
+              const Text(
+                "EDIT",
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.grey,
+                ),
+              ),
               const SizedBox(width: 10),
-              const Icon(Icons.add_circle_outline, size: 16, color: Colors.grey),
+              const Icon(
+                Icons.add_circle_outline,
+                size: 16,
+                color: Colors.grey,
+              ),
             ],
           ),
         ),
-        
+
         Expanded(
           child: ValueListenableBuilder<Map<int, String>>(
             valueListenable: ShopManager.instance.tableStatuses,
@@ -74,27 +93,35 @@ class _TablesTabState extends State<TablesTab> {
         decoration: BoxDecoration(
           color: isSelected ? const Color(0xFFFF5C00) : Colors.white,
           borderRadius: BorderRadius.circular(15),
-          border: Border.all(color: isSelected ? Colors.transparent : Colors.grey[200]!),
+          border: Border.all(
+            color: isSelected ? Colors.transparent : Colors.grey[200]!,
+          ),
         ),
         child: Text(
-          label, 
+          label,
           style: TextStyle(
-            color: isSelected ? Colors.white : Colors.grey, 
-            fontSize: 11, 
-            fontWeight: FontWeight.bold
-          )
+            color: isSelected ? Colors.white : Colors.grey,
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ),
     );
   }
 
   Widget _buildFloorTableCard(BuildContext context, int id, String status) {
-    bool isOccupied = status == "Dining" || status == "NEW ORDER" || status == "READY";
+    final normalizedStatus = status.toLowerCase();
+    bool isBilling = normalizedStatus == "readyforbilling";
+    bool isOccupied =
+        normalizedStatus == "dining" ||
+        isBilling ||
+        status == "NEW ORDER" ||
+        status == "READY";
     bool isBilled = status == "Billed";
     bool needsHelp = status == "Help Needed";
     bool isNewOrder = status == "NEW ORDER";
     bool isReady = status == "READY";
-    
+
     // Display ID as 01, 02...
     String displayId = (id % 100).toString().padLeft(2, '0');
     String floorName = id < 200 ? "1F" : "2F";
@@ -118,7 +145,12 @@ class _TablesTabState extends State<TablesTab> {
     return GestureDetector(
       onTap: () {
         if (isOccupied || isBilled || needsHelp) {
-          Navigator.push(context, MaterialPageRoute(builder: (context) => OrderDetailsPage(tableId: id)));
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => OrderDetailsPage(tableId: id),
+            ),
+          );
         } else {
           ShopManager.instance.activeStaffTableId.value = id;
           ShopManager.instance.waiterTabIndex.value = 1; // Menus Tab
@@ -138,7 +170,7 @@ class _TablesTabState extends State<TablesTab> {
                   color: borderColor.withValues(alpha: 0.15),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
-                )
+                ),
               ],
             ),
             child: Column(
@@ -150,22 +182,28 @@ class _TablesTabState extends State<TablesTab> {
                     Icon(
                       Icons.table_restaurant_rounded,
                       size: 14,
-                      color: isOccupied || isBilled ? const Color(0xFFFF5C00) : Colors.grey.shade400,
+                      color: isOccupied || isBilled
+                          ? const Color(0xFFFF5C00)
+                          : Colors.grey.shade400,
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      "$floorName - $displayId", 
+                      "$floorName - $displayId",
                       style: TextStyle(
-                        fontWeight: FontWeight.w900, 
-                        fontSize: 11, 
-                        color: (isOccupied || isBilled) ? Colors.black87 : Colors.grey.shade600
+                        fontWeight: FontWeight.w900,
+                        fontSize: 11,
+                        color: (isOccupied || isBilled)
+                            ? Colors.black87
+                            : Colors.grey.shade600,
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 8),
                 if (isOccupied) ...[
-                  if (isNewOrder)
+                  if (isBilling)
+                    _buildStatusBadge("BILLING", Colors.deepPurple)
+                  else if (isNewOrder)
                     _buildStatusBadge("NEW ORDER", Colors.orange.shade700)
                   else if (isReady)
                     _buildStatusBadge("READY", Colors.green.shade700)
@@ -174,26 +212,38 @@ class _TablesTabState extends State<TablesTab> {
                   const SizedBox(height: 4),
                   const Text(
                     "TAP TO VIEW",
-                    style: TextStyle(fontSize: 7, fontWeight: FontWeight.w900, color: Colors.blueAccent, letterSpacing: 0.5),
+                    style: TextStyle(
+                      fontSize: 7,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.blueAccent,
+                      letterSpacing: 0.5,
+                    ),
                   ),
                 ] else if (isBilled)
                   _buildStatusBadge("BILLED", Colors.teal)
                 else
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.grey.shade100,
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
                       "AVAILABLE",
-                      style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: Colors.grey.shade600),
+                      style: TextStyle(
+                        fontSize: 8,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey.shade600,
+                      ),
                     ),
                   ),
               ],
             ),
           );
-        }
+        },
       ),
     );
   }
@@ -201,8 +251,18 @@ class _TablesTabState extends State<TablesTab> {
   Widget _buildStatusBadge(String label, Color color) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(6)),
-      child: Text(label, style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 8,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
     );
   }
 }

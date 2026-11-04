@@ -57,20 +57,24 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
         );
         String vPrice = match['price'] ?? '';
         if (vPrice.isNotEmpty) {
-          currentDisplayPrice = vPrice.startsWith('NPR') ? vPrice : "NPR $vPrice";
+          currentDisplayPrice = vPrice.startsWith('NPR')
+              ? vPrice
+              : "NPR $vPrice";
         }
       }
     });
   }
 
   void _initMoreItems() {
-    final List<Map<String, dynamic>> rawDbProducts = List<Map<String, dynamic>>.from(
-      TenantService().products.value,
-    ).where((p) {
-      final avail = p['is_available'];
-      if (avail == false || avail == 0 || avail == '0' || avail == 'false') return false;
-      return true;
-    }).toList();
+    final List<Map<String, dynamic>> rawDbProducts =
+        List<Map<String, dynamic>>.from(TenantService().products.value).where((
+          p,
+        ) {
+          final avail = p['is_available'];
+          if (avail == false || avail == 0 || avail == '0' || avail == 'false')
+            return false;
+          return true;
+        }).toList();
 
     if (rawDbProducts.isEmpty) {
       _moreItems = [];
@@ -86,12 +90,17 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
 
     for (var p in rawDbProducts) {
       final pTitle = (p['title'] ?? '').toString().trim().toLowerCase();
-      if (pTitle == currentTitle) continue; // Exclude current product being viewed
+      if (pTitle == currentTitle)
+        continue; // Exclude current product being viewed
 
-      final pTag = (p['tag'] ?? p['category'] ?? p['category_name'] ?? '').toString().trim().toLowerCase();
-      final isSameCat = (pTag.isNotEmpty && pTag == currentCategory) ||
-                        (currentCategory.isNotEmpty && pTag.contains(currentCategory)) ||
-                        (currentCategory.isNotEmpty && currentCategory.contains(pTag));
+      final pTag = (p['tag'] ?? p['category'] ?? p['category_name'] ?? '')
+          .toString()
+          .trim()
+          .toLowerCase();
+      final isSameCat =
+          (pTag.isNotEmpty && pTag == currentCategory) ||
+          (currentCategory.isNotEmpty && pTag.contains(currentCategory)) ||
+          (currentCategory.isNotEmpty && currentCategory.contains(pTag));
 
       if (isSameCat) {
         sameCat.add(p);
@@ -126,7 +135,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
   String _resolveImageUrl(String raw) {
     if (raw.isEmpty) return '';
     if (raw.startsWith('assets/')) return raw;
-    
+
     String url = raw;
     if (url.contains('startupsgotech') && !url.contains('startupsgo.tech')) {
       url = url.replaceFirst('startupsgotech', 'startupsgo.tech');
@@ -139,7 +148,8 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
     }
     if (!url.startsWith('http')) {
       String baseUrl = ApiService.baseUrl;
-      if (baseUrl.endsWith('/')) baseUrl = baseUrl.substring(0, baseUrl.length - 1);
+      if (baseUrl.endsWith('/'))
+        baseUrl = baseUrl.substring(0, baseUrl.length - 1);
       String cleanPath = url.startsWith('/') ? url.substring(1) : url;
       url = "$baseUrl/$cleanPath";
     }
@@ -158,7 +168,11 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
           borderRadius: BorderRadius.circular(20),
         ),
         child: Center(
-          child: Icon(Icons.fastfood_rounded, color: Theme.of(context).primaryColor, size: 64),
+          child: Icon(
+            Icons.fastfood_rounded,
+            color: Theme.of(context).primaryColor,
+            size: 64,
+          ),
         ),
       );
     }
@@ -177,7 +191,11 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
             borderRadius: BorderRadius.circular(20),
           ),
           child: Center(
-            child: Icon(Icons.fastfood_rounded, color: Theme.of(context).primaryColor, size: 64),
+            child: Icon(
+              Icons.fastfood_rounded,
+              color: Theme.of(context).primaryColor,
+              size: 64,
+            ),
           ),
         ),
       );
@@ -196,7 +214,8 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
           child: Center(
             child: CircularProgressIndicator(
               value: loadingProgress.expectedTotalBytes != null
-                  ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                  ? loadingProgress.cumulativeBytesLoaded /
+                        loadingProgress.expectedTotalBytes!
                   : null,
               color: Theme.of(context).primaryColor,
             ),
@@ -211,7 +230,11 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
           borderRadius: BorderRadius.circular(20),
         ),
         child: Center(
-          child: Icon(Icons.fastfood_rounded, color: Theme.of(context).primaryColor, size: 64),
+          child: Icon(
+            Icons.fastfood_rounded,
+            color: Theme.of(context).primaryColor,
+            size: 64,
+          ),
         ),
       ),
     );
@@ -277,7 +300,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                     color: Colors.black.withValues(alpha: 0.03),
                     blurRadius: 20,
                     offset: const Offset(0, 10),
-                  )
+                  ),
                 ],
               ),
               child: Stack(
@@ -289,27 +312,40 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                     ),
                   ),
                   Positioned(
-                    top: 20, right: 20,
+                    top: 20,
+                    right: 20,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
                         color: Theme.of(context).primaryColor,
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
                         widget.product.tag,
-                        style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ),
-                  if (TenantService().currentTenant.value?.isPremiumEnabled ?? false)
+                  if (TenantService().currentTenant.value?.isPremiumEnabled ??
+                      false)
                     Positioned(
-                      top: 20, left: 20,
+                      top: 20,
+                      left: 20,
                       child: GestureDetector(
                         onTap: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (context) => ARViewPage(product: widget.product)),
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  ARViewPage(product: widget.product),
+                            ),
                           );
                         },
                         child: Container(
@@ -322,12 +358,14 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                                 color: Colors.black.withValues(alpha: 0.1),
                                 blurRadius: 10,
                                 offset: const Offset(0, 4),
-                              )
+                              ),
                             ],
                           ),
                           child: Icon(
-                            Icons.view_in_ar_rounded, 
-                            color: (widget.product.modelUrl != null && widget.product.modelUrl!.isNotEmpty)
+                            Icons.view_in_ar_rounded,
+                            color:
+                                (widget.product.modelUrl != null &&
+                                    widget.product.modelUrl!.isNotEmpty)
                                 ? Theme.of(context).primaryColor
                                 : Colors.grey,
                             size: 24,
@@ -340,7 +378,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
             ),
 
             const SizedBox(height: 20),
-            
+
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Column(
@@ -352,7 +390,12 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                       Expanded(
                         child: Text(
                           widget.product.title,
-                          style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.black, height: 1.2),
+                          style: const TextStyle(
+                            fontSize: 26,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black,
+                            height: 1.2,
+                          ),
                         ),
                       ),
                       if (!widget.product.isComingSoon)
@@ -368,16 +411,28 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                                 if (quantity > 1) setState(() => quantity--);
                               }),
                               Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 12),
-                                child: Text("$quantity", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                ),
+                                child: Text(
+                                  "$quantity",
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                               ),
-                              _buildQtyBtn(Icons.add, () => setState(() => quantity++), isAdd: true),
+                              _buildQtyBtn(
+                                Icons.add,
+                                () => setState(() => quantity++),
+                                isAdd: true,
+                              ),
                             ],
                           ),
                         ),
                     ],
                   ),
-                  
+
                   if (widget.product.isComingSoon)
                     Container(
                       margin: const EdgeInsets.only(top: 12),
@@ -385,7 +440,9 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                       decoration: BoxDecoration(
                         color: Colors.purple.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.purple.withValues(alpha: 0.3)),
+                        border: Border.all(
+                          color: Colors.purple.withValues(alpha: 0.3),
+                        ),
                       ),
                       child: Row(
                         children: const [
@@ -394,52 +451,80 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                           Expanded(
                             child: Text(
                               "Upcoming Menu Item • Coming Soon! Not available for ordering yet. Give us your feedback below!",
-                              style: TextStyle(color: Colors.purple, fontWeight: FontWeight.bold, fontSize: 12),
+                              style: TextStyle(
+                                color: Colors.purple,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
                             ),
                           ),
                         ],
                       ),
                     ),
-                  
+
                   const SizedBox(height: 12),
-                  
+
                   Row(
                     children: [
-                      const Icon(Icons.timer_outlined, color: Colors.grey, size: 16),
+                      const Icon(
+                        Icons.timer_outlined,
+                        color: Colors.grey,
+                        size: 16,
+                      ),
                       const SizedBox(width: 4),
                       Text(
-                        (widget.product.prepTime != null && widget.product.prepTime!.isNotEmpty)
+                        (widget.product.prepTime != null &&
+                                widget.product.prepTime!.isNotEmpty)
                             ? widget.product.prepTime!
                             : "15-20 min",
-                        style: const TextStyle(color: Colors.grey, fontSize: 13),
+                        style: const TextStyle(
+                          color: Colors.grey,
+                          fontSize: 13,
+                        ),
                       ),
                     ],
                   ),
 
                   const SizedBox(height: 24),
-                  
+
                   // Selection Section
                   _buildSizeSection(),
 
                   const SizedBox(height: 24),
-                  
-                  const Text("Description", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+
+                  const Text(
+                    "Description",
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
                   const SizedBox(height: 8),
                   Text(
-                    widget.product.description ?? "Experience the authentic taste of ChiyaBreak with our premium ${widget.product.title}. Prepared with fresh ingredients and served hot just for you.",
-                    style: TextStyle(color: Colors.grey[600], height: 1.6, fontSize: 14),
+                    widget.product.description ??
+                        "Experience the authentic taste of ChiyaBreak with our premium ${widget.product.title}. Prepared with fresh ingredients and served hot just for you.",
+                    style: TextStyle(
+                      color: Colors.grey[600],
+                      height: 1.6,
+                      fontSize: 14,
+                    ),
                   ),
 
                   const SizedBox(height: 32),
-                  
-                  const Text("More from our Menu", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+
+                  const Text(
+                    "More from our Menu",
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
                   const SizedBox(height: 16),
-                  
+
                   // Dynamic 4 items from uploaded products (Category matched / Randomized)
                   SizedBox(
                     height: 190,
                     child: _moreItems.isEmpty
-                        ? const Center(child: Text("No items available", style: TextStyle(color: Colors.grey)))
+                        ? const Center(
+                            child: Text(
+                              "No items available",
+                              style: TextStyle(color: Colors.grey),
+                            ),
+                          )
                         : ListView.builder(
                             scrollDirection: Axis.horizontal,
                             itemCount: _moreItems.length,
@@ -450,8 +535,9 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                                 child: SizedBox(
                                   width: 130,
                                   child: ProductCard(
-                                    item: item, 
-                                    heroPrefix: 'detail_more_${widget.product.title}_$index',
+                                    item: item,
+                                    heroPrefix:
+                                        'detail_more_${widget.product.title}_$index',
                                   ),
                                 ),
                               );
@@ -482,10 +568,19 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text("Price", style: TextStyle(color: Colors.grey, fontSize: 12)),
+                const Text(
+                  "Price",
+                  style: TextStyle(color: Colors.grey, fontSize: 12),
+                ),
                 Text(
-                  currentDisplayPrice.isNotEmpty ? currentDisplayPrice : widget.product.price,
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Theme.of(context).primaryColor),
+                  currentDisplayPrice.isNotEmpty
+                      ? currentDisplayPrice
+                      : widget.product.price,
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                    color: Theme.of(context).primaryColor,
+                  ),
                 ),
               ],
             ),
@@ -495,58 +590,88 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                   ? ElevatedButton.icon(
                       onPressed: () => _showFeedbackDialog(context),
                       icon: const Icon(Icons.rate_review_outlined),
-                      label: const Text("GIVE FEEDBACK / VOTE", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                      label: const Text(
+                        "GIVE FEEDBACK / VOTE",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.purple,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 18),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
                         elevation: 0,
                       ),
                     )
                   : ElevatedButton(
-                onPressed: widget.product.isAvailable
-                    ? () {
-                        final String cartTitle = widget.product.hasVariants && widget.product.variants.isNotEmpty
-                            ? "${widget.product.title} ($selectedSize)"
-                            : widget.product.title;
+                      onPressed: widget.product.isAvailable
+                          ? () {
+                              final String cartTitle =
+                                  widget.product.hasVariants &&
+                                      widget.product.variants.isNotEmpty
+                                  ? "${widget.product.title} ($selectedSize)"
+                                  : widget.product.title;
 
-                        final cartProduct = Product(
-                          title: cartTitle,
-                          price: currentDisplayPrice.isNotEmpty ? currentDisplayPrice : widget.product.price,
-                          image: widget.product.image,
-                          tag: widget.product.tag,
-                          rating: widget.product.rating,
-                          discount: widget.product.discount,
-                          description: widget.product.description,
-                          slogan: widget.product.slogan,
-                          modelUrl: widget.product.modelUrl,
-                          iosModelUrl: widget.product.iosModelUrl,
-                        );
+                              final cartProduct = Product(
+                                productId: widget.product.productId,
+                                variantName: widget.product.hasVariants
+                                    ? selectedSize
+                                    : null,
+                                title: cartTitle,
+                                price: currentDisplayPrice.isNotEmpty
+                                    ? currentDisplayPrice
+                                    : widget.product.price,
+                                image: widget.product.image,
+                                tag: widget.product.tag,
+                                rating: widget.product.rating,
+                                discount: widget.product.discount,
+                                description: widget.product.description,
+                                slogan: widget.product.slogan,
+                                modelUrl: widget.product.modelUrl,
+                                iosModelUrl: widget.product.iosModelUrl,
+                              );
 
-                        ShopManager.instance.pushToCart(product: cartProduct, quantity: quantity);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text("$cartTitle added to cart!"),
-                            behavior: SnackBarBehavior.floating,
-                            backgroundColor: Theme.of(context).primaryColor,
-                          ),
-                        );
-                        Navigator.pop(context);
-                      }
-                    : null,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: widget.product.isAvailable ? Theme.of(context).primaryColor : Colors.grey.shade400,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 18),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  elevation: 0,
-                ),
-                child: Text(
-                  widget.product.isAvailable ? "ADD TO CART" : "CURRENTLY OUT OF STOCK",
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                ),
-              ),
+                              ShopManager.instance.pushToCart(
+                                product: cartProduct,
+                                quantity: quantity,
+                              );
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text("$cartTitle added to cart!"),
+                                  behavior: SnackBarBehavior.floating,
+                                  backgroundColor: Theme.of(
+                                    context,
+                                  ).primaryColor,
+                                ),
+                              );
+                              Navigator.pop(context);
+                            }
+                          : null,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: widget.product.isAvailable
+                            ? Theme.of(context).primaryColor
+                            : Colors.grey.shade400,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 18),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: Text(
+                        widget.product.isAvailable
+                            ? "ADD TO CART"
+                            : "CURRENTLY OUT OF STOCK",
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
             ),
           ],
         ),
@@ -562,7 +687,13 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
         decoration: BoxDecoration(
           color: isAdd ? Theme.of(context).primaryColor : Colors.white,
           borderRadius: BorderRadius.circular(8),
-          boxShadow: [if(!isAdd) BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4)],
+          boxShadow: [
+            if (!isAdd)
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 4,
+              ),
+          ],
         ),
         child: Icon(icon, size: 18, color: isAdd ? Colors.white : Colors.black),
       ),
@@ -593,7 +724,10 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(sectionTitle, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        Text(
+          sectionTitle,
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
         const SizedBox(height: 12),
         Wrap(
           spacing: 10,
@@ -612,18 +746,29 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
               onTap: () => _onSizeSelected(name),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 10,
+                ),
                 decoration: BoxDecoration(
-                  color: isSelected ? Theme.of(context).primaryColor : Colors.white,
+                  color: isSelected
+                      ? Theme.of(context).primaryColor
+                      : Colors.white,
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: isSelected ? Theme.of(context).primaryColor : Colors.grey[300]!),
+                  border: Border.all(
+                    color: isSelected
+                        ? Theme.of(context).primaryColor
+                        : Colors.grey[300]!,
+                  ),
                   boxShadow: isSelected
                       ? [
                           BoxShadow(
-                            color: Theme.of(context).primaryColor.withValues(alpha: 0.25),
+                            color: Theme.of(
+                              context,
+                            ).primaryColor.withValues(alpha: 0.25),
                             blurRadius: 8,
                             offset: const Offset(0, 4),
-                          )
+                          ),
                         ]
                       : [],
                 ),
@@ -650,14 +795,22 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         decoration: BoxDecoration(
-          color: isSelected ? Theme.of(context).primaryColor.withValues(alpha: 0.1) : Colors.white,
+          color: isSelected
+              ? Theme.of(context).primaryColor.withValues(alpha: 0.1)
+              : Colors.white,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: isSelected ? Theme.of(context).primaryColor : Colors.grey[200]!),
+          border: Border.all(
+            color: isSelected
+                ? Theme.of(context).primaryColor
+                : Colors.grey[200]!,
+          ),
         ),
         child: Text(
           size,
           style: TextStyle(
-            color: isSelected ? Theme.of(context).primaryColor : Colors.grey[600],
+            color: isSelected
+                ? Theme.of(context).primaryColor
+                : Colors.grey[600],
             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
           ),
         ),
@@ -674,26 +827,41 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text("We'd love to hear your thoughts on this upcoming dish! Would you like to see it on our menu soon?"),
+            const Text(
+              "We'd love to hear your thoughts on this upcoming dish! Would you like to see it on our menu soon?",
+            ),
             const SizedBox(height: 16),
             TextField(
               controller: feedbackCtrl,
               maxLines: 3,
               decoration: InputDecoration(
                 hintText: "Enter your review or suggestions...",
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
             ),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("Cancel"),
+          ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.purple, foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.purple,
+              foregroundColor: Colors.white,
+            ),
             onPressed: () {
               Navigator.pop(ctx);
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("Thank you for your feedback on this coming product!"), backgroundColor: Colors.purple),
+                const SnackBar(
+                  content: Text(
+                    "Thank you for your feedback on this coming product!",
+                  ),
+                  backgroundColor: Colors.purple,
+                ),
               );
             },
             child: const Text("Submit Feedback"),

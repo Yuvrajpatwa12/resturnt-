@@ -186,19 +186,18 @@ class _TableManagementScreenState extends State<TableManagementScreen>
       valueListenable: ShopManager.instance.tableStatuses,
       builder: (context, statuses, child) {
         if (statuses.isEmpty) {
-          ShopManager.instance.initializeTables(20);
+          ShopManager.instance.initializeTables();
           return const Center(child: CircularProgressIndicator());
         }
 
-        final tableIds = List.generate(12, (index) => offset + index + 1).where(
-          (id) {
-            final query = _searchController.text.trim().toLowerCase();
-            final status = statuses[id] ?? 'Available';
-            return (query.isEmpty || id.toString().contains(query)) &&
-                (_statusFilter == 'All' ||
-                    _normalizedStatus(status) == _statusFilter);
-          },
-        ).toList();
+        final tableIds = statuses.keys.where((id) {
+          if (id <= offset || id >= offset + 100) return false;
+          final query = _searchController.text.trim().toLowerCase();
+          final status = statuses[id] ?? 'Available';
+          return (query.isEmpty || id.toString().contains(query)) &&
+              (_statusFilter == 'All' ||
+                  _normalizedStatus(status) == _statusFilter);
+        }).toList()..sort();
 
         if (tableIds.isEmpty) {
           return Center(
@@ -240,7 +239,10 @@ class _TableManagementScreenState extends State<TableManagementScreen>
             final rawStatus = statuses[tableId] ?? 'Available';
             final status = _normalizedStatus(rawStatus);
             final selected = _selectedTables.contains(tableId);
-            final isOccupied = rawStatus == 'Dining';
+            final isOccupied = [
+              'dining',
+              'readyforbilling',
+            ].contains(rawStatus.toLowerCase());
             final color = _statusColor(status);
 
             return Semantics(
@@ -420,6 +422,7 @@ class _TableManagementScreenState extends State<TableManagementScreen>
         return 'Ready';
       case 'billing':
       case 'bill requested':
+      case 'readyforbilling':
         return 'Billing';
       case 'dirty':
       case 'needs cleaning':

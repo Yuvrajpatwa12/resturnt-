@@ -134,6 +134,7 @@ class ShopManager with WidgetsBindingObserver {
 
   int _lastOrderSyncTimestamp = 0;
   Timer? _orderSyncTimer;
+  bool _initialTableRefreshStarted = false;
 
   void _startOrderSyncPoller() {
     _orderSyncTimer?.cancel();
@@ -151,9 +152,9 @@ class ShopManager with WidgetsBindingObserver {
 
     final serverTimestamp = await ApiService.checkOrderChange(tenant.id);
     if (serverTimestamp > _lastOrderSyncTimestamp) {
-      await refreshLiveOrders();
       _lastOrderSyncTimestamp = serverTimestamp;
     }
+    await refreshLiveOrders();
   }
 
   // --- CHAT POLLING ---
@@ -194,30 +195,39 @@ class ShopManager with WidgetsBindingObserver {
     final tenant = TenantService().currentTenant.value;
     if (tenant == null) return;
 
+    final tables = await ApiService.fetchTables(tenant.id);
+    if (tables == null) {
+      tableStatuses.value = {};
+      tableOrders.value = {};
+      return;
+    }
+    final serverStatuses = <int, String>{};
+    for (final table in tables) {
+      final tableNumber = int.tryParse(table['table_number']?.toString() ?? '');
+      if (tableNumber == null) continue;
+      serverStatuses[tableNumber] = table['status']?.toString() ?? 'Available';
+    }
+    tableStatuses.value = serverStatuses;
+
     final List<Map<String, dynamic>>? orders =
         await ApiService.fetchActiveOrders(tenant.id);
-    if (orders == null) return;
+    if (orders == null) {
+      tableOrders.value = {};
+      return;
+    }
 
-    Map<int, String> newStatuses = Map.from(tableStatuses.value);
     Map<int, List<CartItem>> newOrders = {};
 
     for (var order in orders) {
       int tNum = int.tryParse(order['table_number']?.toString() ?? '') ?? 0;
       if (tNum == 0) continue;
 
-      String status = order['status'] ?? 'Pending';
-      if (status == 'Pending')
-        newStatuses[tNum] = 'NEW ORDER';
-      else if (status == 'Ready')
-        newStatuses[tNum] = 'READY';
-      else
-        newStatuses[tNum] = 'Dining';
-
       final List<dynamic> rawItems = order['items'] ?? [];
       final List<CartItem> itemsList = rawItems
           .map(
             (i) => CartItem(
               product: Product(
+                productId: int.tryParse(i['product_id']?.toString() ?? ''),
                 title: i['product_name'] ?? 'Item',
                 price: i['price_at_order']?.toString() ?? '0',
                 image: '',
@@ -232,7 +242,6 @@ class ShopManager with WidgetsBindingObserver {
       newOrders[tNum] = itemsList;
     }
 
-    tableStatuses.value = newStatuses;
     tableOrders.value = newOrders;
   }
 
@@ -498,7 +507,8 @@ class ShopManager with WidgetsBindingObserver {
 
   Future<void> acknowledgeNotification(int notificationId) async {
     final tenant = TenantService().currentTenant.value;
-    if (tenant == null || !isEmailSynced.value ||
+    if (tenant == null ||
+        !isEmailSynced.value ||
         customerSessionToken.isEmpty ||
         customerEmail.value.isEmpty) {
       return;
@@ -516,7 +526,11 @@ class ShopManager with WidgetsBindingObserver {
         }
         return item;
       }).toList();
-      await _cacheNotifications(tenant.id, orderUserId, notificationsList.value);
+      await _cacheNotifications(
+        tenant.id,
+        orderUserId,
+        notificationsList.value,
+      );
     }
   }
 
@@ -557,9 +571,7 @@ class ShopManager with WidgetsBindingObserver {
         sessionToken: customerSessionToken,
       );
       if (data != null && data['status'] == 'success') {
-        final serverList = List<Map<String, dynamic>>.from(
-          data['data'] ?? [],
-        );
+        final serverList = List<Map<String, dynamic>>.from(data['data'] ?? []);
         final byId = <String, Map<String, dynamic>>{
           for (final item in cached)
             if (item['id'] != null) item['id'].toString(): item,
@@ -839,7 +851,8 @@ class ShopManager with WidgetsBindingObserver {
     final savedActiveId = prefs.getInt('active_order_id');
     final activeOrderStateInitialized =
         prefs.getBool('active_order_state_initialized') ?? false;
-    activeOrderId.value = savedActiveId ??
+    activeOrderId.value =
+        savedActiveId ??
         (!activeOrderStateInitialized && restoredIds.isNotEmpty
             ? restoredIds.last
             : null);
@@ -873,7 +886,9 @@ class ShopManager with WidgetsBindingObserver {
         .toList();
     if (isRemove) {
       if (prefs.getInt('active_order_id') == id) {
-        final nextActiveId = current.isEmpty ? null : int.tryParse(current.last);
+        final nextActiveId = current.isEmpty
+            ? null
+            : int.tryParse(current.last);
         if (nextActiveId == null) {
           await prefs.remove('active_order_id');
         } else {
@@ -914,7 +929,6 @@ class ShopManager with WidgetsBindingObserver {
     originals[tableId] = seconds;
     tableCountdownTimers.value = timers;
     tableOriginalDurations.value = originals;
-    updateTableStatus(tableId, "Dining");
   }
 
   // --- VARIABLES ---
@@ -1008,9 +1022,6 @@ class ShopManager with WidgetsBindingObserver {
   final ValueNotifier<bool> isOrderActive = ValueNotifier<bool>(false);
   final ValueNotifier<OrderStatus> orderStatus = ValueNotifier<OrderStatus>(
     OrderStatus.pending,
-  );
-  final ValueNotifier<Duration> totalGameTime = ValueNotifier<Duration>(
-    Duration.zero,
   );
   final ValueNotifier<int> totalOrdersCount = ValueNotifier<int>(0);
   final ValueNotifier<bool> hasConfirmedOrderAbove1000 = ValueNotifier<bool>(
@@ -1276,7 +1287,10 @@ class ShopManager with WidgetsBindingObserver {
     final tenant = TenantService().currentTenant.value;
     if (tenant == null) return;
     try {
-      final cached = await ApiService.getCachedUserOrders(tenant.id, currentUserId);
+      final cached = await ApiService.getCachedUserOrders(
+        tenant.id,
+        currentUserId,
+      );
       final res = await ApiService.fetchUserOrders(
         tenant.id,
         currentUserId,
@@ -1408,20 +1422,14 @@ class ShopManager with WidgetsBindingObserver {
   final ValueNotifier<Map<int, int>> tableCountdownTimers = ValueNotifier({});
   final ValueNotifier<Map<int, int>> tableOriginalDurations = ValueNotifier({});
 
-  void initializeTables(int count) {
-    if (tableStatuses.value.isEmpty) {
-      Map<int, String> initial = {};
-      for (int i = 1; i <= count; i++) initial[i] = "Available";
-      tableStatuses.value = initial;
+  void initializeTables() {
+    if (!_initialTableRefreshStarted) {
+      _initialTableRefreshStarted = true;
+      refreshLiveOrders();
     }
   }
 
-  void updateTableStatus(int tableId, String status) {
-    tableStatuses.value = Map.from(tableStatuses.value)..[tableId] = status;
-  }
-
   void settleTable(int tableId) {
-    updateTableStatus(tableId, "Available");
     tableOrders.value = Map.from(tableOrders.value)..remove(tableId);
     confirmedTableOrders.value = Map.from(confirmedTableOrders.value)
       ..remove(tableId);
@@ -1442,7 +1450,6 @@ class ShopManager with WidgetsBindingObserver {
     }
     orders[tableId] = existing;
     tableOrders.value = orders;
-    updateTableStatus(tableId, "Dining");
   }
 
   void removeFromTableOrder(int tableId, String title) {
@@ -1460,29 +1467,44 @@ class ShopManager with WidgetsBindingObserver {
   Future<Map<String, dynamic>> confirmTableOrderWithResult(int tableId) async {
     await ensureInitialized();
     final tenant = TenantService().currentTenant.value;
-    if (tenant == null) return {"success": false};
+    if (tenant == null) {
+      return {
+        "success": false,
+        "message": "Restaurant session is unavailable.",
+      };
+    }
     final List<CartItem> newItems = tableOrders.value[tableId] ?? [];
-    double total = 0;
     List<Map<String, dynamic>> itemsJson = [];
     for (var item in newItems) {
-      final prc = _parseCurrencyAmount(item.product.price);
-      total += prc * item.quantity;
       itemsJson.add({
+        if (item.product.productId != null)
+          "product_id": item.product.productId,
+        if (item.product.variantName != null &&
+            item.product.variantName!.isNotEmpty)
+          "variant_name": item.product.variantName,
         "name": item.product.title,
         "quantity": item.quantity,
-        "price": prc,
       });
     }
     final result = await ApiService.placeTableOrder({
       "tenant_id": tenant.id,
       "table_number": tableId,
+      "idempotency_key": ApiService.newIdempotencyKey(),
       "user_id": orderUserId,
       "customer_email": isEmailSynced.value ? customerEmail.value : '',
-      "total_amount": total,
       "items": itemsJson,
     });
     if (result != null && result['status'] == 'success') {
-      _checkAndSetQualifiedOrder(total);
+      final serverTotal = double.tryParse(
+        result['total_amount']?.toString() ?? '',
+      );
+      if (serverTotal == null) {
+        return {
+          "success": false,
+          "message": "The server did not return the accepted order total.",
+        };
+      }
+      _checkAndSetQualifiedOrder(serverTotal);
       final Map<int, List<CartItem>> updated = Map.from(
         confirmedTableOrders.value,
       );
@@ -1491,7 +1513,12 @@ class ShopManager with WidgetsBindingObserver {
       tableOrders.value = Map.from(tableOrders.value)..remove(tableId);
       return {"success": true};
     }
-    return {"success": false};
+    return {
+      "success": false,
+      "message":
+          result?['message']?.toString() ??
+          "The server could not accept this order.",
+    };
   }
 
   static int parseTableId(String str) =>
@@ -1888,22 +1915,6 @@ class ShopManager with WidgetsBindingObserver {
     return count;
   }
 
-  double _parseCurrencyAmount(String value) {
-    final priceMatch = RegExp(
-      r'-?(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?',
-    ).firstMatch(value);
-    return double.tryParse(priceMatch?.group(0)?.replaceAll(',', '') ?? '') ??
-        0;
-  }
-
-  double get totalPrice {
-    double total = 0;
-    for (var item in items.value) {
-      total += _parseCurrencyAmount(item.product.price) * item.quantity;
-    }
-    return total;
-  }
-
   final ValueNotifier<List<Map<String, dynamic>>> allHistoricalBills =
       ValueNotifier([]);
   final ValueNotifier<Map<String, dynamic>> inventoryStock = ValueNotifier({});
@@ -1940,6 +1951,7 @@ class ShopManager with WidgetsBindingObserver {
     else
       table[title] = CartItem(
         product: Product(
+          productId: int.tryParse(p['id']?.toString() ?? ''),
           title: p['title'],
           price: p['price'].toString(),
           image: p['image'] ?? '',
@@ -1955,17 +1967,16 @@ class ShopManager with WidgetsBindingObserver {
   void clearPendingOrder(int id) =>
       pendingTableOrders.value = Map.from(pendingTableOrders.value)..remove(id);
 
-  Future<void> placeOrder() async {
+  Future<String?> placeOrder() async {
     // If an order is already active and cart is empty, skip
     if (activeOrderId.value != null && items.value.isEmpty) {
-      return;
+      return null;
     }
 
     await ensureInitialized();
 
-    // Default table ID to 1 if not set
     if (selectedTableId.value == null || selectedTableId.value! <= 0) {
-      selectedTableId.value = 1;
+      return "Select a valid table before placing the order.";
     }
 
     final tenant = TenantService().currentTenant.value;
@@ -1975,82 +1986,74 @@ class ShopManager with WidgetsBindingObserver {
 
     if (items.value.isEmpty) {
       debugPrint("placeOrder: Cart items are empty, skipping order placement.");
-      return;
+      return null;
     }
 
-    double total = totalPrice;
     final currentItems = List<CartItem>.from(items.value);
     final itemsJson = currentItems
         .map(
           (i) => {
-            "product_id": 0,
+            if (i.product.productId != null) "product_id": i.product.productId,
+            if (i.product.variantName != null &&
+                i.product.variantName!.isNotEmpty)
+              "variant_name": i.product.variantName,
             "name": i.product.title,
             "quantity": i.quantity,
-            "price": _parseCurrencyAmount(i.product.price),
           },
         )
         .toList();
 
     int? confirmedOrderId;
+    String? rejectedOrderMessage;
     final orderUserIdForSubmission = orderUserId;
 
     try {
       final result = await ApiService.placeTableOrder({
         "tenant_id": tenantId,
         "table_number": selectedTableId.value,
+        "idempotency_key": ApiService.newIdempotencyKey(),
         "user_id": orderUserIdForSubmission,
         "customer_email": isEmailSynced.value ? customerEmail.value : '',
-        "total_amount": total,
         "items": itemsJson,
       });
 
       if (result != null && result['status'] == 'success') {
         final id = int.tryParse(result['order_id']?.toString() ?? '');
-        if (id != null && id > 0) {
+        final serverTotal = double.tryParse(
+          result['total_amount']?.toString() ?? '',
+        );
+        if (id != null && id > 0 && serverTotal != null) {
           confirmedOrderId = id;
+          await ApiService.cacheUserOrders(tenantId, orderUserIdForSubmission, [
+            {
+              "id": id,
+              "tenant_id": tenantId,
+              "table_number": selectedTableId.value,
+              "user_id": orderUserIdForSubmission,
+              "customer_email": isEmailSynced.value ? customerEmail.value : '',
+              "total_amount": serverTotal,
+              "status": "Pending",
+              "created_at": DateTime.now().toIso8601String(),
+              "items": result['items'] is List ? result['items'] : itemsJson,
+            },
+          ]);
+          _checkAndSetQualifiedOrder(serverTotal);
         }
+      } else if (result?['status'] == 'error') {
+        rejectedOrderMessage =
+            result?['message']?.toString() ?? 'The server rejected this order.';
       }
     } catch (e) {
       debugPrint("ApiService.placeTableOrder request failed: $e");
     }
 
-    // Fallback: If server request failed/offline, generate a local fallback order ID
-    confirmedOrderId ??=
-        (DateTime.now().millisecondsSinceEpoch % 900000) + 100000;
-
-    await ApiService.cacheUserOrders(tenantId, orderUserIdForSubmission, [
-      {
-        "id": confirmedOrderId,
-        "tenant_id": tenantId,
-        "table_number": selectedTableId.value,
-        "user_id": orderUserIdForSubmission,
-        "customer_email": isEmailSynced.value ? customerEmail.value : '',
-        "total_amount": total,
-        "status": "Pending",
-        "created_at": DateTime.now().toIso8601String(),
-        "items": itemsJson
-            .map((item) => {...item, "product_name": item["name"]})
-            .toList(),
-      },
-    ]);
-
-    _checkAndSetQualifiedOrder(total);
+    if (rejectedOrderMessage != null) return rejectedOrderMessage;
+    if (confirmedOrderId == null) {
+      return "The server could not confirm this order. Check your connection and retry.";
+    }
     activeOrderId.value = confirmedOrderId;
 
-    // AUTO-SYNC TO LIVE SESSION
-    final List<Map<String, dynamic>> sessionUpdate = currentItems
-        .map(
-          (i) => {
-            'title': i.product.title,
-            'who': customerName.value.isNotEmpty ? customerName.value : "Host",
-            'status': 'Kitchen',
-            'price': i.product.price,
-            'image': i.product.image,
-          },
-        )
-        .toList();
-    liveSessionOrders.value = List.from(liveSessionOrders.value)
-      ..addAll(sessionUpdate);
+    await refreshLiveOrders();
 
     try {
       await _persistOrder(confirmedOrderId);
@@ -2066,6 +2069,7 @@ class ShopManager with WidgetsBindingObserver {
     clearCart();
     isOrderActive.value = true;
     _startStatusSync();
+    return null;
   }
 
   void _startStatusSync() {
@@ -2099,6 +2103,7 @@ class ShopManager with WidgetsBindingObserver {
       case 'approved':
         orderStatus.value = OrderStatus.approved;
         break;
+      case 'cooking':
       case 'preparing':
         orderStatus.value = OrderStatus.preparing;
         break;
@@ -2121,39 +2126,6 @@ class ShopManager with WidgetsBindingObserver {
     await prefs.setBool('active_order_state_initialized', true);
     await prefs.remove('active_order_id');
     await prefs.remove('active_order_status');
-  }
-
-  // --- GAMIFICATION ---
-  final ValueNotifier<int> tapWarTimer = ValueNotifier<int>(0);
-  final ValueNotifier<List<Map<String, dynamic>>> tapLeaderboard =
-      ValueNotifier<List<Map<String, dynamic>>>([]);
-  void startTapWar() {
-    tapWarTimer.value = 30;
-    tapLeaderboard.value = [
-      {'table': 'Your Table', 'score': 0, 'isUser': true},
-    ];
-  }
-
-  void recordTap() {
-    if (tapWarTimer.value > 0) {
-      List<Map<String, dynamic>> curr = List.from(tapLeaderboard.value);
-      curr[0]['score']++;
-      tapLeaderboard.value = curr;
-    }
-  }
-
-  void endTapWar() {
-    tapWarTimer.value = 0;
-  }
-
-  void updateTableName(String old, String newN) {
-    List<Map<String, dynamic>> curr = List.from(tapLeaderboard.value);
-    for (var i in curr) if (i['table'] == old) i['table'] = newN;
-    tapLeaderboard.value = curr;
-  }
-
-  void addGameTime(Duration d) {
-    totalGameTime.value += d;
   }
 
   Future<Map<String, dynamic>> addPoints(

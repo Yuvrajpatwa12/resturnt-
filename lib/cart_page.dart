@@ -15,7 +15,10 @@ class CartPage extends StatelessWidget {
           children: [
             Icon(Icons.warning_amber_rounded, color: Colors.redAccent),
             SizedBox(width: 8),
-            Text("Remove Item?", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+            Text(
+              "Remove Item?",
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            ),
           ],
         ),
         content: Text(
@@ -25,7 +28,10 @@ class CartPage extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text("Cancel", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+            child: const Text(
+              "Cancel",
+              style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold),
+            ),
           ),
           ElevatedButton(
             onPressed: () {
@@ -42,9 +48,14 @@ class CartPage extends StatelessWidget {
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.redAccent,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
-            child: const Text("Yes, Remove", style: TextStyle(fontWeight: FontWeight.bold)),
+            child: const Text(
+              "Yes, Remove",
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),
@@ -113,9 +124,16 @@ class CartPage extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.shopping_cart_outlined, size: 80, color: Colors.grey[300]),
+                  Icon(
+                    Icons.shopping_cart_outlined,
+                    size: 80,
+                    color: Colors.grey[300],
+                  ),
                   const SizedBox(height: 16),
-                  const Text("Your cart is empty", style: TextStyle(fontSize: 18, color: Colors.grey)),
+                  const Text(
+                    "Your cart is empty",
+                    style: TextStyle(fontSize: 18, color: Colors.grey),
+                  ),
                 ],
               ),
             );
@@ -156,31 +174,53 @@ class CartPage extends StatelessWidget {
                               children: [
                                 Text(
                                   item.product.title,
-                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
                                   item.product.price,
-                                  style: TextStyle(color: Theme.of(context).primaryColor, fontWeight: FontWeight.bold),
+                                  style: TextStyle(
+                                    color: Theme.of(context).primaryColor,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                                 const SizedBox(height: 8),
                                 Row(
                                   children: [
                                     _quantityBtn(Icons.remove, () {
                                       if (item.quantity > 1) {
-                                        ShopManager.instance.updateQuantity(item.product, item.quantity - 1);
+                                        ShopManager.instance.updateQuantity(
+                                          item.product,
+                                          item.quantity - 1,
+                                        );
                                       } else {
-                                        _showDeleteConfirmationDialog(context, item.product);
+                                        _showDeleteConfirmationDialog(
+                                          context,
+                                          item.product,
+                                        );
                                       }
                                     }),
                                     Padding(
-                                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                                      child: Text("${item.quantity}", style: const TextStyle(fontWeight: FontWeight.bold)),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                      ),
+                                      child: Text(
+                                        "${item.quantity}",
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
                                     ),
                                     _quantityBtn(Icons.add, () {
-                                      ShopManager.instance.updateQuantity(item.product, item.quantity + 1);
+                                      ShopManager.instance.updateQuantity(
+                                        item.product,
+                                        item.quantity + 1,
+                                      );
                                     }),
                                   ],
                                 ),
@@ -188,8 +228,14 @@ class CartPage extends StatelessWidget {
                             ),
                           ),
                           IconButton(
-                            icon: const Icon(Icons.delete_outline, color: Colors.red),
-                            onPressed: () => _showDeleteConfirmationDialog(context, item.product),
+                            icon: const Icon(
+                              Icons.delete_outline,
+                              color: Colors.red,
+                            ),
+                            onPressed: () => _showDeleteConfirmationDialog(
+                              context,
+                              item.product,
+                            ),
                           ),
                         ],
                       ),
@@ -205,43 +251,52 @@ class CartPage extends StatelessWidget {
                 ),
                 child: Column(
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text("Total Amount", style: TextStyle(fontSize: 16, color: Colors.grey)),
-                        Text(
-                          "NPR ${ShopManager.instance.totalPrice.toStringAsFixed(0)}",
-                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Theme.of(context).primaryColor),
-                        ),
-                      ],
+                    const Text(
+                      "Final charges are calculated by the server after eligible items are served.",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 14, color: Colors.grey),
                     ),
                     const SizedBox(height: 20),
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
                         onPressed: () {
-                          if (ShopManager.instance.selectedTableId.value == null) {
+                          if (ShopManager.instance.selectedTableId.value ==
+                              null) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: const Text("Please select your table number first!"),
+                                content: const Text(
+                                  "Please select your table number first!",
+                                ),
                                 backgroundColor: Theme.of(context).primaryColor,
                               ),
                             );
-                            ShopManager.instance.currentTabIndex.value = 0; // Go Home to select table
+                            ShopManager.instance.currentTabIndex.value =
+                                0; // Go Home to select table
                             return;
                           }
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (context) => const CheckoutProcessPage()),
+                            MaterialPageRoute(
+                              builder: (context) => const CheckoutProcessPage(),
+                            ),
                           );
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Theme.of(context).primaryColor,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
                         ),
-                        child: const Text("Proceed to Checkout", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                        child: const Text(
+                          "Proceed to Checkout",
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                     ),
                   ],

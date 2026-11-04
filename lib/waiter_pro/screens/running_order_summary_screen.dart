@@ -126,16 +126,6 @@ class _RunningOrderSummaryScreenState extends State<RunningOrderSummaryScreen> {
           final confirmedItems =
               ShopManager.instance.confirmedTableOrders.value[tableIdInt] ?? [];
 
-          double subtotal = 0;
-          for (var item in [...newItems, ...confirmedItems]) {
-            double price =
-                double.tryParse(
-                  item.product.price.replaceAll(RegExp(r'[^0-9.]'), ''),
-                ) ??
-                0;
-            subtotal += price * item.quantity;
-          }
-
           if (newItems.isEmpty && confirmedItems.isEmpty) {
             return _buildEmptyState();
           }
@@ -163,7 +153,7 @@ class _RunningOrderSummaryScreenState extends State<RunningOrderSummaryScreen> {
                   ],
                 ),
               ),
-              _buildBottomActions(subtotal, newItems.isNotEmpty),
+              _buildBottomActions(newItems.isNotEmpty),
             ],
           );
         },
@@ -356,7 +346,7 @@ class _RunningOrderSummaryScreenState extends State<RunningOrderSummaryScreen> {
     );
   }
 
-  Widget _buildBottomActions(double subtotal, bool hasNewItems) {
+  Widget _buildBottomActions(bool hasNewItems) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -373,26 +363,14 @@ class _RunningOrderSummaryScreenState extends State<RunningOrderSummaryScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                "RUNNING TOTAL",
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.grey,
-                  letterSpacing: 0.5,
-                ),
-              ),
-              Text(
-                "NPR ${subtotal.toStringAsFixed(0)}",
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w900,
-                  color: WaiterProTheme.royalBlue,
-                ),
-              ),
-            ],
+          const Text(
+            'Final bill is calculated by the server from served items.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              color: Colors.grey,
+              letterSpacing: 0.2,
+            ),
           ),
           const SizedBox(height: 24),
           Row(
@@ -449,7 +427,7 @@ class _RunningOrderSummaryScreenState extends State<RunningOrderSummaryScreen> {
                       ),
                     ),
                     child: const Text(
-                      "SETTLE BILL",
+                      "SEND TO BILLING",
                       style: TextStyle(
                         color: WaiterProTheme.emeraldGreen,
                         fontWeight: FontWeight.bold,

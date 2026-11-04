@@ -542,12 +542,12 @@ class _MenusTabState extends State<MenusTab>
                                         letterSpacing: 1,
                                       ),
                                     ),
-                                    Text(
-                                      "NPR ${_calculateTotal(tablePending)}",
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w900,
-                                        color: Colors.black87,
+                                    const Text(
+                                      "Final total confirmed by server",
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                        color: Colors.black54,
                                       ),
                                     ),
                                   ],
@@ -594,17 +594,5 @@ class _MenusTabState extends State<MenusTab>
         );
       },
     );
-  }
-
-  String _calculateTotal(Map<String, CartItem> pending) {
-    double total = 0;
-    for (var item in pending.values) {
-      String priceStr = item.product.price
-          .replaceAll('NPR ', '')
-          .replaceAll(',', '');
-      double price = double.tryParse(priceStr) ?? 0;
-      total += price * item.quantity;
-    }
-    return total.toStringAsFixed(0);
   }
 }

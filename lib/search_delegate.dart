@@ -6,16 +6,17 @@ import 'services/api_service.dart';
 class MySearchDelegate extends SearchDelegate {
   final List<Map<String, dynamic>> products;
   MySearchDelegate(List<Map<String, dynamic>> rawProducts)
-      : products = rawProducts.where((p) {
-          final avail = p['is_available'];
-          if (avail == false || avail == 0 || avail == '0' || avail == 'false') return false;
-          return true;
-        }).toList();
+    : products = rawProducts.where((p) {
+        final avail = p['is_available'];
+        if (avail == false || avail == 0 || avail == '0' || avail == 'false')
+          return false;
+        return true;
+      }).toList();
 
   String _resolveImageUrl(String raw) {
     if (raw.isEmpty) return '';
     if (raw.startsWith('assets/')) return raw;
-    
+
     String url = raw;
     if (url.contains('startupsgotech') && !url.contains('startupsgo.tech')) {
       url = url.replaceFirst('startupsgotech', 'startupsgo.tech');
@@ -28,14 +29,19 @@ class MySearchDelegate extends SearchDelegate {
     }
     if (!url.startsWith('http')) {
       String baseUrl = ApiService.baseUrl;
-      if (baseUrl.endsWith('/')) baseUrl = baseUrl.substring(0, baseUrl.length - 1);
+      if (baseUrl.endsWith('/'))
+        baseUrl = baseUrl.substring(0, baseUrl.length - 1);
       String cleanPath = url.startsWith('/') ? url.substring(1) : url;
       url = "$baseUrl/$cleanPath";
     }
     return url;
   }
 
-  Widget _buildProductImage(String? rawImagePath, {double width = 50, double height = 50}) {
+  Widget _buildProductImage(
+    String? rawImagePath, {
+    double width = 50,
+    double height = 50,
+  }) {
     final imagePath = _resolveImageUrl(rawImagePath ?? '');
 
     if (imagePath.isEmpty) {
@@ -86,10 +92,7 @@ class MySearchDelegate extends SearchDelegate {
   @override
   List<Widget>? buildActions(BuildContext context) {
     return [
-      IconButton(
-        icon: const Icon(Icons.clear),
-        onPressed: () => query = '',
-      ),
+      IconButton(icon: const Icon(Icons.clear), onPressed: () => query = ''),
     ];
   }
 
@@ -103,14 +106,21 @@ class MySearchDelegate extends SearchDelegate {
 
   @override
   Widget buildResults(BuildContext context) {
-    final results = products.where((p) => p['title'].toString().toLowerCase().contains(query.toLowerCase())).toList();
+    final results = products
+        .where(
+          (p) =>
+              p['title'].toString().toLowerCase().contains(query.toLowerCase()),
+        )
+        .toList();
     return ListView.builder(
       itemCount: results.length,
       itemBuilder: (context, index) {
         final item = results[index];
         final String rawImg = item['image_url'] ?? item['image'] ?? '';
         final String imgUrl = _resolveImageUrl(rawImg);
-        final String priceStr = item['price'] != null ? "NPR ${item['price']}" : "";
+        final String priceStr = item['price'] != null
+            ? "NPR ${item['price']}"
+            : "";
 
         return ListTile(
           leading: Hero(
@@ -125,8 +135,11 @@ class MySearchDelegate extends SearchDelegate {
               MaterialPageRoute(
                 builder: (context) => ProductDetailsPage(
                   product: Product(
+                    productId: int.tryParse(item['id']?.toString() ?? ''),
                     title: item['title'] ?? '',
-                    price: priceStr.isNotEmpty ? priceStr : (item['price']?.toString() ?? '0'),
+                    price: priceStr.isNotEmpty
+                        ? priceStr
+                        : (item['price']?.toString() ?? '0'),
                     image: imgUrl,
                     tag: item['tag'] ?? 'Popular',
                     rating: item['rating']?.toString() ?? '4.9',
@@ -143,27 +156,45 @@ class MySearchDelegate extends SearchDelegate {
 
   @override
   Widget buildSuggestions(BuildContext context) {
-    final suggestions = products.where((p) => p['title'].toString().toLowerCase().contains(query.toLowerCase())).toList();
+    final suggestions = products
+        .where(
+          (p) =>
+              p['title'].toString().toLowerCase().contains(query.toLowerCase()),
+        )
+        .toList();
     return ListView.builder(
       itemCount: suggestions.length,
       itemBuilder: (context, index) {
         final item = suggestions[index];
         final String rawImg = item['image_url'] ?? item['image'] ?? '';
         final String imgUrl = _resolveImageUrl(rawImg);
-        final String priceStr = item['price'] != null ? "NPR ${item['price']}" : "";
+        final String priceStr = item['price'] != null
+            ? "NPR ${item['price']}"
+            : "";
 
         return ListTile(
           leading: _buildProductImage(rawImg, width: 40, height: 40),
-          title: Text(item['title'] ?? '', style: const TextStyle(fontSize: 14)),
-          subtitle: priceStr.isNotEmpty ? Text(priceStr, style: const TextStyle(fontSize: 11, color: Colors.grey)) : null,
+          title: Text(
+            item['title'] ?? '',
+            style: const TextStyle(fontSize: 14),
+          ),
+          subtitle: priceStr.isNotEmpty
+              ? Text(
+                  priceStr,
+                  style: const TextStyle(fontSize: 11, color: Colors.grey),
+                )
+              : null,
           onTap: () {
             Navigator.push(
               context,
               MaterialPageRoute(
                 builder: (context) => ProductDetailsPage(
                   product: Product(
+                    productId: int.tryParse(item['id']?.toString() ?? ''),
                     title: item['title'] ?? '',
-                    price: priceStr.isNotEmpty ? priceStr : (item['price']?.toString() ?? '0'),
+                    price: priceStr.isNotEmpty
+                        ? priceStr
+                        : (item['price']?.toString() ?? '0'),
                     image: imgUrl,
                     tag: item['tag'] ?? 'Popular',
                     rating: item['rating']?.toString() ?? '4.9',

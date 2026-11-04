@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'api_service.dart';
 import 'currency_service.dart';
@@ -175,7 +176,7 @@ class TenantService extends ChangeNotifier {
 
   Future<void> initialize(String domain, {bool showLoading = true}) async {
     if (showLoading) isLoading.value = true;
-    
+
     // Auto-map primary domain or localhost to startups_main
     String domainToFetch = domain;
     if (domain == "localhost" || domain == "127.0.0.1" || domain == "startupsgo.tech" || domain.isEmpty) {
@@ -184,13 +185,13 @@ class TenantService extends ChangeNotifier {
 
     debugPrint("TENANT: Loading data for $domainToFetch...");
     Map<String, dynamic>? data = await ApiService.initTenant(domainToFetch);
-    
+
     // If not found, fallback to startups_main
     if (data == null && domainToFetch != "startups_main") {
       debugPrint("TENANT: Domain not found directly, falling back to startups_main...");
       data = await ApiService.initTenant("startups_main");
     }
-    
+
     if (data != null) {
       final parsedTenant = Tenant.fromMap(data);
       currentTenant.value = parsedTenant;
@@ -243,7 +244,7 @@ class TenantService extends ChangeNotifier {
         debugPrint("TENANT: Theme data is NULL - using default colors from tenant data");
         debugPrint("TENANT: Current color from DB: ${parsedTenant.color}");
       }
-      
+
       await fetchMenuData(currentTenant.value!.id);
     } else {
       debugPrint("TENANT: ERROR - Tenant data could not be fetched. Using Default Active Tenant.");
@@ -269,6 +270,7 @@ class TenantService extends ChangeNotifier {
 
   Future<Map<String, dynamic>> login(String email, String pin) async {
     String domain = Uri.base.host == "127.0.0.1" ? "localhost" : Uri.base.host;
+
     
     if (domain == "localhost") domain = "startupsgo.tech"; // Force domain for localhost login
 
@@ -302,6 +304,7 @@ class TenantService extends ChangeNotifier {
   }
 
   void logout() {
+    unawaited(ApiService.staffLogout());
     if (currentStaff.value != null && currentTenant.value != null) {
       ApiService.goOffline(tenantId: currentTenant.value!.id, userId: currentStaff.value!.id.toString());
     }
@@ -335,7 +338,7 @@ class TenantService extends ChangeNotifier {
   Future<void> fetchMenuData(String tenantId) async {
     debugPrint("TENANT: Attempting to fetch menu for -> $tenantId");
     final menuData = await ApiService.fetchMenu(tenantId);
-    
+
     if (menuData != null) {
       products.value = List<Map<String, dynamic>>.from(menuData['products']);
       categories.value = List<Map<String, dynamic>>.from(menuData['categories']);

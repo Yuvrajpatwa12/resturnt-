@@ -64,7 +64,9 @@ class _OrderManagementScreenState extends State<OrderManagementScreen> {
   int _countForStatus(String filter) {
     if (filter == "All") return _orders.length;
     return _orders
-        .where((o) => _matchesStatus((o['status'] ?? 'Pending').toString(), filter))
+        .where(
+          (o) => _matchesStatus((o['status'] ?? 'Pending').toString(), filter),
+        )
         .length;
   }
 
@@ -78,10 +80,12 @@ class _OrderManagementScreenState extends State<OrderManagementScreen> {
       final query = _searchQuery.toLowerCase();
       final idStr = "ord-${o['id']}".toLowerCase();
       final rawIdStr = o['id'].toString().toLowerCase();
-      final tableStr =
-          (o['table_number'] ?? o['table_id'] ?? '').toString().toLowerCase();
-      final customerStr =
-          (o['customer_email'] ?? o['user_id'] ?? '').toString().toLowerCase();
+      final tableStr = (o['table_number'] ?? o['table_id'] ?? '')
+          .toString()
+          .toLowerCase();
+      final customerStr = (o['customer_email'] ?? o['user_id'] ?? '')
+          .toString()
+          .toLowerCase();
 
       final itemsStr = (o['items'] as List<dynamic>? ?? [])
           .map((i) => (i['name'] ?? '').toString().toLowerCase())
@@ -109,33 +113,36 @@ class _OrderManagementScreenState extends State<OrderManagementScreen> {
                   child: CircularProgressIndicator(color: AdminTheme.royalBlue),
                 )
               : filtered.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.receipt_long_outlined,
-                              size: 64, color: Colors.grey.shade400),
-                          const SizedBox(height: 12),
-                          Text(
-                            _searchQuery.isNotEmpty
-                                ? "No orders found for \"$_searchQuery\""
-                                : "No orders found under '$_currentFilter'",
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.grey.shade600,
-                            ),
-                          ),
-                        ],
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.receipt_long_outlined,
+                        size: 64,
+                        color: Colors.grey.shade400,
                       ),
-                    )
-                  : ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
-                      itemCount: filtered.length,
-                      itemBuilder: (context, index) {
-                        return _buildOrderTicketCard(filtered[index]);
-                      },
-                    ),
+                      const SizedBox(height: 12),
+                      Text(
+                        _searchQuery.isNotEmpty
+                            ? "No orders found for \"$_searchQuery\""
+                            : "No orders found under '$_currentFilter'",
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
+                  itemCount: filtered.length,
+                  itemBuilder: (context, index) {
+                    return _buildOrderTicketCard(filtered[index]);
+                  },
+                ),
         ),
       ],
     );
@@ -145,11 +152,12 @@ class _OrderManagementScreenState extends State<OrderManagementScreen> {
     int totalCount = _orders.length;
     int pendingCount = _countForStatus("Pending");
     int completedCount = _countForStatus("Completed");
-    
+
     double totalRevenue = 0.0;
     for (var o in _orders) {
       if (_matchesStatus((o['status'] ?? '').toString(), "Completed")) {
-        totalRevenue += double.tryParse(o['total_amount']?.toString() ?? '0') ?? 0.0;
+        totalRevenue +=
+            double.tryParse(o['total_amount']?.toString() ?? '0') ?? 0.0;
       }
     }
 
@@ -162,10 +170,34 @@ class _OrderManagementScreenState extends State<OrderManagementScreen> {
             spacing: 12,
             runSpacing: 12,
             children: [
-              _buildStatCard("Total Orders", "$totalCount", Icons.shopping_bag_outlined, Colors.blue, isSmall),
-              _buildStatCard("Pending", "$pendingCount", Icons.hourglass_top_rounded, Colors.orange, isSmall),
-              _buildStatCard("Completed", "$completedCount", Icons.check_circle_outline_rounded, AdminTheme.emeraldGreen, isSmall),
-              _buildStatCard("Revenue", "NPR ${totalRevenue.toStringAsFixed(0)}", Icons.payments_outlined, Colors.purple, isSmall),
+              _buildStatCard(
+                "Total Orders",
+                "$totalCount",
+                Icons.shopping_bag_outlined,
+                Colors.blue,
+                isSmall,
+              ),
+              _buildStatCard(
+                "Pending",
+                "$pendingCount",
+                Icons.hourglass_top_rounded,
+                Colors.orange,
+                isSmall,
+              ),
+              _buildStatCard(
+                "Completed",
+                "$completedCount",
+                Icons.check_circle_outline_rounded,
+                AdminTheme.emeraldGreen,
+                isSmall,
+              ),
+              _buildStatCard(
+                "Revenue",
+                "NPR ${totalRevenue.toStringAsFixed(0)}",
+                Icons.payments_outlined,
+                Colors.purple,
+                isSmall,
+              ),
             ],
           );
         },
@@ -173,7 +205,13 @@ class _OrderManagementScreenState extends State<OrderManagementScreen> {
     );
   }
 
-  Widget _buildStatCard(String label, String value, IconData icon, Color color, bool isSmall) {
+  Widget _buildStatCard(
+    String label,
+    String value,
+    IconData icon,
+    Color color,
+    bool isSmall,
+  ) {
     return Container(
       width: isSmall ? double.infinity : 150,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -199,9 +237,24 @@ class _OrderManagementScreenState extends State<OrderManagementScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)),
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 10,
+                    color: Colors.grey,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 const SizedBox(height: 2),
-                Text(value, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Colors.grey.shade900), overflow: TextOverflow.ellipsis),
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.grey.shade900,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ],
             ),
           ),
@@ -218,7 +271,8 @@ class _OrderManagementScreenState extends State<OrderManagementScreen> {
       "Preparing",
       "Ready",
       "Completed",
-      "Cancelled"
+      "Cancelled",
+      "Voided",
     ];
 
     return Padding(
@@ -232,7 +286,11 @@ class _OrderManagementScreenState extends State<OrderManagementScreen> {
             decoration: InputDecoration(
               hintText: "Search Order ID, Table, Item Name, Customer...",
               hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
-              prefixIcon: const Icon(Icons.search, size: 20, color: AdminTheme.royalBlue),
+              prefixIcon: const Icon(
+                Icons.search,
+                size: 20,
+                color: AdminTheme.royalBlue,
+              ),
               suffixIcon: _searchQuery.isNotEmpty
                   ? IconButton(
                       icon: const Icon(Icons.clear, size: 18),
@@ -241,7 +299,10 @@ class _OrderManagementScreenState extends State<OrderManagementScreen> {
                   : null,
               filled: true,
               fillColor: Colors.white,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 12,
+              ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
                 borderSide: BorderSide(color: Colors.grey.shade200),
@@ -252,7 +313,10 @@ class _OrderManagementScreenState extends State<OrderManagementScreen> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
-                borderSide: const BorderSide(color: AdminTheme.royalBlue, width: 2),
+                borderSide: const BorderSide(
+                  color: AdminTheme.royalBlue,
+                  width: 2,
+                ),
               ),
             ),
           ),
@@ -264,11 +328,16 @@ class _OrderManagementScreenState extends State<OrderManagementScreen> {
                   scrollDirection: Axis.horizontal,
                   child: Row(
                     children: filters.map((f) {
-                      bool isSel = _currentFilter.toLowerCase() == f.toLowerCase() ||
-                          (_currentFilter.toLowerCase() == 'completed' && f == 'Completed') ||
-                          (_currentFilter.toLowerCase() == 'complete' && f == 'Completed') ||
-                          (_currentFilter.toLowerCase() == 'cancelled' && f == 'Cancelled') ||
-                          (_currentFilter.toLowerCase() == 'cancel' && f == 'Cancelled');
+                      bool isSel =
+                          _currentFilter.toLowerCase() == f.toLowerCase() ||
+                          (_currentFilter.toLowerCase() == 'completed' &&
+                              f == 'Completed') ||
+                          (_currentFilter.toLowerCase() == 'complete' &&
+                              f == 'Completed') ||
+                          (_currentFilter.toLowerCase() == 'cancelled' &&
+                              f == 'Cancelled') ||
+                          (_currentFilter.toLowerCase() == 'cancel' &&
+                              f == 'Cancelled');
                       int count = _countForStatus(f);
 
                       return Padding(
@@ -289,11 +358,16 @@ class _OrderManagementScreenState extends State<OrderManagementScreen> {
                           selectedColor: AdminTheme.royalBlue,
                           backgroundColor: Colors.white,
                           elevation: isSel ? 2 : 0,
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 6,
+                          ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                             side: BorderSide(
-                              color: isSel ? AdminTheme.royalBlue : Colors.grey.shade300,
+                              color: isSel
+                                  ? AdminTheme.royalBlue
+                                  : Colors.grey.shade300,
                             ),
                           ),
                         ),
@@ -312,7 +386,11 @@ class _OrderManagementScreenState extends State<OrderManagementScreen> {
                 child: IconButton(
                   onPressed: _loadOrders,
                   tooltip: "Refresh Orders",
-                  icon: const Icon(Icons.refresh_rounded, color: AdminTheme.royalBlue, size: 20),
+                  icon: const Icon(
+                    Icons.refresh_rounded,
+                    color: AdminTheme.royalBlue,
+                    size: 20,
+                  ),
                 ),
               ),
             ],
@@ -326,14 +404,18 @@ class _OrderManagementScreenState extends State<OrderManagementScreen> {
     String id = "ORD-${order['id']}";
     String status = order['status'] ?? 'Pending';
     Color statusColor = _getStatusColor(status);
-    String tableNum = (order['table_number'] ?? order['table_id'] ?? 'N/A').toString();
+    String tableNum = (order['table_number'] ?? order['table_id'] ?? 'N/A')
+        .toString();
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: statusColor.withValues(alpha: 0.3), width: 1.5),
+        border: Border.all(
+          color: statusColor.withValues(alpha: 0.3),
+          width: 1.5,
+        ),
         boxShadow: AdminTheme.softShadow,
       ),
       child: Column(
@@ -344,12 +426,17 @@ class _OrderManagementScreenState extends State<OrderManagementScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
             decoration: BoxDecoration(
               color: statusColor.withValues(alpha: 0.05),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(18),
+              ),
             ),
             child: Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: AdminTheme.royalBlue.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
@@ -365,11 +452,16 @@ class _OrderManagementScreenState extends State<OrderManagementScreen> {
                 ),
                 const SizedBox(width: 10),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: statusColor.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: statusColor.withValues(alpha: 0.3)),
+                    border: Border.all(
+                      color: statusColor.withValues(alpha: 0.3),
+                    ),
                   ),
                   child: Text(
                     status.toUpperCase(),
@@ -383,18 +475,29 @@ class _OrderManagementScreenState extends State<OrderManagementScreen> {
                 ),
                 const Spacer(),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.grey.shade100,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.table_restaurant_outlined, size: 14, color: Colors.grey),
+                      const Icon(
+                        Icons.table_restaurant_outlined,
+                        size: 14,
+                        color: Colors.grey,
+                      ),
                       const SizedBox(width: 4),
                       Text(
                         "Table $tableNum",
-                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.black87),
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
                       ),
                     ],
                   ),
@@ -403,45 +506,76 @@ class _OrderManagementScreenState extends State<OrderManagementScreen> {
                 PopupMenuButton<String>(
                   tooltip: "Manage Status",
                   onSelected: (val) {
-                    if (val == "Delete") {
-                      _deleteOrder(order['id'].toString());
+                    if (val == "Void") {
+                      _voidOrder(order['id'].toString());
                     } else {
                       _updateStatus(order['id'], val);
                     }
                   },
-                  itemBuilder: (ctx) => [
-                    "Pending",
-                    "Approved",
-                    "Preparing",
-                    "Ready",
-                    "Completed",
-                    "Cancelled"
-                  ].map((s) => PopupMenuItem(
-                    value: s,
-                    child: Row(
-                      children: [
-                        Icon(
-                          s == status ? Icons.check_circle : Icons.circle_outlined,
-                          size: 16,
-                          color: _getStatusColor(s),
+                  itemBuilder: (ctx) =>
+                      status.toLowerCase() == 'voided'
+                            ? const <PopupMenuEntry<String>>[]
+                            : [
+                                    "Pending",
+                                    "Approved",
+                                    "Preparing",
+                                    "Ready",
+                                    "Completed",
+                                    "Cancelled",
+                                  ]
+                                  .map(
+                                    (s) => PopupMenuItem(
+                                      value: s,
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            s == status
+                                                ? Icons.check_circle
+                                                : Icons.circle_outlined,
+                                            size: 16,
+                                            color: _getStatusColor(s),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            s,
+                                            style: TextStyle(
+                                              fontWeight: s == status
+                                                  ? FontWeight.bold
+                                                  : FontWeight.normal,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  )
+                                  .toList()
+                        ..add(
+                          const PopupMenuItem(
+                            value: "Void",
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.block_outlined,
+                                  size: 16,
+                                  color: Colors.red,
+                                ),
+                                SizedBox(width: 8),
+                                Text(
+                                  "Void Order",
+                                  style: TextStyle(
+                                    color: Colors.red,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
-                        const SizedBox(width: 8),
-                        Text(s, style: TextStyle(fontWeight: s == status ? FontWeight.bold : FontWeight.normal)),
-                      ],
-                    ),
-                  )).toList()..add(
-                    const PopupMenuItem(
-                      value: "Delete",
-                      child: Row(
-                        children: [
-                          Icon(Icons.delete_outline, size: 16, color: Colors.red),
-                          SizedBox(width: 8),
-                          Text("Delete Order", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
-                        ],
-                      ),
-                    ),
+                  icon: const Icon(
+                    Icons.more_vert_rounded,
+                    size: 20,
+                    color: Colors.black54,
                   ),
-                  icon: const Icon(Icons.more_vert_rounded, size: 20, color: Colors.black54),
                 ),
               ],
             ),
@@ -457,11 +591,19 @@ class _OrderManagementScreenState extends State<OrderManagementScreen> {
                 if (order['created_at'] != null) ...[
                   Row(
                     children: [
-                      const Icon(Icons.access_time, size: 12, color: Colors.grey),
+                      const Icon(
+                        Icons.access_time,
+                        size: 12,
+                        color: Colors.grey,
+                      ),
                       const SizedBox(width: 4),
                       Text(
                         "${order['created_at']}",
-                        style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500),
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ],
                   ),
@@ -470,14 +612,23 @@ class _OrderManagementScreenState extends State<OrderManagementScreen> {
 
                 const Text(
                   "Order Items",
-                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey),
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey,
+                  ),
                 ),
                 const SizedBox(height: 8),
 
-                ...(order['items'] as List<dynamic>? ?? []).map((item) => Padding(
-                  padding: const EdgeInsets.only(bottom: 8.0),
-                  child: _buildItemSummaryRow(item['name'] ?? 'Item', "x${item['quantity'] ?? '1'}"),
-                )),
+                ...(order['items'] as List<dynamic>? ?? []).map(
+                  (item) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8.0),
+                    child: _buildItemSummaryRow(
+                      item['name'] ?? 'Item',
+                      "x${item['quantity'] ?? '1'}",
+                    ),
+                  ),
+                ),
 
                 const SizedBox(height: 16),
                 const Divider(height: 1),
@@ -489,7 +640,11 @@ class _OrderManagementScreenState extends State<OrderManagementScreen> {
                   children: [
                     const Text(
                       "Total Amount:",
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                        color: Colors.black87,
+                      ),
                     ),
                     Text(
                       "NPR ${order['total_amount'] ?? '0'}",
@@ -510,7 +665,10 @@ class _OrderManagementScreenState extends State<OrderManagementScreen> {
   }
 
   Future<void> _updateStatus(dynamic orderId, String newStatus) async {
-    final result = await ApiService.updateOrderStatus(int.parse(orderId.toString()), newStatus);
+    final result = await ApiService.updateOrderStatus(
+      int.parse(orderId.toString()),
+      newStatus,
+    );
     if (result['success'] == true) {
       _loadOrders();
       if (mounted) {
@@ -535,41 +693,65 @@ class _OrderManagementScreenState extends State<OrderManagementScreen> {
     }
   }
 
-  Future<void> _deleteOrder(String id) async {
-    final tenant = TenantService().currentTenant.value;
-    if (tenant == null) return;
-
-    final confirm = await showDialog<bool>(
+  Future<void> _voidOrder(String id) async {
+    final reasonController = TextEditingController();
+    final reason = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text("Delete Order?"),
-        content: Text("Are you sure you want to permanently delete order #$id?"),
+        title: Text("Void Order #$id"),
+        content: TextField(
+          controller: reasonController,
+          autofocus: true,
+          maxLength: 2000,
+          maxLines: 3,
+          decoration: const InputDecoration(
+            labelText: "Reason for voiding",
+            hintText: "Enter the audit reason",
+            border: OutlineInputBorder(),
+          ),
+        ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
+            onPressed: () => Navigator.pop(ctx),
             child: const Text("CANCEL"),
           ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text("DELETE", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+          FilledButton(
+            onPressed: () {
+              final value = reasonController.text.trim();
+              if (value.isNotEmpty) Navigator.pop(ctx, value);
+            },
+            child: const Text("VOID ORDER"),
           ),
         ],
       ),
     );
+    reasonController.dispose();
 
-    if (confirm == true) {
-      final res = await ApiService.deleteOrder(tenant.id, id);
+    if (reason != null && reason.isNotEmpty) {
+      final res = await ApiService.voidOrder(id, reason);
       if (res['success'] == true) {
         _loadOrders();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text("Order #$id deleted successfully."),
-              backgroundColor: Colors.black,
+              content: Text(
+                "Order #$id voided. The original order remains in the audit history.",
+              ),
+              backgroundColor: AdminTheme.emeraldGreen,
               behavior: SnackBarBehavior.floating,
             ),
           );
         }
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              (res['message'] ?? "Could not void order #$id.").toString(),
+            ),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
       }
     }
   }
@@ -590,6 +772,8 @@ class _OrderManagementScreenState extends State<OrderManagementScreen> {
       case 'cancelled':
       case 'cancel':
         return Colors.red;
+      case 'voided':
+        return Colors.grey;
       default:
         return Colors.grey;
     }

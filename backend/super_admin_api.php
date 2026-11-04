@@ -35,13 +35,6 @@ try {
 
     @$conn->query("ALTER TABLE super_admins ADD COLUMN IF NOT EXISTS email VARCHAR(255) DEFAULT ''");
 
-    // Ensure default root admin exists
-    $check_admin = $conn->query("SELECT id FROM super_admins WHERE username = 'admin' LIMIT 1");
-    if ($check_admin && $check_admin->num_rows === 0) {
-        // Hash for 'patwa' and '123456'
-        $hash_patwa = hash('sha256', 'patwa');
-        $conn->query("INSERT INTO super_admins (username, password_hash, name, email) VALUES ('admin', '$hash_patwa', 'Root Admin', 'admin@chiyabreak.com')");
-    }
 } catch (Throwable $e) {}
 
 /**
@@ -91,64 +84,87 @@ if (realpath($_SERVER['SCRIPT_FILENAME']) === __FILE__) {
         $json = file_get_contents('php://input');
         $data = json_decode($json);
 
-        $username = strtolower(trim($data->username ?? ''));
-        $password = trim($data->password ?? $data->pin ?? '');
+        $email = strtolower(trim((string)($data->email ?? '')));
+        $pin = trim((string)($data->pin ?? ''));
 
-        if (empty($username) || empty($password)) {
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL) ||
+            strlen($email) > 255 ||
+            strlen($pin) < 4 ||
+            strlen($pin) > 64) {
             http_response_code(400);
-            echo json_encode(["status" => "error", "message" => "Username and password/PIN are required."]);
+            echo json_encode(["status" => "error", "message" => "Enter a valid email address and a PIN of 4 to 64 characters."]);
             exit;
         }
 
-        $passHash = hash('sha256', $password);
-
         try {
-            // Match username & password hash OR allow default root credentials ('admin' / 'patwa' / '123456')
-            $stmt = $conn->prepare("SELECT * FROM super_admins WHERE LOWER(username) = ? LIMIT 1");
-            $stmt->bind_param("s", $username);
+            $stmt = $conn->prepare(
+                "SELECT id, username, email, name, password_hash
+                 FROM super_admins WHERE LOWER(email) = ? LIMIT 2"
+            );
+            $stmt->bind_param("s", $email);
             $stmt->execute();
             $res = $stmt->get_result();
-
-            $authenticated = false;
-            $adminName = 'Super Admin';
-
-            if ($res->num_rows > 0) {
-                $admin = $res->fetch_assoc();
-                if ($admin['password_hash'] === $passHash || $password === 'patwa' || $password === '123456') {
-                    $authenticated = true;
-                    $adminName = $admin['name'];
-                }
-            } else if (($username === 'admin' || $username === 'yuvraj') && ($password === 'patwa' || $password === '123456')) {
-                $authenticated = true;
-                $adminName = 'Yuvraj Patwa (Root Admin)';
-            }
-
-            if ($authenticated) {
-                $rawToken = bin2hex(random_bytes(32)); // 64 char hex string
-                $tokenHash = hash('sha256', $rawToken);
-
-                $ins_stmt = $conn->prepare("INSERT INTO super_admin_sessions (token_hash, username, expires_at) VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 30 DAY))");
-                $ins_stmt->bind_param("ss", $tokenHash, $username);
-                $ins_stmt->execute();
-
-                echo json_encode([
-                    "status" => "success",
-                    "message" => "Super Admin authenticated successfully",
-                    "token" => $rawToken,
-                    "admin" => [
-                        "username" => $username,
-                        "name" => $adminName
-                    ]
-                ]);
-                exit;
-            } else {
+            if ($res->num_rows !== 1) {
                 http_response_code(401);
-                echo json_encode(["status" => "error", "message" => "Invalid Super Admin credentials."]);
+                echo json_encode(["status" => "error", "message" => "Invalid email or PIN."]);
                 exit;
             }
+            $admin = $res->fetch_assoc();
+            $storedHash = (string)$admin['password_hash'];
+            $legacyHash = hash('sha256', $pin);
+            $knownDemoHashes = [
+                hash('sha256', 'patwa'),
+                hash('sha256', '123456'),
+                hash('sha256', 'admin')
+            ];
+            if (in_array($storedHash, $knownDemoHashes, true)) {
+                http_response_code(401);
+                echo json_encode(["status" => "error", "message" => "This account still uses a demo PIN. Set a new PIN in the database before signing in."]);
+                exit;
+            }
+            $passwordMatches = password_verify($pin, $storedHash) ||
+                hash_equals($storedHash, $legacyHash);
+            if (!$passwordMatches) {
+                http_response_code(401);
+                echo json_encode(["status" => "error", "message" => "Invalid email or PIN."]);
+                exit;
+            }
+
+            if (hash_equals($storedHash, $legacyHash)) {
+                $upgradedHash = password_hash($pin, PASSWORD_DEFAULT);
+                $upgrade = $conn->prepare(
+                    'UPDATE super_admins SET password_hash = ? WHERE id = ?'
+                );
+                $upgrade->bind_param("si", $upgradedHash, $admin['id']);
+                $upgrade->execute();
+                $upgrade->close();
+            }
+
+            $rawToken = bin2hex(random_bytes(32));
+            $tokenHash = hash('sha256', $rawToken);
+            $username = (string)$admin['username'];
+            $ins_stmt = $conn->prepare(
+                "INSERT INTO super_admin_sessions (token_hash, username, expires_at)
+                 VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 30 DAY))"
+            );
+            $ins_stmt->bind_param("ss", $tokenHash, $username);
+            $ins_stmt->execute();
+
+            echo json_encode([
+                "status" => "success",
+                "message" => "Super Admin authenticated successfully",
+                "token" => $rawToken,
+                "admin" => [
+                    "username" => $username,
+                    "name" => (string)$admin['name'],
+                    "email" => (string)$admin['email']
+                ]
+            ]);
+            exit;
         } catch (Throwable $e) {
+            error_log('Super Admin login failed: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(["status" => "error", "message" => "System error: " . $e->getMessage()]);
+            echo json_encode(["status" => "error", "message" => "Could not authenticate Super Admin."]);
             exit;
         }
     } else if ($action === 'verify_session') {
@@ -189,10 +205,41 @@ if (realpath($_SERVER['SCRIPT_FILENAME']) === __FILE__) {
         $email = trim((string)($data->email ?? ''));
         $name = trim((string)($data->name ?? ''));
         $new_password = trim((string)($data->new_password ?? ''));
+        if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            http_response_code(400);
+            echo json_encode(["status" => "error", "message" => "Enter a valid email address."]);
+            exit;
+        }
+        if ($new_password !== '' && (strlen($new_password) < 4 || strlen($new_password) > 64)) {
+            http_response_code(400);
+            echo json_encode(["status" => "error", "message" => "PIN must be between 4 and 64 characters."]);
+            exit;
+        }
+        if ($new_password !== '' &&
+            in_array($new_password, ['patwa', '123456', 'admin'], true)) {
+            http_response_code(400);
+            echo json_encode(["status" => "error", "message" => "Choose a PIN other than the demo PIN."]);
+            exit;
+        }
 
-        // First try update without email to test basic functionality
+        if ($email !== '') {
+            $duplicate = $conn->prepare(
+                'SELECT COUNT(*) AS email_count FROM super_admins
+                 WHERE LOWER(email) = LOWER(?) AND username <> ?'
+            );
+            $duplicate->bind_param('ss', $email, $admin['username']);
+            $duplicate->execute();
+            $emailCount = (int)$duplicate->get_result()->fetch_assoc()['email_count'];
+            $duplicate->close();
+            if ($emailCount > 0) {
+                http_response_code(409);
+                echo json_encode(["status" => "error", "message" => "That email is already assigned to another Super Admin."]);
+                exit;
+            }
+        }
+
         if (!empty($new_password)) {
-            $passHash = hash('sha256', $new_password);
+            $passHash = password_hash($new_password, PASSWORD_DEFAULT);
             $stmt = $conn->prepare("UPDATE super_admins SET name = COALESCE(NULLIF(?, ''), name), password_hash = ? WHERE username = ?");
             if (!$stmt) {
                 echo json_encode(["status" => "error", "message" => "DB Error: " . $conn->error]);
@@ -209,7 +256,6 @@ if (realpath($_SERVER['SCRIPT_FILENAME']) === __FILE__) {
         }
 
         if ($stmt->execute()) {
-            // If name update successful, try email update separately
             if (!empty($email)) {
                 $check_column = $conn->query("SHOW COLUMNS FROM super_admins LIKE 'email'");
                 if ($check_column && $check_column->num_rows > 0) {
