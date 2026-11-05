@@ -15,6 +15,7 @@ class _SubscriptionStatusScreenState extends State<SubscriptionStatusScreen> {
   bool _isLoading = true;
   List<Map<String, dynamic>> _packages = [];
   List<Map<String, dynamic>> _myRequests = [];
+  String? _requestsError;
 
   @override
   void initState() {
@@ -30,12 +31,19 @@ class _SubscriptionStatusScreenState extends State<SubscriptionStatusScreen> {
     final tenantId = tenant?.id ?? 'startups_main';
 
     final pkgs = await ApiService.fetchSubscriptionPackages(tenantId: tenantId);
-    final reqs = await ApiService.fetchMySubscriptionRequests(tenantId);
+    List<Map<String, dynamic>> reqs = [];
+    String? requestsError;
+    try {
+      reqs = await ApiService.fetchMySubscriptionRequests(tenantId);
+    } catch (e) {
+      requestsError = e.toString();
+    }
 
     if (mounted) {
       setState(() {
         _packages = pkgs;
         _myRequests = reqs;
+        _requestsError = requestsError;
         _isLoading = false;
       });
     }
@@ -693,10 +701,14 @@ class _SubscriptionStatusScreenState extends State<SubscriptionStatusScreen> {
           borderRadius: BorderRadius.circular(16),
           boxShadow: AdminTheme.softShadow,
         ),
-        child: const Center(
+        child: Center(
           child: Text(
-            "No subscription activation requests submitted yet.",
-            style: TextStyle(color: Colors.grey, fontSize: 13),
+            _requestsError ??
+                "No subscription activation requests submitted yet.",
+            style: TextStyle(
+              color: _requestsError == null ? Colors.grey : Colors.red,
+              fontSize: 13,
+            ),
           ),
         ),
       );

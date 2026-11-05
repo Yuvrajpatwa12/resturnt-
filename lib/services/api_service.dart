@@ -11,6 +11,30 @@ class ApiService {
   static const String baseUrl = "https://startupsgo.tech/saas_api";
   static const Duration _timeout = Duration(seconds: 15);
   static String? _staffSessionCookie;
+  static String? _staffApiToken;
+  static bool _staffApiTokenLoaded = false;
+  static const Set<String> _staffProtectedEndpoints = {
+    'financial_report.php',
+    'get_tables.php',
+    'get_all_orders.php',
+    'get_billing_settings.php',
+    'get_session_bill.php',
+    'payment_methods_api.php',
+    'refund_payment.php',
+    'reopen_session.php',
+    'save_billing_settings.php',
+    'settle_bill.php',
+    'staff_logout.php',
+    'stock_reports_api.php',
+    'theme_api.php',
+    'add_table.php',
+    'update_order_status.php',
+    'waiter_assistance_api.php',
+    'waiter_ready_api.php',
+    'update_session_status.php',
+    'update_tenant_settings.php',
+    'void_order.php',
+  };
 
   static String newIdempotencyKey() {
     final random = Random.secure();
@@ -19,10 +43,23 @@ class ApiService {
   }
 
   // --- HELPER METHODS FOR STABILITY ---
-  static Map<String, String> _withStaffSessionCookie(
+  static Future<Map<String, String>> _withStaffAuth(
+    Uri uri,
     Map<String, String>? headers,
-  ) {
+  ) async {
     final requestHeaders = <String, String>{...?headers};
+    if (!_staffApiTokenLoaded) {
+      final prefs = await SharedPreferences.getInstance();
+      _staffApiToken = prefs.getString('staff_api_token');
+      _staffApiTokenLoaded = true;
+    }
+    if (uri.pathSegments.isNotEmpty &&
+        _staffProtectedEndpoints.contains(uri.pathSegments.last) &&
+        _staffApiToken != null &&
+        _staffApiToken!.isNotEmpty &&
+        !requestHeaders.containsKey('Authorization')) {
+      requestHeaders['Authorization'] = 'Bearer ${_staffApiToken!}';
+    }
     if (!kIsWeb && _staffSessionCookie != null) {
       requestHeaders['Cookie'] = _staffSessionCookie!;
     }
@@ -43,8 +80,9 @@ class ApiService {
     Uri uri, {
     Map<String, String>? headers,
   }) async {
+    final requestHeaders = await _withStaffAuth(uri, headers);
     return await http
-        .get(uri, headers: _withStaffSessionCookie(headers))
+        .get(uri, headers: requestHeaders)
         .timeout(
           _timeout,
           onTimeout: () {
@@ -60,8 +98,9 @@ class ApiService {
     Map<String, String>? headers,
     Object? body,
   }) async {
+    final requestHeaders = await _withStaffAuth(uri, headers);
     return await http
-        .post(uri, headers: _withStaffSessionCookie(headers), body: body)
+        .post(uri, headers: requestHeaders, body: body)
         .timeout(
           _timeout,
           onTimeout: () {
@@ -72,9 +111,12 @@ class ApiService {
         );
   }
 
-  static Future<Map<String, String>> _customerSessionHeaders() async {
+  static Future<Map<String, String>> _customerSessionHeaders(
+    String tenantId,
+  ) async {
     final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('customer_session_token') ?? '';
+    final tokenKey = 'customer_${Uri.encodeComponent(tenantId)}_session_token';
+    final token = prefs.getString(tokenKey) ?? '';
     return {
       'Content-Type': 'application/json',
       if (token.isNotEmpty) 'Authorization': 'Bearer $token',
@@ -84,7 +126,9 @@ class ApiService {
   static Future<Map<String, dynamic>?> initTenant(String domain) async {
     try {
       final response = await _get(
-        Uri.parse("$baseUrl/init_tenant.php?domain=$domain"),
+        Uri.parse(
+          "$baseUrl/init_tenant.php",
+        ).replace(queryParameters: {'domain': domain}),
       );
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -215,6 +259,99 @@ class ApiService {
     }
   }
 
+  static Future<Map<String, dynamic>> superAdminUpdateTenant({
+    required String tenantId,
+    required String restaurantName,
+    required String domain,
+    required String customDomain,
+    required String contactEmail,
+    required String contactPhone,
+    required String location,
+    required String color,
+    required String fontFamily,
+    required String logoUrl,
+    required double vatPercentage,
+    required double serviceChargePercentage,
+  }) async {
+    try {
+      final response = await _post(
+        Uri.parse(
+          "$baseUrl/super_admin_update_tenant.php?t=${DateTime.now().millisecondsSinceEpoch}",
+        ),
+        body: json.encode({
+          'tenant_id': tenantId,
+          'restaurant_name': restaurantName,
+          'domain': domain,
+          'custom_domain': customDomain,
+          'contact_email': contactEmail,
+          'contact_phone': contactPhone,
+          'location': location,
+          'color': color,
+          'font_family': fontFamily,
+          'logo_url': logoUrl,
+          'vat_percentage': vatPercentage,
+          'service_charge_percentage': serviceChargePercentage,
+        }),
+        headers: {'Content-Type': 'application/json'},
+      );
+      debugPrint(
+        "API superAdminUpdateTenant response (${response.statusCode}): ${response.body}",
+      );
+      if (response.statusCode == 200) {
+        final res = json.decode(response.body);
+        return {
+          "success": res['status'] == 'success' || res['success'] == true,
+          "message":
+              res['message'] ?? 'Restaurant profile updated successfully!',
+          "tenant": res['tenant'],
+        };
+      }
+      return {
+        "success": false,
+        "message": "Server error (${response.statusCode})",
+      };
+    } catch (e) {
+      debugPrint("API Error (superAdminUpdateTenant): $e");
+      return {"success": false, "message": e.toString()};
+    }
+  }
+
+  static Future<Map<String, dynamic>> superAdminToggleTenantStatus({
+    required String tenantId,
+    required bool isActive,
+  }) async {
+    try {
+      final response = await _post(
+        Uri.parse(
+          "$baseUrl/super_admin_toggle_tenant_status.php?t=${DateTime.now().millisecondsSinceEpoch}",
+        ),
+        body: json.encode({
+          'tenant_id': tenantId,
+          'is_active': isActive ? 1 : 0,
+        }),
+        headers: {'Content-Type': 'application/json'},
+      );
+      debugPrint(
+        "API superAdminToggleTenantStatus response (${response.statusCode}): ${response.body}",
+      );
+      if (response.statusCode == 200) {
+        final res = json.decode(response.body);
+        return {
+          "success": res['status'] == 'success' || res['success'] == true,
+          "message": res['message'] ?? 'Status updated successfully!',
+          "is_active": res['is_active'],
+        };
+      }
+      return {
+        "success": false,
+        "message": "Server error (${response.statusCode})",
+      };
+    } catch (e) {
+      debugPrint("API Error (superAdminToggleTenantStatus): $e");
+      return {"success": false, "message": e.toString()};
+    }
+  }
+
   static Future<Map<String, dynamic>?> fetchMenu(String tenantId) async {
     try {
       // Add timestamp to bypass server/browser cache
@@ -241,11 +378,22 @@ class ApiService {
 
   static Future<List<Map<String, dynamic>>?> fetchTenants() async {
     try {
-      final response = await _get(Uri.parse("$baseUrl/get_tenants.php"));
+      final token = await getSuperAdminToken();
+      final headers = <String, String>{};
+      if (token != null && token.isNotEmpty) {
+        headers['Authorization'] = '******';
+      }
+      final response = await _get(
+        Uri.parse(
+          "$baseUrl/get_tenants.php?t=${DateTime.now().millisecondsSinceEpoch}",
+        ),
+        headers: headers,
+      );
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        if (data['status'] == 'success')
+        if (data['status'] == 'success') {
           return List<Map<String, dynamic>>.from(data['data']);
+        }
       }
       return null;
     } catch (e) {
@@ -272,9 +420,14 @@ class ApiService {
     required String pin,
   }) async {
     try {
+      final token = await getSuperAdminToken();
+      final headers = <String, String>{"Content-Type": "application/json"};
+      if (token != null && token.isNotEmpty) {
+        headers['Authorization'] = '******';
+      }
       final response = await _post(
         Uri.parse("$baseUrl/update_tenant_credentials.php"),
-        headers: {"Content-Type": "application/json"},
+        headers: headers,
         body: json.encode({"tenant_id": tenantId, "email": email, "pin": pin}),
       );
       return json.decode(response.body);
@@ -599,121 +752,88 @@ class ApiService {
     String tenantId,
     int packageId,
   ) async {
-    await _ensureLocalSubscriptionRequestsLoaded();
-    final pkgs = await fetchSubscriptionPackages();
-    final pkg = pkgs.firstWhere(
-      (p) => int.tryParse(p['id'].toString()) == packageId,
-      orElse: () => _defaultPackages.firstWhere(
-        (p) => p['id'] == packageId,
-        orElse: () => _defaultPackages[1],
-      ),
-    );
-
-    final String tId = tenantId.isNotEmpty ? tenantId : 'startups_main';
-    final newId = DateTime.now().millisecondsSinceEpoch % 100000;
-    final newReq = {
-      'id': newId,
-      'tenant_id': tId,
-      'package_id': packageId,
-      'package_name': pkg['name'] ?? 'Package',
-      'duration_days': pkg['duration_days'] ?? 28,
-      'price': pkg['price'] ?? '799.00',
-      'perks': pkg['perks'] ?? '',
-      'restaurant_name':
-          TenantService().currentTenant.value?.name ?? 'Restaurant #$tId',
-      'custom_domain': TenantService().currentTenant.value?.domain ?? tId,
-      'status': 'Pending',
-      'requested_at': DateTime.now().toString().split('.')[0],
-    };
-
-    _localSubscriptionRequests.insert(0, newReq);
-    await _persistLocalSubscriptionRequests();
-
+    final String tId = tenantId.trim();
+    if (tId.isEmpty || packageId <= 0) {
+      return {
+        "success": false,
+        "message": "A valid tenant and subscription package are required.",
+      };
+    }
     try {
       final response = await _post(
         Uri.parse("$baseUrl/subscription_api.php?action=request_package"),
         headers: {"Content-Type": "application/json"},
         body: json.encode({"tenant_id": tId, "package_id": packageId}),
       );
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data['status'] == 'success') {
-          if (data['request_id'] != null) {
-            newReq['id'] = data['request_id'];
-            await _persistLocalSubscriptionRequests();
-          }
-          return {
-            "success": true,
-            "message":
-                data['message'] ??
-                'Subscription request submitted successfully!',
-          };
-        }
+      final decoded = json.decode(response.body);
+      if (response.statusCode == 200 &&
+          decoded is Map &&
+          decoded['status'] == 'success') {
+        return {
+          "success": true,
+          "message": decoded['message'] ?? 'Subscription request submitted.',
+          "request_id": decoded['request_id'],
+        };
       }
-    } catch (e) {
-      debugPrint("Server request notice: $e");
-    }
 
-    return {
-      "success": true,
-      "message":
-          "Subscription request submitted! Awaiting Super Admin approval.",
-    };
+      final message = decoded is Map ? decoded['message']?.toString() : null;
+      return {
+        "success": false,
+        "message": message?.isNotEmpty == true
+            ? message!
+            : "Request failed (HTTP ${response.statusCode}).",
+      };
+    } catch (e) {
+      debugPrint("Subscription request failed: $e");
+      return {
+        "success": false,
+        "message": "Could not submit the request to the server: $e",
+      };
+    }
   }
 
   static Future<List<Map<String, dynamic>>> fetchMySubscriptionRequests(
     String tenantId,
   ) async {
-    await _ensureLocalSubscriptionRequestsLoaded();
-    final String tId = tenantId.isNotEmpty ? tenantId : 'startups_main';
-
-    List<Map<String, dynamic>> serverReqs = [];
-    try {
-      final response = await _get(
-        Uri.parse(
-          "$baseUrl/subscription_api.php?action=get_my_requests&tenant_id=$tId",
-        ),
+    final tId = tenantId.trim();
+    if (tId.isEmpty) {
+      throw StateError(
+        "Tenant ID is missing; subscription requests cannot load.",
       );
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data['status'] == 'success' &&
-            data['data'] != null &&
-            data['data'] is List) {
-          serverReqs = List<Map<String, dynamic>>.from(data['data']);
-        }
-      }
-    } catch (e) {
-      debugPrint("Error fetching my requests from server: $e");
     }
 
-    final Map<String, Map<String, dynamic>> map = {};
-    for (var r in _localSubscriptionRequests.where(
-      (x) => x['tenant_id'].toString() == tId,
-    )) {
-      map[r['id'].toString()] = Map<String, dynamic>.from(r);
-    }
-    for (var r in serverReqs) {
-      map[r['id'].toString()] = Map<String, dynamic>.from(r);
+    final response = await _get(
+      Uri.parse(
+        "$baseUrl/subscription_api.php?action=get_my_requests&tenant_id=${Uri.encodeQueryComponent(tId)}",
+      ),
+    );
+    final decoded = json.decode(response.body);
+    if (response.statusCode != 200 ||
+        decoded is! Map ||
+        decoded['status'] != 'success' ||
+        decoded['data'] is! List) {
+      final message = decoded is Map ? decoded['message']?.toString() : null;
+      throw StateError(
+        message?.isNotEmpty == true
+            ? message!
+            : "Could not load subscription requests (HTTP ${response.statusCode}).",
+      );
     }
 
-    final list = map.values.toList();
-    list.sort((a, b) {
-      int idA = int.tryParse(a['id'].toString()) ?? 0;
-      int idB = int.tryParse(b['id'].toString()) ?? 0;
-      return idB.compareTo(idA);
-    });
-    return list;
+    return List<Map<String, dynamic>>.from(decoded['data']);
   }
 
   static Future<List<Map<String, dynamic>>>
   fetchPendingSubscriptionRequests() async {
-    await _ensureLocalSubscriptionRequestsLoaded();
     List<Map<String, dynamic>> serverReqs = [];
 
     try {
       final token = await getSuperAdminToken();
+      if (token == null || token.isEmpty) {
+        throw StateError("Super Admin session expired. Please sign in again.");
+      }
       final headers = <String, String>{};
-      if (token != null && token.isNotEmpty) {
+      if (token.isNotEmpty) {
         headers['Authorization'] = 'Bearer $token';
       }
 
@@ -727,91 +847,30 @@ class ApiService {
             data['data'] != null &&
             data['data'] is List) {
           serverReqs = List<Map<String, dynamic>>.from(data['data']);
+        } else {
+          throw StateError(
+            data is Map
+                ? (data['message']?.toString() ??
+                      "Could not load pending subscription requests.")
+                : "The server returned an invalid pending-requests response.",
+          );
         }
+      } else {
+        throw StateError(
+          "Could not load pending requests (HTTP ${response.statusCode}).",
+        );
       }
     } catch (e) {
       debugPrint("Error fetching pending requests from server: $e");
+      rethrow;
     }
 
-    final Map<String, Map<String, dynamic>> map = {};
-    for (var r in _localSubscriptionRequests.where(
-      (x) => (x['status'] ?? '').toString() == 'Pending',
-    )) {
-      map[r['id'].toString()] = Map<String, dynamic>.from(r);
-    }
-    for (var r in serverReqs) {
-      map[r['id'].toString()] = Map<String, dynamic>.from(r);
-    }
-
-    return map.values.toList();
+    return serverReqs;
   }
 
   static Future<Map<String, dynamic>> approveSubscriptionRequest(
     int requestId,
   ) async {
-    await _ensureLocalSubscriptionRequestsLoaded();
-    final reqIdStr = requestId.toString();
-
-    String pkgName = 'Pro Plan';
-    int durationDays = 30;
-
-    for (var r in _localSubscriptionRequests) {
-      if (r['id'].toString() == reqIdStr) {
-        r['status'] = 'Approved';
-        r['approved_by'] = 'admin';
-        r['approved_at'] = DateTime.now().toString().split('.')[0];
-        pkgName = (r['package_name'] ?? 'Pro Plan').toString();
-        durationDays =
-            int.tryParse(r['duration_days']?.toString() ?? '30') ?? 30;
-        break;
-      }
-    }
-    await _persistLocalSubscriptionRequests();
-
-    // UPDATE CURRENT TENANT IN MEMORY (Instant UI Refresh)
-    final curTenant = TenantService().currentTenant.value;
-    if (curTenant != null) {
-      final now = DateTime.now();
-      DateTime baseDate = now;
-      if (curTenant.subscriptionEnd != null &&
-          curTenant.subscriptionEnd!.isNotEmpty) {
-        try {
-          final exp = DateTime.parse(curTenant.subscriptionEnd!);
-          if (exp.isAfter(now)) baseDate = exp;
-        } catch (_) {}
-      }
-      final newExp = baseDate.add(Duration(days: durationDays));
-
-      final updatedTenant = Tenant(
-        id: curTenant.id,
-        name: curTenant.name,
-        logo: curTenant.logo,
-        color: curTenant.color,
-        domain: curTenant.domain,
-        isActive: true,
-        plan: pkgName,
-        currencyCode: curTenant.currencyCode,
-        currencySymbol: curTenant.currencySymbol,
-        country: curTenant.country,
-        state: curTenant.state,
-        expiry: newExp.toIso8601String(),
-        startDate: curTenant.startDate ?? now.toIso8601String(),
-        subscriptionStatus: 'Active',
-        subscriptionStart: curTenant.subscriptionStart ?? now.toIso8601String(),
-        subscriptionEnd: newExp.toIso8601String(),
-        storage: curTenant.storage,
-        latitude: curTenant.latitude,
-        longitude: curTenant.longitude,
-        googleMapsLink: curTenant.googleMapsLink,
-        instagramLink: curTenant.instagramLink,
-        facebookLink: curTenant.facebookLink,
-        tiktokLink: curTenant.tiktokLink,
-        isPremiumEnabled: curTenant.isPremiumEnabled,
-      );
-      TenantService().currentTenant.value = updatedTenant;
-      TenantService().notifyListeners();
-    }
-
     try {
       final token = await getSuperAdminToken();
       final headers = <String, String>{"Content-Type": "application/json"};
@@ -832,36 +891,29 @@ class ApiService {
             "message": data['message'] ?? 'Subscription approved!',
           };
         }
+        return {
+          "success": false,
+          "message":
+              data['message'] ?? 'The server could not approve this request.',
+        };
       }
+      return {
+        "success": false,
+        "message": "Approval failed (HTTP ${response.statusCode}).",
+      };
     } catch (e) {
-      debugPrint("Server approval notice: $e");
+      debugPrint("Subscription approval failed: $e");
+      return {
+        "success": false,
+        "message": "Could not approve the request on the server: $e",
+      };
     }
-
-    return {
-      "success": true,
-      "message":
-          "Subscription request #$requestId approved successfully! Plan '$pkgName' (+ $durationDays days) activated.",
-    };
   }
 
   static Future<Map<String, dynamic>> rejectSubscriptionRequest(
     int requestId, {
     String? note,
   }) async {
-    await _ensureLocalSubscriptionRequestsLoaded();
-    final reqIdStr = requestId.toString();
-
-    for (var r in _localSubscriptionRequests) {
-      if (r['id'].toString() == reqIdStr) {
-        r['status'] = 'Rejected';
-        r['rejection_note'] = note ?? 'Request rejected by Super Admin';
-        r['approved_by'] = 'admin';
-        r['approved_at'] = DateTime.now().toString().split('.')[0];
-        break;
-      }
-    }
-    await _persistLocalSubscriptionRequests();
-
     try {
       final token = await getSuperAdminToken();
       final headers = <String, String>{"Content-Type": "application/json"};
@@ -882,15 +934,23 @@ class ApiService {
             "message": data['message'] ?? 'Subscription rejected',
           };
         }
+        return {
+          "success": false,
+          "message":
+              data['message'] ?? 'The server could not reject this request.',
+        };
       }
+      return {
+        "success": false,
+        "message": "Rejection failed (HTTP ${response.statusCode}).",
+      };
     } catch (e) {
-      debugPrint("Server rejection notice: $e");
+      debugPrint("Subscription rejection failed: $e");
+      return {
+        "success": false,
+        "message": "Could not reject the request on the server: $e",
+      };
     }
-
-    return {
-      "success": true,
-      "message": "Subscription request #$requestId rejected.",
-    };
   }
 
   static Future<Map<String, dynamic>> saveSubscriptionPackage(
@@ -1525,16 +1585,20 @@ class ApiService {
   }
 
   static Future<Map<String, dynamic>> staffLogin({
-    required String domain,
+    required String tenantId,
     required String email,
     required String pin,
   }) async {
     try {
       _staffSessionCookie = null;
+      _staffApiToken = null;
+      _staffApiTokenLoaded = true;
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('staff_api_token');
       final response = await _post(
         Uri.parse("$baseUrl/staff_login.php"),
         headers: {"Content-Type": "application/json"},
-        body: json.encode({"domain": domain, "email": email, "pin": pin}),
+        body: json.encode({"tenant_id": tenantId, "email": email, "pin": pin}),
       );
       _captureStaffSessionCookie(response);
       final decoded = json.decode(response.body);
@@ -1548,14 +1612,20 @@ class ApiService {
       if (response.statusCode < 200 ||
           response.statusCode >= 300 ||
           decoded['status'] != 'success' ||
-          decoded['user'] is! Map) {
+          decoded['user'] is! Map ||
+          decoded['token'] is! String ||
+          (decoded['token'] as String).isEmpty) {
         _staffSessionCookie = null;
         return {
           "success": false,
           "message": decoded['message'] ?? "Staff login failed.",
         };
       }
+      _staffApiToken = decoded['token'] as String;
+      await prefs.setString('staff_api_token', _staffApiToken!);
       if (!kIsWeb && _staffSessionCookie == null) {
+        await prefs.remove('staff_api_token');
+        _staffApiToken = null;
         return {
           "success": false,
           "message": "The server did not establish a staff session.",
@@ -1568,6 +1638,8 @@ class ApiService {
       };
     } catch (e) {
       _staffSessionCookie = null;
+      _staffApiToken = null;
+      _staffApiTokenLoaded = true;
       return {"success": false, "message": "Network error"};
     }
   }
@@ -1583,6 +1655,14 @@ class ApiService {
       debugPrint("API Error (staffLogout): $e");
     } finally {
       _staffSessionCookie = null;
+      _staffApiToken = null;
+      _staffApiTokenLoaded = true;
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove('staff_api_token');
+      } catch (e) {
+        debugPrint("Could not clear staff API token: $e");
+      }
     }
   }
 
@@ -2207,48 +2287,79 @@ class ApiService {
   }
 
   // --- PAYMENT METHODS MANAGEMENT APIs ---
-  static final List<Map<String, dynamic>> _localPaymentMethods = [];
+  static final Map<String, List<Map<String, dynamic>>>
+  _localPaymentMethodsByTenant = {};
+  static final Set<String> _loadedLocalPaymentMethodTenants = {};
 
-  static Future<void> _ensureLocalPaymentMethodsLoaded() async {
+  static String _localPaymentMethodsKey(String tenantId) =>
+      'saved_local_payment_methods_${Uri.encodeComponent(tenantId)}';
+
+  static Future<List<Map<String, dynamic>>> _localPaymentMethodsForTenant(
+    String tenantId,
+  ) async {
+    if (_loadedLocalPaymentMethodTenants.contains(tenantId)) {
+      return _localPaymentMethodsByTenant[tenantId] ?? [];
+    }
+
+    final methods = <Map<String, dynamic>>[];
     try {
       final prefs = await SharedPreferences.getInstance();
-      final jsonStr = prefs.getString('saved_local_payment_methods');
+      final scopedJson = prefs.getString(_localPaymentMethodsKey(tenantId));
+      final jsonStr =
+          scopedJson ?? prefs.getString('saved_local_payment_methods');
       if (jsonStr != null && jsonStr.isNotEmpty) {
         final List<dynamic> decoded = json.decode(jsonStr);
         for (var d in decoded) {
+          if (d is! Map) continue;
+          final method = Map<String, dynamic>.from(d);
+          if ((method['tenant_id'] ?? '').toString() != tenantId) continue;
           final mId = (d['method_id'] ?? d['id'] ?? '').toString();
           if (mId.isNotEmpty &&
-              !_localPaymentMethods.any(
-                (x) => (x['method_id'] ?? x['id']).toString() == mId,
+              !methods.any(
+                (existing) =>
+                    (existing['method_id'] ?? existing['id']).toString() == mId,
               )) {
-            _localPaymentMethods.add(Map<String, dynamic>.from(d));
+            methods.add(method);
           }
+        }
+        if (scopedJson == null && methods.isNotEmpty) {
+          await prefs.setString(
+            _localPaymentMethodsKey(tenantId),
+            json.encode(methods),
+          );
         }
       }
     } catch (e) {
-      debugPrint("Error loading saved local payment methods: $e");
+      debugPrint(
+        "Error loading local payment methods for tenant $tenantId: $e",
+      );
     }
+    _localPaymentMethodsByTenant[tenantId] = methods;
+    _loadedLocalPaymentMethodTenants.add(tenantId);
+    return methods;
   }
 
-  static Future<void> _persistLocalPaymentMethods() async {
+  static Future<void> _persistLocalPaymentMethods(String tenantId) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(
-        'saved_local_payment_methods',
-        json.encode(_localPaymentMethods),
+        _localPaymentMethodsKey(tenantId),
+        json.encode(_localPaymentMethodsByTenant[tenantId] ?? []),
       );
     } catch (e) {
-      debugPrint("Error persisting local payment methods: $e");
+      debugPrint(
+        "Error persisting local payment methods for tenant $tenantId: $e",
+      );
     }
   }
 
   static Future<List<Map<String, dynamic>>> fetchPaymentMethods(
     String tenantId,
   ) async {
-    await _ensureLocalPaymentMethodsLoaded();
     final tid = (tenantId.isNotEmpty && tenantId != 'null')
         ? tenantId
         : 'startups_main';
+    final localMethods = await _localPaymentMethodsForTenant(tid);
     List<Map<String, dynamic>> serverMethods = [];
     try {
       final response = await _get(
@@ -2270,10 +2381,12 @@ class ApiService {
 
     final Map<String, Map<String, dynamic>> map = {};
     for (var m in serverMethods) {
+      final methodTenant = (m['tenant_id'] ?? '').toString();
+      if (methodTenant.isNotEmpty && methodTenant != tid) continue;
       final mId = (m['method_id'] ?? m['id'] ?? '').toString();
       if (mId.isNotEmpty) map[mId] = Map<String, dynamic>.from(m);
     }
-    for (var m in _localPaymentMethods) {
+    for (var m in localMethods) {
       final mId = (m['method_id'] ?? m['id'] ?? '').toString();
       if (mId.isNotEmpty) map[mId] = Map<String, dynamic>.from(m);
     }
@@ -2300,17 +2413,17 @@ class ApiService {
     String methodId,
     bool isActive,
   ) async {
-    await _ensureLocalPaymentMethodsLoaded();
     final tid = (tenantId.isNotEmpty && tenantId != 'null')
         ? tenantId
         : 'startups_main';
+    final localMethods = await _localPaymentMethodsForTenant(tid);
 
-    for (var m in _localPaymentMethods) {
+    for (var m in localMethods) {
       if ((m['method_id'] ?? m['id']).toString() == methodId) {
         m['is_active'] = isActive ? 1 : 0;
       }
     }
-    await _persistLocalPaymentMethods();
+    await _persistLocalPaymentMethods(tid);
 
     try {
       final response = await _post(
@@ -2331,30 +2444,30 @@ class ApiService {
     } catch (e) {
       debugPrint("API Error toggling payment method: $e");
     }
-    return true;
+    return false;
   }
 
   static Future<bool> savePaymentMethod(
     String tenantId,
     Map<String, dynamic> methodData,
   ) async {
-    await _ensureLocalPaymentMethodsLoaded();
     final tid = (tenantId.isNotEmpty && tenantId != 'null')
         ? tenantId
         : 'startups_main';
+    final localMethods = await _localPaymentMethodsForTenant(tid);
     final payload = Map<String, dynamic>.from(methodData);
     payload['tenant_id'] = tid;
 
     final mId = (payload['method_id'] ?? payload['id'] ?? '').toString();
-    final idx = _localPaymentMethods.indexWhere(
+    final idx = localMethods.indexWhere(
       (m) => (m['method_id'] ?? m['id']).toString() == mId,
     );
     if (idx >= 0) {
-      _localPaymentMethods[idx] = payload;
+      localMethods[idx] = payload;
     } else {
-      _localPaymentMethods.add(payload);
+      localMethods.add(payload);
     }
-    await _persistLocalPaymentMethods();
+    await _persistLocalPaymentMethods(tid);
 
     try {
       final response = await _post(
@@ -2372,21 +2485,21 @@ class ApiService {
     } catch (e) {
       debugPrint("API Error saving payment method: $e");
     }
-    return true;
+    return false;
   }
 
   static Future<bool> deletePaymentMethod(
     String tenantId,
     String methodId,
   ) async {
-    await _ensureLocalPaymentMethodsLoaded();
     final tid = (tenantId.isNotEmpty && tenantId != 'null')
         ? tenantId
         : 'startups_main';
-    _localPaymentMethods.removeWhere(
+    final localMethods = await _localPaymentMethodsForTenant(tid);
+    localMethods.removeWhere(
       (m) => (m['method_id'] ?? m['id']).toString() == methodId,
     );
-    await _persistLocalPaymentMethods();
+    await _persistLocalPaymentMethods(tid);
 
     try {
       final response = await _post(
@@ -2403,7 +2516,7 @@ class ApiService {
     } catch (e) {
       debugPrint("API Error deleting payment method: $e");
     }
-    return true;
+    return false;
   }
 
   static Future<List<Map<String, dynamic>>?> fetchDivisions(
@@ -2630,6 +2743,7 @@ class ApiService {
   static Future<void> _cachePlacedOrder(
     Map<String, dynamic> orderData,
     int orderId,
+    int? orderNumber,
   ) async {
     final tenantId = orderData['tenant_id']?.toString() ?? '';
     final userId = orderData['user_id']?.toString() ?? '';
@@ -2646,6 +2760,7 @@ class ApiService {
         : <Map<String, dynamic>>[];
     final snapshot = <String, dynamic>{
       'id': orderId,
+      if (orderNumber != null) 'tenant_order_number': orderNumber,
       'tenant_id': tenantId,
       'user_id': userId,
       'customer_email': orderData['customer_email'] ?? '',
@@ -2723,7 +2838,10 @@ class ApiService {
       if (decoded['items'] is List) {
         requestData['items'] = decoded['items'];
       }
-      await _cachePlacedOrder(requestData, orderId);
+      final orderNumber = int.tryParse(
+        decoded['order_number']?.toString() ?? '',
+      );
+      await _cachePlacedOrder(requestData, orderId, orderNumber);
       return {...decoded, 'order_id': orderId};
     } catch (e) {
       debugPrint("Order request failed: $e");
@@ -3030,10 +3148,18 @@ class ApiService {
     }
   }
 
-  static Future<String?> fetchOrderStatus(int orderId) async {
+  static Future<String?> fetchOrderStatus(
+    int orderId, {
+    required String tenantId,
+  }) async {
     try {
       final response = await _get(
-        Uri.parse("$baseUrl/get_order_status.php?order_id=$orderId"),
+        Uri.parse("$baseUrl/get_order_status.php").replace(
+          queryParameters: {
+            'order_id': orderId.toString(),
+            'tenant_id': tenantId,
+          },
+        ),
       );
       if (response.statusCode == 200)
         return json.decode(response.body)['order_status'];
@@ -3047,50 +3173,14 @@ class ApiService {
     int orderId,
     int waiterId,
   ) async {
-    try {
-      final response = await _post(
-        Uri.parse("$baseUrl/waiter_approve_order.php"),
-        headers: {"Content-Type": "application/json"},
-        body: json.encode({"order_id": orderId, "waiter_id": waiterId}),
-      );
-
-      final result = json.decode(response.body);
-      if (result['status'] == 'success') {
-        return {"success": true};
-      } else {
-        return {
-          "success": false,
-          "message": result['message'] ?? "Server error",
-        };
-      }
-    } catch (e) {
-      return {"success": false, "message": "Connection error: $e"};
-    }
+    return updateOrderStatus(orderId, 'Approved');
   }
 
   static Future<Map<String, dynamic>> waiterAcceptDelivery(
     int orderId,
     int waiterId,
   ) async {
-    try {
-      final response = await _post(
-        Uri.parse("$baseUrl/waiter_accept_delivery.php"),
-        headers: {"Content-Type": "application/json"},
-        body: json.encode({"order_id": orderId, "waiter_id": waiterId}),
-      );
-
-      final result = json.decode(response.body);
-      if (result['status'] == 'success') {
-        return {"success": true};
-      } else {
-        return {
-          "success": false,
-          "message": result['message'] ?? "Server error",
-        };
-      }
-    } catch (e) {
-      return {"success": false, "message": "Connection error: $e"};
-    }
+    return updateOrderStatus(orderId, 'OnWay');
   }
 
   static Future<List<Map<String, dynamic>>?> fetchActiveOrders(
@@ -3141,6 +3231,30 @@ class ApiService {
     String? audioFileName,
   }) async {
     try {
+      if (transcript.trimLeft().startsWith('ASSISTANCE:')) {
+        final requestText = transcript.trim().replaceFirst(
+          RegExp(r'^ASSISTANCE:\s*'),
+          '',
+        );
+        final response = await _post(
+          Uri.parse('$baseUrl/waiter_assistance_api.php?action=create'),
+          headers: {"Content-Type": "application/json"},
+          body: json.encode({
+            "tenant_id": tenantId,
+            "table_number": tableNumber,
+            "customer_name": customerName,
+            "request_text": requestText,
+          }),
+        );
+        final result = json.decode(response.body);
+        return result is Map<String, dynamic>
+            ? result
+            : {
+                "status": "error",
+                "message": "Invalid waiter assistance response",
+              };
+      }
+
       final Uri url = Uri.parse("$baseUrl/upload_voice_order.php");
 
       if (audioBytes != null && audioBytes.isNotEmpty) {
@@ -3182,20 +3296,45 @@ class ApiService {
   static Future<List<Map<String, dynamic>>?> fetchVoiceOrders(
     String tenantId,
   ) async {
+    final orders = <Map<String, dynamic>>[];
+    var succeeded = false;
     try {
       final response = await _get(
         Uri.parse("$baseUrl/get_voice_orders.php?tenant_id=$tenantId"),
       );
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        if (data['status'] == 'success') {
-          return List<Map<String, dynamic>>.from(data['orders'] ?? []);
+        if (data is Map<String, dynamic> && data['status'] == 'success') {
+          orders.addAll(List<Map<String, dynamic>>.from(data['orders'] ?? []));
+          succeeded = true;
         }
       }
-      return null;
     } catch (e) {
-      return null;
+      debugPrint("API Error fetching voice orders: $e");
     }
+
+    try {
+      final response = await _get(
+        Uri.parse(
+          "$baseUrl/waiter_assistance_api.php?action=list&tenant_id=${Uri.encodeQueryComponent(tenantId)}",
+        ),
+      );
+      final data = json.decode(response.body);
+      if (response.statusCode == 200 &&
+          data is Map<String, dynamic> &&
+          data['status'] == 'success' &&
+          data['orders'] is List) {
+        orders.addAll(List<Map<String, dynamic>>.from(data['orders']));
+        succeeded = true;
+      } else {
+        debugPrint(
+          "Server could not load waiter assistance requests: ${response.body}",
+        );
+      }
+    } catch (e) {
+      debugPrint("API Error fetching waiter assistance requests: $e");
+    }
+    return succeeded ? orders : null;
   }
 
   static Future<Map<String, dynamic>> requestWaiterAssistance({
@@ -3205,8 +3344,9 @@ class ApiService {
     required String assistanceType,
     String? notes,
   }) async {
+    final trimmedNotes = notes?.trim() ?? '';
     final String transcript =
-        "ASSISTANCE: $assistanceType - ${notes ?? 'Immediate assistance requested'}";
+        "ASSISTANCE: $assistanceType - ${trimmedNotes.isEmpty ? 'Immediate assistance requested' : trimmedNotes}";
     return uploadVoiceOrder(
       tenantId: tenantId,
       tableNumber: tableNumber,
@@ -3242,6 +3382,113 @@ class ApiService {
     }
   }
 
+  static Future<Map<String, dynamic>> completeWaiterAssistance(
+    int requestId,
+  ) async {
+    try {
+      final response = await _post(
+        Uri.parse('$baseUrl/waiter_assistance_api.php?action=complete'),
+        headers: {"Content-Type": "application/json"},
+        body: json.encode({"request_id": requestId}),
+      );
+      final result = json.decode(response.body);
+      if (result is Map<String, dynamic> &&
+          response.statusCode >= 200 &&
+          response.statusCode < 300 &&
+          result['status'] == 'success') {
+        return {"success": true};
+      }
+      return {
+        "success": false,
+        "message": result is Map<String, dynamic>
+            ? result['message']?.toString() ??
+                  "Could not complete the assistance request"
+            : "Invalid waiter assistance response",
+      };
+    } catch (e) {
+      debugPrint("API Error completing waiter assistance request: $e");
+      return {
+        "success": false,
+        "message": "Could not complete the assistance request",
+      };
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>?> fetchWaiterReadyTasks(
+    String tenantId,
+  ) async {
+    try {
+      final response = await _get(
+        Uri.parse(
+          '$baseUrl/waiter_ready_api.php?action=list&tenant_id=${Uri.encodeQueryComponent(tenantId)}',
+        ),
+      );
+      final result = json.decode(response.body);
+      if (response.statusCode >= 200 &&
+          response.statusCode < 300 &&
+          result is Map<String, dynamic> &&
+          result['status'] == 'success' &&
+          result['tasks'] is List) {
+        return List<Map<String, dynamic>>.from(result['tasks']);
+      }
+      debugPrint('Could not load ready waiter tasks: ${response.body}');
+      return null;
+    } catch (e) {
+      debugPrint('API Error loading ready waiter tasks: $e');
+      return null;
+    }
+  }
+
+  static Future<Map<String, dynamic>> notifyWaitersOrderReady(
+    int orderId,
+  ) async {
+    return _waiterReadyTaskAction('notify', {'order_id': orderId});
+  }
+
+  static Future<Map<String, dynamic>> acceptWaiterReadyTask(int taskId) async {
+    return _waiterReadyTaskAction('accept', {'task_id': taskId});
+  }
+
+  static Future<Map<String, dynamic>> completeWaiterReadyTask(
+    int taskId,
+  ) async {
+    return _waiterReadyTaskAction('complete', {'task_id': taskId});
+  }
+
+  static Future<Map<String, dynamic>> _waiterReadyTaskAction(
+    String action,
+    Map<String, dynamic> payload,
+  ) async {
+    try {
+      final response = await _post(
+        Uri.parse('$baseUrl/waiter_ready_api.php?action=$action'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(payload),
+      );
+      final result = json.decode(response.body);
+      if (result is Map<String, dynamic> &&
+          response.statusCode >= 200 &&
+          response.statusCode < 300 &&
+          result['status'] == 'success') {
+        return {'success': true, ...result};
+      }
+      return {
+        'success': false,
+        'message': result is Map<String, dynamic>
+            ? result['message']?.toString() ??
+                  'Could not process the waiter service task.'
+            : 'Invalid waiter service task response.',
+      };
+    } catch (e) {
+      debugPrint('API Error for waiter ready task ($action): $e');
+      return {
+        'success': false,
+        'message':
+            'Could not process the waiter service task. Check the connection and retry.',
+      };
+    }
+  }
+
   static Future<Map<String, dynamic>> deleteVoiceOrder(int voiceOrderId) async {
     try {
       final response = await _post(
@@ -3266,35 +3513,29 @@ class ApiService {
   static Future<List<Map<String, dynamic>>?> fetchPendingOrders(
     String tenantId,
   ) async {
-    try {
-      final response = await _get(
-        Uri.parse("$baseUrl/get_pending_orders.php?tenant_id=$tenantId"),
-      );
-      if (response.statusCode == 200)
-        return List<Map<String, dynamic>>.from(
-          json.decode(response.body)['data'],
-        );
-      return null;
-    } catch (e) {
-      return null;
-    }
+    final orders = await fetchAllOrders(tenantId);
+    if (orders == null) return null;
+    return orders.where((order) {
+      final status = (order['status'] ?? '').toString().toLowerCase();
+      return status == 'pending' || status == 'awaiting approval';
+    }).toList();
   }
 
   static Future<List<Map<String, dynamic>>?> fetchOrderHistory(
     String tenantId,
   ) async {
-    try {
-      final response = await _get(
-        Uri.parse("$baseUrl/get_order_history.php?tenant_id=$tenantId"),
-      );
-      if (response.statusCode == 200)
-        return List<Map<String, dynamic>>.from(
-          json.decode(response.body)['data'],
-        );
-      return null;
-    } catch (e) {
-      return null;
-    }
+    final orders = await fetchAllOrders(tenantId);
+    if (orders == null) return null;
+    return orders.where((order) {
+      final status = (order['status'] ?? '').toString().toLowerCase();
+      return status == 'completed' ||
+          status == 'served' ||
+          status == 'onway' ||
+          status == 'cancelled' ||
+          status == 'canceled' ||
+          status == 'settled' ||
+          status == 'voided';
+    }).toList();
   }
 
   static Future<Map<String, dynamic>?> fetchLatestOrder(
@@ -3321,35 +3562,37 @@ class ApiService {
     }
   }
 
-  static Future<int> checkOrderChange(String tenantId) async {
-    try {
-      final response = await _get(
-        Uri.parse("$baseUrl/check_order_sync.php?tenant_id=$tenantId"),
-      );
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data['status'] == 'success') return (data['last_mod'] as int);
-      }
-      return 0;
-    } catch (e) {
-      return 0;
-    }
-  }
-
-  static Future<bool> addTable(String tenantId, int tableNumber) async {
+  static Future<Map<String, dynamic>> addTable(
+    String tenantId,
+    int tableNumber,
+  ) async {
     try {
       final response = await _post(
         Uri.parse("$baseUrl/add_table.php"),
         headers: {"Content-Type": "application/json"},
         body: json.encode({"tenant_id": tenantId, "table_number": tableNumber}),
       );
-      if (response.statusCode == 200) {
-        return json.decode(response.body)['status'] == 'success';
+      final decoded = json.decode(response.body);
+      if (decoded is Map<String, dynamic> &&
+          response.statusCode >= 200 &&
+          response.statusCode < 300 &&
+          decoded['status'] == 'success') {
+        return {"success": true};
       }
+      return {
+        "success": false,
+        "message": decoded is Map<String, dynamic>
+            ? decoded['message']?.toString() ??
+                  "The server could not add this table."
+            : "The server returned an invalid response while adding the table.",
+      };
     } catch (e) {
       debugPrint("Server add table request failed: $e");
+      return {
+        "success": false,
+        "message": "Could not connect to the server to add this table.",
+      };
     }
-    return false;
   }
 
   static Future<List<Map<String, dynamic>>?> fetchTables(
@@ -3376,7 +3619,10 @@ class ApiService {
       var resultTables = List<Map<String, dynamic>>.from(
         (decoded['data'] as List).map((table) {
           final item = Map<String, dynamic>.from(table as Map);
-          item['status'] = item['lifecycle_status']?.toString() ?? 'Available';
+          item['status'] =
+              item['lifecycle_status']?.toString() ??
+              item['status']?.toString() ??
+              'Available';
           return item;
         }),
       );
@@ -3472,14 +3718,20 @@ class ApiService {
   ) async {
     try {
       final response = await _get(
-        Uri.parse("$baseUrl/get_stock_reports.php?tenant_id=$tenantId"),
+        Uri.parse(
+          "$baseUrl/stock_reports_api.php?action=list&tenant_id=$tenantId",
+        ),
       );
-      if (response.statusCode == 200)
-        return List<Map<String, dynamic>>.from(
-          json.decode(response.body)['data'],
-        );
+      final data = json.decode(response.body);
+      if (response.statusCode == 200 &&
+          data is Map<String, dynamic> &&
+          data['status'] == 'success' &&
+          data['data'] is List) {
+        return List<Map<String, dynamic>>.from(data['data']);
+      }
       return null;
     } catch (e) {
+      debugPrint("API Error fetching stock reports: $e");
       return null;
     }
   }
@@ -3489,25 +3741,35 @@ class ApiService {
   ) async {
     try {
       final response = await _post(
-        Uri.parse("$baseUrl/report_stock_out.php"),
+        Uri.parse("$baseUrl/stock_reports_api.php?action=create"),
         headers: {"Content-Type": "application/json"},
         body: json.encode(reportData),
       );
-      return json.decode(response.body);
+      final data = json.decode(response.body);
+      return data is Map<String, dynamic>
+          ? data
+          : {"success": false, "message": "Invalid server response"};
     } catch (e) {
-      return {"success": false};
+      return {"success": false, "message": "Could not send stock report: $e"};
     }
   }
 
   static Future<int> fetchUnseenStockAlertCount(String tenantId) async {
     try {
       final response = await _get(
-        Uri.parse("$baseUrl/get_unseen_alert_count.php?tenant_id=$tenantId"),
+        Uri.parse(
+          "$baseUrl/stock_reports_api.php?action=unseen_count&tenant_id=$tenantId",
+        ),
       );
-      if (response.statusCode == 200)
-        return json.decode(response.body)['count'] ?? 0;
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data is Map<String, dynamic>) {
+          return int.tryParse(data['count']?.toString() ?? '') ?? 0;
+        }
+      }
       return 0;
     } catch (e) {
+      debugPrint("API Error fetching unseen stock count: $e");
       return 0;
     }
   }
@@ -3515,11 +3777,13 @@ class ApiService {
   static Future<void> markStockAlertsAsSeen(String tenantId) async {
     try {
       await _post(
-        Uri.parse("$baseUrl/mark_alerts_seen.php"),
+        Uri.parse("$baseUrl/stock_reports_api.php?action=mark_seen"),
         headers: {"Content-Type": "application/json"},
         body: json.encode({"tenant_id": tenantId}),
       );
-    } catch (e) {}
+    } catch (e) {
+      debugPrint("API Error marking stock alerts as seen: $e");
+    }
   }
 
   static Future<Map<String, dynamic>> updateStockReportStatus(
@@ -3528,13 +3792,16 @@ class ApiService {
   ) async {
     try {
       final response = await _post(
-        Uri.parse("$baseUrl/update_stock_report.php"),
+        Uri.parse("$baseUrl/stock_reports_api.php?action=update_status"),
         headers: {"Content-Type": "application/json"},
         body: json.encode({"report_id": reportId, "status": status}),
       );
-      return json.decode(response.body);
+      final data = json.decode(response.body);
+      return data is Map<String, dynamic>
+          ? data
+          : {"success": false, "message": "Invalid server response"};
     } catch (e) {
-      return {"success": false};
+      return {"success": false, "message": "Could not update stock report: $e"};
     }
   }
 
@@ -4255,20 +4522,36 @@ class ApiService {
     try {
       final response = await _post(
         Uri.parse("$baseUrl/nearby_api.php?action=toggle_follow"),
-        headers: {"Content-Type": "application/json"},
+        headers: await _customerSessionHeaders(tenantId),
         body: json.encode({
           "tenant_id": tenantId,
           "user_id": myId,
           "target_id": targetId,
         }),
       );
-      final data = json.decode(response.body);
+      final decoded = json.decode(response.body);
+      final data = decoded is Map<String, dynamic>
+          ? decoded
+          : <String, dynamic>{};
+      if (response.statusCode < 200 ||
+          response.statusCode >= 300 ||
+          data['status'] != 'success') {
+        final message =
+            data['message']?.toString() ?? 'HTTP ${response.statusCode}';
+        debugPrint('Follow request failed: $message');
+        return {
+          "success": false,
+          "is_following": false,
+          "message": message,
+        };
+      }
       return {
-        "success": data['status'] == 'success',
+        "success": true,
         "is_following": data['following'] ?? false,
       };
     } catch (e) {
-      return {"success": false, "is_following": false};
+      debugPrint('Follow request failed: $e');
+      return {"success": false, "is_following": false, "message": e.toString()};
     }
   }
 
@@ -4646,10 +4929,16 @@ class ApiService {
     String? userId,
   }) async {
     try {
-      final tId = tenantId.isNotEmpty ? tenantId : 'startups_main';
+      final tId = tenantId.trim();
+      if (tId.isEmpty) return null;
       final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final url = Uri.parse(
-        "$baseUrl/music_api.php?action=get_status&tenant_id=$tId&user_id=${userId ?? ''}&t=$timestamp",
+      final url = Uri.parse("$baseUrl/music_api.php").replace(
+        queryParameters: {
+          'action': 'get_status',
+          'tenant_id': tId,
+          'user_id': userId ?? '',
+          't': timestamp.toString(),
+        },
       );
       final response = await _get(url);
       if (response.statusCode == 200) return json.decode(response.body);
@@ -4666,21 +4955,39 @@ class ApiService {
     required int songId,
   }) async {
     try {
-      final tId = tenantId.isNotEmpty ? tenantId : 'startups_main';
+      final tId = tenantId.trim();
+      if (tId.isEmpty) {
+        return {
+          'status': 'error',
+          'message': 'A restaurant is required to vote for a song.',
+        };
+      }
       final timestamp = DateTime.now().millisecondsSinceEpoch;
 
       // Try GET first to bypass Chrome localhost CORS
-      final url = Uri.parse(
-        "$baseUrl/music_api.php?action=vote&tenant_id=$tId&song_id=$songId&user_id=$userId&t=$timestamp",
+      final url = Uri.parse("$baseUrl/music_api.php").replace(
+        queryParameters: {
+          'action': 'vote',
+          'tenant_id': tId,
+          'song_id': songId.toString(),
+          'user_id': userId,
+          't': timestamp.toString(),
+        },
       );
       final response = await _get(url);
       if (response.statusCode == 200) return json.decode(response.body);
 
       // Fallback POST
       final postRes = await _post(
-        Uri.parse("$baseUrl/music_api.php?action=vote&tenant_id=$tId"),
+        Uri.parse(
+          "$baseUrl/music_api.php",
+        ).replace(queryParameters: {'action': 'vote', 'tenant_id': tId}),
         headers: {"Content-Type": "application/json"},
-        body: json.encode({"song_id": songId, "user_id": userId}),
+        body: json.encode({
+          "tenant_id": tId,
+          "song_id": songId,
+          "user_id": userId,
+        }),
       );
       return json.decode(postRes.body);
     } catch (e) {
@@ -4693,9 +5000,13 @@ class ApiService {
     Map<String, dynamic> data,
   ) async {
     try {
-      final tId = (data['tenant_id'] ?? '').toString().isNotEmpty
-          ? data['tenant_id'].toString()
-          : 'startups_main';
+      final tId = (data['tenant_id'] ?? '').toString().trim();
+      if (tId.isEmpty) {
+        return {
+          'success': false,
+          'message': 'A restaurant is required to request a song.',
+        };
+      }
       final title = Uri.encodeComponent((data['title'] ?? '').toString());
       final artist = Uri.encodeComponent(
         (data['artist'] ?? 'Requested').toString(),
@@ -4735,9 +5046,8 @@ class ApiService {
   // Admin Music Controls
   static Future<bool> adminSetNowPlaying(Map<String, dynamic> data) async {
     try {
-      final tId = (data['tenant_id'] ?? '').toString().isNotEmpty
-          ? data['tenant_id'].toString()
-          : 'startups_main';
+      final tId = (data['tenant_id'] ?? '').toString().trim();
+      if (tId.isEmpty) return false;
       final qId = data['queue_id'] ?? 0;
       final title = Uri.encodeComponent((data['title'] ?? '').toString());
       final artist = Uri.encodeComponent((data['artist'] ?? '').toString());
@@ -4772,7 +5082,8 @@ class ApiService {
 
   static Future<bool> adminDeleteQueue(String tenantId, int songId) async {
     try {
-      final tId = tenantId.isNotEmpty ? tenantId : 'startups_main';
+      final tId = tenantId.trim();
+      if (tId.isEmpty) return false;
       final timestamp = DateTime.now().millisecondsSinceEpoch;
 
       // Direct GET URL bypasses Chrome CORS preflight on localhost!
@@ -4806,9 +5117,11 @@ class ApiService {
 
   static Future<bool> adminCreateMusicPoll(Map<String, dynamic> data) async {
     try {
+      final tenantId = (data['tenant_id'] ?? '').toString().trim();
+      if (tenantId.isEmpty) return false;
       final response = await _post(
         Uri.parse(
-          "$baseUrl/music_api.php?action=create_poll&tenant_id=${data['tenant_id']}",
+          "$baseUrl/music_api.php?action=create_poll&tenant_id=${Uri.encodeQueryComponent(tenantId)}",
         ),
         headers: {"Content-Type": "application/json"},
         body: json.encode(data),
@@ -5441,7 +5754,7 @@ class ApiService {
         Uri.parse(
           "$baseUrl/game_squad_api.php?action=create_battleground&tenant_id=$tenantId",
         ),
-        headers: await _customerSessionHeaders(),
+        headers: await _customerSessionHeaders(tenantId),
         body: json.encode({'duration_seconds': durationSeconds}),
       );
       final decoded = json.decode(response.body);
@@ -5501,7 +5814,7 @@ class ApiService {
         Uri.parse(
           "$baseUrl/game_squad_api.php?action=invite_to_squad&tenant_id=$tenantId",
         ),
-        headers: await _customerSessionHeaders(),
+        headers: await _customerSessionHeaders(tenantId),
         body: json.encode({
           "user_id": userId,
           "squad_id": squadId,
@@ -5522,7 +5835,7 @@ class ApiService {
         Uri.parse(
           "$baseUrl/game_squad_api.php?action=get_open_battlegrounds&tenant_id=$tenantId",
         ),
-        headers: await _customerSessionHeaders(),
+        headers: await _customerSessionHeaders(tenantId),
       );
       final decoded = json.decode(response.body);
       if (response.statusCode != 200 || decoded['status'] != 'success') {
@@ -5549,7 +5862,7 @@ class ApiService {
         Uri.parse(
           "$baseUrl/game_squad_api.php?action=request_battleground_join&tenant_id=$tenantId",
         ),
-        headers: await _customerSessionHeaders(),
+        headers: await _customerSessionHeaders(tenantId),
         body: json.encode({'squad_id': squadId}),
       );
       return Map<String, dynamic>.from(json.decode(response.body));
@@ -5568,7 +5881,7 @@ class ApiService {
         Uri.parse(
           "$baseUrl/game_squad_api.php?action=get_battleground_join_requests&tenant_id=$tenantId&squad_id=$squadId",
         ),
-        headers: await _customerSessionHeaders(),
+        headers: await _customerSessionHeaders(tenantId),
       );
       final decoded = json.decode(response.body);
       if (response.statusCode != 200 || decoded['status'] != 'success') {
@@ -5595,7 +5908,7 @@ class ApiService {
         Uri.parse(
           "$baseUrl/game_squad_api.php?action=respond_to_battleground_join&tenant_id=$tenantId",
         ),
-        headers: await _customerSessionHeaders(),
+        headers: await _customerSessionHeaders(tenantId),
         body: json.encode({
           'squad_id': squadId,
           'requester_id': requesterId,
@@ -5620,7 +5933,7 @@ class ApiService {
         Uri.parse(
           "$baseUrl/game_squad_api.php?action=respond_to_invite&tenant_id=$tenantId",
         ),
-        headers: await _customerSessionHeaders(),
+        headers: await _customerSessionHeaders(tenantId),
         body: json.encode({
           "user_id": userId,
           "squad_id": squadId,
@@ -5717,7 +6030,7 @@ class ApiService {
     try {
       final response = await _post(
         Uri.parse("$baseUrl/submit_final_score.php?tenant_id=$tenantId"),
-        headers: await _customerSessionHeaders(),
+        headers: await _customerSessionHeaders(tenantId),
         body: json.encode({
           'squad_id': squadId,
           'tap_count': tapCount,

@@ -17,15 +17,15 @@ class MenuPage extends StatefulWidget {
 
 class _MenuPageState extends State<MenuPage> {
   String _selectedCategory = 'All';
-  String _selectedQuickToggle = '🌟 All Items';
+  String _selectedQuickToggle = 'All Items';
 
   final List<String> _quickToggles = [
-    '🌟 All Items',
-    '✨ AI Picks',
-    '⚡ Fast Food',
-    '🔥 Popular',
-    '🌱 Healthy',
-    '😋 Sweet Cravings',
+    'All Items',
+    'AI Picks',
+    'Fast Food',
+    'Popular',
+    'Healthy',
+    'Sweet Cravings',
   ];
 
   String _resolveImageUrl(String raw) {
@@ -57,28 +57,28 @@ class _MenuPageState extends State<MenuPage> {
     if (hour >= 5 && hour < 11) {
       return {
         'slot': 'Morning',
-        'greeting': 'Morning ☕',
+        'greeting': 'Morning',
         'sub': 'Fresh coffee, tea & warm breakfast!',
         'weather': '22°C Mild',
       };
     } else if (hour >= 11 && hour < 16) {
       return {
         'slot': 'Lunch',
-        'greeting': 'Lunch 🍕',
+        'greeting': 'Lunch',
         'sub': 'Heavy meals, rice & combos for your break.',
         'weather': '29°C Sunny',
       };
     } else if (hour >= 16 && hour < 22) {
       return {
         'slot': 'Evening',
-        'greeting': 'Evening 🍔',
+        'greeting': 'Evening',
         'sub': 'Crispy sides & tasty burgers to unwind.',
         'weather': '24°C Pleasant',
       };
     } else {
       return {
         'slot': 'Late Night',
-        'greeting': 'Late Night 🌙',
+        'greeting': 'Late Night',
         'sub': 'Quick desserts & refreshing drinks.',
         'weather': '20°C Cool',
       };
@@ -183,23 +183,23 @@ class _MenuPageState extends State<MenuPage> {
     }
 
     // 2. Filter by Quick Toggle Meal Tag
-    if (_selectedQuickToggle == '🌟 All Items') {
+    if (_selectedQuickToggle == 'All Items') {
       return items;
-    } else if (_selectedQuickToggle == '🔥 Popular') {
+    } else if (_selectedQuickToggle == 'Popular') {
       items.sort(
         (a, b) => (b['rating'] ?? '0').toString().compareTo(
           (a['rating'] ?? '0').toString(),
         ),
       );
       return items;
-    } else if (_selectedQuickToggle == '✨ AI Picks') {
+    } else if (_selectedQuickToggle == 'AI Picks') {
       return items.where((i) {
         final tag = (i['meal_tag'] ?? i['tag'] ?? '').toString();
         final r = double.tryParse(i['rating']?.toString() ?? '0') ?? 0;
         return tag.contains('AI Picks') || r >= 4.5;
       }).toList();
-    } else if (_selectedQuickToggle == '⚡ Fast Order' ||
-        _selectedQuickToggle == '⚡ Fast Food') {
+    } else if (_selectedQuickToggle == 'Fast Order' ||
+        _selectedQuickToggle == 'Fast Food') {
       return items.where((i) {
         final tag = (i['meal_tag'] ?? i['tag'] ?? '').toString();
         final title = (i['title'] ?? '').toString().toLowerCase();
@@ -211,7 +211,7 @@ class _MenuPageState extends State<MenuPage> {
             title.contains('fry') ||
             title.contains('sandwich');
       }).toList();
-    } else if (_selectedQuickToggle == '🌱 Healthy') {
+    } else if (_selectedQuickToggle == 'Healthy') {
       return items.where((i) {
         final tag = (i['meal_tag'] ?? i['tag'] ?? '').toString();
         final title = (i['title'] ?? '').toString().toLowerCase();
@@ -221,8 +221,8 @@ class _MenuPageState extends State<MenuPage> {
             title.contains('soup') ||
             title.contains('veg');
       }).toList();
-    } else if (_selectedQuickToggle == '😋 Sweet Craving' ||
-        _selectedQuickToggle == '😋 Sweet Cravings') {
+    } else if (_selectedQuickToggle == 'Sweet Craving' ||
+        _selectedQuickToggle == 'Sweet Cravings') {
       return items.where((i) {
         final tag = (i['meal_tag'] ?? i['tag'] ?? '').toString();
         final title = (i['title'] ?? '').toString().toLowerCase();
@@ -555,7 +555,7 @@ class _MenuPageState extends State<MenuPage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                "Recommended for ${timeContext['greeting']} ✨",
+                "Recommended for ${timeContext['greeting']}",
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,

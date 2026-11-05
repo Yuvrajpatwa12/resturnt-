@@ -23,8 +23,8 @@ class _ProductionDashboardScreenState extends State<ProductionDashboardScreen> {
   List<Map<String, dynamic>> _historyOrders = [];
   List<Map<String, dynamic>> _stockReports = [];
   bool _isLoading = true;
+  bool _isRefreshing = false;
   Timer? _refreshTimer;
-  int _lastMod = 0;
 
   @override
   void initState() {
@@ -33,7 +33,7 @@ class _ProductionDashboardScreenState extends State<ProductionDashboardScreen> {
     // Auto-sync polling every 8 seconds
     _refreshTimer = Timer.periodic(
       const Duration(seconds: 8),
-      (_) => _syncDashboard(),
+      (_) => _refreshDashboard(),
     );
   }
 
@@ -44,38 +44,60 @@ class _ProductionDashboardScreenState extends State<ProductionDashboardScreen> {
     super.dispose();
   }
 
-  Future<void> _syncDashboard() async {
-    final tenant = TenantService().currentTenant.value;
-    if (tenant == null) return;
-
-    final serverMod = await ApiService.checkOrderChange(tenant.id);
-    if (serverMod > _lastMod) {
-      _refreshDashboard();
-      _lastMod = serverMod;
-    }
-  }
-
   Future<void> _refreshDashboard({bool isInitial = false}) async {
+    if (_isRefreshing) return;
     final tenant = TenantService().currentTenant.value;
-    final tenantId = tenant?.id ?? 'startups_main';
+    if (tenant == null) {
+      if (mounted) {
+        setState(() {
+          _liveOrders = [];
+          _historyOrders = [];
+          _stockReports = [];
+          _isLoading = false;
+        });
+      }
+      return;
+    }
 
+    _isRefreshing = true;
     if (isInitial) {
       setState(() => _isLoading = true);
     }
 
-    final results = await Future.wait([
-      ApiService.fetchActiveOrders(tenantId),
-      ApiService.fetchOrderHistory(tenantId),
-      ApiService.fetchStockReports(tenantId),
-    ]);
-
-    if (mounted) {
-      setState(() {
-        _liveOrders = (results[0] as List<Map<String, dynamic>>?) ?? [];
-        _historyOrders = (results[1] as List<Map<String, dynamic>>?) ?? [];
-        _stockReports = (results[2] as List<Map<String, dynamic>>?) ?? [];
-        _isLoading = false;
-      });
+    try {
+      final results = await Future.wait([
+        ApiService.fetchAllOrders(tenant.id),
+        ApiService.fetchStockReports(tenant.id),
+      ]);
+      final orders = results[0] as List<Map<String, dynamic>>?;
+      if (mounted) {
+        setState(() {
+          _liveOrders = (orders ?? []).where((order) {
+            final status = (order['status'] ?? '').toString().toLowerCase();
+            return status != 'cancelled' &&
+                status != 'canceled' &&
+                status != 'completed' &&
+                status != 'settled' &&
+                status != 'voided' &&
+                status != 'served' &&
+                status != 'onway';
+          }).toList();
+          _historyOrders = (orders ?? []).where((order) {
+            final status = (order['status'] ?? '').toString().toLowerCase();
+            return status == 'completed' ||
+                status == 'served' ||
+                status == 'onway' ||
+                status == 'cancelled' ||
+                status == 'canceled' ||
+                status == 'settled' ||
+                status == 'voided';
+          }).toList();
+          _stockReports = (results[1] as List<Map<String, dynamic>>?) ?? [];
+          _isLoading = false;
+        });
+      }
+    } finally {
+      _isRefreshing = false;
     }
   }
 
@@ -125,6 +147,7 @@ class _ProductionDashboardScreenState extends State<ProductionDashboardScreen> {
     } else if (st == 'ready' || st == 'cooked' || st == 'prepared') {
       return 'Ready';
     } else if (st == 'completed' ||
+        st == 'onway' ||
         st == 'delivered' ||
         st == 'served' ||
         st == 'closed') {
@@ -480,7 +503,9 @@ class _ProductionDashboardScreenState extends State<ProductionDashboardScreen> {
     final allCombined = [..._liveOrders, ..._historyOrders];
 
     final matches = allCombined.where((o) {
-      final idStr = (o['id'] ?? o['order_id'] ?? '').toString().toLowerCase();
+      final idStr = (o['tenant_order_number'] ?? o['id'] ?? o['order_id'] ?? '')
+          .toString()
+          .toLowerCase();
       final tblStr = (o['table_id'] ?? o['table_number'] ?? o['table'] ?? '')
           .toString()
           .toLowerCase();
@@ -555,6 +580,7 @@ class _ProductionDashboardScreenState extends State<ProductionDashboardScreen> {
 
   Widget _buildOrderTrackerCard(Map<String, dynamic> order) {
     final orderId = order['id'] ?? order['order_id'] ?? 'N/A';
+    final displayOrderNumber = order['tenant_order_number'] ?? orderId;
     final tableId =
         order['table_id'] ?? order['table_number'] ?? order['table'] ?? 'N/A';
     final customer =
@@ -632,7 +658,7 @@ class _ProductionDashboardScreenState extends State<ProductionDashboardScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        "ORDER #$orderId",
+                        "ORDER #$displayOrderNumber",
                         style: const TextStyle(
                           fontWeight: FontWeight.w900,
                           fontSize: 16,
@@ -1092,7 +1118,8 @@ class _ProductionDashboardScreenState extends State<ProductionDashboardScreen> {
   }
 
   Widget _buildKitchenTicketCard(Map<String, dynamic> order) {
-    final orderId = order['id'] ?? order['order_id'] ?? '0';
+    final orderId =
+        order['tenant_order_number'] ?? order['id'] ?? order['order_id'] ?? '0';
     final tableId =
         order['table_id'] ?? order['table_number'] ?? order['table'] ?? '1';
     final stage = _getOrderStage(order);

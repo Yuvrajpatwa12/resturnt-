@@ -46,12 +46,22 @@ class _PaymentSetupScreenState extends State<PaymentSetupScreen> {
       );
     });
 
-    await ApiService.deletePaymentMethod(tenantId, methodId.toString());
+    final success = await ApiService.deletePaymentMethod(
+      tenantId,
+      methodId.toString(),
+    );
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Account profile '${acc['name']}' deleted.")),
+        SnackBar(
+          content: Text(
+            success
+                ? "Account profile '${acc['name']}' deleted."
+                : "Could not delete '${acc['name']}' from the server. Refresh to check its status.",
+          ),
+        ),
       );
+      if (!success) await _loadSavedAccounts();
     }
   }
 
@@ -67,17 +77,26 @@ class _PaymentSetupScreenState extends State<PaymentSetupScreen> {
       acc['is_active'] = newValue;
     });
 
-    await ApiService.togglePaymentMethodStatus(tenantId, methodId, newValue);
+    final success = await ApiService.togglePaymentMethodStatus(
+      tenantId,
+      methodId,
+      newValue,
+    );
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            "${acc['name']} is now ${newValue ? 'ACTIVE' : 'DISABLED'} in POS & Database!",
+            success
+                ? "${acc['name']} is now ${newValue ? 'ACTIVE' : 'DISABLED'} in POS & Database."
+                : "Could not update '${acc['name']}' on the server. Refresh to check its status.",
           ),
-          backgroundColor: newValue ? AdminTheme.emeraldGreen : Colors.grey,
+          backgroundColor: success
+              ? (newValue ? AdminTheme.emeraldGreen : Colors.grey)
+              : Colors.orange,
         ),
       );
+      if (!success) await _loadSavedAccounts();
     }
   }
 
@@ -694,7 +713,7 @@ class _PaymentSetupScreenState extends State<PaymentSetupScreen> {
                           };
 
                           Navigator.pop(ctx);
-                          await ApiService.savePaymentMethod(
+                          final success = await ApiService.savePaymentMethod(
                             tenantId,
                             newMethodPayload,
                           );
@@ -704,9 +723,13 @@ class _PaymentSetupScreenState extends State<PaymentSetupScreen> {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(
-                                  "Payment Account '$provider ($holderName)' Registered & Saved!",
+                                  success
+                                      ? "Payment Account '$provider ($holderName)' saved to the server."
+                                      : "Payment Account '$provider ($holderName)' is saved in this browser only; server save failed.",
                                 ),
-                                backgroundColor: AdminTheme.emeraldGreen,
+                                backgroundColor: success
+                                    ? AdminTheme.emeraldGreen
+                                    : Colors.orange,
                                 duration: const Duration(seconds: 2),
                               ),
                             );
@@ -833,14 +856,23 @@ class _PaymentSetupScreenState extends State<PaymentSetupScreen> {
               };
 
               Navigator.pop(ctx);
-              await ApiService.savePaymentMethod(tenantId, updatedData);
+              final success = await ApiService.savePaymentMethod(
+                tenantId,
+                updatedData,
+              );
               await _loadSavedAccounts();
 
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text("Account profile updated in Database!"),
-                    backgroundColor: AdminTheme.emeraldGreen,
+                  SnackBar(
+                    content: Text(
+                      success
+                          ? "Account profile updated on the server."
+                          : "Account profile is updated in this browser only; server save failed.",
+                    ),
+                    backgroundColor: success
+                        ? AdminTheme.emeraldGreen
+                        : Colors.orange,
                   ),
                 );
               }

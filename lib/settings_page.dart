@@ -106,7 +106,22 @@ class _SettingsPageState extends State<SettingsPage> {
               _buildActionRow(
                 icon: Icons.notifications_none_rounded,
                 title: "Notifications",
-                onTap: () => ShopManager.instance.setupPushNotifications(),
+                onTap: () async {
+                  final result = await ShopManager.instance
+                      .requestNotificationPermissionAndEnableEmail();
+                  if (!mounted) {
+                    return;
+                  }
+                  if (result == NotificationPermissionResult.emailEnabled) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          'Email alerts are on. Browser push notifications are unavailable.',
+                        ),
+                      ),
+                    );
+                  }
+                },
               ),
             ]),
 
@@ -120,12 +135,6 @@ class _SettingsPageState extends State<SettingsPage> {
               _buildSettingRow(
                 icon: Icons.sync_rounded,
                 title: "Sync Google Profile",
-                onTap: () {},
-              ),
-              _buildSettingRow(
-                icon: Icons.delete_outline_rounded,
-                title: "Delete Account",
-                titleColor: Colors.redAccent,
                 onTap: () {},
               ),
             ]),
@@ -316,7 +325,7 @@ class _EmailNotificationSettingsState
   bool _loading = true;
   bool _saving = false;
   final Map<String, bool> _preferences = {
-    'email_enabled': false,
+    'email_enabled': true,
     'email_follow': true,
     'email_wave': true,
     'email_message': true,

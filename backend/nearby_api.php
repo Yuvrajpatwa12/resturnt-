@@ -30,6 +30,16 @@ try {
         PRIMARY KEY (tenant_id, user_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci");
 
+    $conn->query("CREATE TABLE IF NOT EXISTS user_follows (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        follower_id VARCHAR(190) NOT NULL,
+        following_id VARCHAR(190) NOT NULL,
+        tenant_id VARCHAR(50) NOT NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY unique_tenant_follow (tenant_id, follower_id, following_id),
+        KEY idx_following_tenant (tenant_id, following_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci");
+
     if ($conn->connect_error) {
         throw new RuntimeException('Database connection failed');
     }
@@ -87,12 +97,44 @@ try {
             }
             break;
 
+        case 'go_offline':
+            $data = json_decode(file_get_contents('php://input'));
+            $uid = trim((string)($data->user_id ?? ''));
+            $tid = trim((string)($data->tenant_id ?? $tenant_id));
+            if ($uid === '' || $tid === '') {
+                http_response_code(400);
+                echo json_encode(["status" => "error", "message" => "User and restaurant are required"]);
+                exit;
+            }
+
+            $stmt = $conn->prepare(
+                "DELETE FROM restaurant_presence
+                 WHERE user_id COLLATE utf8mb4_general_ci =
+                       ? COLLATE utf8mb4_general_ci
+                   AND tenant_id COLLATE utf8mb4_general_ci =
+                       ? COLLATE utf8mb4_general_ci"
+            );
+            $stmt->bind_param("ss", $uid, $tid);
+            $stmt->execute();
+            $stmt->close();
+            echo json_encode(["status" => "success", "message" => "Presence cleared"]);
+            break;
+
         case 'get_active_users':
             $my_id = $_GET['user_id'] ?? '';
-            // Fetch users seen in the last 60 minutes + Follow Status
-            // Use GROUP BY to avoid duplicates
-            $sql = "SELECT p.*,
-                    COALESCE(c.name, p.user_name) AS user_name,
+            // Resolve the display name with a scalar lookup so duplicate
+            // customer records cannot multiply one presence row.
+            $sql = "SELECT DISTINCT p.*,
+                    COALESCE(
+                        (SELECT c.name FROM customers c
+                         WHERE LOWER(c.email) COLLATE utf8mb4_general_ci =
+                               LOWER(p.user_id) COLLATE utf8mb4_general_ci
+                           AND c.tenant_id COLLATE utf8mb4_general_ci =
+                               p.tenant_id COLLATE utf8mb4_general_ci
+                           AND c.name IS NOT NULL AND TRIM(c.name) <> ''
+                         LIMIT 1),
+                        p.user_name
+                    ) AS user_name,
                     COALESCE(privacy.is_public, 1) AS is_public,
                     COALESCE(privacy.allow_waves, 1) AS allow_waves,
                     (SELECT COUNT(*) FROM user_follows f
@@ -104,11 +146,6 @@ try {
                             AND f.following_id COLLATE utf8mb4_general_ci = ? COLLATE utf8mb4_general_ci
                             AND f.tenant_id COLLATE utf8mb4_general_ci = p.tenant_id COLLATE utf8mb4_general_ci) as follows_me
                     FROM restaurant_presence p
-                    LEFT JOIN customers c
-                        ON LOWER(c.email) COLLATE utf8mb4_general_ci =
-                           LOWER(p.user_id) COLLATE utf8mb4_general_ci
-                       AND c.tenant_id COLLATE utf8mb4_general_ci =
-                           p.tenant_id COLLATE utf8mb4_general_ci
                     LEFT JOIN user_privacy_settings privacy
                         ON privacy.tenant_id COLLATE utf8mb4_general_ci = p.tenant_id COLLATE utf8mb4_general_ci
                             AND privacy.user_id COLLATE utf8mb4_general_ci = p.user_id COLLATE utf8mb4_general_ci
@@ -132,19 +169,40 @@ try {
 
         case 'toggle_follow':
             $data = json_decode(file_get_contents('php://input'));
-            $my_id = (string)($data->user_id ?? '');
-            $target_id = (string)($data->target_id ?? '');
-            $tid = (string)($data->tenant_id ?? '');
+            $my_id = trim((string)($data->user_id ?? ''));
+            $target_id = trim((string)($data->target_id ?? ''));
+            $tid = trim((string)($data->tenant_id ?? ''));
 
-            if (empty($my_id) || empty($target_id) || $my_id == $target_id) {
+            if ($my_id === '' || $target_id === '' || $tid === '' ||
+                strcasecmp($my_id, $target_id) === 0) {
+                http_response_code(400);
                 echo json_encode(["status" => "error", "message" => "Invalid request"]);
+                exit;
+            }
+
+            $providedTokenHash = customerSessionTokenHash();
+            $authenticatedEmail = authenticatedCustomerEmail($conn, $tid);
+            if ($providedTokenHash !== null && $authenticatedEmail === null) {
+                http_response_code(401);
+                echo json_encode(["status" => "error", "message" => "Customer session expired. Please sign in again."]);
+                exit;
+            }
+            if ($authenticatedEmail !== null &&
+                strcasecmp(trim($authenticatedEmail), $my_id) !== 0) {
+                http_response_code(403);
+                echo json_encode(["status" => "error", "message" => "Customer session does not match this profile."]);
                 exit;
             }
 
             // Check current status
             $check = $conn->prepare("SELECT id FROM user_follows WHERE follower_id = ? AND following_id = ? AND tenant_id = ?");
+            if (!$check) {
+                throw new RuntimeException("Could not prepare follow lookup: " . $conn->error);
+            }
             $check->bind_param("sss", $my_id, $target_id, $tid);
-            $check->execute();
+            if (!$check->execute()) {
+                throw new RuntimeException("Could not check follow status: " . $check->error);
+            }
             $res = $check->get_result();
 
             $is_now_following = false;
@@ -157,51 +215,89 @@ try {
                 $stmt = $conn->prepare("INSERT INTO user_follows (follower_id, following_id, tenant_id) VALUES (?, ?, ?)");
                 $is_now_following = true;
             }
+            $check->close();
+            if (!$stmt) {
+                throw new RuntimeException("Could not prepare follow update: " . $conn->error);
+            }
             $stmt->bind_param("sss", $my_id, $target_id, $tid);
 
             if ($stmt->execute()) {
+                $stmt->close();
                 // Notifications logic
                 if ($is_now_following) {
-                    $name_stmt = $conn->prepare("SELECT name FROM customers WHERE email = ? AND tenant_id = ? LIMIT 1");
-                    $name_stmt->bind_param("ss", $my_id, $tid);
-                    $name_stmt->execute();
-                    $name_res = $name_stmt->get_result();
-                    $my_name = ($name_res && $row = $name_res->fetch_assoc()) ? $row['name'] : 'Someone';
-                    $name_stmt->close();
+                    try {
+                        $name_stmt = $conn->prepare("SELECT name FROM customers WHERE email = ? AND tenant_id = ? LIMIT 1");
+                        if (!$name_stmt) {
+                            throw new RuntimeException("Could not prepare follower lookup: " . $conn->error);
+                        }
+                        $name_stmt->bind_param("ss", $my_id, $tid);
+                        $name_stmt->execute();
+                        $name_res = $name_stmt->get_result();
+                        $my_name = ($name_res && $row = $name_res->fetch_assoc()) ? $row['name'] : 'Someone';
+                        $name_stmt->close();
 
-                    $notif_title = "New Follower!";
-                    $notif_msg = "@$my_name just followed your profile.";
-                    $notif_ins = $conn->prepare("INSERT INTO notifications (tenant_id, user_id, title, message, type, sender_id) VALUES (?, ?, ?, ?, 'follow', ?)");
-                    $notif_ins->bind_param("sssss", $tid, $target_id, $notif_title, $notif_msg, $my_id);
-                    if ($notif_ins->execute()) {
-                        $notification_id = (int)$conn->insert_id;
-                        queueEmailNotification($conn, $tid, $target_id, $notification_id, 'follow');
-                        notifyUser($target_id, $tid, $notif_title, $notif_msg, 'follow', $my_id, $notification_id);
-                    }
+                        $notif_title = "New Follower!";
+                        $notif_msg = "@$my_name just followed your profile.";
+                        $notif_ins = $conn->prepare("INSERT INTO notifications (tenant_id, user_id, title, message, type, sender_id) VALUES (?, ?, ?, ?, 'follow', ?)");
+                        if (!$notif_ins) {
+                            throw new RuntimeException("Could not prepare follow notification: " . $conn->error);
+                        }
+                        $notif_ins->bind_param("sssss", $tid, $target_id, $notif_title, $notif_msg, $my_id);
+                        if ($notif_ins->execute()) {
+                            $notification_id = (int)$conn->insert_id;
+                            try {
+                                queueEmailNotification($conn, $tid, $target_id, $notification_id, 'follow');
+                            } catch (Throwable $e) {
+                                error_log('Follow saved; email notification failed: ' . $e->getMessage());
+                            }
+                            try {
+                                notifyUser($target_id, $tid, $notif_title, $notif_msg, 'follow', $my_id, $notification_id);
+                            } catch (Throwable $e) {
+                                error_log('Follow saved; push notification failed: ' . $e->getMessage());
+                            }
+                        } else {
+                            error_log('Follow saved; notification insert failed: ' . $notif_ins->error);
+                        }
 
-                    // Check for Mutual friendship
-                    $mutual_stmt = $conn->prepare("SELECT id FROM user_follows
-                        WHERE follower_id = ? AND following_id = ? AND tenant_id = ? LIMIT 1");
-                    $mutual_stmt->bind_param("sss", $target_id, $my_id, $tid);
-                    $mutual_stmt->execute();
-                    $is_mutual = $mutual_stmt->get_result()->num_rows > 0;
-                    $mutual_stmt->close();
-                    if ($is_mutual) {
-                         $f_title = "Mutual Connection!";
-                         $f_msg = "You and @$my_name are now friends. Start chatting!";
-                         $f_type = 'follow_back';
-                         $notif_ins->bind_param("sssss", $tid, $target_id, $f_title, $f_msg, $my_id);
-                         if ($notif_ins->execute()) {
-                             $notification_id = (int)$conn->insert_id;
-                             queueEmailNotification($conn, $tid, $target_id, $notification_id, $f_type);
-                             notifyUser($target_id, $tid, $f_title, $f_msg, $f_type, $my_id, $notification_id);
-                         }
+                        $mutual_stmt = $conn->prepare("SELECT id FROM user_follows
+                            WHERE follower_id = ? AND following_id = ? AND tenant_id = ? LIMIT 1");
+                        if ($mutual_stmt) {
+                            $mutual_stmt->bind_param("sss", $target_id, $my_id, $tid);
+                            $mutual_stmt->execute();
+                            $is_mutual = $mutual_stmt->get_result()->num_rows > 0;
+                            $mutual_stmt->close();
+                            if ($is_mutual) {
+                                $f_title = "Mutual Connection!";
+                                $f_msg = "You and @$my_name are now friends. Start chatting!";
+                                $f_type = 'follow_back';
+                                $notif_ins->bind_param("sssss", $tid, $target_id, $f_title, $f_msg, $my_id);
+                                if ($notif_ins->execute()) {
+                                    $notification_id = (int)$conn->insert_id;
+                                    try {
+                                        queueEmailNotification($conn, $tid, $target_id, $notification_id, $f_type);
+                                    } catch (Throwable $e) {
+                                        error_log('Mutual follow saved; email notification failed: ' . $e->getMessage());
+                                    }
+                                    try {
+                                        notifyUser($target_id, $tid, $f_title, $f_msg, $f_type, $my_id, $notification_id);
+                                    } catch (Throwable $e) {
+                                        error_log('Mutual follow saved; push notification failed: ' . $e->getMessage());
+                                    }
+                                }
+                            }
+                        }
+                        $notif_ins->close();
+                    } catch (Throwable $e) {
+                        error_log('Follow saved; notification creation failed: ' . $e->getMessage());
                     }
-                    $notif_ins->close();
                 }
                 echo json_encode(["status" => "success", "following" => $is_now_following]);
             } else {
-                echo json_encode(["status" => "error", "message" => "Database error: " . $stmt->error]);
+                $error = $stmt->error;
+                $stmt->close();
+                http_response_code(500);
+                error_log('Could not update follow status: ' . $error);
+                echo json_encode(["status" => "error", "message" => "Could not update follow status"]);
             }
             break;
 

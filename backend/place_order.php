@@ -167,6 +167,27 @@ try {
     if ($idempotencyIndex->num_rows === 0) {
         $conn->query("ALTER TABLE orders ADD UNIQUE KEY uniq_orders_tenant_idempotency (tenant_id, idempotency_key)");
     }
+    $tenantOrderNumberColumn = $conn->query(
+        "SHOW COLUMNS FROM orders LIKE 'tenant_order_number'"
+    );
+    if ($tenantOrderNumberColumn->num_rows === 0) {
+        $conn->query(
+            'ALTER TABLE orders ADD COLUMN tenant_order_number INT UNSIGNED DEFAULT NULL'
+        );
+    }
+    $tenantOrderNumberIndex = $conn->query(
+        "SHOW INDEX FROM orders WHERE Key_name = 'uniq_tenant_order_number'"
+    );
+    if ($tenantOrderNumberIndex->num_rows === 0) {
+        $conn->query(
+            'ALTER TABLE orders ADD UNIQUE KEY uniq_tenant_order_number (tenant_id, tenant_order_number)'
+        );
+    }
+    $conn->query("CREATE TABLE IF NOT EXISTS tenant_order_counters (
+        tenant_id VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL PRIMARY KEY,
+        last_number INT UNSIGNED NOT NULL DEFAULT 0,
+        initialized TINYINT(1) NOT NULL DEFAULT 0
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci");
 
     if (!preg_match('/^[A-Za-z0-9._~-]{16,128}$/', $idempotency_key)) {
         http_response_code(400);
@@ -186,7 +207,67 @@ try {
 
     $conn->begin_transaction();
 
-    $replay = $conn->prepare("SELECT id, total_amount FROM orders WHERE tenant_id = ? AND idempotency_key = ? LIMIT 1 FOR UPDATE");
+    $counterInsert = $conn->prepare(
+        'INSERT IGNORE INTO tenant_order_counters (tenant_id, last_number, initialized)
+         VALUES (?, 0, 0)'
+    );
+    $counterInsert->bind_param('s', $tenant_id);
+    $counterInsert->execute();
+    $counterInsert->close();
+
+    $counterStmt = $conn->prepare(
+        'SELECT last_number, initialized FROM tenant_order_counters
+         WHERE tenant_id = ? LIMIT 1 FOR UPDATE'
+    );
+    $counterStmt->bind_param('s', $tenant_id);
+    $counterStmt->execute();
+    $counter = $counterStmt->get_result()->fetch_assoc();
+    $counterStmt->close();
+    if (!$counter) {
+        throw new RuntimeException('Could not initialize restaurant order numbering');
+    }
+
+    $lastOrderNumber = (int)$counter['last_number'];
+    if ((int)$counter['initialized'] !== 1) {
+        $legacyOrders = $conn->prepare(
+            'SELECT id FROM orders
+             WHERE tenant_id = ?
+             ORDER BY created_at ASC, id ASC
+             FOR UPDATE'
+        );
+        $legacyOrders->bind_param('s', $tenant_id);
+        $legacyOrders->execute();
+        $legacyResult = $legacyOrders->get_result();
+        $backfillOrder = $conn->prepare(
+            'UPDATE orders SET tenant_order_number = ?
+             WHERE id = ? AND tenant_id = ?'
+        );
+        $lastOrderNumber = 0;
+        while ($legacyOrder = $legacyResult->fetch_assoc()) {
+            $lastOrderNumber++;
+            $legacyOrderId = (int)$legacyOrder['id'];
+            $backfillOrder->bind_param(
+                'iis',
+                $lastOrderNumber,
+                $legacyOrderId,
+                $tenant_id
+            );
+            $backfillOrder->execute();
+        }
+        $backfillOrder->close();
+        $legacyOrders->close();
+
+        $initializeCounter = $conn->prepare(
+            'UPDATE tenant_order_counters
+             SET last_number = ?, initialized = 1
+             WHERE tenant_id = ?'
+        );
+        $initializeCounter->bind_param('is', $lastOrderNumber, $tenant_id);
+        $initializeCounter->execute();
+        $initializeCounter->close();
+    }
+
+    $replay = $conn->prepare("SELECT id, total_amount, tenant_order_number FROM orders WHERE tenant_id = ? AND idempotency_key = ? LIMIT 1 FOR UPDATE");
     $replay->bind_param("ss", $tenant_id, $idempotency_key);
     $replay->execute();
     $existingOrder = $replay->get_result()->fetch_assoc();
@@ -197,6 +278,7 @@ try {
         echo json_encode([
             "status" => "success",
             "order_id" => $existingOrderId,
+            "order_number" => (int)$existingOrder['tenant_order_number'],
             "total_amount" => $existingOrder['total_amount'],
             "items" => placeOrderStoredItems($conn, $existingOrderId),
             "idempotent_replay" => true,
@@ -291,9 +373,19 @@ try {
     $table_update->bind_param("is", $table_id, $tenant_id);
     $table_update->execute();
 
+    $orderNumber = $lastOrderNumber + 1;
+    $advanceCounter = $conn->prepare(
+        'UPDATE tenant_order_counters
+         SET last_number = ?
+         WHERE tenant_id = ?'
+    );
+    $advanceCounter->bind_param('is', $orderNumber, $tenant_id);
+    $advanceCounter->execute();
+    $advanceCounter->close();
+
     // 3. Create Order
-    $stmt = $conn->prepare("INSERT INTO orders (tenant_id, table_id, user_id, customer_email, total_amount, status, session_id, idempotency_key, created_at) VALUES (?, ?, ?, ?, ?, 'Pending', ?, ?, NOW())");
-    $stmt->bind_param("sissdis", $tenant_id, $table_id, $user_id, $customer_email, $total_amount, $session_id_val, $idempotency_key);
+    $stmt = $conn->prepare("INSERT INTO orders (tenant_id, table_id, user_id, customer_email, total_amount, status, session_id, idempotency_key, tenant_order_number, created_at) VALUES (?, ?, ?, ?, ?, 'Pending', ?, ?, ?, NOW())");
+    $stmt->bind_param("sissdisi", $tenant_id, $table_id, $user_id, $customer_email, $total_amount, $session_id_val, $idempotency_key, $orderNumber);
     $stmt->execute();
     $order_id = (int)$conn->insert_id;
     if ($order_id <= 0) {
@@ -324,11 +416,12 @@ try {
     if (!empty($target_uid) && $target_uid !== 'guest') {
         try {
             $notif_title = "Order Placed!";
-            $notif_msg = "Your Order #$order_id has been received and is pending preparation.";
+            $notif_msg = "Your Order #$orderNumber has been received and is pending preparation.";
 
             $notif_ins = $conn->prepare("INSERT INTO notifications (tenant_id, user_id, title, message, type) VALUES (?, ?, ?, ?, 'order')");
             $notif_ins->bind_param("ssss", $tenant_id, $target_uid, $notif_title, $notif_msg);
             $notif_ins->execute();
+            $customerNotificationId = (int)$conn->insert_id;
 
             // Only queue email if customer_email is provided
             if (!empty($customer_email) && filter_var($customer_email, FILTER_VALIDATE_EMAIL)) {
@@ -342,7 +435,13 @@ try {
                     $pref_ins->bind_param("ss", $tenant_id, $customer_email);
                     $pref_ins->execute();
                 }
-                queueEmailNotification($conn, $tenant_id, $customer_email, $conn->insert_id, 'order');
+                queueEmailNotification(
+                    $conn,
+                    $tenant_id,
+                    $customer_email,
+                    $customerNotificationId,
+                    'order'
+                );
             }
 
             notifyUser($target_uid, $tenant_id, $notif_title, $notif_msg, 'order');
@@ -364,7 +463,7 @@ try {
                 : 'admin';
         }
 
-        $admin_notif_title = "New Order #$order_id";
+        $admin_notif_title = "New Order #$orderNumber";
         $admin_notif_msg = "Table #$table_number - Total: ₹$total_amount";
         $admin_notif = $conn->prepare("INSERT INTO notifications (tenant_id, user_id, title, message, type) VALUES (?, ?, ?, ?, 'order')");
         $admin_notif->bind_param("ssss", $tenant_id, $admin_email, $admin_notif_title, $admin_notif_msg);
@@ -374,9 +473,75 @@ try {
         error_log("Order #$order_id was saved, but admin notification failed: " . $admin_notification_error->getMessage());
     }
 
+    // Notify registered waiter and kitchen accounts for this restaurant only.
+    try {
+        $staffStmt = $conn->prepare(
+            "SELECT DISTINCT LOWER(TRIM(email)) AS email
+             FROM users
+             WHERE tenant_id = ?
+               AND LOWER(TRIM(role)) IN ('waiter', 'kitchen')
+               AND email IS NOT NULL AND TRIM(email) <> ''"
+        );
+        $staffStmt->bind_param('s', $tenant_id);
+        $staffStmt->execute();
+        $staffRecipients = $staffStmt->get_result()->fetch_all(MYSQLI_ASSOC);
+        $staffStmt->close();
+
+        $staffTitle = "New Order #$orderNumber";
+        $itemSummary = implode(', ', array_map(
+            static function ($item) {
+                return (int)$item['quantity'] . ' x ' . $item['product_name'];
+            },
+            $verifiedItems
+        ));
+        $staffMessage = "Table #$table_number • Total: $total_amount • $itemSummary";
+        foreach ($staffRecipients as $recipient) {
+            $staffEmail = strtolower(trim((string)$recipient['email']));
+            if (!filter_var($staffEmail, FILTER_VALIDATE_EMAIL)) {
+                continue;
+            }
+
+            try {
+                $staffNotification = $conn->prepare(
+                    "INSERT INTO notifications
+                     (tenant_id, user_id, title, message, type)
+                     VALUES (?, ?, ?, ?, 'order')"
+                );
+                $staffNotification->bind_param(
+                    'ssss',
+                    $tenant_id,
+                    $staffEmail,
+                    $staffTitle,
+                    $staffMessage
+                );
+                $staffNotification->execute();
+                $staffNotificationId = (int)$conn->insert_id;
+                $staffNotification->close();
+                queueEmailNotification(
+                    $conn,
+                    $tenant_id,
+                    $staffEmail,
+                    $staffNotificationId,
+                    'staff_order'
+                );
+            } catch (Throwable $recipientError) {
+                error_log(
+                    "Order #$order_id staff notification failed for tenant " .
+                    "$tenant_id: " . $recipientError->getMessage()
+                );
+            }
+        }
+    } catch (Throwable $staff_notification_error) {
+        error_log(
+            "Order #$order_id waiter/kitchen notifications failed for tenant " .
+            "$tenant_id: " . $staff_notification_error->getMessage()
+        );
+    }
+
     echo json_encode([
         "status" => "success",
         "order_id" => (int)$order_id,
+        "order_number" => $orderNumber,
         "total_amount" => $total_amount,
         "items" => $verifiedItems,
         "idempotent_replay" => false,
@@ -394,7 +559,7 @@ try {
         try { $conn->rollback(); } catch (Throwable $rollbackError) {}
     }
     if ((int)$e->getCode() === 1062 && $idempotency_key !== '') {
-        $replay = $conn->prepare("SELECT id, total_amount FROM orders WHERE tenant_id = ? AND idempotency_key = ? LIMIT 1");
+        $replay = $conn->prepare("SELECT id, total_amount, tenant_order_number FROM orders WHERE tenant_id = ? AND idempotency_key = ? LIMIT 1");
         $replay->bind_param("ss", $tenant_id, $idempotency_key);
         $replay->execute();
         $existingOrder = $replay->get_result()->fetch_assoc();
@@ -404,6 +569,7 @@ try {
             echo json_encode([
                 "status" => "success",
                 "order_id" => $existingOrderId,
+                "order_number" => (int)($existingOrder['tenant_order_number'] ?? 0),
                 "total_amount" => $existingOrder['total_amount'],
                 "items" => placeOrderStoredItems($conn, $existingOrderId),
                 "idempotent_replay" => true,

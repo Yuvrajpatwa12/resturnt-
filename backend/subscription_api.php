@@ -230,7 +230,9 @@ try {
                        t.restaurant_name, t.custom_domain, t.plan AS current_plan, t.subscription_end
                 FROM subscription_requests r
                 JOIN subscription_packages p ON p.id = r.package_id
-                LEFT JOIN tenants t ON t.tenant_id = r.tenant_id OR t.custom_domain = r.tenant_id
+                LEFT JOIN tenants t
+                  ON t.tenant_id COLLATE utf8mb4_unicode_ci = r.tenant_id COLLATE utf8mb4_unicode_ci
+                  OR t.custom_domain COLLATE utf8mb4_unicode_ci = r.tenant_id COLLATE utf8mb4_unicode_ci
                 WHERE r.status = 'Pending'
                 ORDER BY r.requested_at ASC
             ");
@@ -295,9 +297,12 @@ try {
 
             try {
                 // 1. Mark request as Approved
-                $upd_req = $conn->prepare("UPDATE subscription_requests SET status = 'Approved', approved_by = ?, approved_at = NOW() WHERE id = ?");
+                $upd_req = $conn->prepare("UPDATE subscription_requests SET status = 'Approved', approved_by = ?, approved_at = NOW() WHERE id = ? AND status = 'Pending'");
                 $upd_req->bind_param("si", $admin_user, $request_id);
                 $upd_req->execute();
+                if ($upd_req->affected_rows !== 1) {
+                    throw new RuntimeException("The request is no longer pending.");
+                }
 
                 // 2. Extend or set Tenant subscription_end date & active plan
                 // Formula: IF existing subscription_end is in future, add duration to it. Else, set NOW() + duration.
@@ -314,9 +319,20 @@ try {
                 ");
                 $upd_tenant->bind_param("siiss", $package_name, $duration_days, $duration_days, $tenant_id, $tenant_id);
                 $upd_tenant->execute();
+                if ($upd_tenant->affected_rows === 0) {
+                    throw new RuntimeException("No tenant matched subscription request #$request_id.");
+                }
 
                 $conn->commit();
+            } catch (Throwable $ex) {
+                $conn->rollback();
+                http_response_code(500);
+                echo json_encode(["status" => "error", "message" => "Failed to approve subscription: " . $ex->getMessage()]);
+                break;
+            }
 
+            $notificationWarning = false;
+            try {
                 // Send notification to tenant about subscription approval
                 $tenant_stmt = $conn->prepare("SELECT primary_email, contact_email, restaurant_name FROM tenants WHERE tenant_id = ? OR custom_domain = ? LIMIT 1");
                 $tenant_stmt->bind_param("ss", $tenant_id, $tenant_id);
@@ -336,15 +352,16 @@ try {
                 $notif->bind_param("ssss", $tenant_id, $admin_email, $title, $notif_msg);
                 $notif->execute();
                 queueEmailNotification($conn, $tenant_id, $admin_email, $conn->insert_id, 'subscription');
-
-                echo json_encode([
-                    "status" => "success",
-                    "message" => "Subscription request #$request_id approved successfully. Plan '$package_name' (+ $duration_days days) activated for $tenant_id."
-                ]);
             } catch (Throwable $ex) {
-                $conn->rollback();
-                echo json_encode(["status" => "error", "message" => "Failed to approve subscription: " . $ex->getMessage()]);
+                $notificationWarning = true;
+                error_log("Subscription #$request_id was approved, but its notification failed: " . $ex->getMessage());
             }
+
+            $message = "Subscription request #$request_id approved successfully. Plan '$package_name' (+ $duration_days days) activated for $tenant_id.";
+            if ($notificationWarning) {
+                $message .= " The approval succeeded, but the tenant notification could not be sent.";
+            }
+            echo json_encode(["status" => "success", "message" => $message]);
             break;
 
         case 'reject_request':

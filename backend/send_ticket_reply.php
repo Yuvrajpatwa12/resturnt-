@@ -65,20 +65,27 @@ try {
             $t_res = $t_stmt->get_result();
             if ($t_row = $t_res->fetch_assoc()) {
                 $tenant_id = $t_row['tenant_id'];
-                $admin_stmt = $conn->prepare("SELECT contact_email, primary_email FROM tenants WHERE tenant_id = ? OR custom_domain = ? OR tenant_id = 'startups_main' ORDER BY (contact_email != '') DESC LIMIT 1");
-                $admin_stmt->bind_param("ss", $tenant_id, $tenant_id);
+                $admin_stmt = $conn->prepare("SELECT contact_email, primary_email FROM tenants WHERE tenant_id = ? LIMIT 1");
+                $admin_stmt->bind_param("s", $tenant_id);
                 $admin_stmt->execute();
                 $admin_res = $admin_stmt->get_result();
-                $admin_email = 'yurajpatwa114@gmail.com';
+                $admin_email = '';
                 if ($admin_row = $admin_res->fetch_assoc()) {
                     if (!empty($admin_row['contact_email'])) $admin_email = $admin_row['contact_email'];
                     else if (!empty($admin_row['primary_email'])) $admin_email = $admin_row['primary_email'];
                 }
 
-                $notif = $conn->prepare("INSERT INTO notifications (tenant_id, user_id, title, message, type) VALUES (?, ?, 'Support Reply', ?, 'support_reply')");
-                $notif->bind_param("sss", $tenant_id, $admin_email, $message);
-                if ($notif->execute()) {
-                    queueEmailNotification($conn, $tenant_id, $admin_email, $conn->insert_id, 'support_reply');
+                if (filter_var($admin_email, FILTER_VALIDATE_EMAIL)) {
+                    $notif = $conn->prepare("INSERT INTO notifications (tenant_id, user_id, title, message, type) VALUES (?, ?, 'Support Reply', ?, 'support_reply')");
+                    $notif->bind_param("sss", $tenant_id, $admin_email, $message);
+                    if ($notif->execute()) {
+                        queueEmailNotification($conn, $tenant_id, $admin_email, $conn->insert_id, 'support_reply');
+                    }
+                } else {
+                    error_log(
+                        "Support reply notification skipped: no valid admin email for tenant " .
+                        $tenant_id
+                    );
                 }
             }
         }

@@ -65,6 +65,47 @@ function resendEmailConfig() {
     ];
 }
 
+function restaurantEmailBrandName($conn, $tenantId) {
+    $stmt = $conn->prepare(
+        'SELECT restaurant_name FROM tenants
+         WHERE tenant_id COLLATE utf8mb4_general_ci =
+               ? COLLATE utf8mb4_general_ci
+         LIMIT 1'
+    );
+    if (!$stmt) {
+        throw new Exception('Could not load restaurant name for email branding');
+    }
+    $stmt->bind_param('s', $tenantId);
+    if (!$stmt->execute()) {
+        $stmt->close();
+        throw new Exception('Could not load restaurant name for email branding');
+    }
+    $tenant = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    $brandName = trim((string)($tenant['restaurant_name'] ?? ''));
+    if ($brandName === '') {
+        error_log("Email branding has no restaurant name for tenant $tenantId.");
+        return 'Restaurant';
+    }
+    return preg_replace('/[\r\n]+/', ' ', $brandName);
+}
+
+function restaurantEmailFrom($configuredFrom, $brandName) {
+    $email = trim((string)$configuredFrom);
+    if (preg_match('/<\s*([^<>]+)\s*>/', $email, $matches)) {
+        $email = trim($matches[1]);
+    }
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        throw new InvalidArgumentException('Configured Resend sender is not a valid email address');
+    }
+    $quotedBrand = str_replace(
+        ['\\', '"'],
+        ['\\\\', '\\"'],
+        (string)$brandName
+    );
+    return '"' . $quotedBrand . '" <' . $email . '>';
+}
+
 function releaseQueuedEmailNotification($conn, $tenantId, $userId, $notificationId) {
     $release = $conn->prepare("UPDATE notification_email_queue
         SET status = 'pending', processing_started_at = NULL
@@ -126,13 +167,21 @@ function sendQueuedEmailNotificationImmediately($conn, $tenantId, $userId, $noti
         ? 'You have a new chat message. Open the app to read it.'
         : trim((string)$event['message']);
     if ($detail === '') $detail = $title;
+    try {
+        $brandName = restaurantEmailBrandName($conn, $tenantId);
+        $from = restaurantEmailFrom($config['from'], $brandName);
+    } catch (Throwable $senderError) {
+        releaseQueuedEmailNotification($conn, $tenantId, $userId, $notificationId);
+        throw $senderError;
+    }
 
     $payload = json_encode([
-        'from' => $config['from'],
+        'from' => $from,
         'to' => [$userId],
-        'subject' => 'ChiyaBreak notification: ' . $title,
-        'text' => $title . "\n" . $detail,
-        'html' => '<p><strong>' . htmlspecialchars($title, ENT_QUOTES, 'UTF-8') .
+        'subject' => $brandName . ': ' . $title,
+        'text' => $brandName . "\n\n" . $title . "\n" . $detail,
+        'html' => '<p><strong>' . htmlspecialchars($brandName, ENT_QUOTES, 'UTF-8') .
+            '</strong></p><p><strong>' . htmlspecialchars($title, ENT_QUOTES, 'UTF-8') .
             '</strong></p><p>' . htmlspecialchars($detail, ENT_QUOTES, 'UTF-8') . '</p>'
     ]);
     if ($payload === false) {
@@ -197,10 +246,12 @@ function queueEmailNotification($conn, $tenantId, $userId, $notificationId, $eve
         'support' => 'email_support',
         'support_reply' => 'email_support',
         'order' => 'email_order',
+        'staff_order' => 'email_order',
+        'waiter_assistance' => 'email_order',
         'stock' => 'email_stock',
         'subscription' => 'email_subscription'
     ][$eventType] ?? null;
-    if ($preferenceColumn === null) return;
+    if ($preferenceColumn === null) return false;
 
     // For order events, check if the column exists in the preferences table
     if ($eventType === 'order') {
@@ -212,7 +263,7 @@ function queueEmailNotification($conn, $tenantId, $userId, $notificationId, $eve
     }
 
     $cleanUserId = strtolower(trim((string)$userId));
-    if ($cleanUserId === '') return;
+    if ($cleanUserId === '') return false;
 
     // Resolve email if cleanUserId is not already an email address
     if (!filter_var($cleanUserId, FILTER_VALIDATE_EMAIL)) {
@@ -229,25 +280,37 @@ function queueEmailNotification($conn, $tenantId, $userId, $notificationId, $eve
     }
 
     if (!filter_var($cleanUserId, FILTER_VALIDATE_EMAIL)) {
-        return; // Recipient is not a valid email address
+        return false;
     }
 
     // Check preferences (try admin table first for admin-specific events)
-    $isAdminEvent = in_array($eventType, ['support', 'support_reply', 'order', 'stock', 'subscription']);
+    $isAdminEvent = in_array($eventType, [
+        'support',
+        'support_reply',
+        'order',
+        'staff_order',
+        'waiter_assistance',
+        'stock',
+        'subscription'
+    ], true);
     $preference = null;
     $settings = null;
 
     if ($isAdminEvent) {
         // Check admin notification preferences
-        $preference = $conn->prepare("SELECT email_enabled, $preferenceColumn AS event_enabled
-            FROM admin_notification_email_preferences
-            WHERE tenant_id COLLATE utf8mb4_general_ci = ? COLLATE utf8mb4_general_ci
-              AND LOWER(admin_email) COLLATE utf8mb4_general_ci = ? COLLATE utf8mb4_general_ci LIMIT 1");
-        if ($preference) {
-            $preference->bind_param("ss", $tenantId, $cleanUserId);
-            $preference->execute();
-            $settings = $preference->get_result()->fetch_assoc();
-            $preference->close();
+        try {
+            $preference = $conn->prepare("SELECT email_enabled, $preferenceColumn AS event_enabled
+                FROM admin_notification_email_preferences
+                WHERE tenant_id COLLATE utf8mb4_general_ci = ? COLLATE utf8mb4_general_ci
+                  AND LOWER(admin_email) COLLATE utf8mb4_general_ci = ? COLLATE utf8mb4_general_ci LIMIT 1");
+            if ($preference) {
+                $preference->bind_param("ss", $tenantId, $cleanUserId);
+                $preference->execute();
+                $settings = $preference->get_result()->fetch_assoc();
+                $preference->close();
+            }
+        } catch (Throwable $e) {
+            error_log('Could not read admin email preferences; using default enabled settings: ' . $e->getMessage());
         }
 
         // For system/admin notifications, default to ENABLED if no explicit preference row exists
@@ -268,11 +331,14 @@ function queueEmailNotification($conn, $tenantId, $userId, $notificationId, $eve
             $settings = $preference->get_result()->fetch_assoc();
             $preference->close();
         }
+        if (!$settings) {
+            $settings = ['email_enabled' => 1, 'event_enabled' => 1];
+        }
     }
 
-    if (!filter_var($cleanUserId, FILTER_VALIDATE_EMAIL)) return;
+    if (!filter_var($cleanUserId, FILTER_VALIDATE_EMAIL)) return false;
     if (!$settings || (int)$settings['email_enabled'] !== 1 || (int)$settings['event_enabled'] !== 1) {
-        return;
+        return false;
     }
 
     $stmt = $conn->prepare("INSERT IGNORE INTO notification_email_queue
@@ -286,4 +352,5 @@ function queueEmailNotification($conn, $tenantId, $userId, $notificationId, $eve
     if ($queued && $eventType !== 'message') {
         sendQueuedEmailNotificationImmediately($conn, $tenantId, $cleanUserId, $notificationId, $eventType);
     }
+    return $queued;
 }

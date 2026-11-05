@@ -4,13 +4,17 @@ Deploy the PHP files in this directory beside the existing `db_config.php` and r
 `email_notifications_setup.sql` once against the same database used by the app.
 The changed `auth_customer_api.php`, `nearby_api.php`, `notifications_api.php`,
 and `chat_api.php` files must be deployed together with
-`email_notification_common.php` and `push_notifier.php`.
+`email_notification_common.php` and `push_notifier.php`. For kitchen ready-order alerts, also deploy `waiter_ready_api.php` and the
+updated `email_notifications_worker.php`. The deployed
+`email_notification_common.php` must include the `staff_order` email event.
 
 Configure these environment variables for the PHP web and CLI runtimes:
 
 - `RESEND_API_KEY`: the Resend sending key for the verified `startupsgo.tech` domain.
-- `RESEND_FROM_EMAIL`: a verified sender, for example
-  `ChiyaBreak <noreply@startupsgo.tech>`.
+- `RESEND_FROM_EMAIL`: the verified sender address, for example
+  `noreply@startupsgo.tech`. App notification emails use each tenant's
+  `restaurant_name` as the sender display name and subject prefix while
+  retaining this verified sender address.
 
 For Hostinger setups where PHP environment variables are unavailable, the
 preferred location is `resend_config.php` in the account directory above
@@ -42,6 +46,12 @@ item remains queued and is retried after five minutes.
 Configure a Hostinger cron job to run `email_notifications_worker.php` once per
 minute with the PHP CLI binary so delayed message emails and failed deliveries
 are processed.
+
+When kitchen staff use **Notify Waiter** for a ready order, every waiter in
+that restaurant receives an in-app service alert and an email. The first waiter
+to accept the alert claims the task; it is then shown only to that waiter until
+they mark the order served. The `waiter_ready_api.php` endpoint creates its
+service-task table automatically on first use.
 
 Customers must be signed in with their email and PIN, then explicitly enable
 “Email me about app alerts” in Settings. Follow/follow-back, wave, and

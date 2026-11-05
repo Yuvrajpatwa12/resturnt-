@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'battleground_creation_page.dart';
 import 'cart_manager.dart';
 import 'voice_order_page.dart';
+import 'services/feature_flags.dart';
 
 class OrderStatusPage extends StatelessWidget {
   const OrderStatusPage({super.key});
@@ -124,53 +125,58 @@ class OrderStatusPage extends StatelessWidget {
                             ),
                           ),
 
-                          const Divider(height: 40),
-                          Row(
-                            children: [
-                              const Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Are you bored? 😴',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 15,
+                          if (FeatureFlags.gamesEnabled) ...[
+                            const Divider(height: 40),
+                            Row(
+                              children: [
+                                const Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Are you bored? 😴',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 15,
+                                        ),
                                       ),
-                                    ),
-                                    SizedBox(height: 4),
-                                    Text(
-                                      'Create or join a Battleground at any time.',
-                                      style: TextStyle(
-                                        color: Colors.grey,
-                                        fontSize: 12,
+                                      SizedBox(height: 4),
+                                      Text(
+                                        'Create or join a Battleground at any time.',
+                                        style: TextStyle(
+                                          color: Colors.grey,
+                                          fontSize: 12,
+                                        ),
                                       ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              ElevatedButton(
-                                onPressed: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) =>
-                                        const BattlegroundCreationPage(),
+                                    ],
                                   ),
                                 ),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFFFF5C00),
-                                  foregroundColor: Colors.white,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(20),
+                                ElevatedButton(
+                                  onPressed: () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          const BattlegroundCreationPage(),
+                                    ),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFFFF5C00),
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                  ),
+                                  child: const Text(
+                                    'Yes',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                 ),
-                                child: const Text(
-                                  'Yes',
-                                  style: TextStyle(fontWeight: FontWeight.bold),
-                                ),
-                              ),
-                            ],
-                          ),
+                              ],
+                            ),
+                          ],
 
                           if (status == OrderStatus.ready) ...[
                             const Divider(height: 40),

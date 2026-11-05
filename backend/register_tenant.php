@@ -26,7 +26,7 @@ if (!$data) {
 $tenant_id = trim((string)($data->tenant_id ?? ''));
 $restaurant_name = trim((string)($data->restaurant_name ?? $data->name ?? ''));
 $custom_domain = trim((string)($data->custom_domain ?? $data->domain ?? ''));
-$email = trim((string)($data->email ?? ''));
+$email = trim((string)($data->email ?? $data->contact_email ?? ''));
 $primary_color = trim((string)($data->primary_color ?? '#FF5C00'));
 $logo_url = trim((string)($data->logo_url ?? ''));
 
@@ -36,34 +36,45 @@ if (empty($tenant_id) || empty($restaurant_name)) {
 }
 
 try {
-    @$conn->query("ALTER TABLE tenants ADD COLUMN subscription_status VARCHAR(50) DEFAULT 'Trial'");
-    @$conn->query("ALTER TABLE tenants ADD COLUMN trial_start DATETIME DEFAULT NULL");
-    @$conn->query("ALTER TABLE tenants ADD COLUMN trial_end DATETIME DEFAULT NULL");
-    @$conn->query("ALTER TABLE tenants ADD COLUMN subscription_start DATETIME DEFAULT NULL");
-    @$conn->query("ALTER TABLE tenants ADD COLUMN subscription_end DATETIME DEFAULT NULL");
+    // Auto-ensure schema columns exist
+    @$conn->query("ALTER TABLE tenants ADD COLUMN IF NOT EXISTS subscription_status VARCHAR(50) DEFAULT 'Trial'");
+    @$conn->query("ALTER TABLE tenants ADD COLUMN IF NOT EXISTS trial_start DATETIME DEFAULT NULL");
+    @$conn->query("ALTER TABLE tenants ADD COLUMN IF NOT EXISTS trial_end DATETIME DEFAULT NULL");
+    @$conn->query("ALTER TABLE tenants ADD COLUMN IF NOT EXISTS subscription_start DATETIME DEFAULT NULL");
+    @$conn->query("ALTER TABLE tenants ADD COLUMN IF NOT EXISTS subscription_end DATETIME DEFAULT NULL");
+    @$conn->query("ALTER TABLE tenants ADD COLUMN IF NOT EXISTS primary_email VARCHAR(255) DEFAULT ''");
+    @$conn->query("ALTER TABLE tenants ADD COLUMN IF NOT EXISTS contact_email VARCHAR(255) DEFAULT ''");
 
     // Check if tenant_id or domain already exists
-    $chk = $conn->prepare("SELECT tenant_id FROM tenants WHERE tenant_id = ? OR (custom_domain != '' AND custom_domain = ?) LIMIT 1");
-    $chk->bind_param("ss", $tenant_id, $custom_domain);
+    if (!empty($custom_domain)) {
+        $chk = $conn->prepare("SELECT tenant_id FROM tenants WHERE tenant_id = ? OR custom_domain = ? LIMIT 1");
+        $chk->bind_param("ss", $tenant_id, $custom_domain);
+    } else {
+        $chk = $conn->prepare("SELECT tenant_id FROM tenants WHERE tenant_id = ? LIMIT 1");
+        $chk->bind_param("s", $tenant_id);
+    }
     $chk->execute();
     if ($chk->get_result()->num_rows > 0) {
         echo json_encode(["status" => "error", "message" => "A restaurant with this ID or domain is already registered."]);
         exit;
     }
+    $chk->close();
 
     // NEW TENANT: Inactive until Super Admin approves subscription
     $stmt = $conn->prepare("
         INSERT INTO tenants (
             tenant_id, restaurant_name, custom_domain, primary_color, logo_url,
+            primary_email, contact_email,
             is_active, plan, subscription_status, trial_start, trial_end,
             subscription_start, subscription_end, created_at
         ) VALUES (
             ?, ?, ?, ?, ?,
+            ?, ?,
             0, 'Pending Approval', 'Pending', NULL, NULL,
             NULL, NULL, NOW()
         )
     ");
-    $stmt->bind_param("sssss", $tenant_id, $restaurant_name, $custom_domain, $primary_color, $logo_url);
+    $stmt->bind_param("sssssss", $tenant_id, $restaurant_name, $custom_domain, $primary_color, $logo_url, $email, $email);
 
     if ($stmt->execute()) {
         echo json_encode([
@@ -74,8 +85,9 @@ try {
             "subscription_status" => "Pending"
         ]);
     } else {
-        echo json_encode(["status" => "error", "message" => "Database error inserting tenant."]);
+        echo json_encode(["status" => "error", "message" => "Database error inserting tenant: " . $stmt->error]);
     }
+    $stmt->close();
 
 } catch (Throwable $e) {
     http_response_code(500);

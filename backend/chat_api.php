@@ -59,7 +59,7 @@ function resolveSenderName($conn, $userId, $tenantId) {
     if ($userId === '') return 'Diner';
 
     $stmt = $conn->prepare("SELECT name FROM customers
-        WHERE LOWER(email) = LOWER(?) AND (tenant_id = ? OR tenant_id = 'startups_main')
+        WHERE LOWER(email) = LOWER(?) AND tenant_id = ?
         AND name IS NOT NULL AND name != '' AND name != 'Guest' LIMIT 1");
     if ($stmt) {
         $stmt->bind_param("ss", $userId, $tenantId);

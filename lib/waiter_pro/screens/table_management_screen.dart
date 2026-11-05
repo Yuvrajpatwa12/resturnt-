@@ -15,13 +15,12 @@ class _TableManagementScreenState extends State<TableManagementScreen>
     with SingleTickerProviderStateMixin {
   late final TabController _tabController;
   final TextEditingController _searchController = TextEditingController();
-  final Set<int> _selectedTables = {};
   String _statusFilter = 'All';
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 2, vsync: this);
     _searchController.addListener(() => setState(() {}));
   }
 
@@ -43,9 +42,7 @@ class _TableManagementScreenState extends State<TableManagementScreen>
           labelColor: WaiterProTheme.royalBlue,
           indicatorColor: WaiterProTheme.royalBlue,
           tabs: const [
-            Tab(text: "Indoor"),
-            Tab(text: "Roof"),
-            Tab(text: "VIP"),
+            Tab(text: "Tables"),
             Tab(text: "Reservations"),
           ],
         ),
@@ -106,82 +103,21 @@ class _TableManagementScreenState extends State<TableManagementScreen>
                       .toList(),
             ),
           ),
-          const Padding(
-            padding: EdgeInsets.only(bottom: 4),
-            child: Text(
-              "Long-press a table to select it for a future merge or transfer.",
-              style: TextStyle(fontSize: 11, color: Colors.grey),
-            ),
-          ),
           Expanded(
             child: TabBarView(
               controller: _tabController,
               children: [
-                _buildTableGrid(100),
-                _buildTableGrid(200),
-                _buildTableGrid(300),
+                _buildTableGrid(),
                 _buildReservations(),
               ],
             ),
           ),
         ],
       ),
-      bottomNavigationBar: SafeArea(
-        top: false,
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 10,
-                offset: const Offset(0, -4),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () => _showComingSoon(
-                    "Table merge",
-                    "Select tables to preview this action. Order transfer is not connected yet.",
-                  ),
-                  icon: const Icon(Icons.merge_type),
-                  label: Text(
-                    _selectedTables.isEmpty
-                        ? "Merge"
-                        : "Merge (${_selectedTables.length})",
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    minimumSize: const Size(0, 52),
-                    side: const BorderSide(color: WaiterProTheme.royalBlue),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: () => _showComingSoon(
-                    "Table transfer",
-                    "Selected table orders cannot be moved until a server-backed transfer workflow is connected.",
-                  ),
-                  icon: const Icon(Icons.swap_horiz),
-                  label: const Text("Transfer"),
-                  style: ElevatedButton.styleFrom(
-                    minimumSize: const Size(0, 52),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 
-  Widget _buildTableGrid(int offset) {
+  Widget _buildTableGrid() {
     return ValueListenableBuilder<Map<int, String>>(
       valueListenable: ShopManager.instance.tableStatuses,
       builder: (context, statuses, child) {
@@ -191,7 +127,6 @@ class _TableManagementScreenState extends State<TableManagementScreen>
         }
 
         final tableIds = statuses.keys.where((id) {
-          if (id <= offset || id >= offset + 100) return false;
           final query = _searchController.text.trim().toLowerCase();
           final status = statuses[id] ?? 'Available';
           return (query.isEmpty || id.toString().contains(query)) &&
@@ -238,7 +173,6 @@ class _TableManagementScreenState extends State<TableManagementScreen>
             final tableId = tableIds[index];
             final rawStatus = statuses[tableId] ?? 'Available';
             final status = _normalizedStatus(rawStatus);
-            final selected = _selectedTables.contains(tableId);
             final isOccupied = [
               'dining',
               'readyforbilling',
@@ -247,14 +181,10 @@ class _TableManagementScreenState extends State<TableManagementScreen>
 
             return Semantics(
               button: true,
-              selected: selected,
               label: "Table $tableId, $status",
               child: InkWell(
-                onLongPress: () => _toggleTable(tableId),
                 onTap: () {
-                  if (_selectedTables.isNotEmpty) {
-                    _toggleTable(tableId);
-                  } else if (isOccupied) {
+                  if (isOccupied) {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -276,13 +206,11 @@ class _TableManagementScreenState extends State<TableManagementScreen>
                 child: Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: selected
-                        ? color.withValues(alpha: 0.14)
-                        : Colors.white,
+                    color: Colors.white,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: selected ? color : color.withValues(alpha: 0.45),
-                      width: selected ? 2 : 1.3,
+                      color: color.withValues(alpha: 0.45),
+                      width: 1.3,
                     ),
                     boxShadow: WaiterProTheme.softShadow,
                   ),
@@ -290,7 +218,7 @@ class _TableManagementScreenState extends State<TableManagementScreen>
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(
-                        selected ? Icons.check_circle : _statusIcon(status),
+                        _statusIcon(status),
                         color: color,
                         size: 28,
                       ),
@@ -336,75 +264,14 @@ class _TableManagementScreenState extends State<TableManagementScreen>
   }
 
   Widget _buildReservations() {
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: WaiterProTheme.royalBlue.withValues(alpha: 0.06),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: const Row(
-            children: [
-              Icon(Icons.info_outline, color: WaiterProTheme.royalBlue),
-              SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  "Reservation preview only — no booking data is connected.",
-                  style: TextStyle(color: WaiterProTheme.darkNavy),
-                ),
-              ),
-            ],
-          ),
+    return const Center(
+      child: Padding(
+        padding: EdgeInsets.all(24),
+        child: Text(
+          "No reservation records are available for this restaurant.",
+          textAlign: TextAlign.center,
+          style: TextStyle(color: Colors.grey),
         ),
-        const SizedBox(height: 16),
-        _reservationPreview("Sample booking", "Today • 7:00 PM", "4 guests"),
-        _reservationPreview("Sample booking", "Today • 8:30 PM", "2 guests"),
-      ],
-    );
-  }
-
-  Widget _reservationPreview(String name, String time, String guests) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: ListTile(
-        leading: const CircleAvatar(
-          backgroundColor: Color(0xFFEAF0FA),
-          child: Icon(Icons.event_available, color: WaiterProTheme.royalBlue),
-        ),
-        title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Text("$time • $guests"),
-        trailing: const Text(
-          "DEMO",
-          style: TextStyle(
-            color: Colors.orange,
-            fontSize: 10,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _toggleTable(int tableId) {
-    setState(() {
-      if (!_selectedTables.add(tableId)) _selectedTables.remove(tableId);
-    });
-  }
-
-  void _showComingSoon(String title, String message) {
-    showDialog<void>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(title),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("GOT IT"),
-          ),
-        ],
       ),
     );
   }

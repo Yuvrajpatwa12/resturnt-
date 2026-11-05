@@ -20,7 +20,7 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen>
   bool _isLoading = true;
   bool _hasLoadError = false;
   Timer? _refreshTimer;
-  int _lastMod = 0; // Track last sync time
+  bool _isRefreshing = false;
 
   @override
   void initState() {
@@ -31,25 +31,12 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen>
     // Efficient Light Polling
     _refreshTimer = Timer.periodic(
       const Duration(seconds: 7),
-      (_) => _checkSync(),
+      (_) => _refreshAll(),
     );
   }
 
-  Future<void> _checkSync() async {
-    final tenant = TenantService().currentTenant.value;
-    if (tenant == null) return;
-
-    final serverMod = await ApiService.checkOrderChange(tenant.id);
-    if (serverMod > _lastMod) {
-      debugPrint(
-        "WAITER: New order activity detected ($serverMod > $_lastMod). Syncing...",
-      );
-      _refreshAll();
-      _lastMod = serverMod;
-    }
-  }
-
   Future<void> _refreshAll({bool isInitial = false}) async {
+    if (_isRefreshing) return;
     final tenant = TenantService().currentTenant.value;
     if (tenant == null) {
       if (mounted) {
@@ -61,20 +48,32 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen>
       return;
     }
 
+    _isRefreshing = true;
     if (isInitial) setState(() => _isLoading = true);
 
-    // 1. Fetch Pending Requests (For Approval)
-    final pData = await ApiService.fetchPendingOrders(tenant.id);
-    // 2. Fetch Active Orders (Cooking/Ready)
-    final aData = await ApiService.fetchActiveOrders(tenant.id);
-
-    if (mounted) {
-      setState(() {
-        if (pData != null) _pendingOrders = pData;
-        if (aData != null) _activeOrders = aData;
-        _hasLoadError = pData == null || aData == null;
-        _isLoading = false;
-      });
+    try {
+      final orders = await ApiService.fetchAllOrders(tenant.id);
+      if (mounted) {
+        setState(() {
+          if (orders != null) {
+            _pendingOrders = orders.where((order) {
+              final status = (order['status'] ?? '').toString().toLowerCase();
+              return status == 'pending' || status == 'awaiting approval';
+            }).toList();
+            _activeOrders = orders.where((order) {
+              final status = (order['status'] ?? '').toString().toLowerCase();
+              return status != 'cancelled' &&
+                  status != 'canceled' &&
+                  status != 'settled' &&
+                  status != 'voided';
+            }).toList();
+          }
+          _hasLoadError = orders == null;
+          _isLoading = false;
+        });
+      }
+    } finally {
+      _isRefreshing = false;
     }
   }
 
@@ -231,6 +230,14 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen>
                       style: const TextStyle(
                         fontWeight: FontWeight.w900,
                         fontSize: 16,
+                      ),
+                    ),
+                    Text(
+                      "ORDER #${o['tenant_order_number'] ?? o['id']}",
+                      style: const TextStyle(
+                        color: Colors.grey,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                     Container(

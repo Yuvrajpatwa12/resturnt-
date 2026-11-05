@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../services/api_service.dart';
 import '../styles.dart';
 import 'staff_detail_subview.dart';
@@ -27,9 +28,17 @@ class _ClientDetailsScreenState extends State<ClientDetailsScreen> {
   @override
   void initState() {
     super.initState();
-    _currentEmail = widget.tenant['admin_email'];
+    _currentEmail = _tenantAdminEmail;
     _loadStaffData();
     _refreshTenantData();
+  }
+
+  String? get _tenantAdminEmail {
+    final email = widget.tenant['admin_email'] ??
+        widget.tenant['primary_email'] ??
+        widget.tenant['contact_email'];
+    final value = email?.toString().trim();
+    return value == null || value.isEmpty ? null : value;
   }
 
   Future<void> _refreshTenantData() async {
@@ -42,8 +51,11 @@ class _ClientDetailsScreenState extends State<ClientDetailsScreen> {
       if (freshData != null && mounted) {
         setState(() {
           widget.tenant.addAll(freshData);
-          if (freshData['admin_email'] != null) {
-            _currentEmail = freshData['admin_email'];
+          final email = freshData['admin_email'] ??
+              freshData['primary_email'] ??
+              freshData['contact_email'];
+          if (email != null && email.toString().trim().isNotEmpty) {
+            _currentEmail = email.toString().trim();
           }
         });
       }
@@ -60,13 +72,22 @@ class _ClientDetailsScreenState extends State<ClientDetailsScreen> {
   }
 
   Color _parseHexColor(String? hexString) {
-    if (hexString == null || hexString.isEmpty) return const Color(0xFFFF5C00);
+    if (hexString == null || hexString.isEmpty) {
+      return const Color(0xFFFF5C00);
+    }
+
     try {
-      String cleanHex = hexString.replaceAll('#', '');
+      String cleanHex = hexString.trim().replaceAll('#', '');
+      if (cleanHex.length == 3) {
+        cleanHex = cleanHex.split('').expand((char) => [char, char]).join();
+      }
       if (cleanHex.length == 6) {
         cleanHex = 'FF$cleanHex';
       }
-      return Color(int.parse(cleanHex, radix: 16));
+      if (cleanHex.length == 8) {
+        return Color(int.parse(cleanHex, radix: 16));
+      }
+      return const Color(0xFFFF5C00);
     } catch (_) {
       return const Color(0xFFFF5C00);
     }
@@ -154,17 +175,33 @@ class _ClientDetailsScreenState extends State<ClientDetailsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Icon(
-                Icons.storefront_outlined,
-                color: SAMStyles.royalBlue,
-                size: 20,
+              const Row(
+                children: [
+                  Icon(
+                    Icons.storefront_outlined,
+                    color: SAMStyles.royalBlue,
+                    size: 20,
+                  ),
+                  SizedBox(width: 12),
+                  Text(
+                    "Onboarding & Registration Metadata",
+                    style:
+                        TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                ],
               ),
-              SizedBox(width: 12),
-              Text(
-                "Onboarding & Registration Metadata",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ElevatedButton.icon(
+                onPressed: _showEditRestaurantProfileModal,
+                icon: const Icon(Icons.edit, size: 14),
+                label: const Text("EDIT PROFILE"),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: SAMStyles.royalBlue,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size(130, 40),
+                ),
               ),
             ],
           ),
@@ -173,6 +210,57 @@ class _ClientDetailsScreenState extends State<ClientDetailsScreen> {
             "Primary registration details recorded during restaurant onboarding.",
             style: TextStyle(color: SAMStyles.textGrey, fontSize: 12),
           ),
+          if (!(widget.tenant['is_active'] == 1 ||
+              widget.tenant['is_active'] == true)) ...[
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.red.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(Icons.warning_amber_rounded,
+                          color: Colors.red, size: 24),
+                      SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Restaurant is Currently Pending Approval / Blocked",
+                            style: TextStyle(
+                              color: Colors.red,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
+                          Text(
+                            "Customers cannot access this restaurant until approved.",
+                            style: TextStyle(color: Colors.grey, fontSize: 11),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  ElevatedButton.icon(
+                    onPressed: _isUpdating ? null : _toggleTenantStatus,
+                    icon: const Icon(Icons.check_circle_rounded, size: 16),
+                    label: const Text("APPROVE & ACTIVATE"),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: SAMStyles.emeraldGreen,
+                      foregroundColor: Colors.white,
+                      minimumSize: const Size(170, 44),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 24),
           const Divider(),
           const SizedBox(height: 16),
@@ -275,10 +363,12 @@ class _ClientDetailsScreenState extends State<ClientDetailsScreen> {
     if (country.toString().toLowerCase() == 'india') flag = '🇮🇳';
 
     String langName = 'English (en)';
-    if (appLanguage.toString().toLowerCase() == 'ne')
+    if (appLanguage.toString().toLowerCase() == 'ne') {
       langName = 'Nepali (नेपाली - ne)';
-    if (appLanguage.toString().toLowerCase() == 'hi')
+    }
+    if (appLanguage.toString().toLowerCase() == 'hi') {
       langName = 'Hindi (हिन्दी - hi)';
+    }
 
     return Container(
       width: double.infinity,
@@ -797,9 +887,417 @@ class _ClientDetailsScreenState extends State<ClientDetailsScreen> {
     );
   }
 
+  void _showEditRestaurantProfileModal() {
+    final nameController = TextEditingController(
+      text: widget.tenant['restaurant_name'] ?? widget.tenant['name'] ?? '',
+    );
+    final domainController = TextEditingController(
+      text: widget.tenant['domain'] ?? '',
+    );
+    final customDomainController = TextEditingController(
+      text: widget.tenant['custom_domain'] ?? '',
+    );
+    final emailController = TextEditingController(
+      text: widget.tenant['contact_email'] ??
+          widget.tenant['admin_email'] ??
+          '',
+    );
+    final phoneController = TextEditingController(
+      text: widget.tenant['contact_phone'] ?? widget.tenant['phone'] ?? '',
+    );
+    final addressController = TextEditingController(
+      text: widget.tenant['location'] ?? widget.tenant['address'] ?? '',
+    );
+    final logoController = TextEditingController(
+      text: widget.tenant['logo_url'] ?? widget.tenant['logo'] ?? '',
+    );
+    final colorController = TextEditingController(
+      text: widget.tenant['primary_color'] ??
+          widget.tenant['color'] ??
+          '#FF5C00',
+    );
+    final vatController = TextEditingController(
+      text: (widget.tenant['vat_percentage'] ?? 0.0).toString(),
+    );
+    final serviceController = TextEditingController(
+      text: (widget.tenant['service_charge_percentage'] ?? 0.0).toString(),
+    );
+    String selectedFont = widget.tenant['font_family'] ?? 'Inter';
+    bool isUploadingLogo = false;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => AlertDialog(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Row(
+            children: [
+              Icon(Icons.edit_note, color: SAMStyles.royalBlue),
+              SizedBox(width: 8),
+              Text("Edit Restaurant Profile & Branding"),
+            ],
+          ),
+          content: SizedBox(
+            width: 520,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "Update primary metadata, custom domain, branding colors, and tax rates for this restaurant.",
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 20),
+                  TextField(
+                    controller: nameController,
+                    decoration: const InputDecoration(
+                      labelText: "Restaurant Name",
+                      prefixIcon: Icon(Icons.storefront),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: domainController,
+                          decoration: const InputDecoration(
+                            labelText: "Subdomain / Primary Domain",
+                            prefixIcon: Icon(Icons.link),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          controller: customDomainController,
+                          decoration: const InputDecoration(
+                            labelText: "Custom Domain (e.g. restaurant.com)",
+                            prefixIcon: Icon(Icons.language),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: emailController,
+                          decoration: const InputDecoration(
+                            labelText: "Contact Email",
+                            prefixIcon: Icon(Icons.email_outlined),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          controller: phoneController,
+                          decoration: const InputDecoration(
+                            labelText: "Contact Phone",
+                            prefixIcon: Icon(Icons.phone_outlined),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: addressController,
+                    decoration: const InputDecoration(
+                      labelText: "Address / Location",
+                      prefixIcon: Icon(Icons.location_on_outlined),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: logoController,
+                          decoration: const InputDecoration(
+                            labelText: "Logo Image URL",
+                            hintText: "https://startupsgo.tech/uploads/logo.png",
+                            prefixIcon: Icon(Icons.image_outlined),
+                          ),
+                          onChanged: (_) => setModalState(() {}),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      ElevatedButton.icon(
+                        onPressed: isUploadingLogo
+                            ? null
+                            : () async {
+                                final ImagePicker picker = ImagePicker();
+                                final XFile? pickedFile = await picker.pickImage(
+                                  source: ImageSource.gallery,
+                                  maxWidth: 800,
+                                  maxHeight: 800,
+                                  imageQuality: 85,
+                                );
+                                if (pickedFile == null) return;
+
+                                setModalState(() => isUploadingLogo = true);
+                                final bytes = await pickedFile.readAsBytes();
+                                final uploadedUrl =
+                                    await ApiService.uploadProductImage(
+                                  bytes,
+                                  pickedFile.name,
+                                );
+                                setModalState(() => isUploadingLogo = false);
+
+                                if (uploadedUrl != null &&
+                                    uploadedUrl.isNotEmpty) {
+                                  logoController.text = uploadedUrl;
+                                  setModalState(() {});
+                                } else if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                          "Failed to upload image. Please try again."),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                }
+                              },
+                        icon: isUploadingLogo
+                            ? const SizedBox(
+                                width: 14,
+                                height: 14,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Icon(Icons.upload_file, size: 16),
+                        label: Text(
+                            isUploadingLogo ? "Uploading..." : "Upload File"),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: SAMStyles.royalBlue,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 18),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (logoController.text.trim().isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        const Text(
+                          "Logo Preview:",
+                          style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey,
+                              fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(width: 8),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.network(
+                            logoController.text.trim(),
+                            height: 40,
+                            width: 40,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => const Icon(
+                              Icons.broken_image_outlined,
+                              size: 24,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: colorController,
+                          decoration: const InputDecoration(
+                            labelText: "Brand Color (Hex)",
+                            hintText: "#FF5C00",
+                            prefixIcon: Icon(Icons.color_lens_outlined),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          initialValue: [
+                            'Inter',
+                            'Poppins',
+                            'Roboto',
+                            'Montserrat',
+                            'Lato'
+                          ].contains(selectedFont)
+                              ? selectedFont
+                              : 'Inter',
+                          decoration: const InputDecoration(
+                            labelText: "Font Family",
+                            prefixIcon: Icon(Icons.text_fields),
+                          ),
+                          items: [
+                            'Inter',
+                            'Poppins',
+                            'Roboto',
+                            'Montserrat',
+                            'Lato'
+                          ]
+                              .map((font) => DropdownMenuItem(
+                                  value: font, child: Text(font)))
+                              .toList(),
+                          onChanged: (val) {
+                            if (val != null) {
+                              setModalState(() => selectedFont = val);
+                            }
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: vatController,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(
+                            labelText: "VAT (%)",
+                            prefixIcon: Icon(Icons.percent),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          controller: serviceController,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(
+                            labelText: "Service Charge (%)",
+                            prefixIcon: Icon(Icons.room_service_outlined),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Cancel"),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: SAMStyles.royalBlue,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () async {
+                final String name = nameController.text.trim();
+                if (name.isEmpty) return;
+
+                final String tenantId = (widget.tenant['tenant_id'] ??
+                        widget.tenant['id'] ??
+                        widget.tenant['domain'] ??
+                        widget.tenant['custom_domain'] ??
+                        '')
+                    .toString();
+
+                final scaffoldMessenger = ScaffoldMessenger.of(context);
+
+                Navigator.pop(context);
+                setState(() => _isUpdating = true);
+
+                final vat = double.tryParse(vatController.text.trim()) ?? 0.0;
+                final service =
+                    double.tryParse(serviceController.text.trim()) ?? 0.0;
+
+                final result = await ApiService.superAdminUpdateTenant(
+                  tenantId: tenantId,
+                  restaurantName: name,
+                  domain: domainController.text.trim(),
+                  customDomain: customDomainController.text.trim(),
+                  contactEmail: emailController.text.trim(),
+                  contactPhone: phoneController.text.trim(),
+                  location: addressController.text.trim(),
+                  color: colorController.text.trim(),
+                  fontFamily: selectedFont,
+                  logoUrl: logoController.text.trim(),
+                  vatPercentage: vat,
+                  serviceChargePercentage: service,
+                );
+
+                setState(() => _isUpdating = false);
+
+                if (result['success'] == true) {
+                  setState(() {
+                    widget.tenant['restaurant_name'] = name;
+                    widget.tenant['name'] = name;
+                    widget.tenant['domain'] = domainController.text.trim();
+                    widget.tenant['custom_domain'] =
+                        customDomainController.text.trim();
+                    widget.tenant['contact_email'] =
+                        emailController.text.trim();
+                    widget.tenant['contact_phone'] =
+                        phoneController.text.trim();
+                    widget.tenant['location'] = addressController.text.trim();
+                    widget.tenant['address'] = addressController.text.trim();
+                    widget.tenant['color'] = colorController.text.trim();
+                    widget.tenant['primary_color'] =
+                        colorController.text.trim();
+                    widget.tenant['logo_url'] = logoController.text.trim();
+                    widget.tenant['font_family'] = selectedFont;
+                    widget.tenant['vat_percentage'] = vat;
+                    widget.tenant['service_charge_percentage'] = service;
+
+                    if (result['tenant'] != null && result['tenant'] is Map) {
+                      widget.tenant.addAll(
+                          Map<String, dynamic>.from(result['tenant']));
+                    }
+                  });
+
+                  await _refreshTenantData();
+
+                  scaffoldMessenger.showSnackBar(
+                    SnackBar(
+                      content: Text(
+                          result['message'] ?? "Profile updated successfully!"),
+                      backgroundColor: Colors.green,
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                } else {
+                  scaffoldMessenger.showSnackBar(
+                    SnackBar(
+                      content: Text("FAILED: ${result['message']}"),
+                      backgroundColor: Colors.red,
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
+              },
+              child: const Text("Save Profile"),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _showUpdateLoginModal() {
     final emailController = TextEditingController(
-      text: widget.tenant['admin_email'],
+      text: _currentEmail ?? _tenantAdminEmail,
     );
     final pinController = TextEditingController();
 
@@ -840,35 +1338,56 @@ class _ClientDetailsScreenState extends State<ClientDetailsScreen> {
               child: const Text("Cancel"),
             ),
             ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: SAMStyles.royalBlue,
+                foregroundColor: Colors.white,
+              ),
               onPressed: () async {
-                if (emailController.text.isEmpty || pinController.text.isEmpty)
-                  return;
+                final email = emailController.text.trim();
+                final pin = pinController.text.trim();
+                if (email.isEmpty || pin.isEmpty) return;
+
+                final String tenantId = (widget.tenant['tenant_id'] ??
+                        widget.tenant['id'] ??
+                        widget.tenant['domain'] ??
+                        widget.tenant['custom_domain'] ??
+                        '')
+                    .toString();
+
+                final scaffoldMessenger = ScaffoldMessenger.of(context);
 
                 Navigator.pop(context);
                 setState(() => _isUpdating = true);
 
                 final result = await ApiService.updateCredentials(
-                  tenantId: widget.tenant['tenant_id'],
-                  email: emailController.text.trim(),
-                  pin: pinController.text.trim(),
+                  tenantId: tenantId,
+                  email: email,
+                  pin: pin,
                 );
 
                 setState(() => _isUpdating = false);
+
                 if (result['success'] == true) {
-                  setState(() => _currentEmail = emailController.text.trim());
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(result['message']),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
-                  }
-                } else if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  setState(() {
+                    _currentEmail = email;
+                    widget.tenant['admin_email'] = email;
+                    widget.tenant['primary_email'] = email;
+                    widget.tenant['contact_email'] = email;
+                  });
+                  scaffoldMessenger.showSnackBar(
+                    SnackBar(
+                      content: Text(result['message'] ??
+                          "Admin credentials updated successfully!"),
+                      backgroundColor: Colors.green,
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                } else {
+                  scaffoldMessenger.showSnackBar(
                     SnackBar(
                       content: Text("FAILED: ${result['message']}"),
                       backgroundColor: Colors.red,
+                      behavior: SnackBarBehavior.floating,
                     ),
                   );
                 }
@@ -885,6 +1404,8 @@ class _ClientDetailsScreenState extends State<ClientDetailsScreen> {
     final String name =
         widget.tenant['restaurant_name'] ?? widget.tenant['name'] ?? 'Unknown';
     final String firstLetter = name.isNotEmpty ? name[0].toUpperCase() : 'R';
+    final String planText =
+        (widget.tenant['plan'] ?? 'BASIC').toString().toUpperCase();
 
     return Row(
       children: [
@@ -940,7 +1461,7 @@ class _ClientDetailsScreenState extends State<ClientDetailsScreen> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      widget.tenant['plan'].toString().toUpperCase(),
+                      planText,
                       style: const TextStyle(
                         color: SAMStyles.emeraldGreen,
                         fontSize: 10,
@@ -1016,37 +1537,97 @@ class _ClientDetailsScreenState extends State<ClientDetailsScreen> {
     }
   }
 
+  Future<void> _toggleTenantStatus() async {
+    bool currentActive =
+        (widget.tenant['is_active'] == 1 || widget.tenant['is_active'] == true);
+    bool newActive = !currentActive;
+
+    final String tenantId = (widget.tenant['tenant_id'] ??
+            widget.tenant['id'] ??
+            widget.tenant['domain'] ??
+            widget.tenant['custom_domain'] ??
+            '')
+        .toString();
+
+    setState(() => _isUpdating = true);
+    final result = await ApiService.superAdminToggleTenantStatus(
+      tenantId: tenantId,
+      isActive: newActive,
+    );
+    setState(() => _isUpdating = false);
+
+    if (result['success'] == true) {
+      setState(() {
+        widget.tenant['is_active'] = newActive ? 1 : 0;
+        widget.tenant['subscription_status'] = newActive ? 'Active' : 'Pending';
+      });
+      await _refreshTenantData();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message']),
+            backgroundColor: newActive ? SAMStyles.emeraldGreen : Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Failed to update status: ${result['message']}"),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
   Widget _buildStatusBadge() {
     bool isActive =
         (widget.tenant['is_active'] == 1 || widget.tenant['is_active'] == true);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: isActive
-            ? SAMStyles.emeraldGreen.withValues(alpha: 0.1)
-            : Colors.red.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(30),
-        border: Border.all(
-          color: isActive ? SAMStyles.emeraldGreen : Colors.red,
-          width: 1.5,
-        ),
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 4,
-            backgroundColor: isActive ? SAMStyles.emeraldGreen : Colors.red,
-          ),
-          const SizedBox(width: 8),
-          Text(
-            isActive ? "ACTIVE" : "BLOCKED",
-            style: TextStyle(
+    return InkWell(
+      onTap: _isUpdating ? null : _toggleTenantStatus,
+      borderRadius: BorderRadius.circular(30),
+      child: Tooltip(
+        message: "Click to toggle status (Active / Blocked)",
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: isActive
+                ? SAMStyles.emeraldGreen.withValues(alpha: 0.1)
+                : Colors.red.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(30),
+            border: Border.all(
               color: isActive ? SAMStyles.emeraldGreen : Colors.red,
-              fontWeight: FontWeight.w900,
-              fontSize: 12,
+              width: 1.5,
             ),
           ),
-        ],
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 4,
+                backgroundColor: isActive ? SAMStyles.emeraldGreen : Colors.red,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                isActive ? "ACTIVE" : "BLOCKED",
+                style: TextStyle(
+                  color: isActive ? SAMStyles.emeraldGreen : Colors.red,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 12,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Icon(
+                Icons.swap_vert_rounded,
+                size: 14,
+                color: isActive ? SAMStyles.emeraldGreen : Colors.red,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -1170,20 +1751,22 @@ class _ClientDetailsScreenState extends State<ClientDetailsScreen> {
   }
 
   Widget _buildCategorizedStaffDirectory() {
-    if (_isStaffLoading)
+    if (_isStaffLoading) {
       return const Center(
         child: Padding(
           padding: EdgeInsets.all(40),
           child: CircularProgressIndicator(),
         ),
       );
-    if (_realStaff.isEmpty)
+    }
+    if (_realStaff.isEmpty) {
       return const Center(
         child: Padding(
           padding: EdgeInsets.all(40),
           child: Text("No staff members registered."),
         ),
       );
+    }
 
     final managers = _realStaff.where((s) => s['role'] == 'Admin').toList();
     final waiters = _realStaff.where((s) => s['role'] == 'Waiter').toList();

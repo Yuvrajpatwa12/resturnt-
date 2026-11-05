@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
 import '../../services/tenant_service.dart';
@@ -13,18 +14,37 @@ class AlertsScreen extends StatefulWidget {
 class _AlertsScreenState extends State<AlertsScreen> {
   List<Map<String, dynamic>> _stockAlerts = [];
   List<Map<String, dynamic>> _voiceOrders = [];
+  List<Map<String, dynamic>> _readyOrders = [];
   final Set<String> _dismissedVoiceOrderIds = {};
   bool _isLoading = true;
   bool _hasLoadError = false;
+  bool _isRefreshingAlerts = false;
+  bool _refreshRequested = false;
   int? _playingIndex;
+  Timer? _refreshTimer;
 
   @override
   void initState() {
     super.initState();
-    _loadAlerts();
+    _loadAlerts(showLoading: true);
+    _refreshTimer = Timer.periodic(
+      const Duration(seconds: 8),
+      (_) => _loadAlerts(),
+    );
   }
 
-  Future<void> _loadAlerts() async {
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _loadAlerts({bool showLoading = false}) async {
+    if (_isRefreshingAlerts) {
+      _refreshRequested = true;
+      return;
+    }
+    _isRefreshingAlerts = true;
     final tenant = TenantService().currentTenant.value;
     if (tenant == null) {
       if (mounted) {
@@ -33,26 +53,43 @@ class _AlertsScreenState extends State<AlertsScreen> {
           _hasLoadError = true;
         });
       }
+      _isRefreshingAlerts = false;
       return;
     }
 
-    setState(() => _isLoading = true);
-    final data = await ApiService.fetchStockReports(tenant.id);
-    final voiceData = await ApiService.fetchVoiceOrders(tenant.id);
+    if (showLoading && mounted) setState(() => _isLoading = true);
+    try {
+      final results = await Future.wait([
+        ApiService.fetchStockReports(tenant.id),
+        ApiService.fetchVoiceOrders(tenant.id),
+        ApiService.fetchWaiterReadyTasks(tenant.id),
+      ]);
+      final data = results[0];
+      final voiceData = results[1];
+      final readyData = results[2];
 
-    if (mounted) {
-      setState(() {
-        if (data != null) _stockAlerts = data;
-        if (voiceData != null) {
-          _voiceOrders = voiceData
-              .where(
-                (v) => !_dismissedVoiceOrderIds.contains(v['id']?.toString()),
-              )
-              .toList();
-        }
-        _hasLoadError = data == null || voiceData == null;
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          if (data != null) _stockAlerts = data;
+          if (voiceData != null) {
+            _voiceOrders = voiceData
+                .where(
+                  (v) => !_dismissedVoiceOrderIds.contains(v['id']?.toString()),
+                )
+                .toList();
+          }
+          if (readyData != null) _readyOrders = readyData;
+          _hasLoadError =
+              data == null || voiceData == null || readyData == null;
+          _isLoading = false;
+        });
+      }
+    } finally {
+      _isRefreshingAlerts = false;
+      if (_refreshRequested && mounted) {
+        _refreshRequested = false;
+        unawaited(_loadAlerts());
+      }
     }
   }
 
@@ -71,28 +108,140 @@ class _AlertsScreenState extends State<AlertsScreen> {
     }
   }
 
-  Future<void> _completeVoiceOrder(dynamic rawId) async {
-    final String strId = rawId?.toString() ?? '';
+  Future<void> _completeVoiceOrder(Map<String, dynamic> order) async {
+    final String strId = order['id']?.toString() ?? '';
     if (strId.isEmpty || strId == 'null') return;
 
-    // Instantly & permanently remove from UI
+    final int id = int.tryParse(strId) ?? 0;
+    if (id <= 0) return;
+
+    if (order['request_source'] == 'waiter_assistance') {
+      final result = await ApiService.completeWaiterAssistance(id);
+      if (result['success'] != true) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                result['message']?.toString() ??
+                    'Could not complete the assistance request.',
+              ),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+    } else {
+      final result = await ApiService.updateVoiceOrderStatus(id, 'Completed');
+      if (result['success'] != true) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                result['message']?.toString() ??
+                    'Could not complete the voice order.',
+              ),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+      await ApiService.deleteVoiceOrder(id);
+    }
+
+    if (!mounted) return;
     setState(() {
       _dismissedVoiceOrderIds.add(strId);
       _voiceOrders.removeWhere((v) => (v['id']?.toString() ?? '') == strId);
     });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Request marked as completed."),
+        backgroundColor: Colors.green,
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
 
-    final int id = int.tryParse(strId) ?? 0;
-    if (id > 0) {
-      ApiService.deleteVoiceOrder(id);
-      ApiService.updateVoiceOrderStatus(id, 'Completed');
+  Future<void> _acceptReadyOrder(Map<String, dynamic> order) async {
+    final taskId = int.tryParse(order['id']?.toString() ?? '');
+    if (taskId == null || taskId <= 0) return;
+
+    final result = await ApiService.acceptWaiterReadyTask(taskId);
+    if (result['success'] != true) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              result['message']?.toString() ??
+                  'Another waiter may have accepted this order.',
+            ),
+            backgroundColor: Colors.orange.shade800,
+          ),
+        );
+      }
+      await _loadAlerts();
+      return;
     }
 
+    await _loadAlerts();
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Request OK! Permanently deleted from database."),
+          content: Text('You accepted this order for serving.'),
           backgroundColor: Colors.green,
-          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  Future<void> _markReadyOrderServed(Map<String, dynamic> order) async {
+    final taskId = int.tryParse(order['id']?.toString() ?? '');
+    final orderId = int.tryParse(order['order_id']?.toString() ?? '');
+    if (taskId == null || orderId == null || taskId <= 0 || orderId <= 0) {
+      return;
+    }
+
+    final statusResult = await ApiService.updateOrderStatus(orderId, 'Served');
+    if (statusResult['success'] != true) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              statusResult['message']?.toString() ??
+                  'Could not mark the order served.',
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+
+    final completeResult = await ApiService.completeWaiterReadyTask(taskId);
+    if (completeResult['success'] != true) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              completeResult['message']?.toString() ??
+                  'The order was marked served, but the service alert did not close.',
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      await _loadAlerts();
+      return;
+    }
+
+    await _loadAlerts();
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Order marked as served.'),
+          backgroundColor: Colors.green,
         ),
       );
     }
@@ -153,6 +302,22 @@ class _AlertsScreenState extends State<AlertsScreen> {
                         ],
                       ),
                     ),
+                  if (_readyOrders.isNotEmpty) ...[
+                    const Text(
+                      "ORDERS READY TO SERVE",
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w900,
+                        color: WaiterProTheme.emeraldGreen,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    ..._readyOrders.map(_buildReadyOrderCard),
+                    const SizedBox(height: 16),
+                    const Divider(),
+                    const SizedBox(height: 16),
+                  ],
                   // VOICE ORDERS SECTION (ONLY REAL VOICE ORDERS)
                   if (realVoiceOrders.isNotEmpty) ...[
                     const Text(
@@ -206,6 +371,7 @@ class _AlertsScreenState extends State<AlertsScreen> {
 
                   if (realVoiceOrders.isEmpty &&
                       assistanceCalls.isEmpty &&
+                      _readyOrders.isEmpty &&
                       _stockAlerts.isEmpty)
                     Container(
                       margin: const EdgeInsets.only(top: 40),
@@ -248,6 +414,112 @@ class _AlertsScreenState extends State<AlertsScreen> {
                 ],
               ),
             ),
+    );
+  }
+
+  Widget _buildReadyOrderCard(Map<String, dynamic> order) {
+    final accepted = order['status'] == 'accepted';
+    final table = order['table_number']?.toString() ?? '?';
+    final orderNumber =
+        order['display_order_number']?.toString() ??
+        order['order_number']?.toString() ??
+        order['order_id']?.toString() ??
+        '?';
+    final acceptedBy = order['accepted_by_name']?.toString() ?? 'You';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: accepted
+              ? WaiterProTheme.emeraldGreen.withValues(alpha: 0.4)
+              : const Color(0xFFE2E8F0),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              CircleAvatar(
+                backgroundColor: WaiterProTheme.emeraldGreen.withValues(
+                  alpha: 0.1,
+                ),
+                child: const Icon(
+                  Icons.room_service_rounded,
+                  color: WaiterProTheme.emeraldGreen,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Table T-$table',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                    Text(
+                      'Order #$orderNumber is ready',
+                      style: const TextStyle(
+                        color: Colors.black54,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (accepted)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Text(
+                'Accepted by $acceptedBy — please serve this order.',
+                style: const TextStyle(
+                  color: WaiterProTheme.emeraldGreen,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () => accepted
+                  ? _markReadyOrderServed(order)
+                  : _acceptReadyOrder(order),
+              icon: Icon(
+                accepted ? Icons.done_all_rounded : Icons.touch_app_rounded,
+                size: 18,
+              ),
+              label: Text(accepted ? 'MARK SERVED' : 'ACCEPT TO SERVE'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: WaiterProTheme.emeraldGreen,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -313,7 +585,7 @@ class _AlertsScreenState extends State<AlertsScreen> {
           ),
         ),
         trailing: ElevatedButton.icon(
-          onPressed: () => _completeVoiceOrder(v['id']),
+          onPressed: () => _completeVoiceOrder(v),
           icon: const Icon(Icons.check_circle_rounded, size: 16),
           label: const Text(
             "OK",
@@ -485,7 +757,7 @@ class _AlertsScreenState extends State<AlertsScreen> {
                   ),
                 ),
                 ElevatedButton.icon(
-                  onPressed: () => _completeVoiceOrder(v['id']),
+                  onPressed: () => _completeVoiceOrder(v),
                   icon: const Icon(Icons.check_circle_rounded, size: 16),
                   label: const Text(
                     "OK, DONE",

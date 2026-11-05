@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../admin_theme.dart';
@@ -61,6 +62,8 @@ class _ThemeManagementScreenState extends State<ThemeManagementScreen> {
   Future<void> _loadSettings() async {
     // First try to load from backend
     final tenant = TenantService().currentTenant.value;
+    final cacheKey =
+        'theme_settings_${Uri.encodeComponent(tenant?.id ?? 'startups_main')}';
     if (tenant != null) {
       final themeData = await ApiService.fetchTheme(tenant.id);
       if (themeData != null && mounted) {
@@ -79,14 +82,20 @@ class _ThemeManagementScreenState extends State<ThemeManagementScreen> {
 
     // Fallback to SharedPreferences
     final prefs = await SharedPreferences.getInstance();
+    final cachedTheme = prefs.getString(cacheKey);
     if (mounted) {
       setState(() {
-        final colorValue = prefs.getInt('theme_primary_color');
+        final themeData = cachedTheme == null
+            ? <String, dynamic>{}
+            : jsonDecode(cachedTheme) as Map<String, dynamic>;
+        final colorValue = themeData['theme_primary_color'] as int?;
         if (colorValue != null) _primaryColor = Color(colorValue);
-        _isDarkMode = prefs.getBool('theme_dark_mode') ?? false;
-        _borderRadius = prefs.getDouble('theme_border_radius') ?? 16.0;
-        _fontFamily = prefs.getString('theme_font_family') ?? 'Inter';
-        _selectedThemeName = prefs.getString('theme_name') ?? "Default Blue";
+        _isDarkMode = themeData['theme_dark_mode'] as bool? ?? false;
+        _borderRadius =
+            (themeData['theme_border_radius'] as num?)?.toDouble() ?? 16.0;
+        _fontFamily = themeData['theme_font_family'] as String? ?? 'Inter';
+        _selectedThemeName =
+            themeData['theme_name'] as String? ?? "Default Blue";
         _isLoadingSettings = false;
       });
     }
@@ -125,11 +134,18 @@ class _ThemeManagementScreenState extends State<ThemeManagementScreen> {
 
     // Fallback to SharedPreferences
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt('theme_primary_color', _primaryColor.value);
-    await prefs.setBool('theme_dark_mode', _isDarkMode);
-    await prefs.setDouble('theme_border_radius', _borderRadius);
-    await prefs.setString('theme_font_family', _fontFamily);
-    await prefs.setString('theme_name', _selectedThemeName);
+    final cacheKey =
+        'theme_settings_${Uri.encodeComponent(tenant?.id ?? 'startups_main')}';
+    await prefs.setString(
+      cacheKey,
+      jsonEncode({
+        'theme_primary_color': _primaryColor.value,
+        'theme_dark_mode': _isDarkMode,
+        'theme_border_radius': _borderRadius,
+        'theme_font_family': _fontFamily,
+        'theme_name': _selectedThemeName,
+      }),
+    );
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(

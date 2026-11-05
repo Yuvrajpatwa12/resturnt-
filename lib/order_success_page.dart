@@ -64,7 +64,11 @@ class _OrderSuccessPageState extends State<OrderSuccessPage>
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (context) => LiveOrderTrackingScreen(orderId: orderId),
+        builder: (context) => LiveOrderTrackingScreen(
+          orderId: orderId,
+          displayOrderNumber:
+              ShopManager.instance.activeOrderNumber.value?.toString(),
+        ),
       ),
     );
   }

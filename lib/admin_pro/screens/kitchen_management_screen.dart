@@ -12,126 +12,8 @@ class KitchenManagementScreen extends StatefulWidget {
 }
 
 class _KitchenManagementScreenState extends State<KitchenManagementScreen> {
-  // --- DEMO DATA ---
-  final List<Map<String, dynamic>> _kitchens = [
-    {
-      'id': 'KTN-001',
-      'name': 'Main Production Kitchen',
-      'code': 'MPK-01',
-      'category': 'Main Stations',
-      'type': 'Production',
-      'status': 'Online',
-      'orders_today': 145,
-      'staff': [
-        'Arbind Patel',
-        'Sandhya Sharma',
-        'Ram Kumar',
-        'Sita Thapa',
-        'Rajesh Hamal',
-        'Gita Rai',
-        'Hari Kc',
-        'Maya Devi',
-        'Suraj Limbu',
-        'Puja Shah',
-        'Binod Chaudhary',
-        'Rita Gurung',
-      ],
-      'icon': Icons.soup_kitchen,
-    },
-    {
-      'id': 'KTN-002',
-      'name': 'Chinese & Wok Station',
-      'code': 'CW-02',
-      'category': 'Main Stations',
-      'type': 'Specialty',
-      'status': 'Online',
-      'orders_today': 82,
-      'staff': [
-        'Krishna Pd',
-        'Anjali Bista',
-        'Madan Rai',
-        'Saru Magar',
-        'Dipesh Shah',
-      ],
-      'icon': Icons.outdoor_grill,
-    },
-    {
-      'id': 'KTN-003',
-      'name': 'Bakery & Pastry Unit',
-      'code': 'BP-03',
-      'category': 'Sub Stations',
-      'type': 'Bakery',
-      'status': 'Online',
-      'orders_today': 45,
-      'staff': ['Kabita Giri', 'Sunil Das', 'Rekha Kc', 'Om Pd'],
-      'icon': Icons.bakery_dining,
-    },
-    {
-      'id': 'KTN-004',
-      'name': 'Main Bar & Beverages',
-      'code': 'BAR-01',
-      'category': 'Bar & Beverage',
-      'type': 'Beverages',
-      'status': 'Online',
-      'orders_today': 210,
-      'staff': ['Sameer Rai', 'Nisha Lama', 'Prakash Poudel'],
-      'icon': Icons.local_bar,
-    },
-    {
-      'id': 'KTN-005',
-      'name': 'Outdoor BBQ Station',
-      'code': 'BBQ-05',
-      'category': 'Sub Stations',
-      'type': 'Grill',
-      'status': 'Offline',
-      'orders_today': 0,
-      'staff': [],
-      'icon': Icons.fire_hydrant_alt,
-    },
-  ];
-
-  final List<Map<String, dynamic>> _assignments = [
-    {
-      'id': 'AS-001',
-      'category': 'Momo',
-      'item': 'Chicken Momo',
-      'kitchen': 'Main Production Kitchen',
-      'priority': 'High',
-      'status': 'Active',
-    },
-    {
-      'id': 'AS-002',
-      'category': 'Pizza',
-      'item': 'Chicken Pizza',
-      'kitchen': 'Pizza Kitchen',
-      'priority': 'Medium',
-      'status': 'Active',
-    },
-    {
-      'id': 'AS-003',
-      'category': 'Chowmein',
-      'item': 'Veg Chowmein',
-      'kitchen': 'Chinese & Wok Station',
-      'priority': 'Medium',
-      'status': 'Active',
-    },
-    {
-      'id': 'AS-004',
-      'category': 'Cake',
-      'item': 'Chocolate Cake',
-      'kitchen': 'Bakery & Pastry Unit',
-      'priority': 'Low',
-      'status': 'Active',
-    },
-    {
-      'id': 'AS-005',
-      'category': 'Coffee',
-      'item': 'Cappuccino',
-      'kitchen': 'Main Bar & Beverages',
-      'priority': 'Medium',
-      'status': 'Active',
-    },
-  ];
+  final List<Map<String, dynamic>> _kitchens = [];
+  final List<Map<String, dynamic>> _assignments = [];
 
   // UI State
   String? _activeDetailView;
@@ -152,6 +34,19 @@ class _KitchenManagementScreenState extends State<KitchenManagementScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.mode != "Kitchen Dashboard Setting") {
+      return SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildHeader(),
+            const SizedBox(height: 24),
+            _buildNotConfiguredState(),
+          ],
+        ),
+      );
+    }
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -163,6 +58,35 @@ class _KitchenManagementScreenState extends State<KitchenManagementScreen> {
           _buildDetailedSummaryView(),
           const SizedBox(height: 32),
           _buildContextualView(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNotConfiguredState() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: AdminTheme.softShadow,
+      ),
+      child: const Column(
+        children: [
+          Icon(Icons.soup_kitchen_outlined, size: 44, color: Colors.grey),
+          SizedBox(height: 12),
+          Text(
+            "No server-backed kitchen stations or item assignments are configured.",
+            textAlign: TextAlign.center,
+            style: TextStyle(fontWeight: FontWeight.w700),
+          ),
+          SizedBox(height: 8),
+          Text(
+            "Live orders are available in the Kitchen Display. This screen will show station data when restaurant-level configuration is connected.",
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.grey, fontSize: 12),
+          ),
         ],
       ),
     );
@@ -205,26 +129,6 @@ class _KitchenManagementScreenState extends State<KitchenManagementScreen> {
             ],
           ),
           const Spacer(),
-          if (widget.mode != "Kitchen Dashboard Setting")
-            ElevatedButton.icon(
-              onPressed: () => _handleAddNew(),
-              icon: const Icon(Icons.add, size: 18),
-              label: Text(
-                "ADD ${_getModeBtnLabel()}",
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AdminTheme.royalBlue,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 18,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
         ],
       ),
     );
@@ -859,6 +763,4 @@ class _KitchenManagementScreenState extends State<KitchenManagementScreen> {
   }
 
   String _getModeSubtitle() => "Manage your kitchen operations and stations.";
-  String _getModeBtnLabel() => "STATION";
-  void _handleAddNew() {}
 }

@@ -2,13 +2,20 @@ import 'package:flutter/material.dart';
 import 'battleground_creation_page.dart';
 import 'cart_manager.dart';
 import 'services/api_service.dart';
+import 'services/tenant_service.dart';
 import 'dart:async';
 import 'homepage.dart';
 import 'widgets/waiter_assistance_modal.dart';
+import 'services/feature_flags.dart';
 
 class LiveOrderTrackingScreen extends StatefulWidget {
   final int orderId;
-  const LiveOrderTrackingScreen({super.key, required this.orderId});
+  final String? displayOrderNumber;
+  const LiveOrderTrackingScreen({
+    super.key,
+    required this.orderId,
+    this.displayOrderNumber,
+  });
 
   @override
   State<LiveOrderTrackingScreen> createState() =>
@@ -42,7 +49,17 @@ class _LiveOrderTrackingScreenState extends State<LiveOrderTrackingScreen> {
 
   Future<void> _fetchStatus() async {
     try {
-      final status = await ApiService.fetchOrderStatus(widget.orderId);
+      final tenantId = TenantService().currentTenant.value?.id.trim() ?? '';
+      if (tenantId.isEmpty) {
+        if (mounted) setState(() => _isLoading = false);
+        _statusTimer?.cancel();
+        return;
+      }
+      final status = await ApiService.fetchOrderStatus(
+        widget.orderId,
+        tenantId: tenantId,
+      );
+      if (TenantService().currentTenant.value?.id != tenantId) return;
       if (status != null && mounted) {
         setState(() {
           _currentStatus = status;
@@ -107,7 +124,7 @@ class _LiveOrderTrackingScreenState extends State<LiveOrderTrackingScreen> {
   }
 
   bool get _canShowBattleground {
-    return true;
+    return FeatureFlags.gamesEnabled;
   }
 
   Widget _buildBattlegroundCard() {
@@ -185,7 +202,7 @@ class _LiveOrderTrackingScreenState extends State<LiveOrderTrackingScreen> {
             ),
           ),
           Text(
-            "ORDER ID: #${widget.orderId}",
+            "ORDER ID: #${widget.displayOrderNumber ?? widget.orderId}",
             style: const TextStyle(
               fontSize: 10,
               fontWeight: FontWeight.bold,
@@ -372,7 +389,7 @@ class _LiveOrderTrackingScreenState extends State<LiveOrderTrackingScreen> {
           ),
           const SizedBox(height: 16),
           Text(
-            "Tracking is live for Order #${widget.orderId}. Your order is currently being processed by our staff.",
+            "Tracking is live for Order #${widget.displayOrderNumber ?? widget.orderId}. Your order is currently being processed by our staff.",
             style: const TextStyle(
               color: Colors.grey,
               fontSize: 13,

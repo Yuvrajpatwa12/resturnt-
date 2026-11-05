@@ -103,12 +103,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $qId = (int)$item['queue_id'];
                         $title = trim((string)$item['title']);
                         $detail = $item['event_type'] === 'message' ? 'You have a new chat message.' : trim((string)$item['message']);
+                        $brandName = restaurantEmailBrandName($conn, $item['tenant_id']);
+                        $brandedFrom = restaurantEmailFrom($from, $brandName);
                         $payload = json_encode([
-                            'from' => $from,
+                            'from' => $brandedFrom,
                             'to' => [$item['recipient']],
-                            'subject' => 'ChiyaBreak Live Alert: ' . $title,
-                            'text' => $title . "\n" . $detail,
-                            'html' => '<p><strong>' . h($title) . '</strong></p><p>' . h($detail) . '</p>'
+                            'subject' => $brandName . ': ' . $title,
+                            'text' => $brandName . "\n\n" . $title . "\n" . $detail,
+                            'html' => '<p><strong>' . h($brandName) . '</strong></p><p><strong>' . h($title) . '</strong></p><p>' . h($detail) . '</p>'
                         ]);
 
                         $curl = curl_init('https://api.resend.com/emails');

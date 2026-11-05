@@ -18,6 +18,8 @@ import 'services/push_service_worker_stub.dart'
 
 enum OrderStatus { pending, approved, preparing, ready }
 
+enum NotificationPermissionResult { enabled, emailEnabled }
+
 class CartItem {
   final Product product;
   int quantity;
@@ -47,6 +49,11 @@ class ShopManager with WidgetsBindingObserver {
   bool _isAppInForeground = true;
   String? _lastRegisteredFcmToken;
   String? _lastRegisteredFcmKey;
+  String? _lastPresenceTenantId;
+  String? _lastPresenceUserId;
+  String? _presencePausedTenantId;
+  String? _orderTenantId;
+  String? _customerTenantId;
 
   Future<void> ensureInitialized() async {
     _initFuture ??= _loadPersistedOrder();
@@ -55,6 +62,14 @@ class ShopManager with WidgetsBindingObserver {
 
   ShopManager._internal() {
     WidgetsBinding.instance.addObserver(this);
+    _orderTenantId = TenantService().currentTenant.value?.id.trim();
+    _customerTenantId = _orderTenantId;
+    TenantService().currentTenant.addListener(_handleTenantChanged);
+    if (_orderTenantId != null && _orderTenantId!.isNotEmpty) {
+      unawaited(_restoreOrderStateForTenant(_orderTenantId!));
+      unawaited(_restoreGroupSessionForTenant(_orderTenantId!));
+      unawaited(_restoreCustomerSessionForTenant(_orderTenantId!));
+    }
     _startGlobalTimer();
     _initFuture = _loadPersistedOrder();
     _startPresenceCheckIn();
@@ -132,7 +147,6 @@ class ShopManager with WidgetsBindingObserver {
     await prefs.setBool('is_wave_enabled', isWaveEnabled.value);
   }
 
-  int _lastOrderSyncTimestamp = 0;
   Timer? _orderSyncTimer;
   bool _initialTableRefreshStarted = false;
 
@@ -147,13 +161,6 @@ class ShopManager with WidgetsBindingObserver {
   }
 
   Future<void> _syncOrderChanges() async {
-    final tenant = TenantService().currentTenant.value;
-    if (tenant == null) return;
-
-    final serverTimestamp = await ApiService.checkOrderChange(tenant.id);
-    if (serverTimestamp > _lastOrderSyncTimestamp) {
-      _lastOrderSyncTimestamp = serverTimestamp;
-    }
     await refreshLiveOrders();
   }
 
@@ -269,6 +276,7 @@ class ShopManager with WidgetsBindingObserver {
   }
 
   final Set<int> _deletedSongIds = {};
+  String? _musicTenantId;
 
   void markSongDeleted(int songId) {
     _deletedSongIds.add(songId);
@@ -285,112 +293,67 @@ class ShopManager with WidgetsBindingObserver {
 
   Future<void> refreshMusicStatus() async {
     final tenant = TenantService().currentTenant.value;
-    final tenantId = (tenant != null && tenant.id.isNotEmpty)
-        ? tenant.id
-        : 'startups_main';
+    final tenantId = tenant?.id.trim() ?? '';
+    if (tenantId.isEmpty) {
+      _clearMusicState();
+      musicApiStatusMessage.value = 'Select a restaurant to load music.';
+      return;
+    }
+
+    if (_musicTenantId != tenantId) {
+      _musicTenantId = tenantId;
+      _deletedSongIds.clear();
+      _clearMusicState();
+    }
 
     final data = await ApiService.fetchMusicStatus(
       tenantId,
       userId: currentUserId,
     );
+    if (_musicTenantId != tenantId ||
+        TenantService().currentTenant.value?.id != tenantId) {
+      return;
+    }
 
     if (data != null && data['status'] == 'success') {
-      if (data['now_playing'] != null)
-        currentSong.value = Map<String, dynamic>.from(data['now_playing']);
-      if (data['queue'] != null && data['queue'] is List) {
-        final serverQueue = List<Map<String, dynamic>>.from(data['queue']);
-        final filteredQueue = serverQueue.where((item) {
-          final id = int.tryParse(item['id']?.toString() ?? '0') ?? 0;
-          return !_deletedSongIds.contains(id);
-        }).toList();
-
-        musicQueue.value = filteredQueue;
-        musicApiStatusMessage.value =
-            "Connected to tenant '$tenantId'. DB returned ${filteredQueue.length} song request(s).";
-        if (data['active_poll'] != null)
-          activePoll.value = Map<String, dynamic>.from(data['active_poll']);
-        else
-          activePoll.value = null;
-        return;
-      }
+      final nowPlaying = data['now_playing'];
+      currentSong.value = nowPlaying is Map<String, dynamic>
+          ? Map<String, dynamic>.from(nowPlaying)
+          : _emptyMusicState();
+      final rawQueue = data['queue'];
+      final serverQueue = rawQueue is List
+          ? rawQueue.whereType<Map<String, dynamic>>().toList()
+          : <Map<String, dynamic>>[];
+      musicQueue.value = serverQueue.where((item) {
+        final id = int.tryParse(item['id']?.toString() ?? '0') ?? 0;
+        return !_deletedSongIds.contains(id);
+      }).toList();
+      musicApiStatusMessage.value =
+          "Connected to tenant '$tenantId'. DB returned ${musicQueue.value.length} song request(s).";
+      final poll = data['active_poll'];
+      activePoll.value = poll is Map<String, dynamic>
+          ? Map<String, dynamic>.from(poll)
+          : null;
+      return;
     }
 
-    // Fallback for Localhost / CORS / Offline Dev Mode
+    _clearMusicState();
     musicApiStatusMessage.value =
-        "Localhost Dev Mode (CORS / Offline Fallback Active)";
+        "Music service is unavailable for restaurant '$tenantId'.";
+  }
 
-    // Default queue for Localhost dev testing
-    if (musicQueue.value.isEmpty) {
-      musicQueue.value =
-          [
-                {
-                  'id': 1,
-                  'tenant_id': tenantId,
-                  'title': 'sd',
-                  'artist': 'Requested',
-                  'image':
-                      'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=500',
-                  'dedication': '23',
-                  'requested_by': 'guest_1788758734781',
-                  'votes': 12,
-                  'status': 'queued',
-                },
-                {
-                  'id': 2,
-                  'tenant_id': tenantId,
-                  'title': 'new aong',
-                  'artist': 'Requested',
-                  'image':
-                      'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=500',
-                  'dedication': null,
-                  'requested_by': 'guest_1789468678124',
-                  'votes': 4,
-                  'status': 'queued',
-                },
-                {
-                  'id': 3,
-                  'tenant_id': tenantId,
-                  'title': 'yuraj',
-                  'artist': 'Requested',
-                  'image':
-                      'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=500',
-                  'dedication': '72',
-                  'requested_by': 'guest_1790320894536',
-                  'votes': 0,
-                  'status': 'queued',
-                },
-                {
-                  'id': 4,
-                  'tenant_id': tenantId,
-                  'title': 'jh',
-                  'artist': 'Requested',
-                  'image':
-                      'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=500',
-                  'dedication': 'gh',
-                  'requested_by': 'guest_1790330691637',
-                  'votes': 1,
-                  'status': 'queued',
-                },
-                {
-                  'id': 5,
-                  'tenant_id': tenantId,
-                  'title': 'yyy',
-                  'artist': 'Requested',
-                  'image':
-                      'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=500',
-                  'dedication': '12',
-                  'requested_by': 'guest_1790330691637',
-                  'votes': 1,
-                  'status': 'queued',
-                },
-              ]
-              .where(
-                (item) => !_deletedSongIds.contains(
-                  int.tryParse(item['id']?.toString() ?? '0') ?? 0,
-                ),
-              )
-              .toList();
-    }
+  Map<String, dynamic> _emptyMusicState() => {
+    'title': 'No Song Playing',
+    'artist': '-',
+    'image':
+        'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=500',
+    'progress': 0.0,
+  };
+
+  void _clearMusicState() {
+    musicQueue.value = [];
+    currentSong.value = _emptyMusicState();
+    activePoll.value = null;
   }
 
   void _startNearbyMonitor() {
@@ -715,20 +678,50 @@ class ShopManager with WidgetsBindingObserver {
   }
 
   Future<void> updatePresenceOnServer() async {
+    await ensureInitialized();
     final tenant = TenantService().currentTenant.value;
-    final uid = currentUserId;
+    final tenantId = tenant?.id.trim() ?? '';
+    final uid = currentUserId.trim();
 
-    if (tenant != null && uid.isNotEmpty) {
+    if (_presencePausedTenantId == tenantId) return;
+    if (_presencePausedTenantId != null &&
+        _presencePausedTenantId != tenantId) {
+      _presencePausedTenantId = null;
+    }
+
+    if (tenantId.isNotEmpty && uid.isNotEmpty) {
+      final previousTenantId = _lastPresenceTenantId;
+      final previousUserId = _lastPresenceUserId;
+      if (previousTenantId != null &&
+          previousUserId != null &&
+          (previousTenantId != tenantId ||
+              previousUserId.toLowerCase() != uid.toLowerCase())) {
+        await ApiService.goOffline(
+          tenantId: previousTenantId,
+          userId: previousUserId,
+        );
+      }
+
       // If table is not selected, we use 0 to indicate "Browsing/Near"
       int tableNum = selectedTableId.value ?? 0;
 
       debugPrint("NEARBY: Updating presence for $uid at Table $tableNum");
-      await ApiService.updatePresence(
-        tenantId: tenant.id,
+      final checkedIn = await ApiService.updatePresence(
+        tenantId: tenantId,
         userId: uid,
         tableNumber: tableNum,
         userName: customerName.value.isNotEmpty ? customerName.value : null,
       );
+      if (_presencePausedTenantId == tenantId) {
+        await ApiService.goOffline(tenantId: tenantId, userId: uid);
+        return;
+      }
+      if (checkedIn &&
+          TenantService().currentTenant.value?.id == tenantId &&
+          currentUserId.toLowerCase() == uid.toLowerCase()) {
+        _lastPresenceTenantId = tenantId;
+        _lastPresenceUserId = uid;
+      }
       // Auto re-sync FCM Token for guest / email users
       setupPushNotifications();
     }
@@ -748,7 +741,18 @@ class ShopManager with WidgetsBindingObserver {
 
   Future<void> _loadPersistedOrder() async {
     final prefs = await SharedPreferences.getInstance();
-    isOnboardingComplete.value = prefs.getBool('onboarding_complete') ?? false;
+    String? savedGuestId = prefs.getString('guest_id');
+    if (savedGuestId == null ||
+        savedGuestId.trim().isEmpty ||
+        savedGuestId.toLowerCase() == 'guest') {
+      savedGuestId =
+          'guest_${DateTime.now().millisecondsSinceEpoch}_${Random().nextInt(99999)}';
+      guestId.value = savedGuestId;
+      await prefs.setString('guest_id', savedGuestId);
+    } else {
+      guestId.value = savedGuestId;
+    }
+
     currentTabIndex.value = prefs.getInt('last_tab_index') ?? 0;
     final int? savedTable = prefs.getInt('selected_table_id');
     if (savedTable != null) selectedTableId.value = savedTable;
@@ -765,104 +769,6 @@ class ShopManager with WidgetsBindingObserver {
     hasConfirmedOrderAbove1000.value =
         prefs.getBool('has_confirmed_order_above_1000') ?? false;
 
-    // LOAD PERSISTED GROUP SESSION
-    final int? sid = prefs.getInt('active_session_id');
-    if (sid != null) {
-      final bool isHost = prefs.getBool('is_session_host') ?? false;
-      final String? pin = prefs.getString('active_session_pin');
-      startSessionPolling(sid, isHost, pin: pin);
-    }
-
-    // RESTORE LOCAL CUSTOMER NAME AND GENDER IF SAVED
-    String? savedName = prefs.getString('customer_name');
-    if (savedName != null && savedName.trim().isNotEmpty) {
-      customerName.value = savedName.trim();
-    }
-    String? savedGender = prefs.getString('user_gender');
-    if (savedGender != null && savedGender.trim().isNotEmpty) {
-      userGender.value = savedGender.trim();
-    }
-
-    // AUTO-RESTORE CUSTOMER SESSION (5-MINUTE TIMEOUT RULE)
-    String? savedEmail = prefs.getString('customer_email');
-    customerSessionToken = prefs.getString('customer_session_token') ?? '';
-    bool isAuth = prefs.getBool('customer_authenticated') ?? false;
-    int lastActive = prefs.getInt('last_active_time') ?? 0;
-    int now = DateTime.now().millisecondsSinceEpoch;
-    int elapsedMs = now - lastActive;
-    const int fiveMinutesMs = 5 * 60 * 1000; // 5 minutes in milliseconds
-
-    if (savedEmail != null &&
-        savedEmail.isNotEmpty &&
-        isAuth &&
-        elapsedMs < fiveMinutesMs) {
-      // User refreshed page within 5 minutes -> Auto restore session!
-      customerEmail.value = savedEmail;
-      isEmailSynced.value = true;
-      needsPin.value = false;
-      await prefs.setInt('last_active_time', now);
-
-      // Fetch user profile & refresh exact points from database
-      final res = await syncCustomerIdentity(savedEmail);
-      if (res != null && res['user'] != null) {
-        final dbName = res['user']['name']?.toString().trim();
-        if (dbName != null &&
-            dbName.isNotEmpty &&
-            dbName != 'Diner' &&
-            dbName != 'Guest Diner' &&
-            dbName != 'Guest') {
-          customerName.value = dbName;
-          await prefs.setString('customer_name', dbName);
-        }
-        userPoints.value =
-            int.tryParse(res['user']['points']?.toString() ?? '0') ?? 0;
-        orderStampCount.value =
-            int.tryParse(res['user']['order_count']?.toString() ?? '0') ?? 0;
-      }
-      await refreshUserPoints();
-    } else if (savedEmail != null && savedEmail.isNotEmpty) {
-      // Session expired (> 5 minutes) or unauthenticated
-      customerEmail.value = savedEmail;
-      isEmailSynced.value = false;
-      needsPin.value = false;
-      userPoints.value = 0;
-      orderStampCount.value = 0;
-    } else {
-      isEmailSynced.value = false;
-      needsPin.value = false;
-      userPoints.value = 0;
-      orderStampCount.value = 0;
-    }
-
-    String? gId = prefs.getString('guest_id');
-    if (gId == null || gId.trim().isEmpty || gId.toLowerCase() == 'guest') {
-      gId =
-          'guest_${DateTime.now().millisecondsSinceEpoch}_${Random().nextInt(99999)}';
-      await prefs.setString('guest_id', gId);
-    }
-    guestId.value = gId;
-
-    final savedIds = prefs.getStringList('active_order_ids') ?? [];
-    final restoredIds = savedIds
-        .map((id) => int.tryParse(id))
-        .whereType<int>()
-        .toList();
-    activeOrderIds.value = restoredIds;
-    final savedActiveId = prefs.getInt('active_order_id');
-    final activeOrderStateInitialized =
-        prefs.getBool('active_order_state_initialized') ?? false;
-    activeOrderId.value =
-        savedActiveId ??
-        (!activeOrderStateInitialized && restoredIds.isNotEmpty
-            ? restoredIds.last
-            : null);
-    isOrderActive.value = activeOrderId.value != null;
-    if (activeOrderId.value != null) {
-      final savedStatus = prefs.getString('active_order_status');
-      if (savedStatus != null) _mapStatus(savedStatus);
-      _startStatusSync();
-    }
-
     await fetchLoyaltySettings();
     await refreshUserPoints();
     await refreshSocialStats();
@@ -872,35 +778,241 @@ class ShopManager with WidgetsBindingObserver {
     checkNotificationPermission();
   }
 
-  Future<void> _persistOrder(int id, {bool isRemove = false}) async {
+  String _orderPreferenceKey(String tenantId, String name) =>
+      'active_order_${Uri.encodeComponent(tenantId)}_$name';
+
+  String _tenantPreferenceKey(String tenantId, String name) =>
+      'tenant_${Uri.encodeComponent(tenantId)}_$name';
+
+  String _customerPreferenceKey(String tenantId, String name) =>
+      'customer_${Uri.encodeComponent(tenantId)}_$name';
+
+  void _handleTenantChanged() {
+    final tenantId = TenantService().currentTenant.value?.id.trim() ?? '';
+    if (_orderTenantId == tenantId) return;
+
+    _orderStatusTimer?.cancel();
+    _clearSessionStateForTenantChange();
+    _orderTenantId = tenantId;
+    activeOrderIds.value = [];
+    activeOrderId.value = null;
+    activeOrderNumber.value = null;
+    isOrderActive.value = false;
+    orderStatus.value = OrderStatus.pending;
+    customerEmail.value = '';
+    customerSessionToken = '';
+    customerName.value = 'Guest';
+    userGender.value = 'Male';
+    isEmailSynced.value = false;
+    needsPin.value = false;
+    userPoints.value = 0;
+    orderStampCount.value = 0;
+    isProfileVisible.value = true;
+    isWaveEnabled.value = true;
+    _customerTenantId = tenantId;
+    if (tenantId.isNotEmpty) {
+      unawaited(_restoreOrderStateForTenant(tenantId));
+      unawaited(_restoreGroupSessionForTenant(tenantId));
+      unawaited(_restoreCustomerSessionForTenant(tenantId));
+    }
+  }
+
+  Future<void> _restoreCustomerSessionForTenant(String tenantId) async {
     final prefs = await SharedPreferences.getInstance();
-    List<String> current = prefs.getStringList('active_order_ids') ?? [];
+    if (_customerTenantId != tenantId ||
+        TenantService().currentTenant.value?.id != tenantId) {
+      return;
+    }
+
+    final emailKey = _customerPreferenceKey(tenantId, 'email');
+    final tokenKey = _customerPreferenceKey(tenantId, 'session_token');
+    final authenticatedKey = _customerPreferenceKey(tenantId, 'authenticated');
+    final lastActiveKey = _customerPreferenceKey(tenantId, 'last_active_time');
+    final savedName = prefs.getString(_customerPreferenceKey(tenantId, 'name'));
+    final savedGender = prefs.getString(
+      _customerPreferenceKey(tenantId, 'gender'),
+    );
+    isOnboardingComplete.value =
+        prefs.getBool(
+          _customerPreferenceKey(tenantId, 'onboarding_complete'),
+        ) ??
+        false;
+    if (savedName != null && savedName.trim().isNotEmpty) {
+      customerName.value = savedName.trim();
+    }
+    if (savedGender != null && savedGender.trim().isNotEmpty) {
+      userGender.value = savedGender.trim();
+    }
+
+    final savedEmail = prefs.getString(emailKey);
+    customerSessionToken = prefs.getString(tokenKey) ?? '';
+    final isAuth = prefs.getBool(authenticatedKey) ?? false;
+    final lastActive = prefs.getInt(lastActiveKey) ?? 0;
+    final now = DateTime.now().millisecondsSinceEpoch;
+    const fiveMinutesMs = 5 * 60 * 1000;
+    final active =
+        savedEmail != null &&
+        savedEmail.isNotEmpty &&
+        isAuth &&
+        now - lastActive < fiveMinutesMs;
+
+    if (savedEmail != null && savedEmail.isNotEmpty) {
+      customerEmail.value = savedEmail;
+      if (active) {
+        isEmailSynced.value = true;
+        needsPin.value = false;
+        await prefs.setInt(lastActiveKey, now);
+        final res = await syncCustomerIdentity(savedEmail);
+        if (_customerTenantId != tenantId ||
+            TenantService().currentTenant.value?.id != tenantId) {
+          return;
+        }
+        final user = res?['user'];
+        if (user is Map) {
+          final dbName = user['name']?.toString().trim();
+          if (dbName != null &&
+              dbName.isNotEmpty &&
+              dbName != 'Diner' &&
+              dbName != 'Guest Diner' &&
+              dbName != 'Guest') {
+            customerName.value = dbName;
+            await prefs.setString(
+              _customerPreferenceKey(tenantId, 'name'),
+              dbName,
+            );
+          }
+          userPoints.value =
+              int.tryParse(user['points']?.toString() ?? '0') ?? 0;
+          orderStampCount.value =
+              int.tryParse(user['order_count']?.toString() ?? '0') ?? 0;
+        }
+        await _applyPendingEmailNotificationConsent(tenantId);
+      } else {
+        isEmailSynced.value = false;
+        needsPin.value = false;
+      }
+    }
+    if (!active) {
+      userPoints.value = 0;
+      orderStampCount.value = 0;
+    }
+    if (_customerTenantId == tenantId &&
+        TenantService().currentTenant.value?.id == tenantId) {
+      await updatePresenceOnServer();
+    }
+  }
+
+  Future<void> _restoreGroupSessionForTenant(String tenantId) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (_orderTenantId != tenantId ||
+        TenantService().currentTenant.value?.id != tenantId) {
+      return;
+    }
+
+    final sessionId = prefs.getInt(
+      _tenantPreferenceKey(tenantId, 'session_id'),
+    );
+    if (sessionId == null) return;
+    final isHost =
+        prefs.getBool(_tenantPreferenceKey(tenantId, 'session_is_host')) ??
+        false;
+    final pin = prefs.getString(_tenantPreferenceKey(tenantId, 'session_pin'));
+    startSessionPolling(sessionId, isHost, pin: pin);
+  }
+
+  void _clearSessionStateForTenantChange() {
+    _sessionPoller?.cancel();
+    liveSessionOrders.value = [];
+    liveSessionMembers.value = [];
+    liveSessionTotal.value = 0.0;
+    isSessionHost.value = false;
+    activeSessionId.value = null;
+    activeSessionPin.value = null;
+    activeSessionQr.value = null;
+    isSessionLocked.value = false;
+    isSplitShared.value = false;
+    volunteerId.value = null;
+    showPaymentPopup.value = false;
+    currentGroupMembers.clear();
+    _lastSyncTime = null;
+  }
+
+  Future<void> _restoreOrderStateForTenant(String tenantId) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (_orderTenantId != tenantId ||
+        TenantService().currentTenant.value?.id != tenantId) {
+      return;
+    }
+
+    final savedIds =
+        prefs.getStringList(_orderPreferenceKey(tenantId, 'ids')) ?? [];
+    activeOrderIds.value = savedIds
+        .map((id) => int.tryParse(id))
+        .whereType<int>()
+        .toList();
+    activeOrderId.value = prefs.getInt(_orderPreferenceKey(tenantId, 'id'));
+    activeOrderNumber.value = prefs.getInt(
+      _orderPreferenceKey(tenantId, 'number'),
+    );
+    isOrderActive.value = activeOrderId.value != null;
+
+    final savedStatus = prefs.getString(
+      _orderPreferenceKey(tenantId, 'status'),
+    );
+    if (activeOrderId.value != null) {
+      if (savedStatus != null) _mapStatus(savedStatus);
+      _startStatusSync();
+    }
+  }
+
+  Future<void> _persistOrder(
+    int id, {
+    bool isRemove = false,
+    int? orderNumber,
+  }) async {
+    final tenantId = TenantService().currentTenant.value?.id.trim() ?? '';
+    if (tenantId.isEmpty || tenantId != _orderTenantId) {
+      throw StateError(
+        'Cannot persist an order without the active restaurant.',
+      );
+    }
+    final prefs = await SharedPreferences.getInstance();
+    final idsKey = _orderPreferenceKey(tenantId, 'ids');
+    final idKey = _orderPreferenceKey(tenantId, 'id');
+    final numberKey = _orderPreferenceKey(tenantId, 'number');
+    final statusKey = _orderPreferenceKey(tenantId, 'status');
+    List<String> current = prefs.getStringList(idsKey) ?? [];
     if (isRemove)
       current.remove(id.toString());
     else if (!current.contains(id.toString()))
       current.add(id.toString());
-    await prefs.setStringList('active_order_ids', current);
+    await prefs.setStringList(idsKey, current);
     activeOrderIds.value = current
         .map((e) => int.tryParse(e))
         .whereType<int>()
         .toList();
     if (isRemove) {
-      if (prefs.getInt('active_order_id') == id) {
+      if (prefs.getInt(idKey) == id) {
         final nextActiveId = current.isEmpty
             ? null
             : int.tryParse(current.last);
         if (nextActiveId == null) {
-          await prefs.remove('active_order_id');
+          await prefs.remove(idKey);
+          await prefs.remove(numberKey);
         } else {
-          await prefs.setInt('active_order_id', nextActiveId);
+          await prefs.setInt(idKey, nextActiveId);
+          await prefs.setInt(numberKey, nextActiveId);
         }
         activeOrderId.value = nextActiveId;
+        activeOrderNumber.value = nextActiveId;
       }
     } else {
-      await prefs.setInt('active_order_id', id);
-      await prefs.setString('active_order_status', 'Pending');
-      await prefs.setBool('active_order_state_initialized', true);
+      await prefs.setInt(idKey, id);
+      final resolvedOrderNumber = orderNumber ?? id;
+      await prefs.setInt(numberKey, resolvedOrderNumber);
+      await prefs.setString(statusKey, 'Pending');
       activeOrderId.value = id;
+      activeOrderNumber.value = resolvedOrderNumber;
       orderStatus.value = OrderStatus.pending;
     }
   }
@@ -1018,6 +1130,7 @@ class ShopManager with WidgetsBindingObserver {
 
   final ValueNotifier<List<int>> activeOrderIds = ValueNotifier<List<int>>([]);
   final ValueNotifier<int?> activeOrderId = ValueNotifier<int?>(null);
+  final ValueNotifier<int?> activeOrderNumber = ValueNotifier<int?>(null);
   final ValueNotifier<String?> activeCategory = ValueNotifier<String?>(null);
   final ValueNotifier<bool> isOrderActive = ValueNotifier<bool>(false);
   final ValueNotifier<OrderStatus> orderStatus = ValueNotifier<OrderStatus>(
@@ -1327,9 +1440,13 @@ class ShopManager with WidgetsBindingObserver {
 
   Future<Map<String, dynamic>> toggleMusicVote(int songId) async {
     final tenant = TenantService().currentTenant.value;
-    final tenantId = (tenant != null && tenant.id.isNotEmpty)
-        ? tenant.id
-        : 'startups_main';
+    final tenantId = tenant?.id.trim() ?? '';
+    if (tenantId.isEmpty || _musicTenantId != tenantId) {
+      return {
+        "success": false,
+        "message": "Music voting is unavailable until restaurant data loads.",
+      };
+    }
 
     // Optimistically update local vote count for instant feedback
     final currentList = List<Map<String, dynamic>>.from(musicQueue.value);
@@ -1360,6 +1477,7 @@ class ShopManager with WidgetsBindingObserver {
       vibeScore.value = (vibeScore.value + 2).clamp(0, 100);
       return {"success": true};
     }
+    await refreshMusicStatus();
     return {"success": false};
   }
 
@@ -1369,9 +1487,13 @@ class ShopManager with WidgetsBindingObserver {
     String? dedication,
   ) async {
     final tenant = TenantService().currentTenant.value;
-    final tenantId = (tenant != null && tenant.id.isNotEmpty)
-        ? tenant.id
-        : 'startups_main';
+    final tenantId = tenant?.id.trim() ?? '';
+    if (tenantId.isEmpty) {
+      return {
+        "success": false,
+        "message": "Select a restaurant before requesting a song.",
+      };
+    }
 
     final result = await ApiService.requestMusic({
       'tenant_id': tenantId,
@@ -1551,6 +1673,19 @@ class ShopManager with WidgetsBindingObserver {
     return null;
   }
 
+  Future<void> _clearCurrentPresence() async {
+    final tenantId = TenantService().currentTenant.value?.id.trim() ?? '';
+    final userId = currentUserId.trim();
+    if (tenantId.isNotEmpty && userId.isNotEmpty) {
+      await ApiService.goOffline(tenantId: tenantId, userId: userId);
+    }
+    if (_lastPresenceTenantId == tenantId &&
+        _lastPresenceUserId?.toLowerCase() == userId.toLowerCase()) {
+      _lastPresenceTenantId = null;
+      _lastPresenceUserId = null;
+    }
+  }
+
   Future<Map<String, dynamic>> verifyAndLoginPin(
     String email,
     String pin,
@@ -1566,10 +1701,12 @@ class ShopManager with WidgetsBindingObserver {
       pin: pin,
     );
     if (res['status'] == 'success') {
+      await _clearCurrentPresence();
       // Clear previous user points immediately before switching to avoid coin leakage
       userPoints.value = 0;
       orderStampCount.value = 0;
 
+      _presencePausedTenantId = null;
       customerEmail.value = email;
       customerName.value = userMap['name'] ?? 'Guest';
       needsPin.value = false;
@@ -1580,21 +1717,12 @@ class ShopManager with WidgetsBindingObserver {
           (userMap['is_public'] == 1 || userMap['is_public'] == true);
       isWaveEnabled.value =
           (userMap['allow_waves'] == 1 || userMap['allow_waves'] == true);
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('customer_email', email);
       customerSessionToken = (res['session_token'] ?? '').toString();
-      if (customerSessionToken.isNotEmpty) {
-        await prefs.setString('customer_session_token', customerSessionToken);
-      } else {
-        await prefs.remove('customer_session_token');
-      }
-      await prefs.setBool('customer_authenticated', true);
-      await prefs.setInt(
-        'last_active_time',
-        DateTime.now().millisecondsSinceEpoch,
-      );
       await refreshUserPoints();
       await fetchSocialLists();
+      await updatePresenceOnServer();
+      await _saveCustomerSession(tenant.id);
+      await _applyPendingEmailNotificationConsent(tenant.id);
     }
     return res;
   }
@@ -1612,31 +1740,24 @@ class ShopManager with WidgetsBindingObserver {
       pin: pin,
     );
     if (saveResult['status'] == 'success') {
+      await _clearCurrentPresence();
       // Clear previous user points immediately before setting new user
       userPoints.value = 0;
       orderStampCount.value = 0;
 
+      _presencePausedTenantId = null;
       customerEmail.value = email;
       customerName.value = userMap['name'] ?? 'Guest';
       needsPin.value = false;
       isEmailSynced.value = true;
       userPoints.value = userMap['points'] ?? 0;
       orderStampCount.value = userMap['order_count'] ?? 0;
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('customer_email', email);
       customerSessionToken = (saveResult['session_token'] ?? '').toString();
-      if (customerSessionToken.isNotEmpty) {
-        await prefs.setString('customer_session_token', customerSessionToken);
-      } else {
-        await prefs.remove('customer_session_token');
-      }
-      await prefs.setBool('customer_authenticated', true);
-      await prefs.setInt(
-        'last_active_time',
-        DateTime.now().millisecondsSinceEpoch,
-      );
       await refreshUserPoints();
       await fetchSocialLists();
+      await updatePresenceOnServer();
+      await _saveCustomerSession(tenant.id);
+      await _applyPendingEmailNotificationConsent(tenant.id);
       return true;
     }
     return false;
@@ -1651,38 +1772,69 @@ class ShopManager with WidgetsBindingObserver {
       pin: pin,
     );
     if (saveResult['status'] == 'success') {
+      _presencePausedTenantId = null;
       needsPin.value = false;
       isEmailSynced.value = true;
-      final prefs = await SharedPreferences.getInstance();
       customerSessionToken = (saveResult['session_token'] ?? '').toString();
-      if (customerSessionToken.isNotEmpty) {
-        await prefs.setString('customer_session_token', customerSessionToken);
-      } else {
-        await prefs.remove('customer_session_token');
-      }
-      await prefs.setBool('customer_authenticated', true);
-      await prefs.setInt(
-        'last_active_time',
-        DateTime.now().millisecondsSinceEpoch,
-      );
       await fetchSocialLists();
+      await _saveCustomerSession(tenant.id);
+      await _applyPendingEmailNotificationConsent(tenant.id);
       return true;
     }
     return false;
   }
 
   Future<void> touchUserSession() async {
-    if (customerEmail.value.isNotEmpty && isEmailSynced.value) {
+    final tenantId = TenantService().currentTenant.value?.id.trim() ?? '';
+    if (tenantId.isNotEmpty &&
+        customerEmail.value.isNotEmpty &&
+        isEmailSynced.value) {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setInt(
-        'last_active_time',
+        _customerPreferenceKey(tenantId, 'last_active_time'),
         DateTime.now().millisecondsSinceEpoch,
       );
     }
   }
 
+  Future<void> _saveCustomerSession(String tenantId) async {
+    if (TenantService().currentTenant.value?.id != tenantId ||
+        _customerTenantId != tenantId) {
+      return;
+    }
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      _customerPreferenceKey(tenantId, 'email'),
+      customerEmail.value,
+    );
+    await prefs.setBool(
+      _customerPreferenceKey(tenantId, 'authenticated'),
+      isEmailSynced.value,
+    );
+    await prefs.setInt(
+      _customerPreferenceKey(tenantId, 'last_active_time'),
+      DateTime.now().millisecondsSinceEpoch,
+    );
+    await prefs.setString(
+      _customerPreferenceKey(tenantId, 'name'),
+      customerName.value,
+    );
+    await prefs.setString(
+      _customerPreferenceKey(tenantId, 'gender'),
+      userGender.value,
+    );
+    final tokenKey = _customerPreferenceKey(tenantId, 'session_token');
+    if (customerSessionToken.isNotEmpty) {
+      await prefs.setString(tokenKey, customerSessionToken);
+    } else {
+      await prefs.remove(tokenKey);
+    }
+  }
+
   Future<void> logoutCustomer() async {
     final tenant = TenantService().currentTenant.value;
+    _presencePausedTenantId = tenant?.id.trim();
+    await _clearCurrentPresence();
     if (tenant != null && customerSessionToken.isNotEmpty) {
       await ApiService.revokeCustomerSession(
         tenantId: tenant.id,
@@ -1694,13 +1846,21 @@ class ShopManager with WidgetsBindingObserver {
     customerName.value = 'Guest';
     isEmailSynced.value = false;
     needsPin.value = false;
+    userGender.value = 'Male';
+    isOnboardingComplete.value = true;
     userPoints.value = 0;
     orderStampCount.value = 0;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('customer_email');
-    await prefs.remove('customer_session_token');
-    await prefs.remove('customer_authenticated');
-    await prefs.remove('last_active_time');
+    if (tenant != null) {
+      final prefs = await SharedPreferences.getInstance();
+      for (final key in [
+        'email',
+        'session_token',
+        'authenticated',
+        'last_active_time',
+      ]) {
+        await prefs.remove(_customerPreferenceKey(tenant.id, key));
+      }
+    }
   }
 
   Future<bool> updateProfile({
@@ -1721,9 +1881,13 @@ class ShopManager with WidgetsBindingObserver {
       userGender.value = gender;
       isOnboardingComplete.value = true;
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('onboarding_complete', true);
-      await prefs.setString('customer_name', name);
-      await prefs.setString('user_gender', gender);
+      final tenantId = tenant.id;
+      await prefs.setBool(
+        _customerPreferenceKey(tenantId, 'onboarding_complete'),
+        true,
+      );
+      await prefs.setString(_customerPreferenceKey(tenantId, 'name'), name);
+      await prefs.setString(_customerPreferenceKey(tenantId, 'gender'), gender);
       await refreshSocialStats();
       await fetchSocialLists();
       await setupPushNotifications();
@@ -1739,7 +1903,8 @@ class ShopManager with WidgetsBindingObserver {
       final prefs = await SharedPreferences.getInstance();
       final messaging = FirebaseMessaging.instance;
       final settings = await messaging.getNotificationSettings();
-      if (settings.authorizationStatus == AuthorizationStatus.authorized) {
+      if (settings.authorizationStatus == AuthorizationStatus.authorized ||
+          settings.authorizationStatus == AuthorizationStatus.provisional) {
         await _registerPushToken(messaging);
       } else if (settings.authorizationStatus ==
               AuthorizationStatus.notDetermined &&
@@ -1757,32 +1922,153 @@ class ShopManager with WidgetsBindingObserver {
     try {
       if (Firebase.apps.isEmpty) return false;
       final messaging = FirebaseMessaging.instance;
-      var settings = await messaging.getNotificationSettings();
-      if (settings.authorizationStatus == AuthorizationStatus.notDetermined) {
-        settings = await messaging.requestPermission(
-          alert: true,
-          badge: true,
-          sound: true,
-        );
-      }
+      final settings = await messaging.getNotificationSettings();
       if (settings.authorizationStatus != AuthorizationStatus.authorized &&
           settings.authorizationStatus != AuthorizationStatus.provisional) {
         debugPrint(
-          'Push notifications are not authorized: ${settings.authorizationStatus}',
+          'Push notifications are not authorized; permission must be requested from a user action.',
         );
         return false;
       }
       final registered = await _registerPushToken(messaging);
-      if (registered) {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setBool('notif_prompt_dismissed', true);
-      }
       return registered;
     } catch (e, stackTrace) {
       debugPrint('Push notification setup failed: $e\n$stackTrace');
       return false;
     }
   }
+
+  Future<NotificationPermissionResult>
+  requestNotificationPermissionAndEnableEmail() async {
+    try {
+      await _recordEmailNotificationConsent();
+      if (Firebase.apps.isEmpty) {
+        debugPrint('Firebase is not initialized; cannot request notifications.');
+        return NotificationPermissionResult.emailEnabled;
+      }
+
+      final messaging = FirebaseMessaging.instance;
+      final settings = await messaging.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+
+      final status = settings.authorizationStatus;
+      if (status != AuthorizationStatus.authorized &&
+          status != AuthorizationStatus.provisional) {
+        await _dismissNotificationPromptAndPersist();
+        return NotificationPermissionResult.emailEnabled;
+      }
+
+      final registered = await _registerPushToken(messaging);
+      await _dismissNotificationPromptAndPersist();
+      if (!registered) {
+        debugPrint(
+          'Notification permission is granted, but push token registration did not complete.',
+        );
+        return NotificationPermissionResult.emailEnabled;
+      }
+      return NotificationPermissionResult.enabled;
+    } catch (e, stackTrace) {
+      debugPrint('Notification permission request failed: $e\n$stackTrace');
+      await _dismissNotificationPromptAndPersist();
+      return NotificationPermissionResult.emailEnabled;
+    }
+  }
+
+  Future<void> _recordEmailNotificationConsent() async {
+    final prefs = await SharedPreferences.getInstance();
+    final tenantId = TenantService().currentTenant.value?.id.trim() ?? '';
+    if (tenantId.isEmpty) return;
+
+    final email = isEmailSynced.value ? customerEmail.value.trim() : '';
+    if (email.isEmpty) {
+      await prefs.setBool(
+        _customerPreferenceKey(
+          tenantId,
+          'notification_email_opt_in_pending',
+        ),
+        true,
+      );
+    } else if (prefs.getBool(_notificationEmailConsentKey(tenantId, email)) !=
+        true) {
+      await prefs.setBool(
+        _notificationEmailConsentKey(tenantId, email, pending: true),
+        true,
+      );
+    }
+    await _applyPendingEmailNotificationConsent(tenantId);
+  }
+
+  Future<void> _dismissNotificationPromptAndPersist() async {
+    showNotificationPrompt.value = false;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('notif_prompt_dismissed', true);
+  }
+
+  Future<void> dismissNotificationPrompt() async {
+    await _dismissNotificationPromptAndPersist();
+  }
+
+  Future<void> _applyPendingEmailNotificationConsent(String tenantId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final email = customerEmail.value.trim();
+    if (TenantService().currentTenant.value?.id != tenantId ||
+        !isEmailSynced.value ||
+        email.isEmpty ||
+        customerSessionToken.isEmpty) {
+      return;
+    }
+    final consentKey = _notificationEmailConsentKey(tenantId, email, pending: true);
+    final guestConsentKey = _customerPreferenceKey(
+      tenantId,
+      'notification_email_opt_in_pending',
+    );
+    if (prefs.getBool(consentKey) != true &&
+        prefs.getBool(guestConsentKey) != true) {
+      return;
+    }
+
+    final current = await ApiService.fetchEmailNotificationPreferences(
+      tenantId: tenantId,
+      sessionToken: customerSessionToken,
+    );
+    if (current == null) {
+      debugPrint('Could not load email preferences after notification consent.');
+      return;
+    }
+    final preferences = <String, bool>{
+      'email_enabled': true,
+      'email_follow': current['email_follow'] == true ||
+          current['email_follow']?.toString() == '1',
+      'email_wave': current['email_wave'] == true ||
+          current['email_wave']?.toString() == '1',
+      'email_message': current['email_message'] == true ||
+          current['email_message']?.toString() == '1',
+    };
+    final saved = await ApiService.saveEmailNotificationPreferences(
+      tenantId: tenantId,
+      sessionToken: customerSessionToken,
+      preferences: preferences,
+    );
+    if (saved) {
+      await prefs.remove(consentKey);
+      await prefs.remove(guestConsentKey);
+      await prefs.setBool(_notificationEmailConsentKey(tenantId, email), true);
+    } else {
+      debugPrint('Could not enable email alerts after notification consent.');
+    }
+  }
+
+  String _notificationEmailConsentKey(
+    String tenantId,
+    String email, {
+    bool pending = false,
+  }) => _customerPreferenceKey(
+    tenantId,
+    'notification_email_${pending ? 'pending' : 'enabled'}_${Uri.encodeComponent(email.toLowerCase())}',
+  );
 
   Future<bool> _registerPushToken(FirebaseMessaging messaging) async {
     final tenant = TenantService().currentTenant.value;
@@ -1831,12 +2117,17 @@ class ShopManager with WidgetsBindingObserver {
   Future<void> checkOrRequestNotificationOnAction() async {
     try {
       if (Firebase.apps.isEmpty) return;
-      FirebaseMessaging messaging = FirebaseMessaging.instance;
-      NotificationSettings settings = await messaging.getNotificationSettings();
-      if (settings.authorizationStatus != AuthorizationStatus.authorized) {
+      final messaging = FirebaseMessaging.instance;
+      final settings = await messaging.getNotificationSettings();
+      if (settings.authorizationStatus == AuthorizationStatus.notDetermined) {
         final prefs = await SharedPreferences.getInstance();
-        await prefs.remove('notif_prompt_dismissed');
+        if (prefs.getBool('notif_prompt_dismissed') != true) {
         showNotificationPrompt.value = true;
+        }
+      } else if (settings.authorizationStatus ==
+            AuthorizationStatus.authorized ||
+        settings.authorizationStatus == AuthorizationStatus.provisional) {
+        await _registerPushToken(messaging);
       }
     } catch (e, stackTrace) {
       debugPrint('Notification action check failed: $e\n$stackTrace');
@@ -1925,7 +2216,11 @@ class ShopManager with WidgetsBindingObserver {
 
   Future<void> fetchCentralDepartments([String? tid]) async {
     final tenant = TenantService().currentTenant.value;
-    final id = tid ?? tenant?.id ?? 'startups_main';
+    final id = (tid ?? tenant?.id ?? '').trim();
+    if (id.isEmpty) {
+      departmentsList.value = [];
+      return;
+    }
     final data = await ApiService.fetchDepartments(id);
     if (data != null)
       departmentsList.value = List<Map<String, dynamic>>.from(data);
@@ -1975,14 +2270,15 @@ class ShopManager with WidgetsBindingObserver {
 
     await ensureInitialized();
 
+    final tenant = TenantService().currentTenant.value;
+    final tenantId = tenant?.id.trim() ?? '';
+    if (tenantId.isEmpty) {
+      return "Could not identify this restaurant. Reload and try again.";
+    }
+
     if (selectedTableId.value == null || selectedTableId.value! <= 0) {
       return "Select a valid table before placing the order.";
     }
-
-    final tenant = TenantService().currentTenant.value;
-    final String tenantId = (tenant != null && tenant.id.isNotEmpty)
-        ? tenant.id
-        : "startups_main";
 
     if (items.value.isEmpty) {
       debugPrint("placeOrder: Cart items are empty, skipping order placement.");
@@ -2004,6 +2300,7 @@ class ShopManager with WidgetsBindingObserver {
         .toList();
 
     int? confirmedOrderId;
+    int? confirmedOrderNumber;
     String? rejectedOrderMessage;
     final orderUserIdForSubmission = orderUserId;
 
@@ -2019,14 +2316,19 @@ class ShopManager with WidgetsBindingObserver {
 
       if (result != null && result['status'] == 'success') {
         final id = int.tryParse(result['order_id']?.toString() ?? '');
+        final orderNumber = int.tryParse(
+          result['order_number']?.toString() ?? '',
+        );
         final serverTotal = double.tryParse(
           result['total_amount']?.toString() ?? '',
         );
         if (id != null && id > 0 && serverTotal != null) {
           confirmedOrderId = id;
+          confirmedOrderNumber = orderNumber;
           await ApiService.cacheUserOrders(tenantId, orderUserIdForSubmission, [
             {
               "id": id,
+              "tenant_order_number": orderNumber ?? id,
               "tenant_id": tenantId,
               "table_number": selectedTableId.value,
               "user_id": orderUserIdForSubmission,
@@ -2051,12 +2353,15 @@ class ShopManager with WidgetsBindingObserver {
     if (confirmedOrderId == null) {
       return "The server could not confirm this order. Check your connection and retry.";
     }
+    if (TenantService().currentTenant.value?.id != tenantId) {
+      return "The restaurant changed while this order was being confirmed. Check the original restaurant's order history before retrying.";
+    }
     activeOrderId.value = confirmedOrderId;
 
     await refreshLiveOrders();
 
     try {
-      await _persistOrder(confirmedOrderId);
+      await _persistOrder(confirmedOrderId, orderNumber: confirmedOrderNumber);
     } catch (e) {
       debugPrint("Order was saved, but local order history failed: $e");
     }
@@ -2076,13 +2381,19 @@ class ShopManager with WidgetsBindingObserver {
     _orderStatusTimer?.cancel();
     if (!_isAppInForeground) return;
     Future<void> syncStatus() async {
+      final tenantId = TenantService().currentTenant.value?.id.trim() ?? '';
       final id = activeOrderId.value;
-      if (id == null) return;
-      final live = await ApiService.fetchOrderStatus(id);
+      if (id == null || tenantId.isEmpty || tenantId != _orderTenantId) return;
+      final live = await ApiService.fetchOrderStatus(id, tenantId: tenantId);
+      if (_orderTenantId != tenantId ||
+          TenantService().currentTenant.value?.id != tenantId ||
+          activeOrderId.value != id) {
+        return;
+      }
       if (live == null) return;
       _mapStatus(live);
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('active_order_status', live);
+      await prefs.setString(_orderPreferenceKey(tenantId, 'status'), live);
       if (live.toLowerCase() == 'completed' ||
           live.toLowerCase() == 'cancelled' ||
           live.toLowerCase() == 'canceled') {
@@ -2120,11 +2431,13 @@ class ShopManager with WidgetsBindingObserver {
     _orderStatusTimer?.cancel();
     isOrderActive.value = false;
     activeOrderId.value = null;
+    activeOrderNumber.value = null;
     placedOrderItems.value = [];
     orderStatus.value = OrderStatus.pending;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('active_order_state_initialized', true);
     await prefs.remove('active_order_id');
+    await prefs.remove('active_order_number');
     await prefs.remove('active_order_status');
   }
 
@@ -2183,21 +2496,34 @@ class ShopManager with WidgetsBindingObserver {
 
     // PERSIST SESSION
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt('active_session_id', sid);
-    await prefs.setBool('is_session_host', asHost);
-    if (pin != null) await prefs.setString('active_session_pin', pin);
+    final tenantId = TenantService().currentTenant.value?.id.trim() ?? '';
+    if (tenantId.isEmpty || tenantId != _orderTenantId) return;
+    await prefs.setInt(_tenantPreferenceKey(tenantId, 'session_id'), sid);
+    await prefs.setBool(
+      _tenantPreferenceKey(tenantId, 'session_is_host'),
+      asHost,
+    );
+    if (pin != null) {
+      await prefs.setString(_tenantPreferenceKey(tenantId, 'session_pin'), pin);
+    }
   }
 
   Future<void> syncSessionData() async {
-    if (activeSessionId.value == null) return;
     final tenant = TenantService().currentTenant.value;
-    if (tenant == null) return;
+    final sessionId = activeSessionId.value;
+    if (tenant == null || sessionId == null || tenant.id != _orderTenantId) {
+      return;
+    }
 
     final result = await ApiService.getSplitGroupDetails(
       tenantId: tenant.id,
-      sessionId: activeSessionId.value!,
+      sessionId: sessionId,
       lastSyncTime: _lastSyncTime,
     );
+    if (TenantService().currentTenant.value?.id != tenant.id ||
+        activeSessionId.value != sessionId) {
+      return;
+    }
 
     if (result != null) {
       _failedSyncCount = 0;
@@ -2262,9 +2588,11 @@ class ShopManager with WidgetsBindingObserver {
     _lastSyncTime = null;
 
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('active_session_id');
-    await prefs.remove('is_session_host');
-    await prefs.remove('active_session_pin');
+    if (tenant != null) {
+      await prefs.remove(_tenantPreferenceKey(tenant.id, 'session_id'));
+      await prefs.remove(_tenantPreferenceKey(tenant.id, 'session_is_host'));
+      await prefs.remove(_tenantPreferenceKey(tenant.id, 'session_pin'));
+    }
   }
 
   // --- GROUP CHAT ---

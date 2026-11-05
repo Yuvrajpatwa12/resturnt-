@@ -74,19 +74,33 @@ class _WaiterAssistanceModalState extends State<WaiterAssistanceModal> {
         ? ShopManager.instance.customerName.value
         : "Guest Diner";
 
-    final String requestText =
-        "$_selectedOption - ${_notesController.text.trim().isNotEmpty ? _notesController.text.trim() : 'Immediate assistance requested'}";
-
-    await ApiService.uploadVoiceOrder(
+    final result = await ApiService.requestWaiterAssistance(
       tenantId: tenant.id,
       tableNumber: tableNum,
       customerName: name,
-      transcript: "ASSISTANCE: $requestText",
+      assistanceType: _selectedOption,
+      notes: _notesController.text.trim(),
     );
 
+    if (!mounted) return;
     setState(() => _isSending = false);
 
+    if (result['status'] != 'success') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            result['message']?.toString() ??
+                "Could not send your request. Please try again.",
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     if (mounted) {
+      final emailQueued =
+          int.tryParse(result['email_queued_count']?.toString() ?? '0') ?? 0;
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -96,12 +110,17 @@ class _WaiterAssistanceModalState extends State<WaiterAssistanceModal> {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  "Waiter notified for Table $tableNum ($_selectedOption)!",
+                  emailQueued > 0
+                      ? "Waiter email alert queued for Table $tableNum ($_selectedOption)."
+                      : result['message']?.toString() ??
+                            "Your request was saved, but no waiter email alert was queued.",
                 ),
               ),
             ],
           ),
-          backgroundColor: const Color(0xFF002D62),
+          backgroundColor: emailQueued > 0
+              ? const Color(0xFF002D62)
+              : Colors.orange.shade800,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),

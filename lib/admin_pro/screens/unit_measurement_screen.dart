@@ -22,7 +22,12 @@ class _UnitMeasurementScreenState extends State<UnitMeasurementScreen> {
 
   Future<void> _loadUnits() async {
     final tenant = TenantService().currentTenant.value;
-    final tenantId = tenant?.id ?? 'startups_main';
+    if (tenant == null || tenant.id.trim().isEmpty) {
+      debugPrint('UNIT MEASUREMENTS: Restaurant is not ready; skipping load.');
+      setState(() => _isLoading = false);
+      return;
+    }
+    final tenantId = tenant.id;
 
     setState(() => _isLoading = true);
     final data = await ApiService.fetchUnits(tenantId);

@@ -72,7 +72,9 @@ class _SystemConfigurationScreenState extends State<SystemConfigurationScreen> {
     }
 
     final prefs = await SharedPreferences.getInstance();
-    String? saved = prefs.getString('system_config_data');
+    final configKey =
+        'system_config_data_${Uri.encodeComponent(tenant?.id ?? 'startups_main')}';
+    String? saved = prefs.getString(configKey);
     if (saved != null) {
       try {
         final Map<String, dynamic> decoded = json.decode(saved);
@@ -172,7 +174,8 @@ class _SystemConfigurationScreenState extends State<SystemConfigurationScreen> {
     }
 
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('system_config_data', json.encode(_configState));
+    final configKey = 'system_config_data_${Uri.encodeComponent(tenantId)}';
+    await prefs.setString(configKey, json.encode(_configState));
 
     if (tenant != null) {
       await TenantService().initialize(tenant.domain, showLoading: false);

@@ -236,6 +236,11 @@ class _POSInvoiceScreenState extends State<POSInvoiceScreen>
     return orders.first;
   }
 
+  String _displayOrderNumber(Map<String, dynamic> order) {
+    final number = order['tenant_order_number']?.toString().trim();
+    return number == null || number.isEmpty ? '—' : number;
+  }
+
   List<dynamic> get _currentItems {
     final items = _sessionBill?['items'];
     return items is List ? items : [];
@@ -956,7 +961,7 @@ class _POSInvoiceScreenState extends State<POSInvoiceScreen>
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                "🐛 DEBUG INFO: Loaded Orders (${_activeOrders.length})",
+                "Active orders loaded (${_activeOrders.length})",
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 12,
@@ -974,13 +979,21 @@ class _POSInvoiceScreenState extends State<POSInvoiceScreen>
           ),
           const SizedBox(height: 4),
           Text(
-            "Selected Table: $_selectedTableNumber | Active Order Found: ${_currentOrder != null ? 'YES (ID: ${_currentOrder!['id']})' : 'NO'}",
+            "Selected Table: $_selectedTableNumber | Active Order: ${_currentOrder != null ? '#${_displayOrderNumber(_currentOrder!)}' : 'None'}",
             style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
           ),
+          if (_activeOrders.any((order) => _displayOrderNumber(order) == '—'))
+            const Padding(
+              padding: EdgeInsets.only(top: 4),
+              child: Text(
+                "Restaurant order numbers are missing from the server response. Refresh after updating get_all_orders.php.",
+                style: TextStyle(fontSize: 10, color: Colors.red),
+              ),
+            ),
           if (_activeOrders.isNotEmpty) ...[
             const SizedBox(height: 4),
             Text(
-              "All Orders Table Numbers: ${_activeOrders.map((o) => "T#${o['table_number'] ?? o['table_id']} (Ord#${o['id']})").join(', ')}",
+              "Tables and order numbers: ${_activeOrders.map((order) => "T#${order['table_number'] ?? order['table_id']} (Order #${_displayOrderNumber(order)})").join(', ')}",
               style: const TextStyle(fontSize: 10, color: Colors.black54),
             ),
           ],
@@ -1115,7 +1128,7 @@ class _POSInvoiceScreenState extends State<POSInvoiceScreen>
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  "Orders: ${_currentTableOrders.map((o) => '#${o['id']}').join(', ')}",
+                  "Orders: ${_currentTableOrders.map((order) => '#${_displayOrderNumber(order)}').join(', ')}",
                   style: const TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.bold,

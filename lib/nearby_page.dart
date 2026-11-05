@@ -5,6 +5,7 @@ import 'messages_list_page.dart';
 import 'user_profile_view_page.dart';
 import 'squad_lobby_page.dart';
 import 'services/tenant_service.dart';
+import 'services/feature_flags.dart';
 import 'services/notification_sound_stub.dart'
     if (dart.library.js_interop) 'services/notification_sound_web.dart'
     as notification_sound;
@@ -183,6 +184,7 @@ class _NearbyPageState extends State<NearbyPage> {
   }
 
   Future<void> _fetchGuests({bool isInitial = false}) async {
+    await ShopManager.instance.ensureInitialized();
     final tenant = TenantService().currentTenant.value;
     if (tenant == null) return;
 
@@ -190,13 +192,11 @@ class _NearbyPageState extends State<NearbyPage> {
     final myId = ShopManager.instance.currentUserId;
 
     final data = await ApiService.fetchActiveGuests(tenant.id, myId);
-    if (mounted) {
+    if (mounted && TenantService().currentTenant.value?.id == tenant.id) {
       setState(() {
         if (data != null) {
           debugPrint("NEARBY: Received ${data.length} users from server.");
-          // --- SERVER-DRIVEN SYNC ---
-          // Trust the server's window (60 mins). No local filtering to avoid Timezone issues.
-          _activeGuests = data;
+          _activeGuests = _deduplicateGuests(data);
         } else {
           debugPrint(
             "NEARBY: ERROR - Received NULL or failed response from server.",
@@ -205,6 +205,31 @@ class _NearbyPageState extends State<NearbyPage> {
         _isLoading = false;
       });
     }
+  }
+
+  List<Map<String, dynamic>> _deduplicateGuests(
+    List<Map<String, dynamic>> guests,
+  ) {
+    final uniqueByUserId = <String, Map<String, dynamic>>{};
+    for (final guest in guests) {
+      final userId = (guest['user_id'] ?? '').toString().trim().toLowerCase();
+      if (userId.isEmpty) continue;
+
+      final existing = uniqueByUserId[userId];
+      final guestLastSeen = DateTime.tryParse(
+        (guest['last_seen'] ?? '').toString(),
+      );
+      final existingLastSeen = existing == null
+          ? null
+          : DateTime.tryParse((existing['last_seen'] ?? '').toString());
+      if (existing == null ||
+          (guestLastSeen != null &&
+              (existingLastSeen == null ||
+                  guestLastSeen.isAfter(existingLastSeen)))) {
+        uniqueByUserId[userId] = guest;
+      }
+    }
+    return uniqueByUserId.values.toList();
   }
 
   @override
@@ -525,35 +550,6 @@ class _NearbyPageState extends State<NearbyPage> {
                         "No guests nearby yet",
                         style: TextStyle(color: Colors.grey),
                       ),
-                      const SizedBox(height: 16),
-                      ElevatedButton.icon(
-                        onPressed: () async {
-                          final tenant = TenantService().currentTenant.value;
-                          if (tenant != null) {
-                            final success = await ApiService.spawnTestBot(
-                              tenant.id,
-                            );
-                            if (success) {
-                              _fetchGuests();
-                              if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      "Test Bot Diner spawned successfully! 🤖",
-                                    ),
-                                  ),
-                                );
-                              }
-                            }
-                          }
-                        },
-                        icon: const Icon(Icons.smart_toy_rounded),
-                        label: const Text("Spawn Test Bot Diner"),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Theme.of(context).primaryColor,
-                          foregroundColor: Colors.white,
-                        ),
-                      ),
                     ],
                   ),
                 ),
@@ -808,15 +804,16 @@ class _NearbyPageState extends State<NearbyPage> {
                     ),
 
                   const SizedBox(width: 10),
-                  _buildSocialIcon(
-                    widget.battlegroundSquadId == null
-                        ? Icons.sports_esports_rounded
-                        : (_battlegroundInvitesSent.contains(targetId)
-                              ? Icons.check_circle
-                              : Icons.person_add_alt_1),
-                    Colors.orange,
-                    () => _inviteUserToTapWar(targetId, displayName),
-                  ),
+                  if (FeatureFlags.gamesEnabled)
+                    _buildSocialIcon(
+                      widget.battlegroundSquadId == null
+                          ? Icons.sports_esports_rounded
+                          : (_battlegroundInvitesSent.contains(targetId)
+                                ? Icons.check_circle
+                                : Icons.person_add_alt_1),
+                      Colors.orange,
+                      () => _inviteUserToTapWar(targetId, displayName),
+                    ),
 
                   const SizedBox(width: 10),
                   Material(

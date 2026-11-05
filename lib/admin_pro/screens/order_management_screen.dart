@@ -78,8 +78,9 @@ class _OrderManagementScreenState extends State<OrderManagementScreen> {
       if (_searchQuery.isEmpty) return true;
 
       final query = _searchQuery.toLowerCase();
-      final idStr = "ord-${o['id']}".toLowerCase();
-      final rawIdStr = o['id'].toString().toLowerCase();
+      final orderNumber = o['tenant_order_number'] ?? o['id'];
+      final idStr = "ord-$orderNumber".toLowerCase();
+      final rawIdStr = orderNumber.toString().toLowerCase();
       final tableStr = (o['table_number'] ?? o['table_id'] ?? '')
           .toString()
           .toLowerCase();
@@ -401,7 +402,7 @@ class _OrderManagementScreenState extends State<OrderManagementScreen> {
   }
 
   Widget _buildOrderTicketCard(Map<String, dynamic> order) {
-    String id = "ORD-${order['id']}";
+    String id = "ORD-${order['tenant_order_number'] ?? order['id']}";
     String status = order['status'] ?? 'Pending';
     Color statusColor = _getStatusColor(status);
     String tableNum = (order['table_number'] ?? order['table_id'] ?? 'N/A')
@@ -506,10 +507,15 @@ class _OrderManagementScreenState extends State<OrderManagementScreen> {
                 PopupMenuButton<String>(
                   tooltip: "Manage Status",
                   onSelected: (val) {
+                    final displayOrderNumber =
+                        order['tenant_order_number'] ?? order['id'];
                     if (val == "Void") {
-                      _voidOrder(order['id'].toString());
+                      _voidOrder(
+                        order['id'].toString(),
+                        displayOrderNumber.toString(),
+                      );
                     } else {
-                      _updateStatus(order['id'], val);
+                      _updateStatus(order['id'], val, displayOrderNumber);
                     }
                   },
                   itemBuilder: (ctx) =>
@@ -664,7 +670,11 @@ class _OrderManagementScreenState extends State<OrderManagementScreen> {
     );
   }
 
-  Future<void> _updateStatus(dynamic orderId, String newStatus) async {
+  Future<void> _updateStatus(
+    dynamic orderId,
+    String newStatus,
+    dynamic displayOrderNumber,
+  ) async {
     final result = await ApiService.updateOrderStatus(
       int.parse(orderId.toString()),
       newStatus,
@@ -674,7 +684,9 @@ class _OrderManagementScreenState extends State<OrderManagementScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text("Order #$orderId updated to $newStatus."),
+            content: Text(
+              "Order #$displayOrderNumber updated to $newStatus.",
+            ),
             backgroundColor: AdminTheme.emeraldGreen,
             behavior: SnackBarBehavior.floating,
           ),
@@ -693,12 +705,12 @@ class _OrderManagementScreenState extends State<OrderManagementScreen> {
     }
   }
 
-  Future<void> _voidOrder(String id) async {
+  Future<void> _voidOrder(String id, String displayOrderNumber) async {
     final reasonController = TextEditingController();
     final reason = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text("Void Order #$id"),
+        title: Text("Void Order #$displayOrderNumber"),
         content: TextField(
           controller: reasonController,
           autofocus: true,
@@ -735,7 +747,7 @@ class _OrderManagementScreenState extends State<OrderManagementScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                "Order #$id voided. The original order remains in the audit history.",
+                "Order #$displayOrderNumber voided. The original order remains in the audit history.",
               ),
               backgroundColor: AdminTheme.emeraldGreen,
               behavior: SnackBarBehavior.floating,

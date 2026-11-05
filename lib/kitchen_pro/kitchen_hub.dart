@@ -30,8 +30,8 @@ class _KitchenHubState extends State<KitchenHub>
   List<Map<String, dynamic>> _historyOrders = []; // Added
   List<Map<String, dynamic>> _stockReports = [];
   bool _isLoading = true;
+  bool _isRefreshing = false;
   Timer? _refreshTimer;
-  int _lastMod = 0; // Track last database change
 
   @override
   void initState() {
@@ -39,49 +39,59 @@ class _KitchenHubState extends State<KitchenHub>
     _tabController = TabController(length: 5, vsync: this);
     _refreshKitchen(isInitial: true);
 
-    // Start automatic light polling every 8 seconds
+    // Refresh from the tenant-scoped server feed; no separate sync route exists.
     _refreshTimer = Timer.periodic(
       const Duration(seconds: 8),
-      (_) => _syncKDS(),
+      (_) => _refreshKitchen(),
     );
   }
 
-  Future<void> _syncKDS() async {
-    final tenant = TenantService().currentTenant.value;
-    if (tenant == null) return;
-
-    final serverMod = await ApiService.checkOrderChange(tenant.id);
-    if (serverMod > _lastMod) {
-      debugPrint(
-        "KDS: Change detected ($serverMod > $_lastMod). Refreshing...",
-      );
-      _refreshKitchen();
-      _lastMod = serverMod;
-    }
-  }
-
   Future<void> _refreshKitchen({bool isInitial = false}) async {
+    if (_isRefreshing) return;
     final tenant = TenantService().currentTenant.value;
     if (tenant == null) return;
 
+    _isRefreshing = true;
     if (isInitial) setState(() => _isLoading = true);
 
-    final results = await Future.wait([
-      ApiService.fetchActiveOrders(tenant.id),
-      ApiService.fetchOrderHistory(tenant.id),
-      ApiService.fetchStockReports(tenant.id),
-    ]);
-
-    if (mounted) {
-      setState(() {
-        if (results[0] != null)
-          _liveOrders = results[0] as List<Map<String, dynamic>>;
-        if (results[1] != null)
-          _historyOrders = results[1] as List<Map<String, dynamic>>;
-        if (results[2] != null)
-          _stockReports = results[2] as List<Map<String, dynamic>>;
-        _isLoading = false;
-      });
+    try {
+      final results = await Future.wait([
+        ApiService.fetchAllOrders(tenant.id),
+        ApiService.fetchStockReports(tenant.id),
+      ]);
+      final orders = results[0];
+      if (mounted) {
+        setState(() {
+          if (orders != null) {
+            _liveOrders = orders.where((order) {
+              final status = (order['status'] ?? '').toString().toLowerCase();
+              return status != 'cancelled' &&
+                  status != 'canceled' &&
+                  status != 'completed' &&
+                  status != 'settled' &&
+                  status != 'voided' &&
+                  status != 'served' &&
+                  status != 'onway';
+            }).toList();
+            _historyOrders = orders.where((order) {
+              final status = (order['status'] ?? '').toString().toLowerCase();
+              return status == 'completed' ||
+                  status == 'served' ||
+                  status == 'onway' ||
+                  status == 'cancelled' ||
+                  status == 'canceled' ||
+                  status == 'settled' ||
+                  status == 'voided';
+            }).toList();
+          }
+          if (results[1] != null) {
+            _stockReports = results[1] as List<Map<String, dynamic>>;
+          }
+          _isLoading = false;
+        });
+      }
+    } finally {
+      _isRefreshing = false;
     }
   }
 
@@ -106,6 +116,38 @@ class _KitchenHubState extends State<KitchenHub>
         ),
       );
     }
+  }
+
+  Future<void> _notifyWaiters(int orderId) async {
+    final result = await ApiService.notifyWaitersOrderReady(orderId);
+    if (result['success'] == true) {
+      await _refreshKitchen();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            result['already_notified'] == true
+                ? (result['accepted'] == true
+                      ? 'A waiter has already accepted this order'
+                      : 'Waiters have already been notified')
+                : (result['message']?.toString() ??
+                      'Waiters have been notified'),
+          ),
+          backgroundColor: KitchenTheme.emeraldGreen,
+        ),
+      );
+      return;
+    }
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          result['message']?.toString() ?? 'Could not notify the waiters',
+        ),
+        backgroundColor: Colors.red,
+      ),
+    );
   }
 
   @override
@@ -422,7 +464,7 @@ class _KitchenHubState extends State<KitchenHub>
             } else if (filterStatus == 'Preparing') {
               _changeStatus(int.parse(order['id'].toString()), 'Ready');
             } else if (filterStatus == 'Ready') {
-              _changeStatus(int.parse(order['id'].toString()), 'Completed');
+              _notifyWaiters(int.parse(order['id'].toString()));
             }
           },
         );
@@ -458,6 +500,8 @@ class _KitchenHubState extends State<KitchenHub>
         final order = _historyOrders[index];
         final List<dynamic> rawItems = order['items'] ?? [];
         final status = order['status'] ?? 'Completed';
+        final isComplete = ['Completed', 'OnWay', 'Served'].contains(status);
+        final orderTime = order['updated_at'] ?? order['created_at'];
 
         return Card(
           margin: const EdgeInsets.only(bottom: 12),
@@ -467,23 +511,23 @@ class _KitchenHubState extends State<KitchenHub>
           child: ExpansionTile(
             shape: const RoundedRectangleBorder(side: BorderSide.none),
             leading: CircleAvatar(
-              backgroundColor: status == 'Completed'
+              backgroundColor: isComplete
                   ? Colors.green.withValues(alpha: 0.1)
                   : Colors.red.withValues(alpha: 0.1),
               child: Icon(
-                status == 'Completed'
-                    ? Icons.check_circle_outline
-                    : Icons.cancel_outlined,
-                color: status == 'Completed' ? Colors.green : Colors.red,
+                isComplete ? Icons.check_circle_outline : Icons.cancel_outlined,
+                color: isComplete ? Colors.green : Colors.red,
                 size: 20,
               ),
             ),
             title: Text(
-              "Table T-${order['table_number']} • #ORD-${order['id']}",
+              "Table T-${order['table_number']} • #ORD-${order['tenant_order_number'] ?? order['id']}",
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
             ),
             subtitle: Text(
-              "Closed at: ${order['updated_at']}",
+              orderTime == null
+                  ? 'Order time unavailable'
+                  : 'Order time: $orderTime',
               style: const TextStyle(fontSize: 10, color: Colors.grey),
             ),
             children: [

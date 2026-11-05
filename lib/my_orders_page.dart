@@ -382,6 +382,8 @@ class _MyOrdersPageState extends State<MyOrdersPage>
               MaterialPageRoute(
                 builder: (context) => LiveOrderTrackingScreen(
                   orderId: int.parse(o['id'].toString()),
+                  displayOrderNumber:
+                      o['tenant_order_number']?.toString(),
                 ),
               ),
             );
@@ -398,7 +400,7 @@ class _MyOrdersPageState extends State<MyOrdersPage>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          "Order #${o['id']} • Table #${o['table_number'] ?? '1'}",
+                          "Order #${o['tenant_order_number'] ?? o['id']} • Table #${o['table_number'] ?? '1'}",
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
@@ -508,7 +510,7 @@ class _MyOrdersPageState extends State<MyOrdersPage>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      "Order #${order['id']} Items",
+                      "Order #${order['tenant_order_number'] ?? order['id']} Items",
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,

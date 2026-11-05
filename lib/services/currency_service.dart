@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'api_service.dart';
 
 class CurrencyService extends ChangeNotifier {
@@ -41,20 +40,6 @@ class CurrencyService extends ChangeNotifier {
 
   Future<void> initialize() async {
     if (_isInitialized) return;
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final savedCode = prefs.getString('selected_currency_code');
-      final savedSymbol = prefs.getString('selected_currency_symbol');
-
-      if (savedCode != null && savedCode.isNotEmpty) {
-        currentCurrencyCode.value = savedCode;
-      }
-      if (savedSymbol != null && savedSymbol.isNotEmpty) {
-        currentCurrencySymbol.value = savedSymbol;
-      }
-    } catch (e) {
-      debugPrint("CurrencyService init error: $e");
-    }
     _isInitialized = true;
     notifyListeners();
   }
@@ -84,18 +69,10 @@ class CurrencyService extends ChangeNotifier {
     currentCurrencyCode.value = code;
     currentCurrencySymbol.value = symbol;
 
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('selected_currency_code', code);
-      await prefs.setString('selected_currency_symbol', symbol);
-    } catch (e) {
-      debugPrint("CurrencyService persist error: $e");
+    if (tenantId != null && tenantId.isNotEmpty) {
+      await ApiService.updateTenantCurrency(tenantId, code, symbol);
     }
     notifyListeners();
-
-    if (tenantId != null && tenantId.isNotEmpty) {
-      ApiService.updateTenantCurrency(tenantId, code, symbol);
-    }
   }
 
   String formatPrice(dynamic amount) {

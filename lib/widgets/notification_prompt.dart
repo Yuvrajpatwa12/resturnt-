@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../cart_manager.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class NotificationPrompt extends StatefulWidget {
   const NotificationPrompt({super.key});
@@ -11,8 +10,6 @@ class NotificationPrompt extends StatefulWidget {
 
 class _NotificationPromptState extends State<NotificationPrompt> {
   bool _isLoading = false;
-  bool _isSuccess = false;
-  bool _hasError = false;
 
   @override
   Widget build(BuildContext context) {
@@ -35,8 +32,7 @@ class _NotificationPromptState extends State<NotificationPrompt> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: (_isSuccess ? Colors.green : primaryColor)
-                          .withValues(alpha: 0.1),
+                      color: primaryColor.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     ),
                     child: _isLoading
@@ -49,20 +45,14 @@ class _NotificationPromptState extends State<NotificationPrompt> {
                             ),
                           )
                         : Icon(
-                            _isSuccess
-                                ? Icons.check_circle_outline
-                                : Icons.notifications_active_outlined,
+                            Icons.notifications_active_outlined,
                             size: 40,
-                            color: _isSuccess ? Colors.green : primaryColor,
+                            color: primaryColor,
                           ),
                   ),
                   const SizedBox(height: 24),
                   Text(
-                    _isSuccess
-                        ? "Notifications Enabled!"
-                        : _hasError
-                        ? "Couldn't Enable Notifications"
-                        : "Enable Notifications",
+                    "Enable Notifications",
                     style: const TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
@@ -71,11 +61,7 @@ class _NotificationPromptState extends State<NotificationPrompt> {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    _isSuccess
-                        ? "You're all set! Push alerts are enabled for this browser."
-                        : _hasError
-                        ? "Check that this site is open over HTTPS, browser notifications are allowed, and try again."
-                        : "Get real-time alerts when friends wave at you or your order status changes.",
+                    "Email alerts are enabled by default. Allow browser notifications too for real-time push alerts.",
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: Colors.grey[600],
@@ -84,96 +70,78 @@ class _NotificationPromptState extends State<NotificationPrompt> {
                     ),
                   ),
                   const SizedBox(height: 32),
-                  if (!_isSuccess)
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextButton(
-                            onPressed: _isLoading
-                                ? null
-                                : () async {
-                                    debugPrint("NOTIF PROMPT: Dismissed");
-                                    ShopManager
-                                            .instance
-                                            .showNotificationPrompt
-                                            .value =
-                                        false;
-                                    final prefs =
-                                        await SharedPreferences.getInstance();
-                                    await prefs.setBool(
-                                      'notif_prompt_dismissed',
-                                      true,
-                                    );
-                                  },
-                            style: TextButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                            ),
-                            child: const Text(
-                              "Not Now",
-                              style: TextStyle(
-                                color: Colors.grey,
-                                fontWeight: FontWeight.bold,
-                              ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextButton(
+                          onPressed: _isLoading
+                              ? null
+                              : ShopManager.instance.dismissNotificationPrompt,
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                          ),
+                          child: Text(
+                            "Not Now",
+                            style: TextStyle(
+                              color: Colors.grey,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: _isLoading
-                                ? null
-                                : () async {
-                                    setState(() => _isLoading = true);
-                                    debugPrint(
-                                      "NOTIF PROMPT: Requesting Permission...",
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: _isLoading
+                              ? null
+                              : () async {
+                                  setState(() => _isLoading = true);
+                                  debugPrint(
+                                    "NOTIF PROMPT: Requesting Permission...",
+                                  );
+
+                                  final result = await ShopManager.instance
+                                      .requestNotificationPermissionAndEnableEmail();
+                                  if (!mounted) return;
+                                  debugPrint(
+                                    "NOTIF PROMPT: Permission Result: $result",
+                                  );
+
+                                  setState(() {
+                                    _isLoading = false;
+                                  });
+
+                                  if (result ==
+                                      NotificationPermissionResult
+                                          .emailEnabled) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'Email alerts are on. Browser push notifications are unavailable.',
+                                        ),
+                                      ),
                                     );
-
-                                    // Start 2-second loading animation
-                                    await Future.delayed(
-                                      const Duration(seconds: 2),
-                                    );
-
-                                    final bool success = await ShopManager
-                                        .instance
-                                        .setupPushNotifications();
-                                    debugPrint(
-                                      "NOTIF PROMPT: Permission Result: $success",
-                                    );
-
-                                    setState(() {
-                                      _isLoading = false;
-                                      _isSuccess = success;
-                                      _hasError = !success;
-                                    });
-
-                                    if (!success) return;
-
-                                    // Close immediately after enabling
-                                    ShopManager
-                                            .instance
-                                            .showNotificationPrompt
-                                            .value =
-                                        false;
-                                  },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: primaryColor,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              elevation: 0,
+                                  }
+                                  await ShopManager.instance
+                                      .dismissNotificationPrompt();
+                                },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: primaryColor,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
                             ),
-                            child: Text(
-                              _hasError ? "Try Again" : "Allow",
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
+                            elevation: 0,
+                          ),
+                          child: Text(
+                            "Allow",
+                            style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),

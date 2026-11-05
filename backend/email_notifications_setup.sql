@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS customer_auth_sessions (
 CREATE TABLE IF NOT EXISTS customer_notification_email_preferences (
     tenant_id VARCHAR(50) NOT NULL,
     email VARCHAR(190) NOT NULL,
-    email_enabled TINYINT(1) NOT NULL DEFAULT 0,
+    email_enabled TINYINT(1) NOT NULL DEFAULT 1,
     email_follow TINYINT(1) NOT NULL DEFAULT 1,
     email_wave TINYINT(1) NOT NULL DEFAULT 1,
     email_message TINYINT(1) NOT NULL DEFAULT 1,

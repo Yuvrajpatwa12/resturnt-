@@ -17,6 +17,7 @@ class _SubscriptionBillingScreenState extends State<SubscriptionBillingScreen> {
   List<Map<String, dynamic>> _packages = [];
   List<Map<String, dynamic>> _pendingRequests = [];
   List<Map<String, dynamic>> _storeSubscriptions = [];
+  String? _pendingRequestsError;
 
   @override
   void initState() {
@@ -29,7 +30,13 @@ class _SubscriptionBillingScreenState extends State<SubscriptionBillingScreen> {
     setState(() => _isLoading = true);
 
     final pkgs = await ApiService.fetchSubscriptionPackages();
-    final reqs = await ApiService.fetchPendingSubscriptionRequests();
+    List<Map<String, dynamic>> reqs = [];
+    String? pendingRequestsError;
+    try {
+      reqs = await ApiService.fetchPendingSubscriptionRequests();
+    } catch (e) {
+      pendingRequestsError = e.toString();
+    }
     final tenants = await ApiService.fetchTenants();
 
     List<Map<String, dynamic>> processedStores = [];
@@ -78,6 +85,7 @@ class _SubscriptionBillingScreenState extends State<SubscriptionBillingScreen> {
       setState(() {
         _packages = pkgs;
         _pendingRequests = reqs;
+        _pendingRequestsError = pendingRequestsError;
         _storeSubscriptions = processedStores;
         _isLoading = false;
       });
@@ -379,6 +387,33 @@ class _SubscriptionBillingScreenState extends State<SubscriptionBillingScreen> {
         child: Padding(
           padding: EdgeInsets.all(20),
           child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    if (_pendingRequestsError != null) {
+      return Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.red.shade50,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.red.shade200),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.error_outline, color: Colors.red, size: 24),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                "Could not verify pending requests: $_pendingRequestsError",
+                style: const TextStyle(
+                  color: Colors.red,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+          ],
         ),
       );
     }

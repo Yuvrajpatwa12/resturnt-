@@ -90,15 +90,22 @@ class _MyAppState extends State<MyApp> {
 
       // 1. FAST TABLE DETECTION
       String? tableParam = Uri.base.queryParameters['table'];
+      String? tenantParam = Uri.base.queryParameters['tenant_id'];
 
       // Fallback: Check if it's in the fragment (e.g. /#/path?table=1)
-      if (tableParam == null && Uri.base.fragment.contains('table=')) {
+      if ((tableParam == null || tenantParam == null) &&
+          Uri.base.fragment.contains('table=')) {
         final fragUri = Uri.parse(Uri.base.fragment.replaceFirst('/', ''));
-        tableParam = fragUri.queryParameters['table'];
+        tableParam ??= fragUri.queryParameters['table'];
+        tenantParam ??= fragUri.queryParameters['tenant_id'];
       }
 
       // 2. RESCUE: Check Session Storage
-      tableParam ??= web.window.sessionStorage.getItem('rescue_table_id');
+      if (tenantParam == null || tenantParam.trim().isEmpty) {
+        tableParam ??= web.window.sessionStorage.getItem('rescue_table_id');
+      } else {
+        web.window.sessionStorage.removeItem('rescue_table_id');
+      }
 
       if (tableParam != null) {
         final int? tId = int.tryParse(tableParam);
@@ -111,7 +118,7 @@ class _MyAppState extends State<MyApp> {
         }
       }
 
-      await TenantService().initialize(domain);
+      await TenantService().initialize(domain, tenantId: tenantParam);
       await ShopManager.instance.fetchLoyaltySettings();
       await ShopManager.instance.refreshMusicStatus();
     } catch (e) {

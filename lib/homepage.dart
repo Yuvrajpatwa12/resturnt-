@@ -313,9 +313,7 @@ class _HomePageState extends State<HomePage> {
                     return Material(
                       color: Colors.black.withValues(alpha: 0.5),
                       child: InkWell(
-                        onTap: () =>
-                            ShopManager.instance.showNotificationPrompt.value =
-                                false,
+                        onTap: ShopManager.instance.dismissNotificationPrompt,
                         overlayColor: WidgetStateProperty.all(
                           Colors.transparent,
                         ),
@@ -912,8 +910,17 @@ class _HomePageState extends State<HomePage> {
 
   void _showTablePicker() async {
     final tenant = TenantService().currentTenant.value;
-    final tenantId = tenant?.id ?? 'startups_main';
+    if (tenant == null || tenant.id.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Restaurant information is not ready yet. Try again.'),
+        ),
+      );
+      return;
+    }
+    final tenantId = tenant.id;
     final tables = await ApiService.fetchTables(tenantId, onlyActive: true);
+    if (!mounted || TenantService().currentTenant.value?.id != tenantId) return;
 
     if (!mounted) return;
     final dialogContext = context;

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'services/tenant_service.dart';
+import 'services/api_service.dart';
 import 'cart_manager.dart';
 import 'homepage.dart';
 import 'super_admin_module/master_hub.dart';
@@ -134,111 +135,191 @@ class _SplashScreenState extends State<SplashScreen>
     super.dispose();
   }
 
+  Color _parseColor(String? hexString) {
+    if (hexString == null || hexString.isEmpty) {
+      return const Color(0xFFFFB800); // Warm Amber Gold
+    }
+    try {
+      String cleanHex = hexString.replaceAll('#', '');
+      if (cleanHex.length == 6) {
+        cleanHex = 'FF$cleanHex';
+      }
+      return Color(int.parse(cleanHex, radix: 16));
+    } catch (_) {
+      return const Color(0xFFFFB800);
+    }
+  }
+
+  String _getFormattedLogoUrl(String rawUrl) {
+    if (rawUrl.isEmpty) return "";
+    if (rawUrl.startsWith("http://") || rawUrl.startsWith("https://")) {
+      return rawUrl;
+    }
+    String cleanPath = rawUrl.startsWith('/') ? rawUrl.substring(1) : rawUrl;
+    String baseDomain = ApiService.baseUrl.replaceFirst('/saas_api', '');
+    return "$baseDomain/$cleanPath";
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF001F3F),
-              Color(0xFF000000),
-            ], // Premium Midnight Gradient
-          ),
-        ),
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            // Decorative Glow
-            Positioned(
-              child: Container(
-                width: 200,
-                height: 200,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Theme.of(
-                        context,
-                      ).primaryColor.withValues(alpha: 0.15),
-                      blurRadius: 100,
-                      spreadRadius: 50,
-                    ),
-                  ],
-                ),
-              ),
-            ),
+    return ValueListenableBuilder<Tenant?>(
+      valueListenable: TenantService().currentTenant,
+      builder: (context, tenant, _) {
+        final Color brandBgColor = _parseColor(tenant?.color);
+        final String name = tenant?.name ?? "CHIYABREAK";
+        final String rawLogo = tenant?.logo ?? "";
+        final String logoUrl = _getFormattedLogoUrl(rawLogo);
 
-            ValueListenableBuilder<Tenant?>(
-              valueListenable: TenantService().currentTenant,
-              builder: (context, tenant, _) {
-                String name = tenant?.name ?? "CHIYABREAK";
-                List<String> parts = name.split(" ");
-                String firstPart = parts[0];
-                String lastPart = parts.length > 1
-                    ? parts.sublist(1).join(" ")
-                    : "";
+        return Scaffold(
+          backgroundColor: brandBgColor,
+          body: Stack(
+            children: [
+              // CENTER CONTENT (Logo, Name, Loader)
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 32),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // 1. UPLOADED RESTAURANT LOGO (OR FALLBACK ICON)
+                      SlideTransition(
+                        position: _topAnimation,
+                        child: FadeTransition(
+                          opacity: _opacityAnimation,
+                          child: Container(
+                            width: 140,
+                            height: 140,
+                            padding: const EdgeInsets.all(20),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.12),
+                                  blurRadius: 30,
+                                  spreadRadius: 5,
+                                  offset: const Offset(0, 10),
+                                ),
+                              ],
+                            ),
+                            child: logoUrl.isNotEmpty
+                                ? Image.network(
+                                    logoUrl,
+                                    fit: BoxFit.contain,
+                                    errorBuilder: (_, __, ___) => const Icon(
+                                      Icons.storefront_rounded,
+                                      size: 64,
+                                      color: Color(0xFF6B21A8),
+                                    ),
+                                  )
+                                : const Icon(
+                                    Icons.storefront_rounded,
+                                    size: 64,
+                                    color: Color(0xFF6B21A8),
+                                  ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 28),
 
-                return Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    SlideTransition(
-                      position: _topAnimation,
-                      child: FadeTransition(
-                        opacity: _opacityAnimation,
-                        child: Text(
-                          firstPart.toUpperCase(),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 48,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 8,
-                            shadows: [
-                              Shadow(
-                                color: Colors.black54,
-                                blurRadius: 10,
-                                offset: Offset(0, 5),
+                      // 2. RESTAURANT NAME
+                      SlideTransition(
+                        position: _bottomAnimation,
+                        child: FadeTransition(
+                          opacity: _opacityAnimation,
+                          child: Column(
+                            children: [
+                              Text(
+                                name,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  color: Color(0xFF6B21A8), // Deep Rich Purple
+                                  fontSize: 38,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 1.2,
+                                  shadows: [
+                                    Shadow(
+                                      color: Colors.white38,
+                                      blurRadius: 10,
+                                      offset: Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                "TIME FOR A REFRESHING BREAK",
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: const Color(0xFF6B21A8)
+                                      .withValues(alpha: 0.8),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 3,
+                                ),
                               ),
                             ],
                           ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    if (lastPart.isNotEmpty)
-                      SlideTransition(
-                        position: _bottomAnimation,
-                        child: FadeTransition(
-                          opacity: _opacityAnimation,
-                          child: Text(
-                            lastPart.toUpperCase(),
-                            style: TextStyle(
-                              color: Theme.of(
-                                context,
-                              ).primaryColor, // Premium Brand Color
-                              fontSize: 24,
-                              fontWeight: FontWeight.w300,
-                              letterSpacing: 12,
-                            ),
-                          ),
+                      const SizedBox(height: 48),
+
+                      // 3. MINIMALIST LOADER
+                      const SizedBox(
+                        width: 26,
+                        height: 26,
+                        child: CircularProgressIndicator(
+                          color: Color(0xFF6B21A8),
+                          strokeWidth: 2.5,
                         ),
                       ),
-                    const SizedBox(height: 40),
-                    CircularProgressIndicator(
-                      color: Theme.of(context).primaryColor,
-                      strokeWidth: 2,
+                    ],
+                  ),
+                ),
+              ),
+
+              // BOTTOM FOOTER: "from" above "startupsgo"
+              Positioned(
+                bottom: 24,
+                left: 0,
+                right: 0,
+                child: SafeArea(
+                  child: Center(
+                    child: FadeTransition(
+                      opacity: _opacityAnimation,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            "from",
+                            style: TextStyle(
+                              color: const Color(0xFF6B21A8)
+                                  .withValues(alpha: 0.75),
+                              fontSize: 10,
+                              fontWeight: FontWeight.w500,
+                              letterSpacing: 2,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          const Text(
+                            "startupsgo",
+                            style: TextStyle(
+                              color: Color(0xFF6B21A8),
+                              fontSize: 15,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 2.5,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ],
-                );
-              },
-            ),
-          ],
-        ),
-      ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

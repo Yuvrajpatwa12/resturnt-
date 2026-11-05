@@ -3,7 +3,6 @@ import 'package:qr_flutter/qr_flutter.dart';
 import '../../services/api_service.dart';
 import '../../services/tenant_service.dart';
 import '../admin_theme.dart';
-import '../../services/app_config.dart';
 
 class TableConfigurationScreen extends StatefulWidget {
   final String mode;
@@ -128,7 +127,8 @@ class _TableConfigurationScreenState extends State<TableConfigurationScreen> {
 
     final controller = TextEditingController();
 
-    final bool? shouldAdd = await showDialog<bool>(
+    final Map<String, dynamic>?
+    addResult = await showDialog<Map<String, dynamic>>(
       context: context,
       builder: (ctx) {
         bool isSaving = false;
@@ -185,7 +185,7 @@ class _TableConfigurationScreenState extends State<TableConfigurationScreen> {
               ),
               actions: [
                 TextButton(
-                  onPressed: isSaving ? null : () => Navigator.pop(ctx, false),
+                  onPressed: isSaving ? null : () => Navigator.pop(ctx),
                   child: const Text("CANCEL"),
                 ),
                 ElevatedButton(
@@ -199,7 +199,7 @@ class _TableConfigurationScreenState extends State<TableConfigurationScreen> {
                           // Non-premium > 5 tables check
                           if (!isPremium &&
                               (num > 5 || currentTableCount >= 5)) {
-                            Navigator.pop(ctx, false);
+                            Navigator.pop(ctx);
                             _showUpgradeToPremiumModal();
                             return;
                           }
@@ -207,17 +207,32 @@ class _TableConfigurationScreenState extends State<TableConfigurationScreen> {
                           // Premium > 12 tables check (Triggers Super Admin Extension Request)
                           if (isPremium &&
                               (num > 12 || currentTableCount >= 12)) {
-                            Navigator.pop(ctx, false);
+                            Navigator.pop(ctx);
                             _showExtraTableRequestModal(num);
                             return;
                           }
 
                           setModalState(() => isSaving = true);
-                          final success = await ApiService.addTable(
+                          final result = await ApiService.addTable(
                             tenantId,
                             num,
                           );
-                          if (ctx.mounted) Navigator.pop(ctx, success);
+                          if (ctx.mounted) {
+                            if (result['success'] == true) {
+                              Navigator.pop(ctx, result);
+                            } else {
+                              setModalState(() => isSaving = false);
+                              ScaffoldMessenger.of(ctx).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    result['message']?.toString() ??
+                                        "Could not add this table.",
+                                  ),
+                                  backgroundColor: Colors.red.shade700,
+                                ),
+                              );
+                            }
+                          }
                         },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AdminTheme.royalBlue,
@@ -246,7 +261,7 @@ class _TableConfigurationScreenState extends State<TableConfigurationScreen> {
       },
     );
 
-    if (shouldAdd == true) {
+    if (addResult?['success'] == true) {
       _loadTables();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -462,10 +477,23 @@ class _TableConfigurationScreenState extends State<TableConfigurationScreen> {
   }
 
   void _showQRCode(Map<String, dynamic> table) {
-    final String orderUrl =
-        "${AppConfig.fullBaseUrl}/?table=${table['table_number']}";
-    final tenantName =
-        TenantService().currentTenant.value?.name ?? 'Restaurant';
+    final tenant = TenantService().currentTenant.value;
+    if (tenant == null || tenant.id.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Restaurant information is not loaded.')),
+      );
+      return;
+    }
+    final String orderUrl = Uri.parse(Uri.base.origin)
+        .replace(
+          path: '/',
+          queryParameters: {
+            'tenant_id': tenant.id,
+            'table': table['table_number'].toString(),
+          },
+        )
+        .toString();
+    final tenantName = tenant.name;
 
     showDialog(
       context: context,

@@ -14,7 +14,9 @@ $conn->query("UPDATE notification_email_queue q
         ON p.tenant_id COLLATE utf8mb4_general_ci = q.tenant_id COLLATE utf8mb4_general_ci
        AND LOWER(p.email) COLLATE utf8mb4_general_ci = LOWER(q.user_id) COLLATE utf8mb4_general_ci
     SET q.status = 'skipped'
-    WHERE q.status = 'pending' AND
+    WHERE q.status = 'pending'
+        AND q.event_type IN ('follow', 'follow_back', 'wave', 'message', 'order')
+        AND
         (p.email_enabled = 0
             OR (p.email_enabled = 1 AND q.event_type IN ('follow', 'follow_back') AND p.email_follow = 0)
             OR (p.email_enabled = 1 AND q.event_type = 'wave' AND p.email_wave = 0)
@@ -50,14 +52,18 @@ if ($apiKey === '') {
 }
 
 $sql = "SELECT q.id AS queue_id, q.tenant_id, q.user_id, q.notification_id,
-        q.event_type, n.title, n.message, COALESCE(c.email, q.user_id) AS recipient
+        q.event_type, n.title, n.message,
+        COALESCE(c.email, q.user_id) AS recipient,
+        COALESCE(NULLIF(TRIM(t.restaurant_name), ''), 'Restaurant') AS restaurant_name
     FROM notification_email_queue q
     INNER JOIN notifications n ON n.id = q.notification_id AND n.tenant_id COLLATE utf8mb4_general_ci = q.tenant_id COLLATE utf8mb4_general_ci
+    LEFT JOIN tenants t ON t.tenant_id COLLATE utf8mb4_general_ci = q.tenant_id COLLATE utf8mb4_general_ci
     LEFT JOIN customer_notification_email_preferences p
         ON p.tenant_id COLLATE utf8mb4_general_ci = q.tenant_id COLLATE utf8mb4_general_ci AND p.email COLLATE utf8mb4_general_ci = q.user_id COLLATE utf8mb4_general_ci
     LEFT JOIN customers c ON LOWER(c.email) COLLATE utf8mb4_general_ci = LOWER(q.user_id) COLLATE utf8mb4_general_ci
     WHERE q.status = 'pending' AND q.available_at <= CURRENT_TIMESTAMP
-        AND (p.email_enabled IS NULL OR p.email_enabled = 1)
+        AND (q.event_type NOT IN ('follow', 'follow_back', 'wave', 'message', 'order')
+            OR p.email_enabled IS NULL OR p.email_enabled = 1)
         AND (p.email_follow IS NULL OR p.email_follow = 1 OR q.event_type NOT IN ('follow', 'follow_back'))
         AND (p.email_wave IS NULL OR p.email_wave = 1 OR q.event_type != 'wave')
         AND (p.email_message IS NULL OR p.email_message = 1 OR q.event_type != 'message')
@@ -175,36 +181,62 @@ foreach ($groups as $events) {
     }
 
     $recipient = (string)$events[0]['recipient'];
+    $brandName = preg_replace(
+        '/[\r\n]+/',
+        ' ',
+        trim((string)$events[0]['restaurant_name'])
+    );
+    if ($brandName === '') $brandName = 'Restaurant';
     if (!filter_var($recipient, FILTER_VALIDATE_EMAIL)) {
         $sendError = 'Invalid recipient address';
         $success = false;
     } else {
-        $payload = json_encode([
-            'from' => $from,
-            'to' => [$recipient],
-            'subject' => count($lines) === 1 ? 'You have a new social notification' : 'You have new social notifications',
-            'text' => "You have notifications waiting in the app:\n\n" . implode("\n\n", $lines),
-            'html' => '<p>You have notifications waiting in the app:</p><ul>' .
-                implode('', $htmlLines) . '</ul><p>Open the app to respond.</p>'
-        ]);
+        try {
+            $brandedFrom = restaurantEmailFrom($from, $brandName);
+        } catch (Throwable $senderError) {
+            $brandedFrom = '';
+            $sendError = $senderError->getMessage();
+            $success = false;
+        }
+        if ($brandedFrom !== '') {
+            $payload = json_encode([
+                'from' => $brandedFrom,
+                'to' => [$recipient],
+                'subject' => count($lines) === 1
+                    ? "$brandName: " . trim((string)$events[0]['title'])
+                    : "$brandName: You have new notifications",
+                'text' => "$brandName\n\n" .
+                    "You have notifications waiting in the app:\n\n" .
+                    implode("\n\n", $lines),
+                'html' => '<p><strong>' .
+                    htmlspecialchars($brandName, ENT_QUOTES, 'UTF-8') .
+                    '</strong></p><p>You have notifications waiting in the app:</p><ul>' .
+                    implode('', $htmlLines) . '</ul><p>Open the app to respond.</p>'
+            ]);
 
-        $curl = curl_init('https://api.resend.com/emails');
-        curl_setopt_array($curl, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_POST => true,
-            CURLOPT_POSTFIELDS => $payload,
-            CURLOPT_HTTPHEADER => [
-                'Authorization: Bearer ' . $apiKey,
-                'Content-Type: application/json'
-            ],
-            CURLOPT_TIMEOUT => 20
-        ]);
-        $response = curl_exec($curl);
-        $statusCode = (int)curl_getinfo($curl, CURLINFO_HTTP_CODE);
-        $curlError = curl_error($curl);
-        curl_close($curl);
-        $success = $response !== false && $statusCode >= 200 && $statusCode < 300;
-        $sendError = $success ? '' : substr($curlError ?: (string)$response, 0, 1000);
+            if ($payload === false) {
+                $sendError = 'Could not encode email payload.';
+                $success = false;
+            } else {
+                $curl = curl_init('https://api.resend.com/emails');
+                curl_setopt_array($curl, [
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_POST => true,
+                    CURLOPT_POSTFIELDS => $payload,
+                    CURLOPT_HTTPHEADER => [
+                        'Authorization: Bearer ' . $apiKey,
+                        'Content-Type: application/json'
+                    ],
+                    CURLOPT_TIMEOUT => 20
+                ]);
+                $response = curl_exec($curl);
+                $statusCode = (int)curl_getinfo($curl, CURLINFO_HTTP_CODE);
+                $curlError = curl_error($curl);
+                curl_close($curl);
+                $success = $response !== false && $statusCode >= 200 && $statusCode < 300;
+                $sendError = $success ? '' : substr($curlError ?: (string)$response, 0, 1000);
+            }
+        }
     }
 
     $sendIds = array_map('intval', array_column($events, 'queue_id'));

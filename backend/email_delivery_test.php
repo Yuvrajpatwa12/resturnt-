@@ -21,6 +21,7 @@ function report($label, $passed, $detail) {
 $results = [];
 $email = '';
 $tenantId = 'startups_main';
+$brandName = null;
 $testResult = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -55,6 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $results[] = report('Database connection', false, 'Could not connect using db_config.php.');
                 } else {
                     $results[] = report('Database connection', true, 'Connected.');
+                    $brandName = restaurantEmailBrandName($conn, $tenantId);
 
                     $requiredTables = [
                         'customers',
@@ -171,8 +173,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if ($validEmail) {
-            if ($apiKey === '' || $from === '' || !function_exists('curl_init')) {
-                $testResult = report('Resend test email', false, 'Cannot send: correct the recipient, Resend environment settings, or PHP cURL check above.');
+            if ($apiKey === '' || $from === '' || !function_exists('curl_init') || $brandName === null) {
+                $testResult = report('Resend test email', false, 'Cannot send: correct the recipient, Resend environment settings, PHP cURL, and database tenant-branding checks above.');
             } else {
                 $rateLimitPath = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'chiyabreak_email_test_' . hash('sha256', strtolower($allowedRecipient)) . '.lock';
                 $rateLimitFile = @fopen($rateLimitPath, 'c+');
@@ -189,12 +191,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         rewind($rateLimitFile);
                         fwrite($rateLimitFile, (string)time());
                         fflush($rateLimitFile);
+                        $brandedFrom = restaurantEmailFrom($from, $brandName);
                         $payload = json_encode([
-                            'from' => $from,
+                            'from' => $brandedFrom,
                             'to' => [$allowedRecipient],
-                            'subject' => 'ChiyaBreak email delivery test',
-                            'text' => 'This is a test email from the ChiyaBreak notification diagnostic. If you received it, Resend delivery is working.',
-                            'html' => '<p>This is a test email from the ChiyaBreak notification diagnostic.</p><p>If you received it, Resend delivery is working.</p>'
+                            'subject' => $brandName . ': email delivery test',
+                            'text' => 'This is a test email for ' . $brandName . '. If you received it, Resend delivery is working.',
+                            'html' => '<p>This is a test email for <strong>' . h($brandName) . '</strong>.</p><p>If you received it, Resend delivery is working.</p>'
                         ]);
 
                         $curl = curl_init('https://api.resend.com/emails');

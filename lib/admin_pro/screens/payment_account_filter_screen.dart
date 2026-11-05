@@ -142,7 +142,10 @@ class _PaymentAccountFilterScreenState
 
       if (_searchQuery.trim().isNotEmpty) {
         final q = _searchQuery.trim().toLowerCase();
-        final id = (ord['id'] ?? ord['order_id'] ?? '')
+        final id = (ord['tenant_order_number'] ??
+                ord['id'] ??
+                ord['order_id'] ??
+                '')
             .toString()
             .toLowerCase();
         final customer = (ord['customer_name'] ?? ord['user_id'] ?? '')
@@ -702,7 +705,10 @@ class _PaymentAccountFilterScreenState
       separatorBuilder: (_, __) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
         final ord = orders[index];
-        final id = (ord['id'] ?? ord['order_id'] ?? '-').toString();
+        final id = (ord['tenant_order_number'] ??
+                ord['id'] ??
+                ord['order_id'] ??
+                '-').toString();
         final method = (ord['payment_method'] ?? ord['method'] ?? 'Cash')
             .toString();
         final amount = _parseAmount(ord['total_amount'] ?? ord['total']);
@@ -883,7 +889,11 @@ class _PaymentAccountFilterScreenState
   }
 
   void _showInvoiceModal(BuildContext context, Map<String, dynamic> ord) {
-    final id = (ord['id'] ?? ord['order_id'] ?? '-').toString();
+    final id = (ord['tenant_order_number'] ??
+            ord['id'] ??
+            ord['order_id'] ??
+            '-')
+        .toString();
     final method = (ord['payment_method'] ?? ord['method'] ?? 'Cash')
         .toString();
     final amount = _parseAmount(ord['total_amount'] ?? ord['total']);

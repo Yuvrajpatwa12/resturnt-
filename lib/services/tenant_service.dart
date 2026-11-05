@@ -187,32 +187,45 @@ class TenantService extends ChangeNotifier {
   final ValueNotifier<List<Map<String, dynamic>>> categories = ValueNotifier(
     [],
   );
+  String? _menuTenantId;
 
-  Future<void> initialize(String domain, {bool showLoading = true}) async {
+  Future<void> initialize(
+    String domain, {
+    bool showLoading = true,
+    String? tenantId,
+  }) async {
     if (showLoading) isLoading.value = true;
 
     // Auto-map primary domain or localhost to startups_main
-    String domainToFetch = domain;
-    if (domain == "localhost" ||
-        domain == "127.0.0.1" ||
-        domain == "startupsgo.tech" ||
-        domain.isEmpty) {
+    final requestedTenantId = tenantId?.trim();
+    String domainToFetch =
+        requestedTenantId != null && requestedTenantId.isNotEmpty
+        ? requestedTenantId
+        : domain;
+    if ((requestedTenantId == null || requestedTenantId.isEmpty) &&
+        (domain == "localhost" ||
+            domain == "127.0.0.1" ||
+            domain == "startupsgo.tech" ||
+            domain.isEmpty)) {
       domainToFetch = "startups_main"; // Match main restaurant tenant_id in DB
     }
 
     debugPrint("TENANT: Loading data for $domainToFetch...");
     Map<String, dynamic>? data = await ApiService.initTenant(domainToFetch);
-
-    // If not found, fallback to startups_main
-    if (data == null && domainToFetch != "startups_main") {
-      debugPrint(
-        "TENANT: Domain not found directly, falling back to startups_main...",
-      );
-      data = await ApiService.initTenant("startups_main");
+    if (data != null &&
+        requestedTenantId != null &&
+        requestedTenantId.isNotEmpty &&
+        (data['tenant_id']?.toString() ?? '').trim() != requestedTenantId) {
+      data = null;
     }
 
     if (data != null) {
       final parsedTenant = Tenant.fromMap(data);
+      if (currentTenant.value?.id != parsedTenant.id) {
+        products.value = [];
+        categories.value = [];
+        _menuTenantId = null;
+      }
       currentTenant.value = parsedTenant;
       CurrencyService().applyTenantCurrency(
         parsedTenant.currencyCode,
@@ -228,6 +241,7 @@ class TenantService extends ChangeNotifier {
         "TENANT: Fetching theme from backend for ${parsedTenant.id}...",
       );
       final themeData = await ApiService.fetchTheme(parsedTenant.id);
+      if (currentTenant.value?.id != parsedTenant.id) return;
       if (themeData != null) {
         debugPrint(
           "TENANT: Theme data received - ${themeData['theme_name']}, color: ${themeData['primary_color']}",
@@ -277,62 +291,65 @@ class TenantService extends ChangeNotifier {
 
       await fetchMenuData(currentTenant.value!.id);
     } else {
+      if (requestedTenantId != null && requestedTenantId.isNotEmpty) {
+        currentTenant.value = null;
+        products.value = [];
+        categories.value = [];
+        _menuTenantId = null;
+        if (showLoading) isLoading.value = false;
+        notifyListeners();
+        throw StateError(
+          'This QR code does not match an active restaurant. Please scan a valid restaurant QR code.',
+        );
+      }
       debugPrint(
-        "TENANT: ERROR - Tenant data could not be fetched. Using Default Active Tenant.",
+        "TENANT: ERROR - Could not resolve restaurant for domain '$domain'.",
       );
-      currentTenant.value = Tenant(
-        id: "startups_main",
-        name: "Restaurant",
-        logo: "",
-        color: "#FF5C00",
-        domain: "startupsgo.tech",
-        isActive: true,
-        plan: "Premium",
-        isPremiumEnabled: true,
-        googleMapsLink: "https://maps.google.com",
-        instagramLink: "https://instagram.com",
-        facebookLink: "https://facebook.com",
-        tiktokLink: "https://tiktok.com",
+      currentTenant.value = null;
+      products.value = [];
+      categories.value = [];
+      _menuTenantId = null;
+      if (showLoading) isLoading.value = false;
+      notifyListeners();
+      throw StateError(
+        'Could not identify this restaurant. Check the restaurant domain or try again.',
       );
-      await fetchMenuData("startups_main");
     }
     if (showLoading) isLoading.value = false;
     notifyListeners();
   }
 
   Future<Map<String, dynamic>> login(String email, String pin) async {
-    String domain = Uri.base.host == "127.0.0.1" ? "localhost" : Uri.base.host;
-
-    if (domain == "localhost")
-      domain = "startupsgo.tech"; // Force domain for localhost login
+    final tenant = currentTenant.value;
+    if (tenant == null || tenant.id.trim().isEmpty) {
+      return {
+        "success": false,
+        "message":
+            "Restaurant could not be identified. Reload this restaurant site and try again.",
+      };
+    }
 
     final result = await ApiService.staffLogin(
-      domain: domain,
+      tenantId: tenant.id,
       email: email,
       pin: pin,
     );
 
     if (result['success'] == true) {
-      final userData = result['user'];
+      final userData = result['user'] as Map<String, dynamic>;
+      if ((userData['tenant_id']?.toString() ?? '').trim() != tenant.id) {
+        await ApiService.staffLogout();
+        return {
+          "success": false,
+          "message": "This staff account belongs to a different restaurant.",
+        };
+      }
       currentStaff.value = Staff(
         id: int.parse(userData['id'].toString()),
         name: userData['name'],
         role: userData['role'],
         tenantId: userData['tenant_id'],
       );
-      if (currentTenant.value == null) {
-        currentTenant.value = Tenant(
-          id: userData['tenant_id']?.toString() ?? "startups_main",
-          name: "Logged In Restaurant",
-          logo: "",
-          color: "#FF5C00",
-          domain: "startupsgo.tech",
-          isActive: true,
-          plan: "Premium",
-          isPremiumEnabled: true,
-        );
-        await fetchMenuData(currentTenant.value!.id);
-      }
       notifyListeners();
       return {"success": true};
     }
@@ -375,8 +392,23 @@ class TenantService extends ChangeNotifier {
   }
 
   Future<void> fetchMenuData(String tenantId) async {
+    final requestedTenant = tenantId.trim();
+    if (requestedTenant.isEmpty || currentTenant.value?.id != requestedTenant) {
+      debugPrint(
+        "TENANT: Skipping menu load for an unknown or mismatched restaurant.",
+      );
+      return;
+    }
+
+    if (_menuTenantId != requestedTenant) {
+      products.value = [];
+      categories.value = [];
+      _menuTenantId = requestedTenant;
+    }
+
     debugPrint("TENANT: Attempting to fetch menu for -> $tenantId");
-    final menuData = await ApiService.fetchMenu(tenantId);
+    final menuData = await ApiService.fetchMenu(requestedTenant);
+    if (currentTenant.value?.id != requestedTenant) return;
 
     if (menuData != null) {
       products.value = List<Map<String, dynamic>>.from(menuData['products']);
@@ -390,11 +422,6 @@ class TenantService extends ChangeNotifier {
       debugPrint(
         "TENANT: ERROR! get_menu.php returned NULL. Check if the file exists in saas_api folder.",
       );
-      // Auto-Retry with default ID if it failed
-      if (tenantId != "startups_main") {
-        debugPrint("TENANT: Retrying with startups_main...");
-        fetchMenuData("startups_main");
-      }
     }
   }
 

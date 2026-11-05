@@ -9,6 +9,7 @@ import 'live_order_tracking_screen.dart';
 import 'my_orders_page.dart';
 import 'user_profile_view_page.dart';
 import 'messages_list_page.dart';
+import 'nearby_page.dart';
 import 'chat_page.dart'; // Added
 import 'settings_page.dart';
 import 'services/tenant_service.dart';
@@ -437,8 +438,12 @@ class _ProfilePageState extends State<ProfilePage>
                       children: [
                         ElevatedButton.icon(
                           onPressed: () {
-                            ShopManager.instance.currentTabIndex.value =
-                                2; // Nearby
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const NearbyPage(),
+                              ),
+                            );
                           },
                           icon: const Icon(Icons.bolt, size: 18),
                           label: const Text(
@@ -468,7 +473,7 @@ class _ProfilePageState extends State<ProfilePage>
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => MessagesListPage(),
+                                builder: (context) => const MessagesListPage(),
                               ),
                             );
                           },
@@ -1917,7 +1922,11 @@ class _ProfilePageState extends State<ProfilePage>
           onTap: () => Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => LiveOrderTrackingScreen(orderId: orderId),
+              builder: (context) => LiveOrderTrackingScreen(
+                orderId: orderId,
+                displayOrderNumber: ShopManager.instance.activeOrderNumber.value
+                    ?.toString(),
+              ),
             ),
           ),
           borderRadius: BorderRadius.circular(20),

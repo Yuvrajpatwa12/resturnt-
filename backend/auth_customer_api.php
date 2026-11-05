@@ -53,6 +53,17 @@ try {
 
             if ($res->num_rows > 0) {
                 $user = $res->fetch_assoc();
+                $emailPreferences = $conn->prepare("INSERT IGNORE INTO customer_notification_email_preferences
+                    (tenant_id, email, email_enabled, email_follow, email_wave, email_message)
+                    VALUES (?, ?, 1, 1, 1, 1)");
+                if (!$emailPreferences) {
+                    throw new Exception("Could not prepare customer email preferences");
+                }
+                $emailPreferences->bind_param("ss", $tenant_id, $email);
+                if (!$emailPreferences->execute()) {
+                    throw new Exception("Could not enable default customer email notifications");
+                }
+                $emailPreferences->close();
                 if (!empty($name) && $name !== 'Diner' && $name !== 'Guest Diner' && (empty($user['name']) || $user['name'] === 'Diner' || $user['name'] === 'Guest Diner')) {
                     $upd = $conn->prepare("UPDATE customers SET name = ? WHERE LOWER(email) = LOWER(?) AND tenant_id = ?");
                     $upd->bind_param("sss", $name, $email, $tenant_id);
@@ -70,38 +81,30 @@ try {
                     "user" => $user
                 ]);
             } else {
-                // Not in this shop. Check if exists globally across any branch
-                $global_stmt = $conn->prepare("SELECT name, pin FROM customers WHERE LOWER(email) = LOWER(?) AND pin IS NOT NULL AND pin != '' LIMIT 1");
-                $global_stmt->bind_param("s", $email);
-                $global_stmt->execute();
-                $global_res = $global_stmt->get_result();
-
-                $final_name = $name;
-                $stored_pin = null;
-                $isRegisteredGlobal = false;
-
-                if ($global_res->num_rows > 0) {
-                    $global_user = $global_res->fetch_assoc();
-                    $final_name = !empty($global_user['name']) ? $global_user['name'] : $name;
-                    $stored_pin = $global_user['pin'];
-                    $isRegisteredGlobal = true;
-                }
-
-                $hasPin = !empty($stored_pin) && trim($stored_pin) !== '';
-
-                // Auto-create customer entry for THIS shop
-                $ins = $conn->prepare("INSERT INTO customers (email, tenant_id, name, pin) VALUES (?, ?, ?, ?)");
-                $ins->bind_param("ssss", $email, $tenant_id, $final_name, $stored_pin);
+                // Each restaurant owns its customer profile and PIN independently.
+                $ins = $conn->prepare("INSERT INTO customers (email, tenant_id, name, pin, department, salary_type) VALUES (?, ?, ?, '', '', '')");
+                $ins->bind_param("sss", $email, $tenant_id, $name);
                 $ins->execute();
+                $emailPreferences = $conn->prepare("INSERT IGNORE INTO customer_notification_email_preferences
+                    (tenant_id, email, email_enabled, email_follow, email_wave, email_message)
+                    VALUES (?, ?, 1, 1, 1, 1)");
+                if (!$emailPreferences) {
+                    throw new Exception("Could not prepare customer email preferences");
+                }
+                $emailPreferences->bind_param("ss", $tenant_id, $email);
+                if (!$emailPreferences->execute()) {
+                    throw new Exception("Could not enable default customer email notifications");
+                }
+                $emailPreferences->close();
 
                 echo json_encode([
                     "status" => "success",
                     "exists" => true,
-                    "is_registered" => $isRegisteredGlobal || $hasPin,
+                    "is_registered" => false,
                     "is_new_to_shop" => true,
-                    "has_pin" => $hasPin,
-                    "needs_pin" => !$hasPin,
-                    "user" => ["email" => $email, "name" => $final_name, "points" => 0, "order_count" => 0]
+                    "has_pin" => false,
+                    "needs_pin" => true,
+                    "user" => ["email" => $email, "name" => $name, "points" => 0, "order_count" => 0]
                 ]);
             }
             break;
@@ -125,9 +128,9 @@ try {
                 break;
             }
 
-            // Sync PIN globally for this customer email across all tenants
-            $stmt = $conn->prepare("UPDATE customers SET pin = ? WHERE LOWER(email) = LOWER(?)");
-            $stmt->bind_param("ss", $pin, $email);
+            // PINs are restaurant-specific; never update another tenant's profile.
+            $stmt = $conn->prepare("UPDATE customers SET pin = ? WHERE LOWER(email) = LOWER(?) AND tenant_id = ?");
+            $stmt->bind_param("sss", $pin, $email, $tenant_id);
             if ($stmt->execute()) {
                 echo json_encode([
                     "status" => "success",

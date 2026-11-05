@@ -158,30 +158,20 @@ try {
                         }
                     }
 
-                    if (!filter_var($admin_email, FILTER_VALIDATE_EMAIL)) {
-                        $main_lookup = $conn->query("SELECT contact_email, primary_email FROM tenants WHERE tenant_id = 'startups_main' LIMIT 1");
-                        if ($main_lookup && $m_row = $main_lookup->fetch_assoc()) {
-                            $admin_email = !empty($m_row['contact_email']) ? $m_row['contact_email'] : (!empty($m_row['primary_email']) ? $m_row['primary_email'] : '');
-                        }
+                    if (filter_var($admin_email, FILTER_VALIDATE_EMAIL)) {
+                        $notif = $conn->prepare("INSERT INTO notifications (tenant_id, user_id, title, message, type) VALUES (?, ?, ?, ?, 'support_reply')");
+                        $title = "Support Reply on Ticket #$ticket_id";
+                        $notif_msg = "$sender replied: $message";
+                        $notif->bind_param("ssss", $tenant_id, $admin_email, $title, $notif_msg);
+                        $notif->execute();
+                        $notif_id = $conn->insert_id;
+                        queueEmailNotification($conn, $tenant_id, $admin_email, $notif_id, 'support_reply');
+                    } else {
+                        error_log(
+                            "Support reply notification skipped: no valid admin email for tenant " .
+                            $tenant_id
+                        );
                     }
-
-                    if (!filter_var($admin_email, FILTER_VALIDATE_EMAIL)) {
-                        $fallback_res = $conn->query("SELECT contact_email FROM tenants WHERE contact_email LIKE '%@%' LIMIT 1");
-                        if ($fallback_res && $f_row = $fallback_res->fetch_assoc()) {
-                            $admin_email = $f_row['contact_email'];
-                        } else {
-                            $admin_email = 'yurajpatwa114@gmail.com';
-                        }
-                    }
-
-                    // Send email/notification to tenant admin
-                    $notif = $conn->prepare("INSERT INTO notifications (tenant_id, user_id, title, message, type) VALUES (?, ?, ?, ?, 'support_reply')");
-                    $title = "Support Reply on Ticket #$ticket_id";
-                    $notif_msg = "$sender replied: $message";
-                    $notif->bind_param("ssss", $tenant_id, $admin_email, $title, $notif_msg);
-                    $notif->execute();
-                    $notif_id = $conn->insert_id;
-                    queueEmailNotification($conn, $tenant_id, $admin_email, $notif_id, 'support_reply');
                 }
 
                 echo json_encode(["status" => "success", "message" => "Reply sent successfully."]);

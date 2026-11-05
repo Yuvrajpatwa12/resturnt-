@@ -7,6 +7,7 @@ import 'nearby_page.dart';
 import 'squad_lobby_page.dart';
 import 'services/tenant_service.dart';
 import 'services/api_service.dart';
+import 'services/feature_flags.dart';
 
 class NotificationsPage extends StatefulWidget {
   const NotificationsPage({super.key});
@@ -23,7 +24,10 @@ class _NotificationsPageState extends State<NotificationsPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(
+      length: FeatureFlags.gamesEnabled ? 4 : 3,
+      vsync: this,
+    );
     ShopManager.instance.clearNotificationBadge();
     ShopManager.instance.refreshNotifications();
   }
@@ -48,46 +52,6 @@ class _NotificationsPageState extends State<NotificationsPage>
           ),
         ),
         actions: [
-          ElevatedButton.icon(
-            onPressed: () async {
-              await ShopManager.instance.checkOrRequestNotificationOnAction();
-              final tenant = TenantService().currentTenant.value;
-              if (tenant != null &&
-                  ShopManager.instance.currentUserId.isNotEmpty) {
-                final success = await ApiService.sendTestOfferNotification(
-                  tenant.id,
-                  ShopManager.instance.currentUserId,
-                );
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        success
-                            ? "🎉 Test offer push sent to your device!"
-                            : "⚠️ Failed to send test push",
-                      ),
-                      backgroundColor: success ? Colors.green : Colors.red,
-                    ),
-                  );
-                }
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Theme.of(context).primaryColor,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-              elevation: 0,
-            ),
-            icon: const Icon(Icons.local_offer_rounded, size: 16),
-            label: const Text(
-              "Test Offer",
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-            ),
-          ),
-          const SizedBox(width: 6),
           TextButton.icon(
             onPressed: () => ShopManager.instance.clearNotificationBadge(),
             icon: const Icon(Icons.done_all, size: 18),
@@ -104,11 +68,11 @@ class _NotificationsPageState extends State<NotificationsPage>
           labelColor: const Color(0xFF6236FF),
           unselectedLabelColor: Colors.grey,
           indicatorColor: const Color(0xFF6236FF),
-          tabs: const [
+          tabs: [
             Tab(text: "View all"),
             Tab(text: "Mentions"),
             Tab(text: "Followers"),
-            Tab(text: "Games"),
+            if (FeatureFlags.gamesEnabled) const Tab(text: "Games"),
           ],
         ),
       ),
@@ -121,7 +85,8 @@ class _NotificationsPageState extends State<NotificationsPage>
               _buildList(notifications, "all"),
               _buildList(notifications, "message"),
               _buildList(notifications, "follow"),
-              _buildList(notifications, "invites"),
+              if (FeatureFlags.gamesEnabled)
+                _buildList(notifications, "invites"),
             ],
           );
         },
@@ -129,9 +94,18 @@ class _NotificationsPageState extends State<NotificationsPage>
     );
   }
 
+  bool _isGameNotification(String type) {
+    return type.startsWith('squad_') ||
+        type.startsWith('battleground') ||
+        type.startsWith('tap_war');
+  }
+
   Widget _buildList(List<Map<String, dynamic>> all, String filter) {
     final filtered = filter == "all"
-        ? all
+        ? all.where((notification) {
+            return FeatureFlags.gamesEnabled ||
+                !_isGameNotification(notification['type']?.toString() ?? '');
+          }).toList()
         : all.where((n) {
             final type = n['type'];
             if (filter == 'invites') {

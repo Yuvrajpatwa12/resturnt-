@@ -14,7 +14,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit;
 }
 
-require_once 'db_config.php';
+require_once __DIR__ . '/db_config.php';
+require_once __DIR__ . '/staff_auth.php';
 
 // Auto-run schema setup
 try {
@@ -92,6 +93,19 @@ if ($action === 'get_theme' && $_SERVER['REQUEST_METHOD'] === 'GET') {
 
 // POST/PUT: Update theme for a specific tenant
 if ($action === 'update_theme' && ($_SERVER['REQUEST_METHOD'] === 'POST' || $_SERVER['REQUEST_METHOD'] === 'PUT')) {
+    require_once __DIR__ . '/super_admin_api.php';
+    $superAdmin = verifySuperAdminSession($conn);
+    $user = null;
+    if (!$superAdmin) {
+        $auth = requireAuth($conn, ['admin']);
+        $user = isset($auth['user']) && is_array($auth['user']) ? $auth['user'] : [];
+        $role = strtolower(trim(str_replace([' ', '-'], '_', (string)($user['role'] ?? ''))));
+        if (!in_array($role, ['admin', 'manager'], true)) {
+            staffAuthRespond(403, 'Your staff role cannot update restaurant themes');
+        }
+    }
+    $isSuperAdmin = (bool)$superAdmin;
+
     $json = file_get_contents('php://input');
     $data = json_decode($json);
     
@@ -100,7 +114,7 @@ if ($action === 'update_theme' && ($_SERVER['REQUEST_METHOD'] === 'POST' || $_SE
         exit;
     }
     
-    $tenant_id = trim((string)($data->tenant_id ?? ''));
+    $requestedTenantId = trim((string)($data->tenant_id ?? ''));
     $primary_color = trim((string)($data->primary_color ?? '#FF5C00'));
     $theme_name = trim((string)($data->theme_name ?? 'Custom'));
     $secondary_color = trim((string)($data->secondary_color ?? '#002D62'));
@@ -109,12 +123,34 @@ if ($action === 'update_theme' && ($_SERVER['REQUEST_METHOD'] === 'POST' || $_SE
     $border_radius = floatval($data->border_radius ?? 16.0);
     $dark_mode_enabled = isset($data->dark_mode_enabled) ? ($data->dark_mode_enabled ? 1 : 0) : 0;
     
-    if (empty($tenant_id)) {
+    if (empty($requestedTenantId)) {
         echo json_encode(["status" => "error", "message" => "Tenant ID is required"]);
         exit;
     }
     
     try {
+        $tenantLookup = $conn->prepare("
+            SELECT tenant_id
+            FROM tenants
+            WHERE tenant_id = ? OR custom_domain = ?
+            LIMIT 1
+        ");
+        $tenantLookup->bind_param("ss", $requestedTenantId, $requestedTenantId);
+        $tenantLookup->execute();
+        $tenant = $tenantLookup->get_result()->fetch_assoc();
+        $tenantLookup->close();
+        if (!$tenant) {
+            http_response_code(404);
+            echo json_encode(["status" => "error", "message" => "Restaurant tenant was not found"]);
+            exit;
+        }
+
+        $tenant_id = (string)$tenant['tenant_id'];
+        $authenticatedTenantId = trim((string)($user['tenant_id'] ?? ''));
+        if (!$isSuperAdmin && ($authenticatedTenantId === '' || $tenant_id !== $authenticatedTenantId)) {
+            staffAuthRespond(403, 'Tenant does not match the authenticated staff session');
+        }
+
         $stmt = $conn->prepare("
             UPDATE tenants 
             SET 
@@ -126,9 +162,9 @@ if ($action === 'update_theme' && ($_SERVER['REQUEST_METHOD'] === 'POST' || $_SE
                 border_radius = ?,
                 dark_mode_enabled = ?,
                 theme_updated_at = NOW()
-            WHERE tenant_id = ? OR custom_domain = ?
+            WHERE tenant_id = ?
         ");
-        $stmt->bind_param("sssssdiss", 
+        $stmt->bind_param("sssssdis",
             $primary_color, 
             $theme_name, 
             $secondary_color, 
@@ -136,7 +172,6 @@ if ($action === 'update_theme' && ($_SERVER['REQUEST_METHOD'] === 'POST' || $_SE
             $font_family, 
             $border_radius, 
             $dark_mode_enabled,
-            $tenant_id,
             $tenant_id
         );
         
@@ -166,6 +201,13 @@ if ($action === 'update_theme' && ($_SERVER['REQUEST_METHOD'] === 'POST' || $_SE
 
 // GET: List all tenants with their themes (for admin panel)
 if ($action === 'list_themes' && $_SERVER['REQUEST_METHOD'] === 'GET') {
+    require_once __DIR__ . '/super_admin_api.php';
+    if (!verifySuperAdminSession($conn)) {
+        http_response_code(401);
+        echo json_encode(["status" => "error", "message" => "Super administrator authentication is required"]);
+        exit;
+    }
+
     try {
         $stmt = $conn->prepare("
             SELECT 

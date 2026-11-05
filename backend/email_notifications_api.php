@@ -43,7 +43,7 @@ try {
         echo json_encode([
             "status" => "success",
             "preferences" => $preferences ?: [
-                "email_enabled" => 0,
+                "email_enabled" => 1,
                 "email_follow" => 1,
                 "email_wave" => 1,
                 "email_message" => 1
