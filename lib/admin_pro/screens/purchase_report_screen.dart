@@ -91,28 +91,30 @@ class _PurchaseReportScreenState extends State<PurchaseReportScreen> {
             children: [
               // HEADER
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "Purchase Report",
-                        style: TextStyle(
-                          fontSize: 26,
-                          fontWeight: FontWeight.w900,
-                          color: Color(0xFF1F2937),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Purchase Report",
+                          style: TextStyle(
+                            fontSize: 26,
+                            fontWeight: FontWeight.w900,
+                            color: Color(0xFF1F2937),
+                          ),
                         ),
-                      ),
-                      SizedBox(height: 4),
-                      Text(
-                        "Detailed procurement logs, supplier cost distribution, and VAT breakdown.",
-                        style: TextStyle(
-                          color: Color(0xFF6B7280),
-                          fontSize: 13,
+                        SizedBox(height: 4),
+                        Text(
+                          "Detailed procurement logs, supplier cost distribution, and VAT breakdown.",
+                          softWrap: true,
+                          style: TextStyle(
+                            color: Color(0xFF6B7280),
+                            fontSize: 13,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                   IconButton(
                     onPressed: _loadData,
@@ -165,8 +167,10 @@ class _PurchaseReportScreenState extends State<PurchaseReportScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    Wrap(
+                      spacing: 16,
+                      runSpacing: 8,
+                      alignment: WrapAlignment.spaceBetween,
                       children: [
                         const Text(
                           "DUAL COST COMPARISON: NET COST VS VAT TAX",
@@ -486,7 +490,9 @@ class _PurchaseReportScreenState extends State<PurchaseReportScreen> {
     Color color,
   ) {
     return Container(
-      width: 230,
+      width: MediaQuery.sizeOf(context).width < 700
+          ? MediaQuery.sizeOf(context).width - 48
+          : 230,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -505,27 +511,33 @@ class _PurchaseReportScreenState extends State<PurchaseReportScreen> {
             child: Icon(icon, color: color, size: 22),
           ),
           const SizedBox(width: 14),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  color: Color(0xFF6B7280),
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFF6B7280),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                value,
-                style: TextStyle(
-                  color: color,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900,
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),

@@ -220,7 +220,9 @@ class _SalaryGenerateScreenState extends State<SalaryGenerateScreen> {
           ),
           content: SingleChildScrollView(
             child: SizedBox(
-              width: 480,
+              width: MediaQuery.sizeOf(context).width < 560
+                  ? MediaQuery.sizeOf(context).width - 72
+                  : 480,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,

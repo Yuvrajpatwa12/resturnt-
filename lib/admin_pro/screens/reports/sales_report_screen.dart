@@ -261,7 +261,9 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
             children: [
               // GRADIENT AREA LINE CHART
               Container(
-                width: 600,
+                width: MediaQuery.sizeOf(context).width < 700
+                    ? MediaQuery.sizeOf(context).width - 48
+                    : 600,
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
                   color: Colors.white,
@@ -382,7 +384,9 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
 
               // PAYMENT METHOD DONUT CHART (IMAGE 1 STYLE)
               Container(
-                width: 320,
+                width: MediaQuery.sizeOf(context).width < 700
+                    ? MediaQuery.sizeOf(context).width - 48
+                    : 320,
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
                   color: Colors.white,

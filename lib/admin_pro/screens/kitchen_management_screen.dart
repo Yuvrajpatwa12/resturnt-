@@ -582,8 +582,8 @@ class _KitchenManagementScreenState extends State<KitchenManagementScreen> {
             style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
           ),
           const SizedBox(height: 24),
-          SizedBox(
-            width: double.infinity,
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
             child: DataTable(
               columns: const [
                 DataColumn(label: Text("FOOD ITEM")),

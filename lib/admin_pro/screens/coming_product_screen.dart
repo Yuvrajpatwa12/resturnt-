@@ -68,7 +68,7 @@ class _ComingProductScreenState extends State<ComingProductScreen> {
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(MediaQuery.sizeOf(context).width < 600 ? 12 : 24),
       child: ValueListenableBuilder<List<Map<String, dynamic>>>(
         valueListenable: TenantService().products,
         builder: (context, products, child) {
@@ -94,75 +94,65 @@ class _ComingProductScreenState extends State<ComingProductScreen> {
             children: [
               // Clean Header Bar
               Container(
-                padding: const EdgeInsets.all(20),
+                padding: EdgeInsets.all(
+                  MediaQuery.sizeOf(context).width < 600 ? 16 : 20,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: AdminTheme.softShadow,
                 ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: lightBlueBg,
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: const Icon(
-                        Icons.upcoming_rounded,
-                        color: accentBlue,
-                        size: 26,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              const Text(
-                                "Coming Products",
-                                style: TextStyle(
-                                  color: Colors.black87,
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: lightBlueBg,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Text(
-                                  "${comingProducts.length} ${comingProducts.length == 1 ? 'Item' : 'Items'}",
-                                  style: const TextStyle(
-                                    color: accentBlue,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ],
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isNarrow = constraints.maxWidth < 600;
+                    final titleAndCount = Wrap(
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: 10,
+                      runSpacing: 4,
+                      children: [
+                        Text(
+                          "Coming Products",
+                          style: TextStyle(
+                            color: Colors.black87,
+                            fontSize: isNarrow ? 18 : 20,
+                            fontWeight: FontWeight.bold,
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            "Showcase upcoming menu items and teaser dishes on the customer app",
-                            style: TextStyle(
-                              color: Colors.grey[600],
-                              fontSize: 13,
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: lightBlueBg,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            "${comingProducts.length} ${comingProducts.length == 1 ? 'Item' : 'Items'}",
+                            style: const TextStyle(
+                              color: accentBlue,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    ElevatedButton.icon(
+                        ),
+                      ],
+                    );
+                    final details = Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        titleAndCount,
+                        const SizedBox(height: 4),
+                        Text(
+                          "Showcase upcoming menu items and teaser dishes on the customer app",
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    );
+                    final addButton = ElevatedButton.icon(
                       onPressed: () => _showAddComingProductDialog(context),
                       icon: const Icon(Icons.add_rounded, size: 20),
                       label: const Text("Add Coming Product"),
@@ -182,8 +172,47 @@ class _ComingProductScreenState extends State<ComingProductScreen> {
                           fontSize: 14,
                         ),
                       ),
-                    ),
-                  ],
+                    );
+                    final icon = Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: lightBlueBg,
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: const Icon(
+                        Icons.upcoming_rounded,
+                        color: accentBlue,
+                        size: 26,
+                      ),
+                    );
+
+                    if (isNarrow) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Row(
+                            children: [
+                              icon,
+                              const SizedBox(width: 12),
+                              Expanded(child: details),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          addButton,
+                        ],
+                      );
+                    }
+
+                    return Row(
+                      children: [
+                        icon,
+                        const SizedBox(width: 16),
+                        Expanded(child: details),
+                        const SizedBox(width: 16),
+                        addButton,
+                      ],
+                    );
+                  },
                 ),
               ),
 

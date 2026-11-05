@@ -56,21 +56,36 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen> {
             }
 
             return SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
+              padding: EdgeInsets.all(
+                MediaQuery.sizeOf(context).width < 600 ? 12 : 24,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildHeader(),
                   const SizedBox(height: 24),
                   _buildSummaryCards(),
-                  const SizedBox(height: 32),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(child: _buildCategoryAnalytics()),
-                      const SizedBox(width: 24),
-                      Expanded(child: _buildTrendAnalytics()),
-                    ],
+                  const SizedBox(height: 24),
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      if (constraints.maxWidth < 700) {
+                        return Column(
+                          children: [
+                            _buildCategoryAnalytics(),
+                            const SizedBox(height: 16),
+                            _buildTrendAnalytics(),
+                          ],
+                        );
+                      }
+                      return Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(child: _buildCategoryAnalytics()),
+                          const SizedBox(width: 24),
+                          Expanded(child: _buildTrendAnalytics()),
+                        ],
+                      );
+                    },
                   ),
                   const SizedBox(height: 32),
                   _buildBudgetOverview(),
@@ -86,35 +101,46 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen> {
   }
 
   Widget _buildHeader() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        const Column(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isNarrow = constraints.maxWidth < 600;
+        final title = Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               "Supplier Command Center",
               style: TextStyle(
-                fontSize: 24,
+                fontSize: isNarrow ? 20 : 24,
                 fontWeight: FontWeight.w900,
                 color: AdminTheme.darkNavy,
               ),
             ),
-            Text(
+            const Text(
               "Manage your vendors and their individual supply containers.",
               style: TextStyle(fontSize: 12, color: Colors.grey),
             ),
           ],
-        ),
-        ElevatedButton.icon(
+        );
+        final addButton = ElevatedButton.icon(
           onPressed: _showAddSupplierModal,
           icon: const Icon(Icons.add_business_rounded, size: 18),
           label: const Text("NEW SUPPLIER"),
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFFFF5C00),
           ),
-        ),
-      ],
+        );
+
+        if (isNarrow) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [title, const SizedBox(height: 12), addButton],
+          );
+        }
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [Expanded(child: title), addButton],
+        );
+      },
     );
   }
 
@@ -165,36 +191,46 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen> {
   }
 
   Widget _buildSummaryCards() {
-    return Row(
-      children: [
-        _buildStatCard(
-          "Total Purchases",
-          "NPR ${_totalExpenses.toStringAsFixed(0)}",
-          const Color(0xFF6366F1),
-          Icons.receipt_long,
-        ),
-        const SizedBox(width: 16),
-        _buildStatCard(
-          "Active Vendors",
-          "${_suppliers.length}",
-          const Color(0xFF10B981),
-          Icons.storefront_rounded,
-        ),
-        const SizedBox(width: 16),
-        _buildStatCard(
-          "Net Outstanding",
-          "NPR ${_totalOutstanding.toStringAsFixed(0)}",
-          const Color(0xFFF59E0B),
-          Icons.pending_actions_rounded,
-        ),
-        const SizedBox(width: 16),
-        _buildStatCard(
-          "Supply Orders",
-          "${_purchases.length}",
-          const Color(0xFF3B82F6),
-          Icons.inventory_2_rounded,
-        ),
-      ],
+    final cards = [
+      _buildStatCard(
+        "Total Purchases",
+        "NPR ${_totalExpenses.toStringAsFixed(0)}",
+        const Color(0xFF6366F1),
+        Icons.receipt_long,
+      ),
+      _buildStatCard(
+        "Active Vendors",
+        "${_suppliers.length}",
+        const Color(0xFF10B981),
+        Icons.storefront_rounded,
+      ),
+      _buildStatCard(
+        "Net Outstanding",
+        "NPR ${_totalOutstanding.toStringAsFixed(0)}",
+        const Color(0xFFF59E0B),
+        Icons.pending_actions_rounded,
+      ),
+      _buildStatCard(
+        "Supply Orders",
+        "${_purchases.length}",
+        const Color(0xFF3B82F6),
+        Icons.inventory_2_rounded,
+      ),
+    ];
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columns = constraints.maxWidth < 600 ? 2 : 4;
+        final gap = 12.0;
+        final width =
+            (constraints.maxWidth - gap * (columns - 1)) / columns;
+        return Wrap(
+          spacing: gap,
+          runSpacing: gap,
+          children: cards
+              .map((card) => SizedBox(width: width, child: card))
+              .toList(),
+        );
+      },
     );
   }
 
@@ -204,8 +240,7 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen> {
     Color color,
     IconData icon,
   ) {
-    return Expanded(
-      child: Container(
+    return Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: Colors.white,
@@ -242,7 +277,6 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen> {
             ),
           ],
         ),
-      ),
     );
   }
 
@@ -515,8 +549,10 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            runSpacing: 12,
             children: [
               const Text(
                 "Global Audit Log",
@@ -593,7 +629,9 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen> {
   // ==========================================
   Widget _buildLedgerListView() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(
+        MediaQuery.sizeOf(context).width < 600 ? 12 : 24,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -664,13 +702,14 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen> {
           name,
           style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
         ),
-        subtitle: Row(
+        subtitle: Wrap(
+          spacing: 12,
+          runSpacing: 4,
           children: [
             Text(
               "Purchases: NPR ${totalSpent.toStringAsFixed(0)}",
               style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(width: 12),
             Text(
               "Balance: NPR ${balance.toStringAsFixed(0)}",
               style: TextStyle(
@@ -722,7 +761,9 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen> {
             ),
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(32),
+                padding: EdgeInsets.all(
+                  MediaQuery.sizeOf(ctx).width < 600 ? 16 : 32,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [

@@ -546,8 +546,8 @@ class _CustomerManagementScreenState extends State<CustomerManagementScreen> {
                     ),
                   ),
                 )
-              : SizedBox(
-                  width: double.infinity,
+              : SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
                   child: DataTable(
                     horizontalMargin: 0,
                     columnSpacing: 20,

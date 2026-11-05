@@ -424,7 +424,10 @@ class _OrderManagementScreenState extends State<OrderManagementScreen> {
         children: [
           // Card Header
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            padding: EdgeInsets.symmetric(
+              horizontal: MediaQuery.sizeOf(context).width < 400 ? 10 : 20,
+              vertical: 14,
+            ),
             decoration: BoxDecoration(
               color: statusColor.withValues(alpha: 0.05),
               borderRadius: const BorderRadius.vertical(
@@ -444,6 +447,8 @@ class _OrderManagementScreenState extends State<OrderManagementScreen> {
                   ),
                   child: Text(
                     id,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       fontWeight: FontWeight.w900,
                       fontSize: 13,
@@ -466,6 +471,8 @@ class _OrderManagementScreenState extends State<OrderManagementScreen> {
                   ),
                   child: Text(
                     status.toUpperCase(),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: statusColor,
                       fontSize: 10,
@@ -652,12 +659,17 @@ class _OrderManagementScreenState extends State<OrderManagementScreen> {
                         color: Colors.black87,
                       ),
                     ),
-                    Text(
-                      "NPR ${order['total_amount'] ?? '0'}",
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w900,
-                        color: AdminTheme.royalBlue,
-                        fontSize: 16,
+                    Flexible(
+                      child: Text(
+                        "NPR ${order['total_amount'] ?? '0'}",
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.end,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w900,
+                          color: AdminTheme.royalBlue,
+                          fontSize: 16,
+                        ),
                       ),
                     ),
                   ],
@@ -684,9 +696,7 @@ class _OrderManagementScreenState extends State<OrderManagementScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              "Order #$displayOrderNumber updated to $newStatus.",
-            ),
+            content: Text("Order #$displayOrderNumber updated to $newStatus."),
             backgroundColor: AdminTheme.emeraldGreen,
             behavior: SnackBarBehavior.floating,
           ),

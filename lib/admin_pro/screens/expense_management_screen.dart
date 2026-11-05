@@ -237,35 +237,59 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
 
   Widget _buildAddExpenseView() {
     return SingleChildScrollView(
+      padding: EdgeInsets.symmetric(
+        horizontal: MediaQuery.sizeOf(context).width < 600 ? 12 : 24,
+      ),
       child: Column(
         children: [
-          const SizedBox(height: 40),
+          SizedBox(height: MediaQuery.sizeOf(context).width < 600 ? 20 : 40),
           _buildHeaderTitle("Log New Transaction"),
-          const SizedBox(height: 40),
-          Center(
-            child: Container(
-              constraints: const BoxConstraints(maxWidth: 1000),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(flex: 1, child: _buildInteractiveDialColumn()),
-                  const SizedBox(width: 48),
-                  Expanded(flex: 1, child: _buildTransactionFormColumn()),
-                ],
-              ),
-            ),
+          const SizedBox(height: 24),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              const dialMaxSize = 400.0;
+              final isNarrow = constraints.maxWidth < 700;
+              final dialSize = isNarrow
+                  ? constraints.maxWidth.clamp(0.0, dialMaxSize).toDouble()
+                  : dialMaxSize;
+
+              return Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1000),
+                  child: isNarrow
+                      ? Column(
+                          children: [
+                            _buildInteractiveDialColumn(dialSize),
+                            const SizedBox(height: 24),
+                            _buildTransactionFormColumn(),
+                          ],
+                        )
+                      : Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: _buildInteractiveDialColumn(dialSize),
+                            ),
+                            const SizedBox(width: 48),
+                            Expanded(child: _buildTransactionFormColumn()),
+                          ],
+                        ),
+                ),
+              );
+            },
           ),
         ],
       ),
     );
   }
 
-  Widget _buildInteractiveDialColumn() {
+  Widget _buildInteractiveDialColumn(double dialSize) {
+    final ringRadius = dialSize * 0.375;
     return Column(
       children: [
         SizedBox(
-          height: 400,
-          width: 400,
+          height: dialSize,
+          width: dialSize,
           child: Stack(
             alignment: Alignment.center,
             children: [
@@ -283,8 +307,8 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
                   ),
                   Text(
                     "NPR $_amount",
-                    style: const TextStyle(
-                      fontSize: 40,
+                    style: TextStyle(
+                      fontSize: dialSize < 360 ? 30 : 40,
                       fontWeight: FontWeight.w900,
                       color: Color(0xFF202224),
                     ),
@@ -309,7 +333,10 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
                     180;
                 bool isSelected = _selectedCategory == cat['id'];
                 return Transform.translate(
-                  offset: Offset(math.cos(angle) * 150, math.sin(angle) * 150),
+                  offset: Offset(
+                    math.cos(angle) * ringRadius,
+                    math.sin(angle) * ringRadius,
+                  ),
                   child: GestureDetector(
                     onTap: () => setState(() => _selectedCategory = cat['id']),
                     child: Column(
@@ -477,12 +504,17 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
     }).toList();
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 32),
+      padding: EdgeInsets.symmetric(
+        horizontal: MediaQuery.sizeOf(context).width < 600 ? 12 : 40,
+        vertical: MediaQuery.sizeOf(context).width < 600 ? 16 : 32,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            runSpacing: 12,
             children: [
               const Text(
                 "Transaction Audit",
@@ -539,7 +571,20 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
               ),
             ),
 
-          _buildProfessionalTable(filtered),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final tableWidth = constraints.maxWidth < 760
+                  ? 760.0
+                  : constraints.maxWidth;
+              return SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: SizedBox(
+                  width: tableWidth,
+                  child: _buildProfessionalTable(filtered),
+                ),
+              );
+            },
+          ),
           const SizedBox(height: 24),
           _buildPaginationFooter(),
         ],
@@ -1226,16 +1271,21 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
     }
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 32),
+      padding: EdgeInsets.symmetric(
+        horizontal: MediaQuery.sizeOf(context).width < 600 ? 12 : 40,
+        vertical: MediaQuery.sizeOf(context).width < 600 ? 16 : 32,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            runSpacing: 12,
             children: [
               const Text(
                 "Financial Command Center",
-                style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900),
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
               ),
               ElevatedButton.icon(
                 onPressed: () {},
@@ -1246,10 +1296,19 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
           ),
           const SizedBox(height: 32),
 
-          Row(
-            children: [
-              Expanded(
-                child: _buildEdukaCard(
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final columns = constraints.maxWidth < 600 ? 2 : 4;
+              final gap = 12.0;
+              final cardWidth =
+                  (constraints.maxWidth - gap * (columns - 1)) / columns;
+              return Wrap(
+                spacing: gap,
+                runSpacing: gap,
+                children: [
+                  SizedBox(
+                    width: cardWidth,
+                    child: _buildEdukaCard(
                   "Net Profit",
                   "NPR ${(sales - expenses).toStringAsFixed(0)}",
                   "Sales - Expenses",
@@ -1257,10 +1316,10 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
                   const Color(0xFF00B69B),
                   Icons.trending_up,
                 ),
-              ),
-              const SizedBox(width: 24),
-              Expanded(
-                child: _buildEdukaCard(
+                  ),
+                  SizedBox(
+                    width: cardWidth,
+                    child: _buildEdukaCard(
                   "Total Sales",
                   "NPR ${sales.toStringAsFixed(0)}",
                   "Gross Revenue",
@@ -1268,10 +1327,10 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
                   const Color(0xFF5065F6),
                   Icons.shopping_bag,
                 ),
-              ),
-              const SizedBox(width: 24),
-              Expanded(
-                child: _buildEdukaCard(
+                  ),
+                  SizedBox(
+                    width: cardWidth,
+                    child: _buildEdukaCard(
                   "Expenses",
                   "NPR ${expenses.toStringAsFixed(0)}",
                   "Total Outflow",
@@ -1279,10 +1338,10 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
                   const Color(0xFF8833FF),
                   Icons.receipt,
                 ),
-              ),
-              const SizedBox(width: 24),
-              Expanded(
-                child: _buildEdukaCard(
+                  ),
+                  SizedBox(
+                    width: cardWidth,
+                    child: _buildEdukaCard(
                   "Total Dues",
                   "NPR ${totalDues.toStringAsFixed(0)}",
                   "Supplier Outstanding",
@@ -1290,19 +1349,34 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
                   const Color(0xFFFF9500),
                   Icons.timer,
                 ),
-              ),
-            ],
+                  ),
+                ],
+              );
+            },
           ),
 
           const SizedBox(height: 32),
 
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(flex: 2, child: _buildCategoryBreakoutCard()),
-              const SizedBox(width: 24),
-              Expanded(flex: 1, child: _buildFinancialAnalyticsColumn()),
-            ],
+          LayoutBuilder(
+            builder: (context, constraints) {
+              if (constraints.maxWidth < 700) {
+                return Column(
+                  children: [
+                    _buildCategoryBreakoutCard(),
+                    const SizedBox(height: 20),
+                    _buildFinancialAnalyticsColumn(),
+                  ],
+                );
+              }
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(flex: 2, child: _buildCategoryBreakoutCard()),
+                  const SizedBox(width: 24),
+                  Expanded(flex: 1, child: _buildFinancialAnalyticsColumn()),
+                ],
+              );
+            },
           ),
         ],
       ),
@@ -1633,7 +1707,7 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
 
   Widget _buildVendorManagementView() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(40),
+      padding: EdgeInsets.all(MediaQuery.sizeOf(context).width < 600 ? 12 : 40),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1882,21 +1956,27 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
     }
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 32),
+      padding: EdgeInsets.symmetric(
+        horizontal: MediaQuery.sizeOf(context).width < 600 ? 12 : 40,
+        vertical: MediaQuery.sizeOf(context).width < 600 ? 16 : 32,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            runSpacing: 12,
             children: [
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
+                  Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 12,
                     children: [
                       _buildHeaderTitle("Monthly Expense Planner"),
-                      if (dueAlertCount > 0) ...[
-                        const SizedBox(width: 12),
+                      if (dueAlertCount > 0)
                         Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 10,
@@ -1915,7 +1995,6 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
                             ),
                           ),
                         ),
-                      ],
                     ],
                   ),
                   const Text(
@@ -1944,10 +2023,19 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
           const SizedBox(height: 32),
 
           // STATS BAR
-          Row(
-            children: [
-              Expanded(
-                child: _buildEdukaCard(
+          LayoutBuilder(
+            builder: (context, constraints) {
+              const gap = 12.0;
+              final columns = constraints.maxWidth < 600 ? 2 : 3;
+              final cardWidth =
+                  (constraints.maxWidth - gap * (columns - 1)) / columns;
+              return Wrap(
+                spacing: gap,
+                runSpacing: gap,
+                children: [
+                  SizedBox(
+                    width: cardWidth,
+                    child: _buildEdukaCard(
                   "Monthly Outlook",
                   "NPR ${monthlyTotal.toStringAsFixed(0)}",
                   "Estimated Outflow",
@@ -1955,10 +2043,10 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
                   const Color(0xFF5065F6),
                   Icons.calendar_month,
                 ),
-              ),
-              const SizedBox(width: 24),
-              Expanded(
-                child: _buildEdukaCard(
+                  ),
+                  SizedBox(
+                    width: cardWidth,
+                    child: _buildEdukaCard(
                   "Active Items",
                   "$activeCount",
                   "Payment Templates",
@@ -1966,10 +2054,10 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
                   const Color(0xFF8833FF),
                   Icons.checklist_rtl,
                 ),
-              ),
-              const SizedBox(width: 24),
-              Expanded(
-                child: _buildEdukaCard(
+                  ),
+                  SizedBox(
+                    width: cardWidth,
+                    child: _buildEdukaCard(
                   "Next Month Projection",
                   "NPR ${monthlyTotal.toStringAsFixed(0)}",
                   "Projected Total",
@@ -1977,8 +2065,10 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
                   const Color(0xFF00B69B),
                   Icons.trending_up,
                 ),
-              ),
-            ],
+                  ),
+                ],
+              );
+            },
           ),
 
           const SizedBox(height: 48),

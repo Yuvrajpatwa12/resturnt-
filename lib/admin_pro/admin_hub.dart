@@ -316,17 +316,21 @@ class _AdminHubState extends State<AdminHub> {
   }
 
   Widget _buildHeader(bool isMobile) {
+    final isNarrowPhone = MediaQuery.sizeOf(context).width < 400;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      padding: EdgeInsets.symmetric(
+        horizontal: isNarrowPhone ? 8 : (isMobile ? 12 : 24),
+        vertical: isNarrowPhone ? 10 : 16,
+      ),
       color: Colors.white,
       child: Row(
         children: [
           if (isMobile || !_isSidebarVisible)
             IconButton(
-              icon: const Icon(
+              icon: Icon(
                 Icons.menu_rounded,
                 color: AdminTheme.royalBlue,
-                size: 28,
+                size: isNarrowPhone ? 24 : 28,
               ),
               onPressed: () {
                 if (isMobile) {
@@ -358,33 +362,37 @@ class _AdminHubState extends State<AdminHub> {
             ),
           ],
           if (isMobile)
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  _currentTitle,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: AdminTheme.darkNavy,
+            Flexible(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    _currentTitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: isNarrowPhone ? 14 : 16,
+                      fontWeight: FontWeight.bold,
+                      color: AdminTheme.darkNavy,
+                    ),
                   ),
-                ),
-                const Text(
-                  "Admin Console",
-                  style: TextStyle(
-                    fontSize: 8,
-                    color: Colors.grey,
-                    fontWeight: FontWeight.bold,
+                  const Text(
+                    "Admin Console",
+                    style: TextStyle(
+                      fontSize: 8,
+                      color: Colors.grey,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           const Spacer(),
-          _buildLanguageSwitcher(),
-          const SizedBox(width: 16),
+          if (!isNarrowPhone) _buildLanguageSwitcher(),
+          SizedBox(width: isNarrowPhone ? 4 : 16),
           _buildHeaderAction(Icons.notifications_none_outlined, () {}),
-          const SizedBox(width: 16),
+          SizedBox(width: isNarrowPhone ? 4 : 16),
           InkWell(
             onTap: () => _showAdminProfileDialog(context),
             borderRadius: BorderRadius.circular(12),
@@ -872,20 +880,6 @@ class _AdminHubState extends State<AdminHub> {
                     ),
 
                     _buildExpandableDrawerItem(
-                      icon: Icons.event_available_outlined,
-                      title: "Reservation",
-                      isFixed: isFixed,
-                      children: [
-                        _buildSubDrawerItem(18, "Reservation", isFixed),
-                        _buildSubDrawerItem(19, "Add Booking", isFixed),
-                        _buildSubDrawerItem(115, "Room List", isFixed),
-                        _buildSubDrawerItem(116, "Room Setting", isFixed),
-                        _buildSubDrawerItem(20, "Room Maintenance", isFixed),
-                        _buildSubDrawerItem(21, "Reservation Setting", isFixed),
-                      ],
-                    ),
-
-                    _buildExpandableDrawerItem(
                       icon: Icons.restaurant_menu,
                       title: "Food Management",
                       isFixed: isFixed,
@@ -943,29 +937,6 @@ class _AdminHubState extends State<AdminHub> {
                             _buildSubDrawerItem(
                               29,
                               "Menu Type",
-                              isFixed,
-                              isDoubleNested: true,
-                            ),
-                          ],
-                        ),
-                        _buildNestedExpandableItem(
-                          title: "Manage Add-ons",
-                          children: [
-                            _buildSubDrawerItem(
-                              30,
-                              "Add Add-ons",
-                              isFixed,
-                              isDoubleNested: true,
-                            ),
-                            _buildSubDrawerItem(
-                              31,
-                              "Add-ons List",
-                              isFixed,
-                              isDoubleNested: true,
-                            ),
-                            _buildSubDrawerItem(
-                              32,
-                              "Add-ons Assign List",
                               isFixed,
                               isDoubleNested: true,
                             ),
@@ -1056,25 +1027,25 @@ class _AdminHubState extends State<AdminHub> {
                           title: "Loyalty & Rewards",
                           children: [
                             _buildSubDrawerItem(
-                              109,
+                              102,
                               "Rewards Config",
                               isFixed,
                               isDoubleNested: true,
                             ),
                             _buildSubDrawerItem(
-                              111,
+                              104,
                               "Mystery Box",
                               isFixed,
                               isDoubleNested: true,
                             ),
                             _buildSubDrawerItem(
-                              112,
+                              105,
                               "Claim History",
                               isFixed,
                               isDoubleNested: true,
                             ),
                             _buildSubDrawerItem(
-                              113,
+                              106,
                               "Marketing Banners",
                               isFixed,
                               isDoubleNested: true,
@@ -1085,7 +1056,7 @@ class _AdminHubState extends State<AdminHub> {
                           title: "Award",
                           children: [
                             _buildSubDrawerItem(
-                              110,
+                              103,
                               "Redeem Items",
                               isFixed,
                               isDoubleNested: true,

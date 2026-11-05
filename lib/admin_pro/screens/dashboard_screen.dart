@@ -1,17 +1,85 @@
 import 'package:flutter/material.dart';
 import '../../services/tenant_service.dart';
 import '../../services/api_service.dart';
-import '../../cart_manager.dart';
 import '../admin_theme.dart';
 
-class DashboardScreen extends StatelessWidget {
+class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
+
+  @override
+  State<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends State<DashboardScreen> {
+  List<Map<String, dynamic>> _orders = [];
+  bool _isLoadingOrders = true;
+  bool _orderLoadFailed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadOrders();
+  }
+
+  Future<void> _loadOrders() async {
+    final tenant = TenantService().currentTenant.value;
+    if (tenant == null) {
+      if (mounted) {
+        setState(() {
+          _isLoadingOrders = false;
+          _orderLoadFailed = true;
+        });
+      }
+      return;
+    }
+
+    final orders = await ApiService.fetchAllOrders(tenant.id);
+    if (!mounted) return;
+    setState(() {
+      _isLoadingOrders = false;
+      _orderLoadFailed = orders == null;
+      if (orders != null) _orders = orders;
+    });
+  }
+
+  double _orderAmount(Map<String, dynamic> order) {
+    return double.tryParse(
+          (order['total_amount'] ??
+                  order['total_price'] ??
+                  order['amount'] ??
+                  '0')
+              .toString()
+              .replaceAll(RegExp(r'[^0-9.]'), ''),
+        ) ??
+        0;
+  }
+
+  DateTime? _orderDate(Map<String, dynamic> order) {
+    final rawDate =
+        order['created_at'] ?? order['order_date'] ?? order['date'] ?? '';
+    if (rawDate is DateTime) return rawDate;
+    return DateTime.tryParse(rawDate.toString());
+  }
+
+  bool _isCompleted(Map<String, dynamic> order) {
+    final status = (order['status'] ?? '').toString().toLowerCase();
+    return status == 'complete' || status == 'completed';
+  }
+
+  double _salesFor(Iterable<Map<String, dynamic>> orders) => orders
+      .where(_isCompleted)
+      .fold(0.0, (total, order) => total + _orderAmount(order));
 
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(24, 8, 24, 40),
+      padding: EdgeInsets.fromLTRB(
+        MediaQuery.sizeOf(context).width < 600 ? 12 : 24,
+        8,
+        MediaQuery.sizeOf(context).width < 600 ? 12 : 24,
+        40,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -28,6 +96,22 @@ class DashboardScreen extends StatelessWidget {
           _buildActivitySection(),
           const SizedBox(height: 32),
           _buildMonthlyGrowthCard(),
+          if (_orderLoadFailed) ...[
+            const SizedBox(height: 16),
+            Center(
+              child: TextButton.icon(
+                onPressed: () {
+                  setState(() {
+                    _isLoadingOrders = true;
+                    _orderLoadFailed = false;
+                  });
+                  _loadOrders();
+                },
+                icon: const Icon(Icons.refresh),
+                label: const Text("Could not load restaurant orders. Retry"),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -40,38 +124,46 @@ class DashboardScreen extends StatelessWidget {
         final tenantName = tenant?.name ?? "Restaurant Admin";
         final tenantId = tenant?.id ?? "tenant_id";
         return Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Hi, $tenantName",
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w900,
-                    color: AdminTheme.darkNavy,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Hi, $tenantName",
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: MediaQuery.sizeOf(context).width < 600
+                          ? 20
+                          : 24,
+                      fontWeight: FontWeight.w900,
+                      color: AdminTheme.darkNavy,
+                    ),
                   ),
-                ),
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.store_mall_directory,
-                      size: 12,
-                      color: Colors.grey,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      "ID: $tenantId",
-                      style: const TextStyle(
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.store_mall_directory,
+                        size: 12,
                         color: Colors.grey,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                      const SizedBox(width: 4),
+                      Flexible(
+                        child: Text(
+                          "ID: $tenantId",
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.grey,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
             const CircleAvatar(
               radius: 22,
@@ -91,14 +183,11 @@ class DashboardScreen extends StatelessWidget {
         if (tenant == null) return const SizedBox.shrink();
 
         final now = DateTime.now();
-        DateTime expiryDate = now.add(const Duration(days: 10)); // Fallback
-        try {
-          if (tenant.expiry != null)
-            expiryDate = DateTime.parse(tenant.expiry!);
-        } catch (_) {}
-
-        final daysLeft = expiryDate.difference(now).inDays.clamp(0, 365);
-        final bool isWarning = daysLeft < 7;
+        final expiryDate = tenant.expiry == null
+            ? null
+            : DateTime.tryParse(tenant.expiry!);
+        final daysLeft = expiryDate?.difference(now).inDays.clamp(0, 365);
+        final bool isWarning = daysLeft != null && daysLeft < 7;
 
         return Container(
           padding: const EdgeInsets.all(16),
@@ -142,7 +231,9 @@ class DashboardScreen extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      "$daysLeft days remaining in your subscription.",
+                      daysLeft == null
+                          ? "Expiry date unavailable."
+                          : "$daysLeft days remaining in your subscription.",
                       style: TextStyle(
                         fontSize: 10,
                         color: isWarning ? Colors.red[700] : Colors.grey[600],
@@ -175,155 +266,229 @@ class DashboardScreen extends StatelessWidget {
   }
 
   Widget _buildQuickActionRow() {
-    return Row(
-      children: [
-        _buildTintedActionCard(
-          "Quick Tips",
-          "Increase your sales conversion rate",
-          AdminTheme.royalBlue,
-          Icons.tips_and_updates,
-        ),
-        const SizedBox(width: 16),
-        _buildTintedActionCard(
-          "Task Status",
-          "Weekly tasks completed 85%",
-          AdminTheme.emeraldGreen,
-          Icons.check_circle_outline,
-        ),
-      ],
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final todayOrders = _orders.where((order) {
+      final date = _orderDate(order);
+      return date != null &&
+          !date.isBefore(today) &&
+          date.isBefore(today.add(const Duration(days: 1)));
+    }).length;
+    final monthOrders = _orders.where((order) {
+      final date = _orderDate(order);
+      return date != null && date.year == now.year && date.month == now.month;
+    }).toList();
+    final pendingOrders = _orders
+        .where(
+          (order) => (order['status'] ?? 'Pending')
+              .toString()
+              .toLowerCase()
+              .contains('pending'),
+        )
+        .length;
+    String displayOrderCount(int number) => _isLoadingOrders
+        ? "Loading"
+        : (_orderLoadFailed ? "Unavailable" : "$number");
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const gap = 12.0;
+        final columns = constraints.maxWidth < 600 ? 2 : 4;
+        final width = (constraints.maxWidth - gap * (columns - 1)) / columns;
+        return Wrap(
+          spacing: gap,
+          runSpacing: gap,
+          children: [
+            SizedBox(
+              width: width,
+              child: _buildTintedActionCard(
+                "Today's Orders",
+                "Restaurant orders received today",
+                displayOrderCount(todayOrders),
+                AdminTheme.royalBlue,
+                Icons.receipt_long,
+              ),
+            ),
+            SizedBox(
+              width: width,
+              child: _buildTintedActionCard(
+                "Pending Orders",
+                "Awaiting restaurant processing",
+                displayOrderCount(pendingOrders),
+                AdminTheme.emeraldGreen,
+                Icons.pending_actions,
+              ),
+            ),
+            SizedBox(
+              width: width,
+              child: _buildTintedActionCard(
+                "This Month",
+                "Orders received this month",
+                displayOrderCount(monthOrders.length),
+                const Color(0xFF8833FF),
+                Icons.calendar_month,
+              ),
+            ),
+            SizedBox(
+              width: width,
+              child: _buildTintedActionCard(
+                "Completed Sales",
+                "This month's completed orders",
+                _isLoadingOrders
+                    ? "Loading"
+                    : _orderLoadFailed
+                    ? "Unavailable"
+                    : "NPR ${_salesFor(monthOrders).toStringAsFixed(0)}",
+                const Color(0xFFEA580C),
+                Icons.trending_up,
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
   Widget _buildTintedActionCard(
     String title,
     String subtitle,
+    String value,
     Color color,
     IconData icon,
   ) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: color.withValues(alpha: 0.1)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Icon(icon, color: color, size: 20),
-                const Icon(
-                  Icons.play_circle_fill,
-                  color: Colors.white,
-                  size: 18,
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withValues(alpha: 0.1)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Icon(icon, color: color, size: 20),
+              Text(
+                value,
+                style: TextStyle(
+                  color: color,
+                  fontSize: 17,
+                  fontWeight: FontWeight.w900,
                 ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text(
-              title,
-              style: TextStyle(
-                color: color,
-                fontWeight: FontWeight.bold,
-                fontSize: 13,
               ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            title,
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.bold,
+              fontSize: 13,
             ),
-            const SizedBox(height: 4),
-            Text(
-              subtitle,
-              style: TextStyle(
-                color: color.withValues(alpha: 0.7),
-                fontSize: 10,
-                fontWeight: FontWeight.w500,
-              ),
-              maxLines: 2,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            subtitle,
+            style: TextStyle(
+              color: color.withValues(alpha: 0.7),
+              fontSize: 10,
+              fontWeight: FontWeight.w500,
             ),
-          ],
-        ),
+            maxLines: 2,
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildWalletCard() {
-    return ValueListenableBuilder<List<Map<String, dynamic>>>(
-      valueListenable: ShopManager.instance.allHistoricalBills,
-      builder: (context, bills, child) {
-        double totalRevenue = 0;
-        for (var bill in bills) {
-          totalRevenue +=
-              double.tryParse(
-                bill['total'].replaceAll(RegExp(r'[^0-9.]'), ''),
-              ) ??
-              0;
-        }
-
-        return Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: AdminTheme.softShadow,
-          ),
-          child: Column(
+    final now = DateTime.now();
+    final monthOrders = _orders.where((order) {
+      final date = _orderDate(order);
+      return date != null && date.year == now.year && date.month == now.month;
+    }).toList();
+    final amount = _orderLoadFailed
+        ? "Unavailable"
+        : _isLoadingOrders
+        ? "Loading"
+        : "NPR ${_salesFor(_orders).toStringAsFixed(0)}";
+    final monthAmount = _orderLoadFailed
+        ? "Unavailable"
+        : _isLoadingOrders
+        ? "Loading"
+        : "NPR ${_salesFor(monthOrders).toStringAsFixed(0)}";
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: AdminTheme.softShadow,
+      ),
+      child: Column(
+        children: [
+          Row(
             children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: AdminTheme.royalBlue.withValues(alpha: 0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.account_balance_wallet,
-                      color: AdminTheme.royalBlue,
-                      size: 20,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          "Revenue Balance",
-                          style: TextStyle(
-                            color: Colors.grey,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Text(
-                          "NPR ${totalRevenue.toStringAsFixed(0)}",
-                          style: const TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Icon(Icons.chevron_right, color: Colors.grey),
-                ],
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AdminTheme.royalBlue.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.account_balance_wallet,
+                  color: AdminTheme.royalBlue,
+                  size: 20,
+                ),
               ),
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 20),
-                child: Divider(height: 1),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "Completed Sales",
+                      style: TextStyle(
+                        color: Colors.grey,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      amount,
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  _buildSubWalletInfo("Monthly Target", "NPR 150K"),
-                  _buildSubWalletInfo("Total Orders", "${bills.length}"),
-                ],
+              const Icon(Icons.chevron_right, color: Colors.grey),
+            ],
+          ),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 20),
+            child: Divider(height: 1),
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildSubWalletInfo("This Month", monthAmount),
+              _buildSubWalletInfo(
+                "Total Orders",
+                _isLoadingOrders
+                    ? "Loading"
+                    : _orderLoadFailed
+                    ? "Unavailable"
+                    : "${_orders.length}",
               ),
             ],
           ),
-        );
-      },
+        ],
+      ),
     );
   }
 
@@ -471,6 +636,20 @@ class DashboardScreen extends StatelessWidget {
   }
 
   Widget _buildActivitySection() {
+    final today = DateTime.now();
+    final startOfToday = DateTime(today.year, today.month, today.day);
+    final weekCounts = List<int>.generate(7, (index) {
+      final date = startOfToday.subtract(Duration(days: 6 - index));
+      return _orders.where((order) {
+        final orderDate = _orderDate(order);
+        return orderDate != null &&
+            orderDate.year == date.year &&
+            orderDate.month == date.month &&
+            orderDate.day == date.day;
+      }).length;
+    });
+    final weekTotal = weekCounts.fold<int>(0, (sum, count) => sum + count);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -478,17 +657,13 @@ class DashboardScreen extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text(
-              "Activities this week",
+              "Orders this week",
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
             ),
-            const Text(
-              "-7.6%",
-              style: TextStyle(
-                color: Colors.red,
-                fontWeight: FontWeight.bold,
-                fontSize: 12,
-              ),
-            ),
+            if (_isLoadingOrders)
+              const Text("Loading", style: TextStyle(color: Colors.grey))
+            else if (_orderLoadFailed)
+              const Text("Unavailable", style: TextStyle(color: Colors.red)),
           ],
         ),
         const SizedBox(height: 16),
@@ -507,17 +682,14 @@ class DashboardScreen extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    _buildStatCol("136", "Avg. 26 per day"),
-                    const Icon(
-                      Icons.trending_down,
-                      color: Colors.red,
-                      size: 20,
+                    _buildStatCol(
+                      _isLoadingOrders || _orderLoadFailed ? "—" : "$weekTotal",
+                      "Orders in the last 7 days",
                     ),
                   ],
                 ),
                 const Spacer(),
-                // Simple Line Chart Mock
-                _buildSimpleChart(),
+                _buildSimpleChart(weekCounts),
               ],
             ),
           ),
@@ -546,27 +718,62 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSimpleChart() {
+  Widget _buildSimpleChart(List<int> counts) {
+    final maxCount = counts.fold<int>(
+      0,
+      (max, count) => count > max ? count : max,
+    );
+    final today = DateTime.now();
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.end,
-      children: List.generate(7, (index) {
-        final double h = [40.0, 60.0, 30.0, 80.0, 50.0, 90.0, 45.0][index];
-        return Container(
-          width: 8,
-          height: h,
-          decoration: BoxDecoration(
-            color: index == 5
-                ? AdminTheme.royalBlue
-                : AdminTheme.royalBlue.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(4),
-          ),
+      children: List.generate(counts.length, (index) {
+        final height = maxCount == 0 ? 4.0 : 64 * counts[index] / maxCount;
+        return Column(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            Container(
+              width: 12,
+              height: height,
+              decoration: BoxDecoration(
+                color: index == counts.length - 1
+                    ? AdminTheme.royalBlue
+                    : AdminTheme.royalBlue.withValues(alpha: 0.25),
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              [
+                "M",
+                "T",
+                "W",
+                "T",
+                "F",
+                "S",
+                "S",
+              ][today.subtract(Duration(days: 6 - index)).weekday - 1],
+              style: const TextStyle(fontSize: 9, color: Colors.grey),
+            ),
+          ],
         );
       }),
     );
   }
 
   Widget _buildMonthlyGrowthCard() {
+    final now = DateTime.now();
+    final monthOrders = _orders.where((order) {
+      final date = _orderDate(order);
+      return date != null && date.year == now.year && date.month == now.month;
+    }).toList();
+    final revenue = _orderLoadFailed
+        ? "Unavailable"
+        : _isLoadingOrders
+        ? "Loading"
+        : "NPR ${_salesFor(monthOrders).toStringAsFixed(0)}";
+    final completedCount = monthOrders.where(_isCompleted).length;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
@@ -581,53 +788,27 @@ class DashboardScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
-                "Monthly Performance",
+                "This Month's Performance",
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white24,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: const Text(
-                  "+12.4%",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
             ],
           ),
           const SizedBox(height: 24),
-          const Text(
-            "NPR 84,200",
+          Text(
+            revenue,
             style: TextStyle(
               color: Colors.white,
               fontSize: 24,
               fontWeight: FontWeight.w900,
             ),
           ),
-          const Text(
-            "Projected growth for October",
+          Text(
+            "$completedCount completed orders",
             style: TextStyle(color: Colors.white60, fontSize: 11),
-          ),
-          const SizedBox(height: 24),
-          LinearProgressIndicator(
-            value: 0.76,
-            backgroundColor: Colors.white10,
-            color: AdminTheme.emeraldGreen,
-            minHeight: 8,
-            borderRadius: BorderRadius.circular(10),
           ),
         ],
       ),
